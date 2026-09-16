@@ -41,6 +41,9 @@ class ArmConfig:
     w_penalty: float = 0.5
     w_rerank: float = 1.0
     min_results: int = 5
+    # scale the BM25 weight (and gate its RRF list) by query-token coverage of the catalog
+    bm25_adaptive: bool = False
+    bm25_min_coverage: float = 0.5
 
 
 FULL = ArmConfig(name="full")
@@ -51,6 +54,9 @@ ARMS: dict[str, ArmConfig] = {
     "hybrid_rrf": ArmConfig(name="hybrid_rrf", candidate_fusion="rrf", additive_rerank=False),
     "hybrid_convex": ArmConfig(name="hybrid_convex", candidate_fusion="convex", additive_rerank=False),
     "full": FULL,
+    "hybrid_rrf_adaptive": ArmConfig(name="hybrid_rrf_adaptive", candidate_fusion="rrf", additive_rerank=False,
+                                     bm25_adaptive=True),
+    "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),

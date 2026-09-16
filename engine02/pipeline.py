@@ -9,6 +9,7 @@ filter (with relaxation) → candidate retrieval (BM25 / dense / RRF / convex)
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -154,6 +155,13 @@ class Engine02:
         q = self.query_embedding(req, arm, text)
         dense_all = self.image_emb[pool] @ q
         bm25_all = self.bm25.scores(text)[pool]
+        if arm.bm25_adaptive:
+            cov = self.bm25.coverage(text)
+            timings["bm25_coverage"] = round(cov, 3)
+            bm25_scale = cov if cov >= arm.bm25_min_coverage else 0.0
+            arm = replace(arm, w_bm25=arm.w_bm25 * bm25_scale)
+            if bm25_scale == 0.0 and arm.candidate_fusion in ("rrf", "convex"):
+                arm = replace(arm, candidate_fusion="dense")
         lap("retrieve")
 
         if arm.candidate_fusion == "bm25":

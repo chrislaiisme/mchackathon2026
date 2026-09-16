@@ -19,6 +19,13 @@ class BM25Index:
     def __init__(self, texts: list[str]):
         tokens = [tokenize(t) or ["_empty_"] for t in texts]
         self._bm25 = BM25Okapi(tokens)
+        self.vocab = {tok for doc in tokens for tok in doc}
+
+    def coverage(self, query: str) -> float:
+        """Share of query tokens that occur in the catalog. Low coverage means BM25 can
+        only add noise (paraphrased or out-of-vocabulary wording)."""
+        q = tokenize(query)
+        return sum(t in self.vocab for t in q) / len(q) if q else 0.0
 
     def scores(self, query: str) -> np.ndarray:
         q = tokenize(query)
