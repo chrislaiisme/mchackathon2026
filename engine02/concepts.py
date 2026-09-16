@@ -23,7 +23,7 @@ from .fusion import zscore
 from .kansei import KanseiTable
 
 NEUTRAL_PROMPT = "a photo of a clothing item"
-MODES = ("descriptor", "random_words", "antonym")
+MODES = ("descriptor", "random_words", "antonym", "vlm")
 
 _WAFFLE_VOCAB = (
     "table river piano orbit candle velvet tunnel pepper glacier harbor lantern meadow "
@@ -59,8 +59,8 @@ def design_scores(
     seed: int = 0,
 ) -> np.ndarray:
     """Returns (n_items, n_elements) catalog-z-scored concept scores."""
-    if mode not in MODES:
-        raise ValueError(f"unknown concept mode {mode!r}")
+    if mode not in MODES or mode == "vlm":
+        raise ValueError(f"unsupported concept mode {mode!r} here (use vlm_design_scores for 'vlm')")
     img = image_emb.astype(np.float64)
     if distribution_normalize and len(img):
         img = l2n(img - img.mean(axis=0, keepdims=True)).astype(np.float64)
@@ -83,4 +83,27 @@ def design_scores(
     c = np.stack(cols, axis=1) if cols else np.zeros((len(img), 0))
     if categories is not None:
         c = np.where(applicability_mask(categories, table), c, 0.0)
+    return c
+
+
+def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_threshold: float = 0.5) -> np.ndarray:
+    """c(i,d) from offline VLM tagging (scripts/vlm_tag_attributes.py): P(pos) − P(neg),
+    z-scored across tagged items, zeroed where the VLM says "not applicable" or the item
+    was not tagged. Elements the VLM was not asked about stay 0."""
+    import pandas as pd
+
+    df = pd.read_parquet(vlm_file).set_index("item_id")
+    c = np.zeros((len(item_ids), len(table.elements)))
+    idx = [str(i) for i in item_ids]
+    present = np.array([i in df.index for i in idx])
+    sub = df.reindex(idx)
+    for j, el in enumerate(table.elements):
+        col = f"c_{el.id}"
+        if col not in df.columns:
+            continue
+        v = sub[col].to_numpy(dtype=np.float64)
+        na = sub[f"na_{el.id}"].to_numpy(dtype=np.float64)
+        ok = present & ~np.isnan(v) & ~(na > na_threshold)
+        if ok.sum() > 1:
+            c[ok, j] = zscore(v[ok])
     return c

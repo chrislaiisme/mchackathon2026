@@ -62,6 +62,8 @@ def test_contributions_sum_to_score(engine):
 
 def test_all_arms_run(engine):
     for name in ARMS:
+        if ARMS[name].concept_mode == "vlm":  # needs offline VLM tagging output
+            continue
         resp = engine.run(request(), name)
         assert resp.arm == name
         assert len(resp.items) >= 1
@@ -165,3 +167,15 @@ def test_applicability_mask():
     m = applicability_mask(["shoes", "top", None], t)
     j = t.element_ids.index("structured_shoulders")
     assert not m[0, j] and m[1, j] and not m[2, j]
+
+
+def test_vlm_concept_scores(tmp_path, engine):
+    from engine02.concepts import vlm_design_scores
+
+    df = pd.DataFrame({"item_id": ["1", "2", "3"], "c_structured_shoulders": [0.9, -0.5, 0.1],
+                       "na_structured_shoulders": [0.0, 0.1, 0.9]})
+    f = tmp_path / "vlm_attributes_test.parquet"
+    df.to_parquet(f)
+    c = vlm_design_scores(["1", "2", "3", "4"], engine.kansei, f)
+    j = engine.kansei.element_ids.index("structured_shoulders")
+    assert c[0, j] > c[1, j] and c[2, j] == 0 and c[3, j] == 0

@@ -66,4 +66,6 @@ ARMS: dict[str, ArmConfig] = {
     "full_concept_descriptor": replace(FULL, name="full_concept_descriptor", concept_mode="descriptor"),
     "full_concept_random": replace(FULL, name="full_concept_random", concept_mode="random_words"),
     "full_concept_no_mask": replace(FULL, name="full_concept_no_mask", concept_applicability=False),
+    # needs scripts/vlm_tag_attributes.py output (GPU recommended)
+    "full_concept_vlm": replace(FULL, name="full_concept_vlm", concept_mode="vlm"),
 }

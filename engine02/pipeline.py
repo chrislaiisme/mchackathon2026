@@ -99,7 +99,14 @@ class Engine02:
             f"_dn{int(arm.concept_dn)}_mask{int(arm.concept_applicability)}.npy"
         )
         shape = (len(self.catalog), len(self.kansei.elements))
-        if f.exists() and np.load(f).shape == shape:
+        if arm.concept_mode == "vlm":
+            from .concepts import vlm_design_scores
+
+            files = sorted(self.catalog.root.glob("vlm_attributes_*.parquet"))
+            if not files:
+                raise FileNotFoundError("run scripts/vlm_tag_attributes.py first (concept_mode='vlm')")
+            c = vlm_design_scores(self.catalog.items["item_id"].astype(str).tolist(), self.kansei, files[-1])
+        elif f.exists() and np.load(f).shape == shape:
             c = np.load(f)
         else:
             cats = self.catalog.items["category"].tolist() if arm.concept_applicability else None
