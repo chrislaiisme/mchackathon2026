@@ -7,7 +7,7 @@ Need n's share of an item's design contribution = p(n)·K[n,d]·c(i,d)  (PRD for
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +20,8 @@ class DesignElement:
     id: str
     label: str
     descriptors: list[str]  # visual English descriptions for the image-text encoder
+    negative_descriptors: list[str] = field(default_factory=list)  # antonym pole
+    applies_to: list[str] = field(default_factory=list)  # coarse categories; empty = all
 
 
 @dataclass

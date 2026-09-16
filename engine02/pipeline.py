@@ -2,7 +2,8 @@
 
 filter (with relaxation) → candidate retrieval (BM25 / dense / RRF / convex)
 → additive rerank (dense, bm25, design β·c, compat, trend, penalty, optional reranker)
-→ optional MMR → counterfactual necessity → reasons → optional LLM paraphrase.
+→ optional MMR → reason selection (necessity / contrastive / sufficient)
+→ template reasons → optional fact-checked LLM paraphrase.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ from .contracts import (
 from .encoders import Encoder, cached_image_embeddings, l2n
 from .explain import explain, template_reasons
 from .kansei import KanseiTable
-from .rerank import Term, additive_score, counterfactual_ranks
+from .rerank import Term, additive_score, counterfactual_ranks, cutoff_explanations
 from .sparse import BM25Index
 
 
@@ -45,13 +46,18 @@ def build_retrieval_text(req: Engine02Request) -> str:
         return req.retrieval_text
     c = req.constraints
     parts: list[str] = []
-    for slot in (c.color, c.style_keywords, c.season):
+    for slot in (c.gender, c.color, c.style_keywords, c.season):
         if slot.state.value in ("value", "inferred"):
             parts += slot.values
     parts += c.category.values or ["clothing"]
     if c.occasion.values:
         parts += ["for"] + c.occasion.values
     return " ".join(parts)
+
+
+def _stats(x: np.ndarray) -> tuple[float, float]:
+    x = np.asarray(x, dtype=np.float64)
+    return (float(x.mean()), float(x.std())) if x.size else (0.0, 1.0)
 
 
 class Engine02:
@@ -72,15 +78,10 @@ class Engine02:
         self.cooc = cooccurrence
         self.llm = llm
         self.cross_reranker = cross_reranker
-        cache = Path(cache_dir) if cache_dir else catalog.root / "index"
-        safe = encoder.name.replace("/", "__")
-        self.image_emb = cached_image_embeddings(encoder, catalog.image_paths(), cache / f"img_{safe}.npy")
-        c_file = cache / f"design_{safe}_{self.kansei.version}.npy"
-        if c_file.exists() and np.load(c_file).shape == (len(catalog), len(self.kansei.elements)):
-            self.c = np.load(c_file)
-        else:
-            self.c = design_scores(encoder, self.image_emb, self.kansei)
-            np.save(c_file, self.c)
+        self.cache = Path(cache_dir) if cache_dir else catalog.root / "index"
+        self._safe = encoder.name.replace("/", "__")
+        self.image_emb = cached_image_embeddings(encoder, catalog.image_paths(), self.cache / f"img_{self._safe}.npy")
+        self._c: dict[tuple, np.ndarray] = {}
         self.bm25 = BM25Index(catalog.texts())
         self.trend_keywords: list[str] = []
         self.vocabulary = list(self.kansei.needs.values()) + [e.label for e in self.kansei.elements]
@@ -88,6 +89,25 @@ class Engine02:
 
     def set_trends(self, keywords: list[str]) -> None:
         self.trend_keywords = keywords
+
+    def design_matrix(self, arm: ArmConfig) -> np.ndarray:
+        key = (arm.concept_mode, arm.concept_dn, arm.concept_applicability)
+        if key in self._c:
+            return self._c[key]
+        f = self.cache / (
+            f"design_{self._safe}_{self.kansei.version}_{arm.concept_mode}"
+            f"_dn{int(arm.concept_dn)}_mask{int(arm.concept_applicability)}.npy"
+        )
+        shape = (len(self.catalog), len(self.kansei.elements))
+        if f.exists() and np.load(f).shape == shape:
+            c = np.load(f)
+        else:
+            cats = self.catalog.items["category"].tolist() if arm.concept_applicability else None
+            c = design_scores(self.encoder, self.image_emb, self.kansei, arm.concept_mode, cats, arm.concept_dn)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            np.save(f, c)
+        self._c[key] = c
+        return c
 
     # ------------------------------------------------------------------
     def query_embedding(self, req: Engine02Request, arm: ArmConfig, text: str) -> np.ndarray:
@@ -142,31 +162,44 @@ class Engine02:
         cand = pool[top]
         lap("fuse")
 
-        terms = self._terms(req, arm, cand, dense_all[top], bm25_all[top], fused[top], text)
+        terms = self._terms(req, arm, pool, cand, dense_all, bm25_all, top, text)
         sc = additive_score(terms)
         order = sc.order()
         if arm.use_mmr and len(order) > 1:
             depth = min(len(order), max(4 * k, 20))
             sel = fusion.mmr(sc.scores[order[:depth]], self.image_emb[cand[order[:depth]]], k, arm.mmr_lambda)
-            order = np.concatenate([order[:depth][sel], np.setdiff1d(order, order[:depth][sel], assume_unique=True)])
+            head = order[:depth][sel]
+            order = np.concatenate([head, np.setdiff1d(order, head, assume_unique=True)])
         shown = [int(p) for p in order[:k]]
         lap("rerank")
 
-        cf = counterfactual_ranks(sc, shown) if (arm.counterfactual and req.options.counterfactual_check) else {}
+        do_cf = arm.counterfactual and req.options.counterfactual_check
+        cf = counterfactual_ranks(sc, shown) if do_cf else {}
+        cut = cutoff_explanations(sc, order, k)
         lap("counterfactual")
 
         probs = {n.need_id: n.prob for n in req.needs}
         el_labels = {e.id: e.label for e in self.kansei.elements}
+        c_mat = self.design_matrix(arm)
         out_items: list[RankedItem] = []
         for rank, p in enumerate(shown, start=1):
             pos = int(cand[p])
+            ce = cut[p]
             contribs = []
             for j, term in enumerate(sc.terms):
                 cval = float(sc.contrib[p, j])
                 shares = {}
                 if term.group == "design":
                     shares = {n: v * float(sc.norm[p, j]) for n, v in term.need_shares_per_unit.items()}
-                rw = cf.get(p, [None] * len(sc.terms))[j]
+                rw = cf[p][j] if p in cf else None
+                necessary = (rw > k) if rw is not None else None
+                sufficient = j in ce.sufficient
+                if arm.reason_mode == "necessity":
+                    cited = bool(necessary) if do_cf else False
+                elif arm.reason_mode == "contrastive":
+                    cited = ce.diffs[j] > 0 and ce.margin - ce.diffs[j] < 0
+                else:
+                    cited = sufficient
                 contribs.append(
                     Contribution(
                         term=term.name,
@@ -177,9 +210,20 @@ class Engine02:
                         contribution=cval,
                         need_shares=shares,
                         rank_without=rw,
-                        necessary=(rw > k) if rw is not None else None,
+                        necessary=necessary,
+                        diff_vs_cutoff=float(ce.diffs[j]),
+                        sufficient=sufficient,
+                        cited=bool(cited and cval > 0),
                     )
                 )
+            # display cap: the minimal sufficient set is shown whole (trimming it would break
+            # the sufficiency guarantee); other modes show at most 3 reasons
+            cap = None if arm.reason_mode == "sufficient" else 3
+            if cap is not None:
+                keep = sorted((cb for cb in contribs if cb.cited), key=lambda cb: -cb.contribution)[:cap]
+                keep_ids = {id(cb) for cb in keep}
+                for cb in contribs:
+                    cb.cited = id(cb) in keep_ids
             need_contrib: dict[str, float] = {}
             for cb in contribs:
                 for n, v in cb.need_shares.items():
@@ -200,7 +244,9 @@ class Engine02:
                     score=float(sc.scores[p]),
                     contributions=contribs,
                     need_contributions=need_contrib,
-                    design_scores={e.id: float(self.c[pos, j]) for j, e in enumerate(self.kansei.elements)},
+                    design_scores={e.id: float(c_mat[pos, j]) for j, e in enumerate(self.kansei.elements)},
+                    margin_vs_cutoff=ce.margin if ce.cutoff_position is not None else None,
+                    reason_mode=arm.reason_mode,
                     reasons=reasons,
                     explanation=text_expl,
                     explanation_source=src,
@@ -225,23 +271,29 @@ class Engine02:
         )
 
     # ------------------------------------------------------------------
-    def _terms(self, req, arm: ArmConfig, cand, dense, bm25, fused, text) -> list[Term]:
+    def _terms(self, req, arm: ArmConfig, pool, cand, dense_all, bm25_all, top, text) -> list[Term]:
+        dense, bm25 = dense_all[top], bm25_all[top]
         if not arm.additive_rerank:
             if arm.candidate_fusion == "rrf":
-                d = 1.0 / (arm.rrf_k + fusion.ranks_desc(dense))
-                b = 1.0 / (arm.rrf_k + fusion.ranks_desc(bm25))
+                d = (1.0 / (arm.rrf_k + fusion.ranks_desc(dense_all)))[top]
+                b = (1.0 / (arm.rrf_k + fusion.ranks_desc(bm25_all)))[top]
                 return [Term("dense", "dense", d, 1.0, normalize=False), Term("bm25", "bm25", b, 1.0, normalize=False)]
             if arm.candidate_fusion == "convex":
                 f = fusion.minmax if arm.convex_norm == "minmax" else fusion.zscore
                 return [
-                    Term("dense", "dense", f(dense), arm.convex_alpha, normalize=False),
-                    Term("bm25", "bm25", f(bm25), 1 - arm.convex_alpha, normalize=False),
+                    Term("dense", "dense", f(dense_all)[top], arm.convex_alpha, normalize=False),
+                    Term("bm25", "bm25", f(bm25_all)[top], 1 - arm.convex_alpha, normalize=False),
                 ]
             single = dense if arm.candidate_fusion == "dense" else bm25
             return [Term(arm.candidate_fusion, arm.candidate_fusion, single, 1.0, normalize=False)]
 
-        terms = [Term("dense", "dense", dense, arm.w_dense), Term("bm25", "bm25", bm25, arm.w_bm25)]
+        pool_scope = arm.norm_scope == "pool"
+        terms = [
+            Term("dense", "dense", dense, arm.w_dense, stats=_stats(dense_all) if pool_scope else None),
+            Term("bm25", "bm25", bm25, arm.w_bm25, stats=_stats(bm25_all) if pool_scope else None),
+        ]
         if arm.use_design and len(self.kansei.elements):
+            c_mat = self.design_matrix(arm)
             probs = {n.need_id: n.prob for n in req.needs}
             beta_needs, beta_fb = self.kansei.beta(probs, req.feedback.design_adjust_steps)
             for j, el in enumerate(self.kansei.elements):
@@ -255,7 +307,8 @@ class Engine02:
                         per_unit[n] = float(v)
                 if abs(beta_fb[j]) > 1e-9:
                     per_unit["feedback_adjust"] = float(beta_fb[j])
-                terms.append(Term(f"design:{el.id}", "design", self.c[cand, j], w, per_unit))
+                # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
+                terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:
             anchors = self.catalog.positions(req.feedback.anchor_item_ids)
             cs = compat_scores(
@@ -263,16 +316,19 @@ class Engine02:
                 [self.catalog.attr(a, "category") for a in anchors],
                 self.cooc,
             )
-            if cs is not None:
-                terms.append(Term("compat", "compat", cs, arm.w_compat))
+            if cs is not None:  # NPMI is already on a fixed [-1, 1] scale
+                terms.append(Term("compat", "compat", cs, arm.w_compat, normalize=not pool_scope))
         if arm.use_trend and self.trend_keywords:
-            tr = self.bm25.scores(" ".join(self.trend_keywords))[cand]
-            terms.append(Term("trend", "trend", tr, arm.w_trend))
+            tr_all = self.bm25.scores(" ".join(self.trend_keywords))[pool]
+            terms.append(Term("trend", "trend", tr_all[top], arm.w_trend, stats=_stats(tr_all) if pool_scope else None))
         if arm.use_penalty and req.feedback.rejected_item_ids:
             neg = self.catalog.positions(req.feedback.rejected_item_ids)
             if neg:
-                sim = (self.image_emb[cand] @ self.image_emb[neg].T).max(axis=1)
-                terms.append(Term("penalty:rejected_similarity", "penalty", sim, -arm.w_penalty))
+                sim_all = (self.image_emb[pool] @ self.image_emb[neg].T).max(axis=1)
+                terms.append(
+                    Term("penalty:rejected_similarity", "penalty", sim_all[top], -arm.w_penalty,
+                         stats=_stats(sim_all) if pool_scope else None)
+                )
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])
             terms.append(Term(f"rerank:{self.cross_reranker.name}", "rerank", rs, arm.w_rerank))

@@ -139,3 +139,29 @@ def test_metrics():
     assert ndcg_at_k(["b", "a"], {"a": 2, "b": 1}, 2) < 1.0
     assert paired_permutation_test(np.ones(20), np.zeros(20)) < 0.01
     assert cohen_kappa([1, 0, 1, 0], [1, 0, 1, 0]) == 1.0
+
+
+def test_sufficient_reasons_cover_every_card(engine):
+    resp = engine.run(request(), "full")
+    for it in resp.items:
+        cited = [c for c in it.contributions if c.cited]
+        assert all(c.sufficient for c in cited)
+        if it.score > 0:
+            assert cited, "sufficient mode should give at least one reason to a positive-score item"
+
+
+def test_prd_original_and_concept_modes_run(engine):
+    for name in ("prd_original", "full_concept_descriptor", "full_concept_random", "full_concept_no_mask",
+                 "full_reason_contrastive", "full_norm_candidates"):
+        resp = engine.run(request(), name)
+        assert resp.items
+
+
+def test_applicability_mask():
+    from engine02.concepts import applicability_mask
+    from engine02.kansei import KanseiTable
+
+    t = KanseiTable.load()
+    m = applicability_mask(["shoes", "top", None], t)
+    j = t.element_ids.index("structured_shoulders")
+    assert not m[0, j] and m[1, j] and not m[2, j]

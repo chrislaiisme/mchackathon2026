@@ -144,6 +144,11 @@ class Contribution(BaseModel):
     # counterfactual necessity (PRD M7): rank after zeroing this term
     rank_without: int | None = None
     necessary: bool | None = None  # True if removing it drops item out of top-k
+    # contrastive: this term's contribution minus that of the first item below the cut
+    diff_vs_cutoff: float | None = None
+    # member of the minimal set of terms that alone keeps the item above the cut
+    sufficient: bool | None = None
+    cited: bool = False  # used as a reason on the card
 
 
 class RankedItem(BaseModel):
@@ -159,6 +164,8 @@ class RankedItem(BaseModel):
     need_contributions: dict[str, float] = Field(default_factory=dict)
     # c(i,d) for every design element — ENGINE 03 uses it for S(i|n)
     design_scores: dict[str, float] = Field(default_factory=dict)
+    margin_vs_cutoff: float | None = None  # score gap to the rank k+1 item
+    reason_mode: str = "sufficient"
     reasons: list[str] = Field(default_factory=list)  # template sentences, verified
     explanation: str = ""
     explanation_source: Literal["llm", "template"] = "template"

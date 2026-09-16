@@ -26,6 +26,14 @@ class ArmConfig:
     rocchio_b: float = 0.25
     concept_image_weight: float = 0.0  # evidence says keep ≤ 0.2 (BMVC 2025, IP-CIR)
     counterfactual: bool = True
+    # which terms become reasons: "necessity" (PRD M7) | "contrastive" | "sufficient"
+    reason_mode: str = "sufficient"
+    # "candidates" (PRD: z-score inside top-50) | "pool" (stats from whole filtered pool)
+    norm_scope: str = "pool"
+    # design-element scores c(i,d): "descriptor" (PRD M4) | "random_words" | "antonym"
+    concept_mode: str = "antonym"
+    concept_dn: bool = True  # distribution normalisation of image embeddings
+    concept_applicability: bool = True
     w_dense: float = 1.0
     w_bm25: float = 0.5
     w_compat: float = 0.5
@@ -49,4 +57,13 @@ ARMS: dict[str, ArmConfig] = {
     "full_cross_reranker": replace(FULL, name="full_cross_reranker", use_cross_reranker=True),
     "full_concept_image": replace(FULL, name="full_concept_image", concept_image_weight=0.2),
     "full_no_rocchio": replace(FULL, name="full_no_rocchio", use_rocchio=False),
+    # PRD-as-written baseline: descriptor concepts, candidate z-score, necessity reasons
+    "prd_original": replace(FULL, name="prd_original", reason_mode="necessity", norm_scope="candidates",
+                            concept_mode="descriptor", concept_dn=False, concept_applicability=False),
+    "full_reason_necessity": replace(FULL, name="full_reason_necessity", reason_mode="necessity"),
+    "full_reason_contrastive": replace(FULL, name="full_reason_contrastive", reason_mode="contrastive"),
+    "full_norm_candidates": replace(FULL, name="full_norm_candidates", norm_scope="candidates"),
+    "full_concept_descriptor": replace(FULL, name="full_concept_descriptor", concept_mode="descriptor"),
+    "full_concept_random": replace(FULL, name="full_concept_random", concept_mode="random_words"),
+    "full_concept_no_mask": replace(FULL, name="full_concept_no_mask", concept_applicability=False),
 }

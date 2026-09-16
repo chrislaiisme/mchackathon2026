@@ -114,9 +114,11 @@ def filter_with_relaxation(
             break
         if slot not in applied or state.get(slot) == "drop":
             continue
+        before = int(mask.sum())
         state[slot] = action
         mask, applied = build_mask(items, c, state, excluded_positions)
-        relaxed.append(f"{slot}:{action}")
+        if int(mask.sum()) > before:  # only report steps that actually widened the pool
+            relaxed.append(f"{slot}:{action}")
     return FilterResult(mask=mask, applied=applied, relaxed=relaxed)
 
 

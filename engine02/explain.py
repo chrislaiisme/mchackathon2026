@@ -1,7 +1,8 @@
 """Reasons from the score decomposition; the LLM may only re-word verified facts.
 
-- Grounded ≠ faithful (Maes et al., IUI-W 2025): the reason must be the term that
-  actually moved the rank, so only counterfactually necessary positive terms are cited.
+- Grounded ≠ faithful (Maes et al., IUI-W 2025): the reason must be a term that actually
+  decides the rank, so only terms selected by the reason mode (counterfactual necessity,
+  contrastive margin or minimal sufficient set; see rerank.py) are cited.
 - The LLM paraphrase is checked in code: every label or number it mentions must be in
   the facts it was given, otherwise we fall back to the template sentence.
 """
@@ -29,11 +30,10 @@ def template_reasons(
     element_labels: dict[str, str],
     need_labels: dict[str, str],
     relaxed: list[str],
-    max_reasons: int = 3,
 ) -> tuple[list[str], list[dict]]:
-    cited = [c for c in contribs if c.contribution > 0 and (c.necessary is None or c.necessary)]
+    # the pipeline has already decided (and capped) which terms are displayed
+    cited = [c for c in contribs if c.cited and c.contribution > 0]
     cited.sort(key=lambda c: -c.contribution)
-    cited = cited[:max_reasons]
     reasons, facts = [], []
     for c in cited:
         if c.group == "design":
