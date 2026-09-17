@@ -53,7 +53,8 @@ def build_prompt() -> str:
     lines = ["Look at the product image and answer each question with a single letter.", ""]
     for i, (_, q, opts) in enumerate(QUESTIONS, 1):
         lines.append(f"Q{i}. {q} " + " ".join(f"{LETTERS[j]}) {o}" for j, o in enumerate(opts)))
-    lines += ["", f"Reply with exactly {len(QUESTIONS)} letters and nothing else, e.g. " + "A" * len(QUESTIONS)]
+    example = ", ".join(LETTERS[i % 3] for i in range(len(QUESTIONS)))
+    lines += ["", f"Reply with exactly {len(QUESTIONS)} letters separated by commas and nothing else, e.g. {example}"]
     return "\n".join(lines)
 
 
@@ -81,9 +82,14 @@ def main() -> None:
     load_s = time.perf_counter() - t0
 
     tok = processor.tokenizer
-    letter_ids = [tok.encode(L, add_special_tokens=False) for L in LETTERS]
-    assert all(len(x) == 1 for x in letter_ids), f"letters are not single tokens: {letter_ids}"
-    letter_ids = [x[0] for x in letter_ids]
+    # BPE merges runs like "BBB" into one token, so answers are comma-separated and each
+    # answer step must be a single-letter token, either "A" or " A" (after ", ").
+    variants = {}
+    for prefix in ("", " "):
+        ids = [tok.encode(prefix + L, add_special_tokens=False) for L in LETTERS]
+        assert all(len(x) == 1 for x in ids), f"letters are not single tokens with prefix {prefix!r}: {ids}"
+        variants[prefix] = [x[0] for x in ids]
+    id_to_variant = {i: pre for pre, ids in variants.items() for i in ids}
     prompt = build_prompt()
 
     rows, t_items = [], []
@@ -98,19 +104,20 @@ def main() -> None:
         inputs = inputs.to(model.device)
         t = time.perf_counter()
         with torch.inference_mode():
-            gen = model.generate(**inputs, max_new_tokens=len(QUESTIONS) + 4, do_sample=False,
+            gen = model.generate(**inputs, max_new_tokens=4 * len(QUESTIONS), do_sample=False,
                                  output_scores=True, return_dict_in_generate=True)
         t_items.append(time.perf_counter() - t)
         out_ids = gen.sequences[0, inputs["input_ids"].shape[1]:]
         answer = tok.decode(out_ids, skip_special_tokens=True).strip()
-        row = {"item_id": str(r["item_id"]), "raw_answer": answer}
-        # answer steps = generated positions whose token is one of the letters, in order
-        steps = [s for s, tid in enumerate(out_ids.tolist()) if tid in letter_ids][: len(QUESTIONS)]
+        steps = [(k, id_to_variant[tid]) for k, tid in enumerate(out_ids.tolist()) if tid in id_to_variant]
+        valid = len(steps) == len(QUESTIONS)
+        row = {"item_id": str(r["item_id"]), "raw_answer": answer, "valid": valid}
         for qi, (qid, _, _) in enumerate(QUESTIONS):
-            if qi < len(steps):
-                logits = gen.scores[steps[qi]][0, letter_ids].float()
+            if valid:
+                k, pre = steps[qi]
+                logits = gen.scores[k][0, variants[pre]].float()
                 probs = torch.softmax(logits, dim=-1).cpu().numpy()
-            else:
+            else:  # malformed answer: never guess an alignment
                 probs = np.full(3, np.nan)
             for j, L in enumerate(LETTERS):
                 row[f"{qid}_{L}"] = float(probs[j])
@@ -123,7 +130,7 @@ def main() -> None:
 
     out = Path(args.out) if args.out else cat_dir / f"vlm_attributes_{args.model.split('/')[-1]}.parquet"
     pd.DataFrame(rows).to_parquet(out, index=False)
-    meta = {"model": args.model, "n_items": len(rows), "load_s": round(load_s, 1),
+    meta = {"model": args.model, "n_items": len(rows), "valid_rate": float(np.mean([r["valid"] for r in rows])) if rows else None, "load_s": round(load_s, 1),
             "sec_per_item_mean": round(float(np.mean(t_items)), 2) if t_items else None,
             "device": str(model.device), "questions": QUESTIONS, "element_map": ELEMENT_MAP}
     out.with_suffix(".meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
