@@ -1,0 +1,33 @@
+{
+  "source": "manual",
+  "as_of": "2026-09-18",
+  "catalog": null,
+  "notes": [
+    "手動維護的服飾趨勢關鍵字，**不是** Pinterest 資料：Pinterest 開發者規範不得儲存 API 取得的資訊（PRD [108]），所以 repo 裡不放任何 Pinterest 內容。",
+    "上線時應由聚陽內部趨勢平台或即時 API 覆蓋：engine02.trends.from_live_fetch() 回傳的清單標記 ephemeral，無法存檔。",
+    "score 只是人工排序（大=靠前），沒有統計意義；要有統計依據請用 scripts/build_trend_keywords.py 產生 curated_lift 清單。",
+    "權重要小：主辦方已有內部趨勢平台，並明確排除趨勢預測系統。"
+  ],
+  "terms": [
+    {"term": "oversized", "score": 20.0, "df": 0},
+    {"term": "relaxed", "score": 19.0, "df": 0},
+    {"term": "cropped", "score": 18.0, "df": 0},
+    {"term": "linen", "score": 17.0, "df": 0},
+    {"term": "utility", "score": 16.0, "df": 0},
+    {"term": "pleated", "score": 15.0, "df": 0},
+    {"term": "knit", "score": 14.0, "df": 0},
+    {"term": "tailored", "score": 13.0, "df": 0},
+    {"term": "wide", "score": 12.0, "df": 0},
+    {"term": "minimal", "score": 11.0, "df": 0},
+    {"term": "quilted", "score": 10.0, "df": 0},
+    {"term": "corduroy", "score": 9.0, "df": 0},
+    {"term": "denim", "score": 8.0, "df": 0},
+    {"term": "olive", "score": 7.0, "df": 0},
+    {"term": "sage", "score": 6.0, "df": 0},
+    {"term": "cream", "score": 5.0, "df": 0},
+    {"term": "charcoal", "score": 4.0, "df": 0},
+    {"term": "textured", "score": 3.0, "df": 0},
+    {"term": "ribbed", "score": 2.0, "df": 0},
+    {"term": "layered", "score": 1.0, "df": 0}
+  ]
+}
