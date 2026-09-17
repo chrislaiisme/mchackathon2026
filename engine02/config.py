@@ -34,6 +34,10 @@ class ArmConfig:
     concept_mode: str = "antonym"
     concept_dn: bool = True  # distribution normalisation of image embeddings
     concept_applicability: bool = True
+    # concept_mode="hybrid": these elements come from VLM tags where available, the rest from
+    # CLIP antonym scores (chosen by AUROC against blind visual labels, docs/engine02-design.md §3.3c)
+    vlm_elements: tuple[str, ...] = ("matte_fabric", "glossy_fabric", "visible_logo", "minimal_design",
+                                     "bold_pattern", "crisp_collar")
     w_dense: float = 1.0
     w_bm25: float = 0.5
     w_compat: float = 0.5
@@ -74,4 +78,5 @@ ARMS: dict[str, ArmConfig] = {
     "full_concept_no_mask": replace(FULL, name="full_concept_no_mask", concept_applicability=False),
     # needs scripts/vlm_tag_attributes.py output (GPU recommended)
     "full_concept_vlm": replace(FULL, name="full_concept_vlm", concept_mode="vlm"),
+    "full_concept_hybrid": replace(FULL, name="full_concept_hybrid", concept_mode="hybrid"),
 }

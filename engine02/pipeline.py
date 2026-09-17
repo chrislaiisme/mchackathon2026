@@ -92,7 +92,7 @@ class Engine02:
         self.trend_keywords = keywords
 
     def design_matrix(self, arm: ArmConfig) -> np.ndarray:
-        key = (arm.concept_mode, arm.concept_dn, arm.concept_applicability)
+        key = (arm.concept_mode, arm.concept_dn, arm.concept_applicability, arm.vlm_elements)
         if key in self._c:
             return self._c[key]
         f = self.cache / (
@@ -100,13 +100,23 @@ class Engine02:
             f"_dn{int(arm.concept_dn)}_mask{int(arm.concept_applicability)}.npy"
         )
         shape = (len(self.catalog), len(self.kansei.elements))
-        if arm.concept_mode == "vlm":
+        if arm.concept_mode in ("vlm", "hybrid"):
+            from dataclasses import replace as _replace
+
             from .concepts import vlm_design_scores
 
             files = sorted(self.catalog.root.glob("vlm_attributes_*.parquet"))
             if not files:
-                raise FileNotFoundError("run scripts/vlm_tag_attributes.py first (concept_mode='vlm')")
-            c = vlm_design_scores(self.catalog.items["item_id"].astype(str).tolist(), self.kansei, files[-1])
+                raise FileNotFoundError(f"run scripts/vlm_tag_attributes.py first (concept_mode={arm.concept_mode!r})")
+            ids = self.catalog.items["item_id"].astype(str).tolist()
+            if arm.concept_mode == "vlm":
+                c = vlm_design_scores(ids, self.kansei, files[-1])
+            else:
+                c = self.design_matrix(_replace(arm, concept_mode="antonym")).copy()
+                v, tagged = vlm_design_scores(ids, self.kansei, files[-1], return_mask=True)
+                for j, el in enumerate(self.kansei.elements):
+                    if el.id in arm.vlm_elements:
+                        c[tagged[:, j], j] = v[tagged[:, j], j]
         elif f.exists() and np.load(f).shape == shape:
             c = np.load(f)
         else:

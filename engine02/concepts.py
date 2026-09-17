@@ -86,7 +86,8 @@ def design_scores(
     return c
 
 
-def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_threshold: float = 0.5) -> np.ndarray:
+def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_threshold: float = 0.5,
+                      return_mask: bool = False):
     """c(i,d) from offline VLM tagging (scripts/vlm_tag_attributes.py): P(pos) − P(neg),
     z-scored across tagged items, zeroed where the VLM says "not applicable" or the item
     was not tagged. Elements the VLM was not asked about stay 0."""
@@ -94,6 +95,7 @@ def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_thre
 
     df = pd.read_parquet(vlm_file).set_index("item_id")
     c = np.zeros((len(item_ids), len(table.elements)))
+    tagged = np.zeros_like(c, dtype=bool)  # VLM gave a usable answer (applicable or explicitly n/a)
     idx = [str(i) for i in item_ids]
     present = np.array([i in df.index for i in idx])
     sub = df.reindex(idx)
@@ -104,6 +106,7 @@ def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_thre
         v = sub[col].to_numpy(dtype=np.float64)
         na = sub[f"na_{el.id}"].to_numpy(dtype=np.float64)
         ok = present & ~np.isnan(v) & ~(na > na_threshold)
+        tagged[:, j] = present & ~np.isnan(v)
         if ok.sum() > 1:
             c[ok, j] = zscore(v[ok])
-    return c
+    return (c, tagged) if return_mask else c

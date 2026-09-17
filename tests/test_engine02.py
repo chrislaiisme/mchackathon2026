@@ -62,7 +62,7 @@ def test_contributions_sum_to_score(engine):
 
 def test_all_arms_run(engine):
     for name in ARMS:
-        if ARMS[name].concept_mode == "vlm":  # needs offline VLM tagging output
+        if ARMS[name].concept_mode in ("vlm", "hybrid"):  # needs offline VLM tagging output
             continue
         resp = engine.run(request(), name)
         assert resp.arm == name
@@ -210,3 +210,18 @@ def test_antonym_folding():
     assert fb[a] == -t.step_size and fb[b] == 0
     raw = KanseiTable.load(fold_antonyms=False)
     assert raw.K[i, b] < 0
+
+
+def test_hybrid_concepts(tmp_path, engine):
+    from dataclasses import replace
+
+    j = engine.kansei.element_ids.index("visible_logo")
+    df = pd.DataFrame({"item_id": ["1", "2", "3"], "c_visible_logo": [0.9, -0.9, 0.0], "na_visible_logo": [0.0, 0.0, 0.0]})
+    df.to_parquet(engine.catalog.root / "vlm_attributes_test.parquet")
+    arm = replace(ARMS["full_concept_hybrid"], vlm_elements=("visible_logo",))
+    c = engine.design_matrix(arm)
+    base = engine.design_matrix(replace(arm, concept_mode="antonym"))
+    assert c[0, j] > c[1, j]
+    assert np.allclose(c[3:, j], base[3:, j])  # untagged items keep CLIP scores
+    other = engine.kansei.element_ids.index("formal_style")
+    assert np.allclose(c[:, other], base[:, other])

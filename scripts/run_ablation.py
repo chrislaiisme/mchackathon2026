@@ -77,7 +77,7 @@ def main() -> None:
     todo = set(args.tasks.split(","))
 
     t1_arms = T1_ARMS + (["full_cross_reranker"] if reranker else [])
-    t3_arms = T3_ARMS + (["full_concept_vlm"] if any(cat.root.glob("vlm_attributes_*.parquet")) else [])
+    t3_arms = T3_ARMS + (["full_concept_vlm", "full_concept_hybrid"] if any(cat.root.glob("vlm_attributes_*.parquet")) else [])
     if "t1" in todo:
         df = tasks.t1_retrieval(engine, queries, t1_arms)
         df.to_csv(out / "t1_retrieval.csv", index=False)
