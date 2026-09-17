@@ -12,6 +12,7 @@ Environment variables:
   ENGINE02_LLM       auto (OpenAI if OPENAI_API_KEY) | none    (default auto)
   ENGINE02_ARM       default ablation arm when the request does not set one (default full_zclip3)
   ENGINE02_OT        1 = load OutfitTransformer for /complete-look (GPU recommended); else image similarity
+  ENGINE02_TRENDS    1 or a file path = load trend keywords for display badges (never for ranking)
 """
 
 from __future__ import annotations
@@ -101,6 +102,14 @@ async def lifespan(app: FastAPI):
                                            heads=heads)
         ctl = CompleteTheLook(engine.catalog, engine.image_emb, engine.cooc, ot=ot)
     STATE["service"] = Engine02Service(engine, ctl)
+    tr = os.environ.get("ENGINE02_TRENDS")
+    if tr:  # badges only — attach_trends() (the ranking term) is deliberately never called (§3.15)
+        from .trends import load_trends
+
+        try:
+            STATE["trends"] = load_trends(None if tr == "1" else tr)
+        except OSError as e:
+            log.warning("could not load trend keywords: %s", e)
     yield
     STATE.clear()
 
@@ -192,6 +201,83 @@ def rank_plain(req: Engine02Request) -> Engine02Response:
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     return engine().run(req, arm)
+
+
+class ViewRequest(BaseModel):
+    """One round for the PRD §7 screens; pass the previous round to get the diff panel."""
+
+    request: Engine02Request
+    prev_request: Engine02Request | None = None
+    prev_response: Engine02Response | None = None
+
+
+@app.post("/view")
+def view(body: ViewRequest) -> dict:
+    """Rank + every §7 panel (said/unsaid, needs, diversity, provenance, round diff, trend badges).
+
+    The frontend should not re-derive these aggregates from the cards: `Div@k`, the need shares and
+    the provenance counts are computed from the same contributions that produced the ranking.
+    """
+    from .panels import build_view, view_labels
+
+    resp = rank(body.request)
+    labels = view_labels(engine())
+    v = build_view(body.request, resp, body.prev_request, body.prev_response, **labels)
+    out = {"response": resp.model_dump(), "view": v.model_dump()}
+    if STATE.get("trends") is not None:  # display-only labels; trends never enter the score (§3.15)
+        from .trends import trend_badges
+
+        out["trend_badges"] = trend_badges(engine(), resp, STATE["trends"].keywords())
+    return out
+
+
+class ConceptImageRequest(BaseModel):
+    embedding: list[float]
+    k: int = 3
+
+
+@app.post("/concept-image/nearest")
+def concept_image_nearest(body: ConceptImageRequest) -> dict:
+    """PRD §6.5 接回推薦: catalog items closest to a generated concept image (display only).
+
+    Deliberately not routed through the reranker — a generated image must never be presented as
+    the cause of a ranked recommendation. To fold it into retrieval, send it as
+    `feedback.concept_image_embedding` to /rank (weight 0.2 on the serving arm, §3.16).
+    """
+    from .panels import concept_image_neighbors
+
+    e = engine()
+    if len(body.embedding) != e.image_emb.shape[1]:
+        raise HTTPException(400, f"embedding must have {e.image_emb.shape[1]} dims for encoder {e.encoder.name}")
+    return {"encoder": e.encoder.name, "items": concept_image_neighbors(e, body.embedding, body.k)}
+
+
+@app.get("/needs/supply")
+def needs_supply(arm: str = "full", threshold: float = 0.5) -> dict:
+    """PRD §6.7 supply side Sup(n): the share of the catalog that expresses each hidden need.
+
+    ENGINE 03 owns demand D(occasion, n) and the Gap product; this half needs c(i,d).
+    """
+    from .panels import need_supply
+
+    if arm not in ARMS:
+        raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
+    return {"arm": arm, "threshold": threshold, "n_items": len(engine().catalog),
+            "supply": need_supply(engine(), arm, threshold)}
+
+
+@app.get("/trends")
+def trends() -> dict:
+    """Trend keywords used for display badges only (set ENGINE02_TRENDS=1 to load them)."""
+    t = STATE.get("trends")
+    if t is None:
+        return {"loaded": False, "reason": "set ENGINE02_TRENDS=1 (or ENGINE02_TRENDS=<file>)",
+                "note": "trends are never part of the score: 28 configurations all hurt NDCG@5 (§3.15)"}
+    from .trends import trend_coverage
+
+    return {"loaded": True, "source": t.source, "as_of": t.as_of, "ephemeral": t.ephemeral,
+            "notes": t.notes, "keywords": t.keywords(),
+            "coverage": trend_coverage(engine(), t.keywords()), "used_in_ranking": False}
 
 
 class CompleteLookRequest(BaseModel):
