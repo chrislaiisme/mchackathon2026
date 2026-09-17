@@ -77,7 +77,12 @@ class TorchEncoder:
             texts = [t.lower() for t in texts]
             inp = self.proc(text=texts, padding="max_length", max_length=64, truncation=True, return_tensors="pt")
             return _pooled(self.model.get_text_features(**inp.to(self.device)))
-        inp = self.proc(text=texts, padding=True, truncation=True, return_tensors="pt").to(self.device)
+        # CLIP has 77 learned text positions, but some model cards ship a tokenizer whose
+        # model_max_length is larger (512), so truncation=True alone lets a long query through and
+        # the forward pass dies on the position embedding. Pin the real limit.
+        limit = min(77, getattr(self.model.config, "text_config", self.model.config).max_position_embeddings or 77)
+        inp = self.proc(text=texts, padding="max_length", max_length=limit, truncation=True,
+                        return_tensors="pt").to(self.device)
         return _pooled(self.model.get_text_features(input_ids=inp["input_ids"], attention_mask=inp["attention_mask"]))
 
     def _img(self, images):
