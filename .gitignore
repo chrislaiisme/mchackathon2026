@@ -1,0 +1,30 @@
+# secrets
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# data / model caches (large, don't commit)
+backend/pinterest/cache/
+backend/generation/output/
+*.faiss
+*.chroma/
+data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

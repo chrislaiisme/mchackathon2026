@@ -1,0 +1,22 @@
+# Shared across all backend/ modules -- one environment for the whole hackathon,
+# see CLAUDE.md for why. Add to this file rather than creating per-engine
+# requirements files.
+
+# Core API
+fastapi
+uvicorn[standard]
+pydantic>=2
+python-dotenv
+
+# ENGINE01 / ENGINE02 / ENGINE03 / generation
+openai>=1.40
+
+# ENGINE02 -- hybrid search, embeddings, reranking
+sentence-transformers
+rank-bm25
+faiss-cpu
+# FashionCLIP pulls in open_clip/torch; install per https://github.com/patrickjohncyh/fashion-clip
+# fashion-clip
+
+# ENGINE01 -- offline test harness
+pytest
