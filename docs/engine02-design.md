@@ -222,6 +222,19 @@ Engine02Request
 - 44k 上每次查詢約 92–97 ms（伺服器 CPU，BM25 佔大部分）。
 - T5 在 44k 上成功率明顯變低：同一品類裡相似的商品太多，只揭露 3 個屬性不夠定位到目標商品。
 
+### 3.5c 穿搭相容性：填空測驗（FITB，Polyvore 真實穿搭 200 題，每題 4 個同品類候選，隨機 25%）
+
+| 打分方式 | 準確率（95% CI） |
+|---|---|
+| 品類共現 NPMI（原 PRD／原實作） | 25%（同品類分數全部相同，只能平手） |
+| 圖片 embedding 平均相似度（Marqo-FashionSigLIP） | 48%（41–55%） |
+| **OutfitTransformer**（owj0421 重實作，CLIP 版權重） | **54.5%**（47.5–61.5%） |
+
+- **品類層級的相容性在「要搭我的牛仔褲」這種情境完全沒有作用**，必須做到商品層級。`Engine02(compat_model=OutfitTransformerCompat(...))` 已接上，有錨點時會使用。
+- **可能高估**：OutfitTransformer 的訓練資料 Polyvore Outfits 和這份測驗資料（Maryland Polyvore）可能有圖片重疊。
+- **和 embedding 相似度的差距還不顯著**：信賴區間重疊。
+- **延遲**：4090 上每個候選約 102 ms（和 VLM 共用 GPU 時量的），現場只建議對前 10 名計算。
+
 ### 3.6 還沒跑的對照組
 - `full_concept_vlm` / `full_concept_hybrid`：修正版 VLM 全量標註完成後，重跑 T3（已排在 nycu 的 job4）。
 - 合併商品庫 `kagl_polyvore`（KAGL＋Polyvore 服飾，補外套、洋裝、針織）：VLM 標註加消融實驗（已排在 job3）。
