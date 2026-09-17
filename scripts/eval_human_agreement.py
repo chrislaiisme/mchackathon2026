@@ -50,6 +50,8 @@ def cohens_kappa(a: pd.Series, b: pd.Series) -> tuple[float, int]:
     n = len(a)
     if n == 0:
         return float("nan"), 0
+    if len(set(a.tolist())) < 2 or len(set(b.tolist())) < 2:
+        return float("nan"), n  # a constant rater makes kappa undefined, not zero
     po = float((a == b).mean())
     pe = float(sum((a == v).mean() * (b == v).mean() for v in (0, 1)))
     return (float("nan") if abs(1 - pe) < 1e-12 else (po - pe) / (1 - pe)), n
@@ -98,6 +100,7 @@ def cmd_score(a: argparse.Namespace) -> None:
         both = g[(g["label_h"].isin(["0", "1"])) & (g["label_llm"].isin(["0", "1"]))]
         k, n = cohens_kappa(both["label_h"], both["label_llm"])
         rows.append(dict(element=el, n=len(g), n_both_decided=n, kappa=round(k, 3),
+                         pos_rate_h=round(float((both["label_h"] == "1").mean()) if n else float("nan"), 3),
                          na_human=round(float((g["label_h"] == "na").mean()), 3),
                          na_llm=round(float((g["label_llm"] == "na").mean()), 3),
                          agree=round(float((both["label_h"] == both["label_llm"]).mean()) if n else float("nan"), 3)))
@@ -105,8 +108,10 @@ def cmd_score(a: argparse.Namespace) -> None:
     k_all, n_all = cohens_kappa(both_all["label_h"], both_all["label_llm"])
     tab = pd.DataFrame(rows).sort_values("element")
     print(tab.to_string(index=False))
-    print(f"\npooled Cohen's κ = {k_all:.3f} on {n_all} tasks where both raters decided "
-          f"(κ<0.4 poor, 0.4-0.6 moderate, 0.6-0.8 substantial)")
+    print(f"\npooled Cohen's kappa = {k_all:.3f} on {n_all} tasks where both raters decided "
+          f"(<0.4 poor, 0.4-0.6 moderate, 0.6-0.8 substantial)")
+    print("kappa = nan means one rater never used both classes on that element (undefined, not "
+          "perfect agreement); read it together with pos_rate_h.")
 
     if a.encoder:
         from engine02.catalog import Catalog
