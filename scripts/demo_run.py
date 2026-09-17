@@ -21,7 +21,8 @@ from engine02.catalog import Catalog  # noqa: E402
 from engine02.compat import CategoryCooccurrence  # noqa: E402
 from engine02.contracts import Engine02Request  # noqa: E402
 from engine02.encoders import HashEncoder  # noqa: E402
-from engine02.pipeline import Engine02  # noqa: E402
+from engine02.composed import ComposedEngine02  # noqa: E402
+from engine02.service import Engine02Service  # noqa: E402
 
 SCENARIOS = [
     {
@@ -35,9 +36,9 @@ SCENARIOS = [
             "needs": [{"need_id": "sporty", "prob": 0.45}, {"need_id": "avoid_tryhard", "prob": 0.35},
                       {"need_id": "avoid_cheap", "prob": 0.20}],
         },
-        "feedback_utterance": "太亮了，不要紅色的；第 2 件的感覺比較對",
+        "feedback_utterance": "太亮了，不要紅色的；第 2 件的感覺比較對，但想要深藍色",
         "round2": {"excluded_values": {"color": ["Red"]}, "design_adjust_steps": {"bright_color": -1},
-                   "choose_rank": 2},
+                   "choose_rank": 2, "critique_rank": 2, "critique": {"attribute": "color", "to_value": "Navy Blue"}},
     },
     {
         "name": "B 面試（不要太正式但要可靠）",
@@ -49,9 +50,10 @@ SCENARIOS = [
             "needs": [{"need_id": "trustworthy", "prob": 0.5}, {"need_id": "avoid_tryhard", "prob": 0.3},
                       {"need_id": "approachable", "prob": 0.2}],
         },
-        "feedback_utterance": "太像上班族了，不要黑色，要輕鬆一點",
+        "feedback_utterance": "太像上班族了，不要黑色；第 3 件不錯但要休閒一點",
         "round2": {"excluded_values": {"color": ["Black"]}, "design_adjust_steps": {"formal_style": -1},
-                   "reject_rank": 1},
+                   "reject_rank": 1, "choose_rank": 3, "critique_rank": 3,
+                   "critique": {"attribute": "occasion", "direction": "more_casual"}},
     },
 ]
 
@@ -68,6 +70,15 @@ def build_request(sc: dict, rnd: int, prev_items: list | None) -> Engine02Reques
             feedback["chosen_item_ids"] = [prev_items[fb["choose_rank"] - 1].item_id]
         if prev_items and fb.get("reject_rank") and len(prev_items) >= fb["reject_rank"]:
             feedback["rejected_item_ids"] = [prev_items[fb["reject_rank"] - 1].item_id]
+        if prev_items:
+            feedback["choice_history"] = [{
+                "shown_item_ids": [it.item_id for it in prev_items],
+                "chosen_item_id": feedback.get("chosen_item_ids", [None])[0],
+                "rejected_item_ids": feedback.get("rejected_item_ids", []),
+            }]
+        if prev_items and fb.get("critique") and len(prev_items) >= fb["critique_rank"]:
+            feedback["reference_item_id"] = prev_items[fb["critique_rank"] - 1].item_id
+            feedback["critique"] = fb["critique"]
         body["feedback"] = feedback
     return Engine02Request(**body)
 
@@ -89,21 +100,28 @@ def main() -> None:
 
         enc = TorchEncoder(args.encoder, device=args.device)
     cooc = ROOT / args.cooccurrence
-    engine = Engine02(cat, enc, cooccurrence=CategoryCooccurrence.load(cooc) if cooc.exists() else None)
+    engine = ComposedEngine02(cat, enc, cooccurrence=CategoryCooccurrence.load(cooc) if cooc.exists() else None)
+    svc = Engine02Service(engine)
 
     out_dir = ROOT / "reports" / "demo"
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = f"{cat.name}_{enc.name}_{args.arm}"
     dump, md = [], [f"# ENGINE 02 demo run — catalog `{cat.name}`, encoder `{enc.name}`, arm `{args.arm}`\n"]
     for sc in SCENARIOS:
-        r1 = engine.run(build_request(sc, 1, None), args.arm)
-        r2 = engine.run(build_request(sc, 2, r1.items), args.arm)
+        r1 = svc.rank(build_request(sc, 1, None), args.arm)
+        r2 = svc.rank(build_request(sc, 2, r1.items), args.arm)
         dump.append({"scenario": sc["name"], "round1": r1.model_dump(mode="json"), "round2": r2.model_dump(mode="json")})
         md.append(f"## {sc['name']}\n\n使用者：「{sc['utterance']}」→ 回饋：「{sc['feedback_utterance']}」\n")
         for label, resp in (("第 1 輪", r1), ("第 2 輪", r2)):
             m = resp.metrics
             md.append(f"### {label}（過濾後 {resp.constraint_report.n_after_filter} 件；放寬：{resp.constraint_report.relaxed or '無'}；"
                       f"硬條件滿足 {m.hard_constraint_satisfaction:.0%}；違反回饋 {m.feedback_violations} 件）\n")
+            if resp.composed:
+                md.append(f"批評組合：{resp.composed}\n")
+            if resp.learned_preferences:
+                md.append(f"從點選學到的 Δβ：{resp.learned_preferences['design_weight_delta']}\n")
+            div = resp.diversification or {}
+            md.append(f"多樣化：{div.get('method')} {div.get('param')}，提前 {len(div.get('promoted', []))} 件\n")
             md.append("| # | 商品 | 顏色 | 分數 | 理由（卡片上顯示） |\n|---|---|---|---|---|")
             for it in resp.items:
                 md.append(f"| {it.rank} | {it.item_id} {it.title} | {it.color} | {it.score:.2f} | {it.explanation} |")
