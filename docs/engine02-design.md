@@ -1,6 +1,6 @@
 # ENGINE 02｜檢索、排序與可驗證解釋 — 設計與實驗報告
 
-> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（21 項全過），實驗腳本 `scripts/run_ablation.py`。
+> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（64 項全過），實驗腳本 `scripts/run_ablation.py`。
 > 本文件取代原 PRD「ENGINE 02」小節裡**尚未經過驗證的部分**；PRD 原本的設計（M3–M7）全部保留成可切換的對照組 `prd_original`，所以任何修改都有數據對照。
 > 原始實驗數據（CSV、embedding 快取）只存在本機 `reports/ablation/`、`data/`，不進 git。
 
@@ -18,7 +18,7 @@
 | 隱性需求權重維持 **γ=1** | T6：γ=1 讓前 5 名換掉 19–26%，NDCG@5 下降不顯著（−0.011～−0.027）；γ≥2 顯著犧牲品質 |
 | 在卡片內 z-score 改成**用整個過濾後商品池的統計量**標準化 | 候選數量改變時，理由不會跟著變（method inventory §11） |
 | 穿搭相容性**只在有錨點商品時才啟用**，而且要用**商品層級**模型（OutfitTransformer） | 文獻中所有相容性任務都需要錨點；FITB 200 題：品類 NPMI 25%（＝隨機）、embedding 相似度 48%、OutfitTransformer 54.5% |
-| 回饋：批評回饋效果大，Rocchio **尚未證明有效** | T5：4 輪成功率 1–2% → 39–44%（p<0.001）；Rocchio 相對只用批評多 3 個百分點，p≈0.54–0.60，**不顯著** |
+| 回饋：批評回饋效果大；Rocchio 單獨**沒有效果**，改加 **Bayes 偏好學習**（勝過 PRD ±1 規則） | T5：4 輪成功率 1–2% → 39–44%（p<0.001）；Rocchio 相對只用批評多 3 個百分點，p≈0.54–0.60，**不顯著** |
 | 推薦理由**預設用模板**，LLM 改寫要通過程式事實檢查 | 本地 Qwen3-1.7B 實測會把「盛夏偏熱」講反；有 OpenAI key 時才開改寫 |
 | 圖文 reranker（Qwen3-VL-Reranker-2B）**預設不開** | CPU 每個 pair 21.6 秒；4090 上加了它，用詞相同的查詢反而變差（0.840→0.797，p=0.001），每次查詢多約 1 秒 |
 | 7 個 encoder 之間：時尚／SigLIP 系列**彼此無顯著差異**，但都顯著勝過通用 CLIP | 換句話說的查詢 dense NDCG@5：Marqo-FashionSigLIP 0.463、fashion-clip 0.426（p=0.21）、OpenAI CLIP 0.334（p<0.001） |
@@ -256,6 +256,18 @@ Engine02Request
 - **預設 γ=1 落在轉折點**：前 5 名有 19–26% 換成更符合隱性需求的商品，屬性相符度的下降不顯著。γ≥2 開始顯著犧牲品質。
 - **商品庫越大，取捨越有空間**：同樣 γ=1，44k 的品質代價（−0.011）比 5k（−0.027）小。
 - **限制**：NDCG 用屬性當標準答案，量不到需求本身。需求契合度是用我們自己的 K 表和 c(i,d) 算的，會偏向系統，只能當作「需求確實有影響排序」的證據，**不能當作「推薦更符合使用者需求」的證據**。
+
+### 3.7 推薦系統元件（4 個 sub-agent，nycu，配對統計；詳見 `docs/research/recsys-*.md`）
+
+| 元件 | 方法（文獻） | 關鍵結果 | 採用 |
+|---|---|---|---|
+| 從點選學偏好（T7） | Bayes 成對 logistic／Bradley–Terry（reward-rational choice, NeurIPS 2020）、Thompson、LinUCB（WWW 2010）、PRD ±1 規則 | 200 位模擬使用者 × 5 輪：Bayes+Rocchio 隱藏效用 2.48（5k）／2.36（44k），顯著勝過 PRD 規則約 0.18–0.20（p<0.001）；**勝過 Rocchio 的部分有循環性**（改用 metadata 口味時打平或小輸）；Thompson／LinUCB 沒有更好 | ✅ `choice_history` → Δβ |
+| 「這件但換成 X」（T8） | 組合式檢索 CIReVL（ICLR 2024）、CLIP4Cir、向量加減（latent linear critiquing） | 44k NDCG@10：只加硬條件 0.347 → 參考商品＋改寫文字＋新值過濾＋RRF **0.610**（p<0.001）；**放寬規則原本會吃掉 46% 的顏色批評** | ✅ `reference_item_id`＋`critique`；批評值改成永不放寬 |
+| 清單多樣化（T9） | MMR、DPP（NeurIPS 2018／YouTube CIKM 2018）、xQuAD | DPP θ=0.9（top-20）：44k 近似重複 2.45% → 0.35%，NDCG@5 −0.005（p=0.22）；被提前的卡片標「為了多樣性而納入」，忠實度檢查 300/300 | ✅ 預設 |
+| 搭配推薦 | P-Companion 先品類後商品（CIKM 2020）＋OutfitTransformer 互補頭 | Polyvore 100 選 1：MRR 0.277（互補頭）vs 0.216（相容性頭）vs 0.185（圖片相似度），p<0.001；**可能有訓練資料重疊** | ✅ `POST /complete-look` |
+| 排序權重學習（T10） | coordinate ascent、pairwise logistic（非負、保持可加總）、ranx fusion | 5-fold CV：學權重只比「依查詢類型分流」多 +0.009；以詞彙覆蓋率分流在 44k 失效 | ✅ 改由 ENGINE 01 回傳 `retrieval_text_normalized`，未正規化時只用 dense |
+
+**服務層** `engine02/service.py`（`POST /rank`）：點選歷史 → Δβ → 批評組合 → 加總排序與理由 → DPP 多樣化。`POST /rank/plain` 保留純 pipeline 供對照。
 
 ### 3.6 還沒跑的對照組
 - `full_concept_vlm` / `full_concept_hybrid`：修正版 VLM 全量標註完成後，重跑 T3（已排在 nycu 的 job4）。
