@@ -87,4 +87,7 @@ All ground truth in T1–T5 comes from catalog metadata or blind visual labels, 
 | A concept image helps when the user cannot describe what they want | w=0.2: NDCG@5 0.078 → 0.278 on 44k (p≈1e-4) with a null random-image control (−0.004, p=0.71) |
 
 Limitations: public catalogs have no prices; KAGL lacks blazers/knitwear (Polyvore apparel merged as a
-workaround); simulated users are rule-based; visual labels were produced by an LLM annotator, not humans.
+workaround); simulated users are rule-based; visual labels were produced by an LLM annotator, not humans
+(`scripts/eval_human_agreement.py` + `data/labels/human_tasks.csv` are ready for a human pass, with
+Cohen's kappa against the LLM annotator); on filled catalogs never evaluate against an attribute the
+model itself filled — `concept_labels()` drops those rows by default.
