@@ -484,12 +484,15 @@ K[n,d] 的每一格都是從文獻編碼出來的判斷，沒有人工校準。�
 
 | 項目 | 需要 | 狀態 |
 |---|---|---|
-| 44k 全庫 KAGL＋7 個 encoder 重跑 T1–T5 | 伺服器 CPU／GPU | 環境建置中（SSH 暫時連不上） |
-| Qwen3-VL-8B 設計要素標註 → `full_concept_vlm` | V100 fp16 | 腳本已寫好，還沒在 GPU 上跑 |
-| Qwen3-VL-Reranker 2B／8B 延遲與 T1 | V100 fp16 | 還沒跑 |
-| 肩線／霧面／領型／logo 人工標 40 件 → AUROC | 組員 1 小時 | 還沒做 |
-| M3 感性對照表：GPT 多次取樣填值，意見分歧的格子交人工 | OpenAI key | 還沒做 |
-| LLM 改寫的事實檢查實測 | OpenAI key | 程式與單元測試已完成 |
-| 價格欄位 | 需要贊助商資料，或明確標示為合成 | 目前一律 null |
+| 44k 全庫 KAGL＋多個 encoder 重跑 T1–T6 | 伺服器 GPU | ✅ 已完成（§3.5b、§3.9） |
+| Qwen3-VL-8B 設計要素標註 → `full_concept_vlm` | GPU | ✅ 全量 25,000 件完成，消融已跑（§3.17、§3.19；結論：**不採用**，見循環性修正） |
+| `/complete-look` 接 OutfitTransformer 互補頭 | GPU | ✅ 真實 API 實測通過（§3.14） |
+| 全量場合／顏色／性別補值 | GPU | ✅ 完成，放寬比例 92.3% → 3.8%（§3.17） |
+| Qwen3-VL-Reranker 2B／8B 延遲與 T1 | GPU | 2B 已測（變差，§0）；8B 官方路徑跑不通，**暫停** |
+| **真人盲標 140 題 → Cohen's κ 與人工標準答案 AUROC** | 組員 1–2 小時 | ⏳ 工具與題本都備好（`data/labels/human_tasks.csv`、`scripts/eval_human_agreement.py`），**只差人標** |
+| M3 感性對照表的人工校正 | 全組 1 小時 | ⏳ T13 指出該校的是**正負號與是否為零**，不是數值大小（§3.18） |
+| LLM 改寫的事實檢查實測 | OpenAI key | ⏳ 程式與單元測試已完成，缺真實幻覺率 |
+| 價格欄位 | 需要贊助商資料，或明確標示為合成 | ⏳ 目前一律 null，預算條件只有單元測試涵蓋 |
+| ENGINE 01／03 的斷網重播 | 兩位 owner | ⏳ ENGINE 02 這半已完成（`engine02/replay.py`） |
 
 相關文件：`docs/engine02-literature-review.md`（文獻對照）、`docs/research/engine02-method-inventory.md`（方法清單）、`docs/research/industry-fashion-brands.md`（業界採用）、`docs/research/catalog-options.md`（資料集）、`reports/model_verification.md`（模型實測）。
