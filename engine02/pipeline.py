@@ -392,14 +392,15 @@ class Engine02:
                     terms.append(Term("compat", "compat", cs, arm.w_compat, normalize=not pool_scope))
         if arm.use_trend and self.trend_keywords:
             tr_all = self.bm25.scores(" ".join(self.trend_keywords))[pool]
-            terms.append(Term("trend", "trend", tr_all[top], arm.w_trend, stats=_stats(tr_all) if pool_scope else None))
+            terms.append(Term("trend", "trend", tr_all[top], arm.w_trend,
+                               stats=_stats(tr_all) if pool_scope else None, clip=arm.z_clip))
         if arm.use_penalty and req.feedback.rejected_item_ids:
             neg = self.catalog.positions(req.feedback.rejected_item_ids)
             if neg:
                 sim_all = (self.image_emb[pool] @ self.image_emb[neg].T).max(axis=1)
                 terms.append(
                     Term("penalty:rejected_similarity", "penalty", sim_all[top], -arm.w_penalty,
-                         stats=_stats(sim_all) if pool_scope else None)
+                         stats=_stats(sim_all) if pool_scope else None, clip=arm.z_clip)
                 )
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])

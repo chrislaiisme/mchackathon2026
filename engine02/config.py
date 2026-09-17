@@ -66,7 +66,10 @@ ARMS: dict[str, ArmConfig] = {
     "hybrid_rrf_adaptive": ArmConfig(name="hybrid_rrf_adaptive", candidate_fusion="rrf", additive_rerank=False,
                                      bm25_adaptive=True),
     "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
-    "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0),
+    # serving default: ±3 z-clip on every normalised term, concept-image fusion at the measured
+    # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding). `full` stays frozen
+    # as the reproducibility baseline for §3.1–3.13.
+    "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),
