@@ -311,3 +311,41 @@ def t5_feedback(engine: Engine02, arms: dict[str, dict], n_targets: int = 100, r
                 rows.append(dict(target=tid, arm=arm_name, round=r,
                                  success=bool(success_round is not None and success_round <= r)))
     return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+def t6_need_tradeoff(engine: Engine02, queries: list[Query], scales=(0, 0.5, 1, 2, 4, 8), k: int = 5,
+                     seed: int = 0, base_arm: str = "full") -> pd.DataFrame:
+    """Sponsor's difficulty: keep quality under constraints while honouring hidden needs.
+
+    For each query draw random need probabilities, then sweep γ (need_scale):
+    - ndcg5: attribute-grounded relevance (as T1, lexical wording, hard category+gender filter)
+    - need_alignment: mean over top-k of Σ_d β_d(γ=1)·c(i,d) — how well shown items express the needs
+    - changed: share of top-k not present at γ=0 (how much needs actually move the result)
+    """
+    from dataclasses import replace
+
+    rng = random.Random(seed)
+    base = ARMS[base_arm]
+    c_mat = engine.design_matrix(base)
+    rows = []
+    for q in queries:
+        needs = random_needs(rng, engine.kansei.need_ids)
+        probs = {n.need_id: n.prob for n in needs}
+        beta = engine.kansei.beta(probs, {})[0]
+        grades = q.grades(engine.catalog.items)
+        c = HardConstraints(category=_slot([q.category]), gender=_slot([q.gender]))
+        top0 = None
+        for g in scales:
+            arm = replace(base, name=f"{base_arm}_g{g}", need_scale=float(g))
+            req = Engine02Request(session_id=q.qid, retrieval_text=q.text(False), constraints=c, needs=needs,
+                                  options=Engine02Options(top_k=k, explain_with_llm=False, counterfactual_check=False))
+            resp = engine.run(req, arm)
+            ids = [it.item_id for it in resp.items]
+            pos = engine.catalog.positions(ids)
+            align = float(np.mean(c_mat[pos] @ beta)) if pos else float("nan")
+            if top0 is None:
+                top0 = set(ids)
+            rows.append(dict(qid=q.qid, gamma=g, ndcg5=ndcg_at_k(ids, grades, k), need_alignment=align,
+                             changed=len(set(ids) - top0) / max(1, len(ids))))
+    return pd.DataFrame(rows)

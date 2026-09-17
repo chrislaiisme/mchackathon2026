@@ -126,6 +126,14 @@ def main() -> None:
         }
         print("t5 done", flush=True)
 
+    if "t6" in todo:
+        df = tasks.t6_need_tradeoff(engine, queries)
+        df.to_csv(out / "t6_need_tradeoff.csv", index=False)
+        agg = df.groupby("gamma")[["ndcg5", "need_alignment", "changed"]].mean()
+        agg.to_csv(out / "t6_summary.csv")
+        summary["t6"] = agg.round(4).reset_index().to_dict(orient="records")
+        print("t6 done", flush=True)
+
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print(f"wrote {out}", flush=True)
 

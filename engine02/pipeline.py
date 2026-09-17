@@ -324,16 +324,16 @@ class Engine02:
             probs = {n.need_id: n.prob for n in req.needs}
             beta_needs, beta_fb = self.kansei.beta(probs, req.feedback.design_adjust_steps)
             for j, el in enumerate(self.kansei.elements):
-                w = float(beta_needs[j] + beta_fb[j])
+                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]))
                 if abs(w) < 1e-9:
                     continue
                 per_unit = {}
                 for i, n in enumerate(self.kansei.need_ids):
-                    v = probs.get(n, 0.0) * self.kansei.K[i, j]
+                    v = arm.need_scale * probs.get(n, 0.0) * self.kansei.K[i, j]
                     if abs(v) > 1e-9:
                         per_unit[n] = float(v)
                 if abs(beta_fb[j]) > 1e-9:
-                    per_unit["feedback_adjust"] = float(beta_fb[j])
+                    per_unit["feedback_adjust"] = float(arm.need_scale * beta_fb[j])
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:

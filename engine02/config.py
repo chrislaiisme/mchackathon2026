@@ -38,6 +38,7 @@ class ArmConfig:
     # CLIP antonym scores (chosen by AUROC against blind visual labels, docs/engine02-design.md §3.3c)
     vlm_elements: tuple[str, ...] = ("matte_fabric", "glossy_fabric", "visible_logo", "minimal_design",
                                      "bold_pattern", "crisp_collar")
+    need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
     w_dense: float = 1.0
     w_bm25: float = 0.5
     w_compat: float = 0.5
