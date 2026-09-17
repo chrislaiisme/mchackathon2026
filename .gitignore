@@ -8,3 +8,5 @@ artifacts/
 third_party/
 reports/ablation/
 reports/server/
+reports/agents/
+reports/demo/
