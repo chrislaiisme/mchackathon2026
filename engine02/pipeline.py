@@ -92,8 +92,26 @@ class Engine02:
         self._c: dict[tuple, np.ndarray] = {}
         self.bm25 = BM25Index(catalog.texts())
         self.trend_keywords: list[str] = []
+        # catalogs with model-filled attributes (engine02/attribute_fill.py) filter those rows at
+        # colour-family level and mark them on the card; metadata-only catalogs keep exact matching
+        self._has_predicted = "attr_source" in catalog.items.columns and             catalog.items["attr_source"].astype(str).str.contains("predicted:").any()
+        self._attr_filter = None
+        if self._has_predicted:
+            from .attribute_fill import provenance_filter
+
+            self._attr_filter = provenance_filter("family")
         self.vocabulary = list(self.kansei.needs.values()) + [e.label for e in self.kansei.elements]
         self.init_ms = (time.perf_counter() - t0) * 1000
+
+    def attribute_notes(self, pos: int, c) -> list[str]:
+        """Provenance notes for attributes the user constrained (before relaxation) that are model-filled."""
+        if not self._has_predicted:
+            return []
+        from .attribute_fill import provenance_note
+
+        used = {a for a in ("color", "gender", "occasion", "season") if getattr(c, a).is_hard() and getattr(c, a).values}
+        used |= set(c.required_values) | set(c.excluded_values)
+        return [note for attr, note in provenance_note(self.catalog.items, pos).items() if attr in used]
 
     def set_trends(self, keywords: list[str]) -> None:
         self.trend_keywords = keywords
@@ -167,7 +185,7 @@ class Engine02:
         # hierarchical category relaxation (L2 → L1) via the unified taxonomy; unresolvable category
         # values fall back to the legacy exact-match ladder (docs/research/taxonomy.md §5.2)
         fr = filter_with_category_relaxation(items, req.constraints, max(arm.min_results, k), excluded,
-                                             catalog=self.catalog.name)
+                                             catalog=self.catalog.name, base=self._attr_filter)
         pool = np.flatnonzero(fr.mask)
         lap("filter")
 
@@ -268,6 +286,8 @@ class Engine02:
                 for n, v in cb.need_shares.items():
                     need_contrib[n] = need_contrib.get(n, 0.0) + v
             reasons, facts = template_reasons(contribs, el_labels, self.kansei.needs, fr.relaxed)
+            notes = self.attribute_notes(pos, req.constraints)
+            reasons += [f"注意：{n}" for n in notes]
             use_llm = self.llm if req.options.explain_with_llm else None
             text_expl, src = explain(reasons, facts, self.vocabulary, use_llm)
             price = self.catalog.attr(pos, "price")
@@ -287,6 +307,7 @@ class Engine02:
                     margin_vs_cutoff=ce.margin if ce.cutoff_position is not None else None,
                     reason_mode=arm.reason_mode,
                     reasons=reasons,
+                    attribute_notes=notes,
                     explanation=text_expl,
                     explanation_source=src,
                 )

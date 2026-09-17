@@ -258,6 +258,7 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
         if P.shape[1]:
             covered = np.maximum(covered, P[i])
         reasons, facts = template_reasons(contribs, el_labels, need_labels, deep.constraint_report.relaxed)
+        reasons += [f"注意：{n}" for n in it.attribute_notes]
         if promoted:
             note = f"為了多樣性而納入（純相關度排第 {i + 1} 名"
             if max_sim is not None:

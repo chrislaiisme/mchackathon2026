@@ -320,3 +320,24 @@ def test_zclip_and_occasion_rewrite(engine):
     row = pd.Series({"title": "Genesis Black Formal Shirt", "occasion": "Formal"})
     out = TemplateRewriter("title").rewrite(row, Critique(attribute="occasion", to_value="Casual"))
     assert out.lower().count("casual") == 1
+
+
+def test_predicted_attributes_are_marked(tmp_path):
+    import json as _json
+
+    rows = []
+    for i, t, c, s, col, p in ROWS:
+        src = {"color": "predicted:lr_marqo" if i == "7" else "dataset"}
+        rows.append(dict(item_id=i, title=t, description=None, category=c, subcategory=s,
+                         color=(col or "Navy Blue"), color_confidence=(0.9 if i == "7" else None),
+                         season=None, occasion=None, gender=None, price=p, image_path=f"images/{i}.jpg",
+                         attr_source=_json.dumps(src)))
+    cat = Catalog(items=pd.DataFrame(rows), root=tmp_path, name="toy")
+    enc = HashEncoder(dim=128, captions={f"{i}.jpg": t for i, t, *_ in ROWS})
+    eng = Engine02(cat, enc, cache_dir=tmp_path / "index")
+    c = HardConstraints(category=Slot(state=SlotState.VALUE, values=["outerwear"]),
+                        color=Slot(state=SlotState.VALUE, values=["navy"]))
+    resp = eng.run(request(constraints=c), "full")
+    marked = {it.item_id: it.attribute_notes for it in resp.items}
+    assert marked.get("7") == ["顏色為模型判讀"]
+    assert all(v == [] for k, v in marked.items() if k != "7")

@@ -207,6 +207,8 @@ class RankedItem(BaseModel):
     margin_vs_cutoff: float | None = None  # score gap to the rank k+1 item
     reason_mode: str = "sufficient"
     reasons: list[str] = Field(default_factory=list)  # template sentences, verified
+    # hard-constrained attributes of this item that were filled by a model, e.g. ["顏色為模型判讀"]
+    attribute_notes: list[str] = Field(default_factory=list)
     explanation: str = ""
     explanation_source: Literal["llm", "template"] = "template"
 

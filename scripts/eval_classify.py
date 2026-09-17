@@ -16,7 +16,7 @@ Stages (run in order on nycu; all outputs under --out):
   fill      filled COPY of data/catalog/kagl_polyvore with provenance
   t2        T2-style constraint queries (outerwear, dress) before vs after filling
 
-  python scripts/eval_classify.py prep --out /tmp/neil/agents/classify/out
+  CLASSIFY_WORK=/path/to/workdir python scripts/eval_classify.py prep
 """
 
 from __future__ import annotations
@@ -39,7 +39,8 @@ from engine02 import attribute_fill as AF  # noqa: E402
 from engine02.eval.metrics import bootstrap_ci, paired_permutation_test  # noqa: E402
 
 SCOPE = ("top", "bottom", "outerwear", "dress", "shoes", "bag")  # categories kept in kagl_polyvore
-SHARED = Path("/tmp/neil/mchackathon2026/data/catalog")
+SHARED = ROOT / "data" / "catalog"  # shared prepared catalogs (read-only use)
+WORK = Path(__import__("os").environ.get("CLASSIFY_WORK", "/tmp2/mzjiang/Research_Project/agents/classify"))
 ENCODERS = ("marqo-fashionSigLIP", "fashion-clip")
 SEED = 0
 
@@ -96,6 +97,18 @@ def stage_prep(a):
     ids = set(strat["item_id"]) | set(scope.loc[scope["split"].isin(["test", "dev"]), "item_id"])
     k[k["item_id"].isin(ids)][["item_id"]].to_csv(out / "vlm_ids_kagl_full.csv", index=False)
     strat[["item_id", "category"]].to_csv(out / "category_sample_kagl_full.csv", index=False)
+    # Qwen id lists in priority order (V100 fp16 is slower): eval split first, then audit samples
+    ev = scope[scope["split"] == "test"]["item_id"].tolist() + scope[scope["split"] == "dev"]["item_id"].tolist()
+    pd.DataFrame({"item_id": ev[:48]}).to_csv(out / "vlm_ids_sanity.csv", index=False)
+    pd.DataFrame({"item_id": ev}).to_csv(out / "vlm_ids_kagl_eval.csv", index=False)
+    pv = load("polyvore_big")
+    pshuf = pv.sample(frac=1, random_state=SEED)
+    pstrat = pshuf[pshuf.groupby("category").cumcount() < a.cap_per_category]
+    pstrat[["item_id", "category"]].to_csv(out / "category_sample_polyvore_big.csv", index=False)
+    merged = load("kagl_polyvore")
+    pm = [i.split(":", 1)[1] for i in merged.loc[merged["source"] == "Marqo/polyvore", "item_id"]]
+    pd.DataFrame({"item_id": pm}).to_csv(out / "vlm_ids_polyvore_merged.csv", index=False)
+    pstrat[["item_id"]].to_csv(out / "vlm_ids_polyvore_strat.csv", index=False)
     print(json.dumps({"split": scope["split"].value_counts().to_dict(), "vlm_kagl": len(ids),
                       "strat": strat["category"].value_counts().to_dict()}))
 
@@ -117,8 +130,8 @@ def stage_embed(a):
                 shutil.copy(src, dst)
                 print("copied", dst, flush=True)
                 continue
-            if cat == "kagl_polyvore":
-                continue  # derived from the two sources below
+            if cat == "kagl_polyvore" and enc != "marqo-fashionSigLIP":
+                continue  # only the T2 engine encoder is needed for the merged catalog
             e = TorchEncoder(enc, device="cuda", batch_size=64)
             paths = [ROOT / "data/catalog" / cat / p for p in items["image_path"]]
             cached_image_embeddings(e, paths, dst, batch=256)
@@ -171,7 +184,10 @@ def stage_vlm(a):
     todo_all = items[items["item_id"].isin(ids)]
     dst = out / f"{a.catalog}.parquet"
     partial = dst.with_suffix(".partial.parquet")
-    rows = pd.read_parquet(partial).to_dict("records") if partial.exists() else []
+    rows = pd.read_parquet(dst).to_dict("records") if dst.exists() else []  # accumulate across id lists
+    if partial.exists():
+        prev = {r["item_id"] for r in rows}
+        rows += [r for r in pd.read_parquet(partial).to_dict("records") if r["item_id"] not in prev]
     done = {r["item_id"] for r in rows}
     todo = todo_all[~todo_all["item_id"].isin(done)]
     dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16  # V100 → fp16
@@ -390,8 +406,27 @@ def stage_audit(a):
             summary[f"{cat}:{m}"] = dict(n=len(agree), agreement=agree.mean(), lo=lo, hi=hi)
             pd.crosstab(pd.Series(meta, name="metadata"), pd.Series(pred, name=m)).to_csv(out / "audit" / f"confusion_{cat}_{m}.csv")
             items[f"pred_{m}"] = pred
+            if m == "zs_marqo":
+                items["conf_zs_marqo"] = AF.softmax(z * 100.0).max(1)
+                both = pred == np.array(AF.COARSE)[np.load(out / "zeroshot" / f"{cat}__fashion-clip__category.npy").argmax(1)]
+                summary[f"{cat}:marqo_and_fclip_agree_but_not_metadata"] = float(((pred != meta) & both).mean())
+                summary[f"{cat}:zs_marqo_per_category_agreement"] = pd.Series(agree).groupby(meta).mean().to_dict()
         vf = out / "vlm" / f"{cat}.parquet"
         if not vf.exists():
+            # no VLM: visual-audit sample from Marqo zero-shot disagreements (stratified by metadata category)
+            dis = items[items["pred_zs_marqo"] != items["category"].fillna("other")]
+            groups = {c: g.sample(frac=1, random_state=SEED) for c, g in dis.groupby("category")}
+            picked, i = [], 0
+            while len(picked) < a.n_disagree and any(len(g) > i for g in groups.values()):
+                for c in sorted(groups):
+                    if len(groups[c]) > i and len(picked) < a.n_disagree:
+                        picked.append(groups[c].iloc[i])
+                i += 1
+            for r in picked:
+                sample_rows.append(dict(catalog=cat, item_id=r["item_id"], title=r["title"], subcategory=r["subcategory"],
+                                        metadata=r["category"], qwen=None, qwen_conf=None, marqo=r["pred_zs_marqo"],
+                                        marqo_conf=round(float(r["conf_zs_marqo"]), 3), fclip=r["pred_zs_fclip"],
+                                        image_path=f"{cat}/{r['image_path']}"))
             continue
         v = pd.read_parquet(vf).set_index("item_id")
         sub = items[items["item_id"].isin(v.index)].copy()
@@ -401,8 +436,8 @@ def stage_audit(a):
         P = P[ok]
         sub["pred_qwen"] = np.array(AF.COARSE)[P.argmax(1)]
         sub["conf_qwen"] = P.max(1)
-        if cat == "kagl_full":  # stratified sample → population weights
-            strat = pd.read_csv(out / "category_sample_kagl_full.csv", dtype=str)
+        if (out / f"category_sample_{cat}.csv").exists():  # stratified sample → population weights
+            strat = pd.read_csv(out / f"category_sample_{cat}.csv", dtype=str)
             sub = sub[sub["item_id"].isin(set(strat["item_id"]))]
             pop = items["category"].value_counts()
             w = sub["category"].map(pop / sub["category"].value_counts())
@@ -417,7 +452,7 @@ def stage_audit(a):
             boots.append(np.average(agree[idx], weights=ww[idx]))
         summary[f"{cat}:qwen"] = dict(n=len(sub), agreement=float(np.average(agree, weights=ww)),
                                       lo=float(np.quantile(boots, 0.025)), hi=float(np.quantile(boots, 0.975)),
-                                      weighted=cat == "kagl_full")
+                                      weighted=True)
         both = sub["pred_qwen"] == sub["pred_zs_marqo"]
         summary[f"{cat}:qwen_and_marqo_agree_with_each_other_but_not_metadata"] = float(
             np.average(((sub["pred_qwen"] != sub["category"]) & both).to_numpy(float), weights=ww))
@@ -483,6 +518,7 @@ def stage_transfer_sample(a):
     s["image_path"] = "kagl_polyvore/" + s["image_path"]
     s.insert(0, "n", range(1, len(s) + 1))
     s.to_csv(out / "polyvore_sample.csv", index=False)
+    pd.DataFrame({"item_id": [i.split(":", 1)[1] for i in s["item_id"]]}).to_csv(Path(a.out) / "vlm_ids_polyvore_transfer.csv", index=False)
     make_sheets(s, out / "sheets", "pv")
 
 
@@ -518,6 +554,8 @@ def stage_transfer(a):
         y = np.array([labels.index(v) if v in labels else -1 for v in lab[col]])
         keep = y >= 0
         for method in ("zs_marqo", "zs_fclip", "lr_marqo", "lr_fclip", "qwen"):
+            if method == "qwen" and not (out / "vlm" / "polyvore_big.parquet").exists():
+                continue
             z = predict_polyvore(a, method, task, list(np.array(raw)))
             if z is None:
                 continue
@@ -612,6 +650,9 @@ def stage_t2(a):
     for f in (SHARED / "kagl_polyvore" / "index").glob("*.npy"):
         if not (cache / f.name).exists():
             shutil.copy(f, cache / f.name)
+    own = Path(a.out) / "emb" / "kagl_polyvore__marqo-fashionSigLIP.npy"
+    if own.exists() and not (cache / "img_marqo-fashionSigLIP.npy").exists():
+        shutil.copy(own, cache / "img_marqo-fashionSigLIP.npy")
     engines = {k: pipeline.Engine02(c, enc, cache_dir=cache) for k, c in cats.items()}
     pipeline.filter_with_relaxation = AF.provenance_filter("family")
     queries = []
@@ -702,7 +743,7 @@ def stage_t2_score(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("stage")
-    ap.add_argument("--out", default="/tmp/neil/agents/classify/out")
+    ap.add_argument("--out", default=str(WORK / "out"))
     ap.add_argument("--n-test", type=int, default=2600)
     ap.add_argument("--n-dev", type=int, default=1100)
     ap.add_argument("--cap-per-category", type=int, default=700)
@@ -714,7 +755,7 @@ def main():
     ap.add_argument("--sheet-dir", default="sheets")
     ap.add_argument("--prefix", default="s")
     ap.add_argument("--plan", default=None, help='JSON {"color": ["family", "qwen", 0.9], ...}')
-    ap.add_argument("--filled", default="/tmp/neil/agents/classify/catalog_kagl_polyvore_filled")
+    ap.add_argument("--filled", default=str(WORK / "catalog_kagl_polyvore_filled"))
     a = ap.parse_args()
     fn = {"prep": stage_prep, "embed": stage_embed, "zeroshot": stage_zeroshot, "vlm": stage_vlm,
           "linear": stage_linear, "eval": stage_eval, "audit": stage_audit, "sheet": stage_sheet,

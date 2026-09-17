@@ -399,6 +399,7 @@ def filter_with_category_relaxation(
     catalog: str | None = None,
     tax: Taxonomy | None = None,
     allow_drop_category: bool = False,
+    base=None,  # the non-category filter (default constraints.filter_with_relaxation)
 ):
     """Drop-in replacement for constraints.filter_with_relaxation with a hierarchical category ladder.
 
@@ -408,8 +409,10 @@ def filter_with_category_relaxation(
     ("blazer") backs off to its parent ("outerwear") before the user's explicit colour is dropped.
     Unresolvable category values fall back to the legacy exact-match behaviour unchanged.
     """
-    from .constraints import DEFAULT_LADDER, filter_with_relaxation
+    from .constraints import DEFAULT_LADDER
+    from .constraints import filter_with_relaxation as _default_filter
 
+    filter_with_relaxation = base or _default_filter
     tax = tax or load_taxonomy()
     slot = c.category
     if not (slot.is_hard() and slot.values):
