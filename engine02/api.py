@@ -136,11 +136,16 @@ def kansei() -> dict:
 @app.get("/vocabulary")
 def vocabulary() -> dict:
     """Catalog values ENGINE 01 must normalise slot values to (hard filters are exact matches)."""
+    from .taxonomy import load_taxonomy
+
     items = engine().catalog.items
     out = {}
     for col in ("category", "subcategory", "color", "occasion", "season", "gender"):
         vc = items[col].dropna().astype(str).value_counts()
         out[col] = vc.to_dict()
+    tax = load_taxonomy()
+    out["taxonomy"] = tax.vocabulary_payload(items, engine().catalog.name)
+    out["closed_vocabulary"] = tax.closed_vocabulary(max_synonyms=4)  # give this to ENGINE 01's GPT
     return out
 
 

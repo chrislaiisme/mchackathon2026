@@ -1,0 +1,3711 @@
+{
+ "version": "taxonomy_v1",
+ "created": "2026-09-17",
+ "description": "ENGINE 02 category taxonomy: L1 garment slot -> L2 garment type; cross-cutting collections; per-source subcategory maps in taxonomy_map_{kagl,polyvore}.json. See docs/research/taxonomy.md.",
+ "sources": {
+  "google_product_taxonomy": "https://www.google.com/basepages/producttype/taxonomy-with-ids.en-US.txt (Version 2021-09-21; zh-TW file 404, zh-CN used for reference)",
+  "fashionpedia": "Jia et al., ECCV 2020, arXiv:2004.12276; categories from instances_attributes_val2020.json",
+  "hs2022": "WCO HS Nomenclature 2022, Chapters 61 and 62 (wcoomd.org PDFs 1161_2022e / 1162_2022e)",
+  "makalot": "Makalot 2026 investor presentation (product lines p.5, revenue mix p.8)",
+  "shopee_tw": "https://shopee.tw/api/v4/pages/get_category_tree (fetched 2026-09-17)",
+  "yahoo_shopping_tw": "https://tw.buy.yahoo.com/ category menu (fetched 2026-09-17)"
+ },
+ "relaxation": "L2 -> L1 -> (none). Collections are intersections and are dropped, never generalised.",
+ "attribute_defs": {
+  "sleeve_length": {
+   "sleeveless": "無袖",
+   "short": "短袖",
+   "elbow-length": "五分袖",
+   "three-quarter": "七分袖",
+   "wrist-length": "長袖"
+  },
+  "neckline": {
+   "crew": "圓領",
+   "v-neck": "V領",
+   "scoop": "大圓領",
+   "boat": "船型領",
+   "square": "方領",
+   "turtle": "高領",
+   "cowl": "垂墜領",
+   "halter": "繞頸",
+   "shirt-collar": "襯衫領",
+   "polo-collar": "POLO領",
+   "hood": "連帽"
+  },
+  "fit": {
+   "tight": "合身/緊身",
+   "regular": "標準",
+   "loose": "寬鬆",
+   "oversized": "oversized"
+  },
+  "length": {
+   "mini": "迷你",
+   "above-the-knee": "膝上",
+   "knee": "及膝",
+   "below-the-knee": "膝下",
+   "midi": "中長",
+   "maxi": "長版",
+   "floor": "及地",
+   "cropped": "短版/七分",
+   "full": "全長"
+  },
+  "construction": {
+   "knit": "針織 (HS 第61章)",
+   "woven": "梭織 (HS 第62章)",
+   "mixed": "兩者皆常見",
+   "non_textile": "非成衣紡織品 (HS 其他章, 未驗證)"
+  },
+  "heel_height": {
+   "flat": "平底",
+   "low": "低跟",
+   "mid": "中跟",
+   "high": "高跟"
+  },
+  "carry": {
+   "hand": "手提",
+   "shoulder": "肩背",
+   "crossbody": "斜背",
+   "back": "後背",
+   "waist": "腰/胸"
+  }
+ },
+ "nodes": [
+  {
+   "id": "tops",
+   "level": 1,
+   "parent": null,
+   "label_en": "Tops",
+   "label_zh": "上衣",
+   "synonyms_zh": [
+    "上衣",
+    "上身",
+    "上著",
+    "衣服上身"
+   ],
+   "synonyms_en": [
+    "top",
+    "tops",
+    "shirts & tops"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "legacy_coarse": "top",
+   "apparel": true,
+   "attributes": [
+    "sleeve_length",
+    "neckline",
+    "fit",
+    "construction"
+   ]
+  },
+  {
+   "id": "tops.tshirts",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "T-shirts",
+   "label_zh": "T恤",
+   "synonyms_zh": [
+    "T恤",
+    "t-shirt",
+    "短T",
+    "長T",
+    "短袖T",
+    "長袖T",
+    "素T",
+    "圓領T",
+    "印花T",
+    "寬版T",
+    "TEE",
+    "體恤",
+    "短袖上衣"
+   ],
+   "synonyms_en": [
+    "t-shirt",
+    "t-shirts",
+    "tshirt",
+    "tshirts",
+    "tee",
+    "tees"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.09"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.polos",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Polo shirts",
+   "label_zh": "POLO衫",
+   "synonyms_zh": [
+    "POLO衫",
+    "polo衫",
+    "POLO",
+    "網眼衫"
+   ],
+   "synonyms_en": [
+    "polo",
+    "polos",
+    "polo shirt"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.05",
+     "61.06"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.shirts",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Shirts",
+   "label_zh": "襯衫",
+   "synonyms_zh": [
+    "襯衫",
+    "襯衣",
+    "恤衫",
+    "牛津襯衫",
+    "法蘭絨襯衫",
+    "格紋襯衫",
+    "正式襯衫",
+    "商務襯衫",
+    "白襯衫",
+    "西裝襯衫"
+   ],
+   "synonyms_en": [
+    "shirt",
+    "shirts",
+    "dress shirt",
+    "dress shirts",
+    "casual shirt",
+    "casual shirts",
+    "button-down",
+    "oxford shirt"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.05",
+     "62.06"
+    ],
+    "knit": [
+     "61.05",
+     "61.06"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.blouses",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Blouses",
+   "label_zh": "女衫/雪紡衫",
+   "synonyms_zh": [
+    "雪紡衫",
+    "雪紡上衣",
+    "女衫",
+    "罩衫",
+    "荷葉邊上衣",
+    "蕾絲上衣",
+    "女襯衫",
+    "襯衫/雪紡"
+   ],
+   "synonyms_en": [
+    "blouse",
+    "blouses",
+    "shirt-blouse"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.06"
+    ],
+    "knit": [
+     "61.06"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.tanks_camis",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Tank tops & camisoles",
+   "label_zh": "背心/小可愛",
+   "synonyms_zh": [
+    "背心",
+    "小可愛",
+    "細肩帶",
+    "細肩帶上衣",
+    "坦克背心",
+    "無袖上衣",
+    "削肩上衣",
+    "吊帶背心",
+    "平口上衣",
+    "bra top"
+   ],
+   "synonyms_en": [
+    "tank top",
+    "tank tops",
+    "tank",
+    "camisole",
+    "camisoles",
+    "cami",
+    "singlet",
+    "tube top"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.09"
+    ],
+    "woven": [
+     "62.06"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.sweaters",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Sweaters",
+   "label_zh": "毛衣/針織衫",
+   "synonyms_zh": [
+    "毛衣",
+    "針織衫",
+    "針織上衣",
+    "線衫",
+    "高領毛衣",
+    "套頭毛衣",
+    "羊毛衫",
+    "喀什米爾毛衣",
+    "麻花毛衣"
+   ],
+   "synonyms_en": [
+    "sweater",
+    "sweaters",
+    "jumper",
+    "pullover",
+    "knitwear",
+    "turtleneck"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.10"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.cardigans",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Cardigans",
+   "label_zh": "開襟針織衫",
+   "synonyms_zh": [
+    "開襟衫",
+    "針織外套",
+    "開襟毛衣",
+    "罩衫外套",
+    "針織開襟外套"
+   ],
+   "synonyms_en": [
+    "cardigan",
+    "cardigans"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.10"
+    ]
+   },
+   "note": "Fashionpedia 與 Polyvore 把 cardigan 放上衣；ModaNet 放 outer。沿用現行 coarse=top。",
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.sweatshirts_hoodies",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Sweatshirts & hoodies",
+   "label_zh": "大學T/帽T",
+   "synonyms_zh": [
+    "大學T",
+    "帽T",
+    "連帽T",
+    "連帽上衣",
+    "衛衣",
+    "刷毛上衣",
+    "長袖大學T",
+    "連帽衫"
+   ],
+   "synonyms_en": [
+    "sweatshirt",
+    "sweatshirts",
+    "hoodie",
+    "hoodies",
+    "hooded sweatshirt",
+    "crewneck sweatshirt"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.10"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.tunics",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Tunics",
+   "label_zh": "長版上衣",
+   "synonyms_zh": [
+    "長版上衣",
+    "長版衫",
+    "罩袍上衣"
+   ],
+   "synonyms_en": [
+    "tunic",
+    "tunics"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.06"
+    ],
+    "woven": [
+     "62.06"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.kurtas",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Kurtas & kurtis",
+   "label_zh": "庫爾塔（印度長衫）",
+   "synonyms_zh": [
+    "庫爾塔",
+    "印度長衫",
+    "印度上衣"
+   ],
+   "synonyms_en": [
+    "kurta",
+    "kurtas",
+    "kurti",
+    "kurtis"
+   ],
+   "gpt": {
+    "id": 212,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Shirts & Tops",
+    "path_zh_cn": "服饰与配饰 > 服装 > 衬衫/上衣"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.05",
+     "61.06"
+    ],
+    "woven": [
+     "62.05",
+     "62.06"
+    ]
+   },
+   "note": "民族服飾放在其服裝部位之下（庫爾塔＝長版上衣），另用 coll.ethnic 橫切集合；GPT 只把 Saris & Lehengas 列為 Traditional。",
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "tops.active_tops",
+   "level": 2,
+   "parent": "tops",
+   "label_en": "Activewear tops",
+   "label_zh": "運動上衣",
+   "synonyms_zh": [
+    "運動上衣",
+    "運動T恤",
+    "排汗衫",
+    "機能上衣",
+    "瑜珈上衣",
+    "運動背心",
+    "跑步上衣",
+    "健身上衣",
+    "緊身衣"
+   ],
+   "synonyms_en": [
+    "activewear top",
+    "activewear tops",
+    "activewear tank top",
+    "activewear tank tops",
+    "training top",
+    "running top",
+    "jersey",
+    "compression top"
+   ],
+   "gpt": {
+    "id": 5322,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Activewear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 运动服装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.09",
+     "61.10",
+     "61.14"
+    ]
+   },
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "top"
+  },
+  {
+   "id": "bottoms",
+   "level": 1,
+   "parent": null,
+   "label_en": "Bottoms",
+   "label_zh": "下身（褲/裙）",
+   "synonyms_zh": [
+    "下身",
+    "下著",
+    "褲裝",
+    "褲子",
+    "褲",
+    "下半身"
+   ],
+   "synonyms_en": [
+    "bottom",
+    "bottoms",
+    "bottomwear"
+   ],
+   "gpt": null,
+   "note": "GPT 沒有『下身』節點（Pants 204 / Shorts 207 / Skirts 1581 為平行節點）。",
+   "legacy_coarse": "bottom",
+   "apparel": true,
+   "attributes": [
+    "length",
+    "fit",
+    "construction"
+   ]
+  },
+  {
+   "id": "bottoms.jeans",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Jeans",
+   "label_zh": "牛仔褲",
+   "synonyms_zh": [
+    "牛仔褲",
+    "長褲",
+    "丹寧褲",
+    "直筒牛仔褲",
+    "寬褲牛仔褲",
+    "緊身牛仔褲",
+    "男友褲",
+    "喇叭牛仔褲",
+    "靴型褲"
+   ],
+   "synonyms_en": [
+    "jeans",
+    "denim jeans",
+    "skinny jeans",
+    "boyfriend jeans",
+    "straight leg jeans",
+    "flared jeans",
+    "bootcut jeans",
+    "wide leg jeans",
+    "jeggings",
+    "denim"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.03",
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.trousers",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Trousers",
+   "label_zh": "長褲/西裝褲/休閒褲",
+   "synonyms_zh": [
+    "長褲",
+    "西裝褲",
+    "西褲",
+    "休閒褲",
+    "卡其褲",
+    "寬褲",
+    "闊腿褲",
+    "直筒褲",
+    "錐形褲",
+    "工作褲",
+    "工裝褲",
+    "打褶褲",
+    "紳士褲",
+    "老爺褲",
+    "九分褲",
+    "寬版長褲"
+   ],
+   "synonyms_en": [
+    "trousers",
+    "trouser",
+    "pants",
+    "chinos",
+    "slacks",
+    "casual pants",
+    "dress pants",
+    "wide leg pants",
+    "cargo pants"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.03",
+     "62.04"
+    ],
+    "knit": [
+     "61.03",
+     "61.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.track_pants",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Track pants & joggers",
+   "label_zh": "運動褲/棉褲",
+   "synonyms_zh": [
+    "運動褲",
+    "長褲",
+    "運動長褲",
+    "棉褲",
+    "慢跑褲",
+    "束口褲",
+    "縮口褲",
+    "休閒運動褲",
+    "刷毛褲",
+    "訓練褲",
+    "機能褲",
+    "jogger"
+   ],
+   "synonyms_en": [
+    "track pants",
+    "trackpants",
+    "joggers",
+    "jogger pants",
+    "sweatpants",
+    "activewear pants",
+    "training pants"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.03",
+     "61.04"
+    ],
+    "woven": [
+     "62.03",
+     "62.04"
+    ]
+   },
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.leggings",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Leggings & tights",
+   "label_zh": "內搭褲/瑜珈褲",
+   "synonyms_zh": [
+    "內搭褲",
+    "瑜珈褲",
+    "瑜伽褲",
+    "緊身褲",
+    "壓力褲",
+    "韻律褲",
+    "legging",
+    "緊身運動褲"
+   ],
+   "synonyms_en": [
+    "leggings",
+    "legging",
+    "yoga pants",
+    "running tights",
+    "compression tights"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.03",
+     "61.04"
+    ]
+   },
+   "note": "瑜珈褲同時屬 coll.activewear；KAGL 'Tights'（Nike 訓練緊身褲與 Happy Socks 褲襪混雜）歸此。",
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.shorts",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Shorts",
+   "label_zh": "短褲",
+   "synonyms_zh": [
+    "短褲",
+    "熱褲",
+    "五分褲",
+    "百慕達短褲",
+    "牛仔短褲",
+    "海灘褲"
+   ],
+   "synonyms_en": [
+    "shorts",
+    "short",
+    "bermuda shorts",
+    "activewear shorts",
+    "denim shorts"
+   ],
+   "gpt": {
+    "id": 207,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Shorts",
+    "path_zh_cn": "服饰与配饰 > 服装 > 短裤"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.03",
+     "61.04"
+    ],
+    "woven": [
+     "62.03",
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.skirts",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Skirts",
+   "label_zh": "裙子",
+   "synonyms_zh": [
+    "裙子",
+    "半身裙",
+    "短裙",
+    "長裙",
+    "中長裙",
+    "及膝裙",
+    "窄裙",
+    "百褶裙",
+    "A字裙",
+    "迷你裙",
+    "牛仔裙",
+    "魚尾裙",
+    "褲裙",
+    "包臀裙",
+    "裙"
+   ],
+   "synonyms_en": [
+    "skirt",
+    "skirts",
+    "mini skirt",
+    "mini skirts",
+    "knee length skirts",
+    "long skirts",
+    "maxi skirt",
+    "midi skirt",
+    "pencil skirt",
+    "skort"
+   ],
+   "gpt": {
+    "id": 1581,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Skirts",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裙子"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.04"
+    ],
+    "woven": [
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.capris",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Capris & cropped pants",
+   "label_zh": "七分褲/九分褲",
+   "synonyms_zh": [
+    "七分褲",
+    "八分褲",
+    "九分褲",
+    "六分褲",
+    "短版褲",
+    "捲褲管長褲"
+   ],
+   "synonyms_en": [
+    "capris",
+    "capri pants",
+    "cropped pants",
+    "capri & cropped pants",
+    "three quarter pants"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.03",
+     "61.04"
+    ],
+    "woven": [
+     "62.03",
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "bottoms.ethnic_bottoms",
+   "level": 2,
+   "parent": "bottoms",
+   "label_en": "Ethnic bottoms (salwar, patiala, churidar)",
+   "label_zh": "印度傳統下著",
+   "synonyms_zh": [
+    "紗瓦褲",
+    "印度褲",
+    "燈籠褲"
+   ],
+   "synonyms_en": [
+    "salwar",
+    "patiala",
+    "churidar"
+   ],
+   "gpt": {
+    "id": 204,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Pants",
+    "path_zh_cn": "服饰与配饰 > 服装 > 裤装"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.04"
+    ],
+    "woven": [
+     "62.04"
+    ]
+   },
+   "collections": [
+    "coll.ethnic"
+   ],
+   "apparel": true,
+   "legacy_coarse": "bottom"
+  },
+  {
+   "id": "dresses",
+   "level": 1,
+   "parent": null,
+   "label_en": "Dresses & one-pieces",
+   "label_zh": "洋裝/連身",
+   "synonyms_zh": [
+    "連身款",
+    "一件式"
+   ],
+   "synonyms_en": [
+    "one-piece",
+    "one-pieces",
+    "dresses & jumpsuits"
+   ],
+   "gpt": {
+    "id": 2271,
+    "match": "narrower",
+    "path_en": "Apparel & Accessories > Clothing > Dresses",
+    "path_zh_cn": "服饰与配饰 > 服装 > 连衣裙"
+   },
+   "note": "GPT 的 Dresses(2271) 與 One-Pieces(5182) 是兩個兄弟節點；此 L1 合併兩者，因為對搭配而言是同一個『全身』槽位。",
+   "legacy_coarse": "dress",
+   "apparel": true,
+   "attributes": [
+    "sleeve_length",
+    "neckline",
+    "length",
+    "fit",
+    "construction"
+   ]
+  },
+  {
+   "id": "dresses.dresses",
+   "level": 2,
+   "parent": "dresses",
+   "label_en": "Dresses",
+   "label_zh": "洋裝",
+   "synonyms_zh": [
+    "洋裝",
+    "連身裙",
+    "連衣裙",
+    "長洋裝",
+    "短洋裝",
+    "襯衫洋裝",
+    "針織洋裝",
+    "碎花洋裝",
+    "背心裙",
+    "吊帶裙",
+    "無袖洋裝",
+    "上班洋裝"
+   ],
+   "synonyms_en": [
+    "dress",
+    "dresses",
+    "day dress",
+    "day dresses",
+    "sundress",
+    "shirt dress",
+    "maxi dress",
+    "midi dress"
+   ],
+   "gpt": {
+    "id": 2271,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Dresses",
+    "path_zh_cn": "服饰与配饰 > 服装 > 连衣裙"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.04"
+    ],
+    "woven": [
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "dress"
+  },
+  {
+   "id": "dresses.party_dresses",
+   "level": 2,
+   "parent": "dresses",
+   "label_en": "Cocktail & party dresses",
+   "label_zh": "小禮服/派對洋裝",
+   "synonyms_zh": [
+    "小禮服",
+    "派對洋裝",
+    "宴會洋裝",
+    "雞尾酒禮服",
+    "婚禮賓客洋裝",
+    "伴娘服",
+    "洋裝",
+    "連身裙"
+   ],
+   "synonyms_en": [
+    "cocktail dress",
+    "cocktail dresses",
+    "party dress",
+    "party dresses",
+    "bridesmaid dress"
+   ],
+   "gpt": {
+    "id": 2271,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Dresses",
+    "path_zh_cn": "服饰与配饰 > 服装 > 连衣裙"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.04"
+    ],
+    "woven": [
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "dress"
+  },
+  {
+   "id": "dresses.gowns",
+   "level": 2,
+   "parent": "dresses",
+   "label_en": "Gowns & wedding dresses",
+   "label_zh": "晚禮服/婚紗",
+   "synonyms_zh": [
+    "晚禮服",
+    "長禮服",
+    "禮服",
+    "婚紗",
+    "新娘禮服",
+    "白紗"
+   ],
+   "synonyms_en": [
+    "gown",
+    "gowns",
+    "evening gown",
+    "wedding dress",
+    "wedding dresses",
+    "ball gown"
+   ],
+   "gpt": {
+    "id": 5441,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Wedding & Bridal Party Dresses",
+    "path_zh_cn": "服饰与配饰 > 服装 > 新娘/婚礼服饰"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.04"
+    ],
+    "woven": [
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "dress"
+  },
+  {
+   "id": "dresses.jumpsuits_rompers",
+   "level": 2,
+   "parent": "dresses",
+   "label_en": "Jumpsuits & rompers",
+   "label_zh": "連身褲",
+   "synonyms_zh": [
+    "連身褲",
+    "連身衣褲",
+    "吊帶褲",
+    "連身短褲",
+    "工作連身服"
+   ],
+   "synonyms_en": [
+    "jumpsuit",
+    "jumpsuits",
+    "romper",
+    "rompers",
+    "playsuit",
+    "overalls",
+    "dungarees"
+   ],
+   "gpt": {
+    "id": 5250,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > One-Pieces > Jumpsuits & Rompers",
+    "path_zh_cn": "服饰与配饰 > 服装 > 连衣裙与连体衣 > 连体衣/连衫裤"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.14"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "dress"
+  },
+  {
+   "id": "dresses.sarees_lehengas",
+   "level": 2,
+   "parent": "dresses",
+   "label_en": "Sarees & lehengas",
+   "label_zh": "紗麗/蘭加裙",
+   "synonyms_zh": [
+    "紗麗",
+    "沙麗",
+    "蘭加裙",
+    "印度紗麗"
+   ],
+   "synonyms_en": [
+    "saree",
+    "sarees",
+    "sari",
+    "saris",
+    "lehenga",
+    "lehenga choli"
+   ],
+   "gpt": {
+    "id": 8248,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Traditional & Ceremonial Clothing > Saris & Lehengas",
+    "path_zh_cn": "服饰与配饰 > 服装 > 传统服装与礼服 > 莎丽服/楞哈"
+   },
+   "construction": "woven",
+   "note": "紗麗是整塊披掛的全身服裝，搭配槽位等同洋裝；HS 歸類視布料而定，未標。",
+   "collections": [
+    "coll.ethnic"
+   ],
+   "apparel": true,
+   "legacy_coarse": "dress"
+  },
+  {
+   "id": "outerwear",
+   "level": 1,
+   "parent": null,
+   "label_en": "Outerwear",
+   "label_zh": "外套",
+   "synonyms_zh": [
+    "外套",
+    "外搭",
+    "外衣"
+   ],
+   "synonyms_en": [
+    "outerwear",
+    "outer",
+    "coats & jackets"
+   ],
+   "gpt": {
+    "id": 203,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣"
+   },
+   "legacy_coarse": "outerwear",
+   "apparel": true,
+   "attributes": [
+    "length",
+    "fit",
+    "construction"
+   ]
+  },
+  {
+   "id": "outerwear.jackets",
+   "level": 2,
+   "parent": "outerwear",
+   "label_en": "Jackets",
+   "label_zh": "夾克",
+   "synonyms_zh": [
+    "夾克",
+    "飛行外套",
+    "牛仔外套",
+    "皮衣",
+    "皮外套",
+    "機車外套",
+    "教練外套",
+    "防風外套",
+    "風衣外套",
+    "衝鋒衣",
+    "羽絨外套",
+    "鋪棉外套",
+    "運動外套",
+    "連帽外套",
+    "軍裝外套",
+    "棒球外套",
+    "外套夾克",
+    "短外套",
+    "薄外套",
+    "防曬外套"
+   ],
+   "synonyms_en": [
+    "jacket",
+    "jackets",
+    "bomber",
+    "denim jacket",
+    "leather jacket",
+    "windbreaker",
+    "puffer jacket",
+    "track jacket",
+    "activewear jacket",
+    "activewear jackets",
+    "rain jacket",
+    "shrug",
+    "nehru jacket",
+    "anorak"
+   ],
+   "gpt": {
+    "id": 5598,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear > Coats & Jackets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣 > 外套与夹克"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.01",
+     "61.02"
+    ],
+    "woven": [
+     "62.01",
+     "62.02"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "outerwear"
+  },
+  {
+   "id": "outerwear.coats",
+   "level": 2,
+   "parent": "outerwear",
+   "label_en": "Coats",
+   "label_zh": "大衣",
+   "synonyms_zh": [
+    "大衣",
+    "長大衣",
+    "風衣",
+    "毛呢大衣",
+    "羊毛大衣",
+    "羽絨大衣",
+    "長版外套",
+    "雙排扣大衣",
+    "派克大衣"
+   ],
+   "synonyms_en": [
+    "coat",
+    "coats",
+    "overcoat",
+    "trench coat",
+    "parka",
+    "peacoat",
+    "puffer coat"
+   ],
+   "gpt": {
+    "id": 5598,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear > Coats & Jackets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣 > 外套与夹克"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.01",
+     "62.02"
+    ],
+    "knit": [
+     "61.01",
+     "61.02"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "outerwear"
+  },
+  {
+   "id": "outerwear.blazers",
+   "level": 2,
+   "parent": "outerwear",
+   "label_en": "Blazers & sport coats",
+   "label_zh": "西裝外套",
+   "synonyms_zh": [
+    "西裝外套",
+    "西外",
+    "休閒西裝",
+    "西裝上衣",
+    "西裝"
+   ],
+   "synonyms_en": [
+    "blazer",
+    "blazers",
+    "sport coat",
+    "sportcoat",
+    "sportcoats & blazers",
+    "suit jacket"
+   ],
+   "gpt": {
+    "id": 5598,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear > Coats & Jackets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣 > 外套与夹克"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.03",
+     "62.04"
+    ],
+    "knit": [
+     "61.03",
+     "61.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "outerwear"
+  },
+  {
+   "id": "outerwear.vests",
+   "level": 2,
+   "parent": "outerwear",
+   "label_en": "Vests & waistcoats",
+   "label_zh": "背心外套/西裝背心",
+   "synonyms_zh": [
+    "背心外套",
+    "西裝背心",
+    "羽絨背心",
+    "鋪棉背心",
+    "馬甲",
+    "針織背心",
+    "背心"
+   ],
+   "synonyms_en": [
+    "vest",
+    "vests",
+    "waistcoat",
+    "gilet",
+    "puffer vest"
+   ],
+   "gpt": {
+    "id": 1831,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear > Vests",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣 > 背心"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.10"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "outerwear"
+  },
+  {
+   "id": "outerwear.rainwear",
+   "level": 2,
+   "parent": "outerwear",
+   "label_en": "Rainwear",
+   "label_zh": "雨衣",
+   "synonyms_zh": [
+    "雨衣",
+    "雨褲",
+    "雨衣褲",
+    "輕便雨衣"
+   ],
+   "synonyms_en": [
+    "raincoat",
+    "rain pants",
+    "rain trousers",
+    "rain suit"
+   ],
+   "gpt": {
+    "id": 3066,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outerwear > Rain Suits",
+    "path_zh_cn": "服饰与配饰 > 服装 > 外衣 > 雨衣套装"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.01",
+     "62.02",
+     "62.10"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "outerwear"
+  },
+  {
+   "id": "sets",
+   "level": 1,
+   "parent": null,
+   "label_en": "Sets & suits",
+   "label_zh": "套裝",
+   "synonyms_zh": [
+    "套裝",
+    "成套",
+    "兩件式",
+    "多件式套裝",
+    "兩件組"
+   ],
+   "synonyms_en": [
+    "set",
+    "sets",
+    "co-ord",
+    "outfit set",
+    "clothing set"
+   ],
+   "gpt": {
+    "id": 7313,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outfit Sets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 整套服装"
+   },
+   "note": "成套商品不是單一搭配槽位；現行 coarse=other 保留，但 ENGINE 01 可以明確要求套裝。",
+   "legacy_coarse": "other",
+   "apparel": true,
+   "attributes": [
+    "construction"
+   ]
+  },
+  {
+   "id": "sets.suits",
+   "level": 2,
+   "parent": "sets",
+   "label_en": "Suits",
+   "label_zh": "西裝套裝",
+   "synonyms_zh": [
+    "西裝套裝",
+    "西服",
+    "整套西裝",
+    "褲裝套裝",
+    "裙裝套裝",
+    "西裝"
+   ],
+   "synonyms_en": [
+    "suit",
+    "suits",
+    "pant suit",
+    "skirt suit",
+    "tuxedo"
+   ],
+   "gpt": {
+    "id": 1594,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Suits",
+    "path_zh_cn": "服饰与配饰 > 服装 > 套装"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "woven": [
+     "62.03",
+     "62.04"
+    ],
+    "knit": [
+     "61.03",
+     "61.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "sets.tracksuits",
+   "level": 2,
+   "parent": "sets",
+   "label_en": "Tracksuits",
+   "label_zh": "運動套裝",
+   "synonyms_zh": [
+    "運動套裝",
+    "運動服套裝",
+    "休閒套裝",
+    "棉質套裝"
+   ],
+   "synonyms_en": [
+    "tracksuit",
+    "tracksuits",
+    "track suit",
+    "sweatsuit"
+   ],
+   "gpt": {
+    "id": 7313,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Outfit Sets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 整套服装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.12"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "sets.ethnic_sets",
+   "level": 2,
+   "parent": "sets",
+   "label_en": "Ethnic sets (kurta sets, salwar suits)",
+   "label_zh": "印度傳統套裝",
+   "synonyms_zh": [
+    "庫爾塔套裝",
+    "印度套裝"
+   ],
+   "synonyms_en": [
+    "kurta set",
+    "kurta sets",
+    "salwar suit",
+    "salwar and dupatta",
+    "churidar kurta"
+   ],
+   "gpt": {
+    "id": 5388,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Traditional & Ceremonial Clothing",
+    "path_zh_cn": "服饰与配饰 > 服装 > 传统服装与礼服"
+   },
+   "construction": "mixed",
+   "collections": [
+    "coll.ethnic"
+   ],
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "sets.clothing_sets",
+   "level": 2,
+   "parent": "sets",
+   "label_en": "Clothing sets",
+   "label_zh": "多件式套裝",
+   "synonyms_zh": [
+    "多件式套裝",
+    "上下套裝",
+    "兩件式套裝"
+   ],
+   "synonyms_en": [
+    "clothing set",
+    "co-ord set",
+    "two-piece set"
+   ],
+   "gpt": {
+    "id": 7313,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Outfit Sets",
+    "path_zh_cn": "服饰与配饰 > 服装 > 整套服装"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.03",
+     "61.04"
+    ],
+    "woven": [
+     "62.03",
+     "62.04"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates",
+   "level": 1,
+   "parent": null,
+   "label_en": "Underwear, sleep & loungewear",
+   "label_zh": "內著/睡衣",
+   "synonyms_zh": [
+    "內著",
+    "貼身衣物",
+    "內睡衣",
+    "內衣褲"
+   ],
+   "synonyms_en": [
+    "intimates",
+    "innerwear",
+    "underwear",
+    "lingerie",
+    "nightwear"
+   ],
+   "gpt": {
+    "id": 213,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子"
+   },
+   "note": "聚陽 Fashion Apparel 產品線含 Sleepwear/Loungewear 與 Underwear（2026 法說簡報 p.5），故為 L1。",
+   "legacy_coarse": "other",
+   "apparel": true,
+   "attributes": [
+    "construction"
+   ]
+  },
+  {
+   "id": "intimates.bras",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Bras",
+   "label_zh": "內衣/胸罩",
+   "synonyms_zh": [
+    "內衣",
+    "胸罩",
+    "無鋼圈內衣",
+    "集中內衣",
+    "無痕內衣",
+    "bra",
+    "文胸",
+    "隱形內衣"
+   ],
+   "synonyms_en": [
+    "bra",
+    "bras",
+    "bralette",
+    "brassiere"
+   ],
+   "gpt": {
+    "id": 214,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Bras",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 文胸"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "any": [
+     "62.12"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.sports_bras",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Sports bras",
+   "label_zh": "運動內衣",
+   "synonyms_zh": [
+    "運動內衣",
+    "運動胸罩",
+    "運動bra",
+    "瑜珈內衣"
+   ],
+   "synonyms_en": [
+    "sports bra",
+    "sports bras"
+   ],
+   "gpt": {
+    "id": 214,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Bras",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 文胸"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "any": [
+     "62.12"
+    ]
+   },
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.underwear",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Underwear (briefs, boxers, trunks)",
+   "label_zh": "內褲",
+   "synonyms_zh": [
+    "內褲",
+    "三角褲",
+    "四角褲",
+    "平口褲",
+    "丁字褲",
+    "男內褲",
+    "女內褲",
+    "無痕內褲",
+    "生理褲"
+   ],
+   "synonyms_en": [
+    "briefs",
+    "brief",
+    "boxers",
+    "boxer",
+    "trunks",
+    "trunk",
+    "panties",
+    "thongs",
+    "panties & thongs",
+    "underpants"
+   ],
+   "gpt": {
+    "id": 2562,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Underwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 内衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.07",
+     "61.08"
+    ],
+    "woven": [
+     "62.07",
+     "62.08"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.undershirts",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Undershirts, innerwear vests & slips",
+   "label_zh": "汗衫/內搭衣",
+   "synonyms_zh": [
+    "汗衫",
+    "內搭衣",
+    "衛生衣",
+    "發熱衣",
+    "吊帶內衣",
+    "襯裙",
+    "內搭背心"
+   ],
+   "synonyms_en": [
+    "undershirt",
+    "innerwear vest",
+    "innerwear vests",
+    "slip",
+    "chemise",
+    "chemises",
+    "thermal top"
+   ],
+   "gpt": {
+    "id": 2745,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Undershirts",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 长袖/无袖内衣"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.07",
+     "61.08",
+     "61.09"
+    ],
+    "woven": [
+     "62.07",
+     "62.08"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.shapewear",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Shapewear",
+   "label_zh": "塑身衣",
+   "synonyms_zh": [
+    "塑身衣",
+    "塑身褲",
+    "束腹",
+    "束褲",
+    "調整型內衣"
+   ],
+   "synonyms_en": [
+    "shapewear",
+    "girdle",
+    "corset"
+   ],
+   "gpt": {
+    "id": 1578,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Shapewear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 塑身内衣"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "any": [
+     "62.12"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.sleepwear",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Sleepwear",
+   "label_zh": "睡衣",
+   "synonyms_zh": [
+    "睡衣",
+    "睡褲",
+    "睡裙",
+    "睡衣褲",
+    "連身睡衣",
+    "性感睡衣",
+    "情侶睡衣"
+   ],
+   "synonyms_en": [
+    "sleepwear",
+    "pajamas",
+    "pyjamas",
+    "night suit",
+    "night suits",
+    "nightdress",
+    "nightgown",
+    "baby dolls",
+    "babydoll"
+   ],
+   "gpt": {
+    "id": 208,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Sleepwear & Loungewear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 睡衣/家居服"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.07",
+     "61.08"
+    ],
+    "woven": [
+     "62.07",
+     "62.08"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.loungewear",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Loungewear",
+   "label_zh": "居家服",
+   "synonyms_zh": [
+    "居家服",
+    "家居服",
+    "休閒居家服",
+    "居家褲"
+   ],
+   "synonyms_en": [
+    "loungewear",
+    "lounge pants",
+    "lounge shorts",
+    "lounge top"
+   ],
+   "gpt": {
+    "id": 5713,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Sleepwear & Loungewear > Loungewear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 睡衣/家居服 > 家居服"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.07",
+     "61.08"
+    ],
+    "woven": [
+     "62.07",
+     "62.08"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "intimates.robes",
+   "level": 2,
+   "parent": "intimates",
+   "label_en": "Robes",
+   "label_zh": "睡袍/浴袍",
+   "synonyms_zh": [
+    "睡袍",
+    "浴袍",
+    "晨袍"
+   ],
+   "synonyms_en": [
+    "robe",
+    "robes",
+    "bath robe",
+    "bathrobe",
+    "dressing gown"
+   ],
+   "gpt": {
+    "id": 2302,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Sleepwear & Loungewear > Robes",
+    "path_zh_cn": "服饰与配饰 > 服装 > 睡衣/家居服 > 浴袍"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.07",
+     "61.08"
+    ],
+    "woven": [
+     "62.07",
+     "62.08"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "swimwear",
+   "level": 1,
+   "parent": null,
+   "label_en": "Swimwear",
+   "label_zh": "泳裝",
+   "synonyms_zh": [
+    "泳裝",
+    "泳衣",
+    "泳褲",
+    "游泳衣"
+   ],
+   "synonyms_en": [
+    "swimwear",
+    "swimsuit",
+    "swimsuits",
+    "bathing suit",
+    "swim trunks"
+   ],
+   "gpt": {
+    "id": 211,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Swimwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 泳装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.12"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "legacy_coarse": "other",
+   "apparel": true,
+   "attributes": [
+    "construction"
+   ]
+  },
+  {
+   "id": "swimwear.bikinis",
+   "level": 2,
+   "parent": "swimwear",
+   "label_en": "Bikinis",
+   "label_zh": "比基尼",
+   "synonyms_zh": [
+    "比基尼",
+    "兩件式泳衣",
+    "比基尼泳衣"
+   ],
+   "synonyms_en": [
+    "bikini",
+    "bikinis",
+    "bikini top",
+    "bikini tops",
+    "bikini bottoms"
+   ],
+   "gpt": {
+    "id": 211,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Swimwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 泳装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.12"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "swimwear.one_piece",
+   "level": 2,
+   "parent": "swimwear",
+   "label_en": "One-piece swimsuits",
+   "label_zh": "連身泳衣",
+   "synonyms_zh": [
+    "連身泳衣",
+    "連身泳裝",
+    "一件式泳衣"
+   ],
+   "synonyms_en": [
+    "one piece swimsuit",
+    "one piece swimsuits",
+    "one-piece swimsuit"
+   ],
+   "gpt": {
+    "id": 211,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Swimwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 泳装"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.12"
+    ],
+    "woven": [
+     "62.11"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "swimwear.cover_ups",
+   "level": 2,
+   "parent": "swimwear",
+   "label_en": "Cover-ups",
+   "label_zh": "海灘罩衫",
+   "synonyms_zh": [
+    "海灘罩衫",
+    "泳裝罩衫",
+    "沙灘罩衫",
+    "罩衫"
+   ],
+   "synonyms_en": [
+    "cover-up",
+    "cover-ups",
+    "beach cover up",
+    "kaftan"
+   ],
+   "gpt": {
+    "id": 211,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Swimwear",
+    "path_zh_cn": "服饰与配饰 > 服装 > 泳装"
+   },
+   "construction": "mixed",
+   "apparel": true,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "shoes",
+   "level": 1,
+   "parent": null,
+   "label_en": "Shoes",
+   "label_zh": "鞋子",
+   "synonyms_zh": [
+    "鞋子",
+    "鞋款",
+    "鞋"
+   ],
+   "synonyms_en": [
+    "shoe",
+    "shoes",
+    "footwear"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "construction": "non_textile",
+   "legacy_coarse": "shoes",
+   "apparel": true,
+   "attributes": [
+    "heel_height"
+   ]
+  },
+  {
+   "id": "shoes.athletic",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Athletic shoes",
+   "label_zh": "運動鞋/慢跑鞋",
+   "synonyms_zh": [
+    "運動鞋",
+    "慢跑鞋",
+    "跑鞋",
+    "訓練鞋",
+    "籃球鞋",
+    "足球鞋",
+    "網球鞋",
+    "登山鞋",
+    "健走鞋",
+    "越野跑鞋"
+   ],
+   "synonyms_en": [
+    "sports shoes",
+    "athletic shoes",
+    "running shoes",
+    "trainers",
+    "training shoes",
+    "basketball shoes"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "collections": [
+    "coll.activewear"
+   ],
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.sneakers",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Sneakers & casual shoes",
+   "label_zh": "休閒鞋/球鞋",
+   "synonyms_zh": [
+    "休閒鞋",
+    "球鞋",
+    "板鞋",
+    "帆布鞋",
+    "小白鞋",
+    "老爹鞋",
+    "懶人鞋",
+    "便鞋",
+    "德訓鞋",
+    "運動鞋"
+   ],
+   "synonyms_en": [
+    "sneakers",
+    "sneaker",
+    "casual shoes",
+    "canvas shoes",
+    "slip-ons",
+    "plimsolls"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.dress_shoes",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Dress & formal shoes",
+   "label_zh": "皮鞋/紳士鞋",
+   "synonyms_zh": [
+    "皮鞋",
+    "紳士鞋",
+    "牛津鞋",
+    "德比鞋",
+    "正式皮鞋",
+    "商務皮鞋",
+    "雕花鞋"
+   ],
+   "synonyms_en": [
+    "formal shoes",
+    "dress shoes",
+    "oxfords",
+    "oxford shoes",
+    "derby shoes",
+    "brogues"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.loafers",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Loafers & moccasins",
+   "label_zh": "樂福鞋",
+   "synonyms_zh": [
+    "樂福鞋",
+    "莫卡辛鞋",
+    "豆豆鞋",
+    "帆船鞋",
+    "穆勒鞋"
+   ],
+   "synonyms_en": [
+    "loafers",
+    "loafer",
+    "moccasins",
+    "loafers & moccasins",
+    "boat shoes",
+    "mules"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.flats",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Flats",
+   "label_zh": "平底鞋/娃娃鞋",
+   "synonyms_zh": [
+    "平底鞋",
+    "娃娃鞋",
+    "芭蕾舞鞋",
+    "瑪莉珍鞋"
+   ],
+   "synonyms_en": [
+    "flats",
+    "ballet flats",
+    "flat shoes"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.heels",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Heels & pumps",
+   "label_zh": "高跟鞋",
+   "synonyms_zh": [
+    "高跟鞋",
+    "跟鞋",
+    "細跟鞋",
+    "粗跟鞋",
+    "尖頭高跟鞋",
+    "楔型鞋",
+    "隱形增高鞋"
+   ],
+   "synonyms_en": [
+    "heels",
+    "high heels",
+    "pumps",
+    "stilettos",
+    "wedges"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.sandals",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Sandals",
+   "label_zh": "涼鞋",
+   "synonyms_zh": [
+    "涼鞋",
+    "運動涼鞋",
+    "羅馬涼鞋",
+    "厚底涼鞋"
+   ],
+   "synonyms_en": [
+    "sandals",
+    "sandal",
+    "sports sandals",
+    "gladiator sandals"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.slippers",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Slippers, flip-flops & clogs",
+   "label_zh": "拖鞋/夾腳拖",
+   "synonyms_zh": [
+    "拖鞋",
+    "夾腳拖",
+    "人字拖",
+    "室內拖",
+    "洞洞鞋",
+    "涼拖鞋",
+    "運動拖鞋"
+   ],
+   "synonyms_en": [
+    "flip flops",
+    "flip-flops",
+    "slippers",
+    "slides",
+    "clogs"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "shoes.boots",
+   "level": 2,
+   "parent": "shoes",
+   "label_en": "Boots",
+   "label_zh": "靴子",
+   "synonyms_zh": [
+    "靴子",
+    "短靴",
+    "長靴",
+    "踝靴",
+    "馬丁靴",
+    "雪靴",
+    "過膝靴",
+    "中筒靴",
+    "雨靴",
+    "切爾西靴",
+    "工作靴",
+    "靴"
+   ],
+   "synonyms_en": [
+    "boots",
+    "boot",
+    "ankle booties",
+    "ankle boots",
+    "knee high boots",
+    "over-the-knee boots",
+    "mid calf boots",
+    "work boots",
+    "chelsea boots"
+   ],
+   "gpt": {
+    "id": 187,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Shoes",
+    "path_zh_cn": "服饰与配饰 > 鞋类"
+   },
+   "apparel": true,
+   "legacy_coarse": "shoes"
+  },
+  {
+   "id": "bags",
+   "level": 1,
+   "parent": null,
+   "label_en": "Bags & wallets",
+   "label_zh": "包包/皮夾",
+   "synonyms_zh": [
+    "包包",
+    "包款",
+    "提包",
+    "=包"
+   ],
+   "synonyms_en": [
+    "bag",
+    "bags",
+    "bags & wallets",
+    "bags & cases"
+   ],
+   "gpt": {
+    "id": 6551,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Handbags, Wallets & Cases",
+    "path_zh_cn": "服饰与配饰 > 手提包、钱包与箱包"
+   },
+   "construction": "non_textile",
+   "note": "皮夾放在包包之下：GPT 'Handbags, Wallets & Cases'(6551)、蝦皮『包包>皮夾』、Yahoo『包包/皮夾』一致。",
+   "legacy_coarse": "bag",
+   "apparel": true,
+   "attributes": [
+    "carry"
+   ]
+  },
+  {
+   "id": "bags.handbags",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Handbags",
+   "label_zh": "手提包",
+   "synonyms_zh": [
+    "手提包",
+    "手提袋",
+    "名牌包",
+    "精品包"
+   ],
+   "synonyms_en": [
+    "handbag",
+    "handbags",
+    "purse",
+    "top handle bag"
+   ],
+   "gpt": {
+    "id": 3032,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Handbags, Wallets & Cases > Handbags",
+    "path_zh_cn": "服饰与配饰 > 手提包、钱包与箱包 > 手提包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.shoulder_crossbody",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Shoulder & crossbody bags",
+   "label_zh": "肩背包/斜背包",
+   "synonyms_zh": [
+    "肩背包",
+    "側背包",
+    "斜背包",
+    "郵差包",
+    "單肩包",
+    "斜肩包",
+    "水桶包",
+    "馬鞍包"
+   ],
+   "synonyms_en": [
+    "shoulder bag",
+    "shoulder bags",
+    "crossbody bag",
+    "messenger bag",
+    "messenger bags",
+    "sling bag"
+   ],
+   "gpt": {
+    "id": 106,
+    "match": "broader",
+    "path_en": "Luggage & Bags > Messenger Bags",
+    "path_zh_cn": "箱包 > 邮差包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.totes",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Tote bags",
+   "label_zh": "托特包",
+   "synonyms_zh": [
+    "托特包",
+    "購物袋",
+    "帆布袋",
+    "環保袋"
+   ],
+   "synonyms_en": [
+    "tote",
+    "tote bag",
+    "tote bags",
+    "shopper"
+   ],
+   "gpt": {
+    "id": 5608,
+    "match": "broader",
+    "path_en": "Luggage & Bags > Shopping Totes",
+    "path_zh_cn": "箱包 > 购物袋"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.clutches",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Clutches",
+   "label_zh": "手拿包/晚宴包",
+   "synonyms_zh": [
+    "手拿包",
+    "晚宴包",
+    "信封包"
+   ],
+   "synonyms_en": [
+    "clutch",
+    "clutches",
+    "evening bag"
+   ],
+   "gpt": {
+    "id": 3032,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Handbags, Wallets & Cases > Handbags",
+    "path_zh_cn": "服饰与配饰 > 手提包、钱包与箱包 > 手提包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.backpacks",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Backpacks",
+   "label_zh": "後背包",
+   "synonyms_zh": [
+    "後背包",
+    "雙肩包",
+    "背包",
+    "書包",
+    "登山包"
+   ],
+   "synonyms_en": [
+    "backpack",
+    "backpacks",
+    "rucksack",
+    "rucksacks"
+   ],
+   "gpt": {
+    "id": 100,
+    "match": "exact",
+    "path_en": "Luggage & Bags > Backpacks",
+    "path_zh_cn": "箱包 > 背包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.travel",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Luggage & travel bags",
+   "label_zh": "行李箱/旅行袋",
+   "synonyms_zh": [
+    "行李箱",
+    "旅行袋",
+    "登機箱",
+    "行李袋",
+    "旅行包",
+    "健身包",
+    "運動包"
+   ],
+   "synonyms_en": [
+    "luggage",
+    "suitcase",
+    "duffel bag",
+    "duffle bag",
+    "trolley bag",
+    "travel bag",
+    "gym bag"
+   ],
+   "gpt": {
+    "id": 107,
+    "match": "broader",
+    "path_en": "Luggage & Bags > Suitcases",
+    "path_zh_cn": "箱包 > 旅行箱/包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.work_laptop",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Briefcases & laptop bags",
+   "label_zh": "公事包/電腦包",
+   "synonyms_zh": [
+    "公事包",
+    "電腦包",
+    "筆電包",
+    "商務包"
+   ],
+   "synonyms_en": [
+    "briefcase",
+    "briefcases",
+    "laptop bag",
+    "tablet sleeve"
+   ],
+   "gpt": {
+    "id": 101,
+    "match": "broader",
+    "path_en": "Luggage & Bags > Briefcases",
+    "path_zh_cn": "箱包 > 公文包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.waist_pouches",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Waist bags & pouches",
+   "label_zh": "腰包/胸包/小包",
+   "synonyms_zh": [
+    "腰包",
+    "胸包",
+    "霹靂包",
+    "手機包",
+    "小包",
+    "收納包"
+   ],
+   "synonyms_en": [
+    "waist pouch",
+    "belt bag",
+    "fanny pack",
+    "mobile pouch",
+    "pouch"
+   ],
+   "gpt": {
+    "id": 104,
+    "match": "broader",
+    "path_en": "Luggage & Bags > Fanny Packs",
+    "path_zh_cn": "箱包 > 腰包"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "bags.wallets",
+   "level": 2,
+   "parent": "bags",
+   "label_en": "Wallets",
+   "label_zh": "皮夾/錢包",
+   "synonyms_zh": [
+    "皮夾",
+    "錢包",
+    "長夾",
+    "短夾",
+    "零錢包",
+    "卡夾",
+    "名片夾",
+    "鈔票夾"
+   ],
+   "synonyms_en": [
+    "wallet",
+    "wallets",
+    "money clip",
+    "money clips",
+    "card holder"
+   ],
+   "gpt": {
+    "id": 2668,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Handbags, Wallets & Cases > Wallets & Money Clips",
+    "path_zh_cn": "服饰与配饰 > 手提包、钱包与箱包 > 钱包/钞票夹"
+   },
+   "apparel": true,
+   "legacy_coarse": "bag"
+  },
+  {
+   "id": "accessories",
+   "level": 1,
+   "parent": null,
+   "label_en": "Accessories",
+   "label_zh": "配件",
+   "synonyms_zh": [
+    "配件",
+    "配飾",
+    "穿搭配件",
+    "小物"
+   ],
+   "synonyms_en": [
+    "accessory",
+    "accessories",
+    "clothing accessories"
+   ],
+   "gpt": {
+    "id": 167,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories",
+    "path_zh_cn": "服饰与配饰 > 服装配饰"
+   },
+   "legacy_coarse": "accessory",
+   "apparel": true,
+   "attributes": []
+  },
+  {
+   "id": "accessories.watches",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Watches",
+   "label_zh": "手錶",
+   "synonyms_zh": [
+    "手錶",
+    "腕錶",
+    "錶",
+    "機械錶",
+    "石英錶",
+    "智慧手錶"
+   ],
+   "synonyms_en": [
+    "watch",
+    "watches",
+    "wristwatch"
+   ],
+   "gpt": {
+    "id": 201,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Jewelry > Watches",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 手表"
+   },
+   "construction": "non_textile",
+   "note": "GPT 把 Watches 放在 Jewelry 之下；Fashionpedia、蝦皮、現行 coarse 皆當配件，沿用配件。",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.eyewear",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Eyewear",
+   "label_zh": "眼鏡/太陽眼鏡",
+   "synonyms_zh": [
+    "眼鏡",
+    "太陽眼鏡",
+    "墨鏡",
+    "太陽鏡",
+    "鏡框",
+    "光學眼鏡"
+   ],
+   "synonyms_en": [
+    "sunglasses",
+    "eyeglasses",
+    "eyewear",
+    "glasses"
+   ],
+   "gpt": {
+    "id": 178,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Sunglasses",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 太阳镜"
+   },
+   "construction": "non_textile",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.belts",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Belts & suspenders",
+   "label_zh": "皮帶/腰帶",
+   "synonyms_zh": [
+    "皮帶",
+    "腰帶",
+    "吊帶",
+    "腰封"
+   ],
+   "synonyms_en": [
+    "belt",
+    "belts",
+    "suspenders",
+    "braces"
+   ],
+   "gpt": {
+    "id": 169,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Belts",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 腰带"
+   },
+   "construction": "non_textile",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.hats",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Hats & caps",
+   "label_zh": "帽子",
+   "synonyms_zh": [
+    "帽子",
+    "棒球帽",
+    "鴨舌帽",
+    "漁夫帽",
+    "毛帽",
+    "針織帽",
+    "遮陽帽",
+    "草帽",
+    "貝雷帽",
+    "紳士帽",
+    "=帽"
+   ],
+   "synonyms_en": [
+    "hat",
+    "hats",
+    "cap",
+    "caps",
+    "beanie",
+    "bucket hat"
+   ],
+   "gpt": {
+    "id": 173,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Hats",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 帽子"
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.scarves",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Scarves, stoles & dupattas",
+   "label_zh": "圍巾/披肩",
+   "synonyms_zh": [
+    "圍巾",
+    "披肩",
+    "絲巾",
+    "頸巾",
+    "領巾",
+    "脖圍",
+    "方巾"
+   ],
+   "synonyms_en": [
+    "scarf",
+    "scarves",
+    "stole",
+    "stoles",
+    "muffler",
+    "mufflers",
+    "shawl",
+    "dupatta"
+   ],
+   "gpt": {
+    "id": 177,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Scarves & Shawls",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 围巾与披巾"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.17"
+    ],
+    "woven": [
+     "62.14"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.gloves",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Gloves",
+   "label_zh": "手套",
+   "synonyms_zh": [
+    "手套",
+    "袖套"
+   ],
+   "synonyms_en": [
+    "gloves",
+    "glove",
+    "mittens"
+   ],
+   "gpt": {
+    "id": 170,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Gloves & Mittens",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 手套/连指手套"
+   },
+   "construction": "mixed",
+   "hs_headings": {
+    "knit": [
+     "61.16"
+    ],
+    "woven": [
+     "62.16"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.ties",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Ties & bow ties",
+   "label_zh": "領帶/領結",
+   "synonyms_zh": [
+    "領帶",
+    "領結",
+    "領片"
+   ],
+   "synonyms_en": [
+    "tie",
+    "ties",
+    "bow tie",
+    "bow ties",
+    "necktie"
+   ],
+   "gpt": {
+    "id": 176,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Neckties",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 领带"
+   },
+   "construction": "woven",
+   "hs_headings": {
+    "knit": [
+     "61.17"
+    ],
+    "woven": [
+     "62.15"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.hair",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Hair accessories",
+   "label_zh": "髮飾",
+   "synonyms_zh": [
+    "髮飾",
+    "髮夾",
+    "髮圈",
+    "髮箍",
+    "髮帶",
+    "鯊魚夾",
+    "頭巾"
+   ],
+   "synonyms_en": [
+    "hair accessories",
+    "hair accessory",
+    "headband",
+    "hair clip",
+    "scrunchie"
+   ],
+   "gpt": {
+    "id": 171,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Hair Accessories",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 发饰"
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.socks",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Socks",
+   "label_zh": "襪子",
+   "synonyms_zh": [
+    "襪子",
+    "短襪",
+    "長襪",
+    "船型襪",
+    "中筒襪",
+    "運動襪",
+    "隱形襪",
+    "=襪"
+   ],
+   "synonyms_en": [
+    "socks",
+    "sock"
+   ],
+   "gpt": {
+    "id": 209,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Socks",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 袜子"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.15"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.hosiery",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Hosiery & tights",
+   "label_zh": "絲襪/褲襪",
+   "synonyms_zh": [
+    "絲襪",
+    "褲襪",
+    "膝上襪",
+    "大腿襪",
+    "網襪"
+   ],
+   "synonyms_en": [
+    "hosiery",
+    "tights",
+    "stockings",
+    "pantyhose"
+   ],
+   "gpt": {
+    "id": 215,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Clothing > Underwear & Socks > Hosiery",
+    "path_zh_cn": "服饰与配饰 > 服装 > 内衣与袜子 > 连裤袜/长袜/打底裤"
+   },
+   "construction": "knit",
+   "hs_headings": {
+    "knit": [
+     "61.15"
+    ]
+   },
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.tech",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Tech accessories",
+   "label_zh": "手機殼/3C配件",
+   "synonyms_zh": [
+    "手機殼",
+    "手機套",
+    "平板套",
+    "耳機殼",
+    "3C配件"
+   ],
+   "synonyms_en": [
+    "tech accessories",
+    "phone case",
+    "iphone case"
+   ],
+   "gpt": {
+    "id": 2353,
+    "match": "broader",
+    "path_en": "Electronics > Communications > Telephony > Mobile Phone Accessories > Mobile Phone Cases",
+    "path_zh_cn": "电子产品 > 通讯 > 电话 > 手机配件 > 手机壳"
+   },
+   "construction": "non_textile",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.umbrellas",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Umbrellas",
+   "label_zh": "雨傘/陽傘",
+   "synonyms_zh": [
+    "雨傘",
+    "陽傘",
+    "晴雨傘",
+    "折疊傘"
+   ],
+   "synonyms_en": [
+    "umbrella",
+    "umbrellas"
+   ],
+   "gpt": {
+    "id": 4358,
+    "match": "exact",
+    "path_en": "Home & Garden > Parasols & Rain Umbrellas",
+    "path_zh_cn": "家居与园艺 > 雨伞/遮阳伞"
+   },
+   "construction": "non_textile",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "accessories.keychains",
+   "level": 2,
+   "parent": "accessories",
+   "label_en": "Key rings & chains",
+   "label_zh": "鑰匙圈/吊飾",
+   "synonyms_zh": [
+    "鑰匙圈",
+    "吊飾",
+    "鑰匙扣"
+   ],
+   "synonyms_en": [
+    "key chain",
+    "keychain",
+    "key rings & chains",
+    "key ring"
+   ],
+   "gpt": {
+    "id": 175,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Handbag & Wallet Accessories > Keychains",
+    "path_zh_cn": "服饰与配饰 > 手提包/钱包配件 > 钥匙链"
+   },
+   "construction": "non_textile",
+   "apparel": true,
+   "legacy_coarse": "accessory"
+  },
+  {
+   "id": "jewelry",
+   "level": 1,
+   "parent": null,
+   "label_en": "Jewelry",
+   "label_zh": "飾品/珠寶",
+   "synonyms_zh": [
+    "飾品",
+    "首飾",
+    "珠寶",
+    "金飾",
+    "銀飾"
+   ],
+   "synonyms_en": [
+    "jewelry",
+    "jewellery"
+   ],
+   "gpt": {
+    "id": 188,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰"
+   },
+   "construction": "non_textile",
+   "legacy_coarse": "jewelry",
+   "apparel": true,
+   "attributes": []
+  },
+  {
+   "id": "jewelry.earrings",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Earrings",
+   "label_zh": "耳環",
+   "synonyms_zh": [
+    "耳環",
+    "耳針",
+    "耳夾",
+    "耳骨夾",
+    "耳扣"
+   ],
+   "synonyms_en": [
+    "earring",
+    "earrings",
+    "studs",
+    "hoops"
+   ],
+   "gpt": {
+    "id": 194,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Earrings",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 耳环"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.necklaces",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Necklaces & pendants",
+   "label_zh": "項鍊/墜飾",
+   "synonyms_zh": [
+    "項鍊",
+    "項鏈",
+    "頸鍊",
+    "鎖骨鍊",
+    "墜子",
+    "吊墜",
+    "墜飾"
+   ],
+   "synonyms_en": [
+    "necklace",
+    "necklaces",
+    "pendant",
+    "chain",
+    "charms & pendants"
+   ],
+   "gpt": {
+    "id": 196,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Necklaces",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 项链"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.bracelets",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Bracelets & bangles",
+   "label_zh": "手環/手鍊",
+   "synonyms_zh": [
+    "手環",
+    "手鍊",
+    "手鐲",
+    "手鏈"
+   ],
+   "synonyms_en": [
+    "bracelet",
+    "bracelets",
+    "bangle",
+    "bangles"
+   ],
+   "gpt": {
+    "id": 191,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Bracelets",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 手镯/手链"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.rings",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Rings",
+   "label_zh": "戒指",
+   "synonyms_zh": [
+    "戒指",
+    "對戒",
+    "尾戒",
+    "婚戒"
+   ],
+   "synonyms_en": [
+    "ring",
+    "rings"
+   ],
+   "gpt": {
+    "id": 200,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Rings",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 戒指"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.brooches",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Brooches & pins",
+   "label_zh": "胸針",
+   "synonyms_zh": [
+    "胸針",
+    "別針",
+    "胸花"
+   ],
+   "synonyms_en": [
+    "brooch",
+    "brooches",
+    "pin"
+   ],
+   "gpt": {
+    "id": 197,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Brooches & Lapel Pins",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 胸针/领针"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.cufflinks",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Cufflinks",
+   "label_zh": "袖扣",
+   "synonyms_zh": [
+    "袖扣"
+   ],
+   "synonyms_en": [
+    "cufflinks",
+    "cuff links"
+   ],
+   "gpt": {
+    "id": 193,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing Accessories > Cufflinks",
+    "path_zh_cn": "服饰与配饰 > 服装配饰 > 袖扣"
+   },
+   "note": "GPT 把 Cufflinks 放在 Clothing Accessories；Polyvore 放 Watches & Jewelry、現行 coarse=jewelry，沿用飾品。",
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "jewelry.sets",
+   "level": 2,
+   "parent": "jewelry",
+   "label_en": "Jewellery sets",
+   "label_zh": "飾品組",
+   "synonyms_zh": [
+    "飾品組",
+    "首飾套組",
+    "珠寶套組"
+   ],
+   "synonyms_en": [
+    "jewellery set",
+    "jewelry set"
+   ],
+   "gpt": {
+    "id": 6463,
+    "match": "exact",
+    "path_en": "Apparel & Accessories > Jewelry > Jewelry Sets",
+    "path_zh_cn": "服饰与配饰 > 珠宝首饰 > 珠宝首饰套装"
+   },
+   "apparel": true,
+   "legacy_coarse": "jewelry"
+  },
+  {
+   "id": "beauty",
+   "level": 1,
+   "parent": null,
+   "label_en": "Beauty & personal care",
+   "label_zh": "美妝保養",
+   "synonyms_zh": [
+    "美妝",
+    "美妝保養",
+    "保養品",
+    "化妝品",
+    "彩妝保養"
+   ],
+   "synonyms_en": [
+    "beauty",
+    "beauty products",
+    "personal care",
+    "makeup"
+   ],
+   "gpt": {
+    "id": 2915,
+    "match": "exact",
+    "path_en": "Health & Beauty > Personal Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理"
+   },
+   "note": "非服飾。保留節點是為了能明確『排除』它們（KAGL 約 6%、Polyvore 約 12% 是美妝），而不是推薦。",
+   "legacy_coarse": "other",
+   "apparel": false,
+   "attributes": []
+  },
+  {
+   "id": "beauty.makeup",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Makeup",
+   "label_zh": "彩妝",
+   "synonyms_zh": [
+    "彩妝",
+    "口紅",
+    "唇膏",
+    "唇蜜",
+    "眼影",
+    "眼線",
+    "睫毛膏",
+    "粉底",
+    "腮紅",
+    "遮瑕",
+    "蜜粉",
+    "修容",
+    "打亮",
+    "眉筆",
+    "假睫毛"
+   ],
+   "synonyms_en": [
+    "lipstick",
+    "lip gloss",
+    "eyeliner",
+    "eyeshadow",
+    "mascara",
+    "foundation",
+    "blush",
+    "concealer"
+   ],
+   "gpt": {
+    "id": 477,
+    "match": "exact",
+    "path_en": "Health & Beauty > Personal Care > Cosmetics > Makeup",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理 > 化妆品 > 化妆用品"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.nails",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Nail care",
+   "label_zh": "美甲",
+   "synonyms_zh": [
+    "指甲油",
+    "美甲",
+    "凝膠指甲"
+   ],
+   "synonyms_en": [
+    "nail polish",
+    "nail care"
+   ],
+   "gpt": {
+    "id": 478,
+    "match": "exact",
+    "path_en": "Health & Beauty > Personal Care > Cosmetics > Nail Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理 > 化妆品 > 指甲护理"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.skincare",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Skin care",
+   "label_zh": "保養",
+   "synonyms_zh": [
+    "乳液",
+    "化妝水",
+    "面膜",
+    "防曬乳",
+    "洗面乳",
+    "精華液",
+    "乳霜",
+    "卸妝",
+    "護唇膏"
+   ],
+   "synonyms_en": [
+    "skincare",
+    "skin care",
+    "moisturiser",
+    "sunscreen",
+    "toner"
+   ],
+   "gpt": {
+    "id": 567,
+    "match": "exact",
+    "path_en": "Health & Beauty > Personal Care > Cosmetics > Skin Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理 > 化妆品 > 皮肤护理"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.fragrance",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Fragrance & deodorant",
+   "label_zh": "香水/體香",
+   "synonyms_zh": [
+    "香水",
+    "香氛",
+    "體香劑",
+    "止汗劑",
+    "淡香水"
+   ],
+   "synonyms_en": [
+    "perfume",
+    "fragrance",
+    "deodorant",
+    "body mist"
+   ],
+   "gpt": {
+    "id": 479,
+    "match": "broader",
+    "path_en": "Health & Beauty > Personal Care > Cosmetics > Perfume & Cologne",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理 > 化妆品 > 香水/古龙水"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.haircare",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Hair care & styling",
+   "label_zh": "美髮",
+   "synonyms_zh": [
+    "洗髮精",
+    "潤髮乳",
+    "染髮劑",
+    "吹風機",
+    "離子夾",
+    "髮蠟",
+    "造型品"
+   ],
+   "synonyms_en": [
+    "haircare",
+    "hair colour",
+    "hair color",
+    "shampoo",
+    "conditioner"
+   ],
+   "gpt": {
+    "id": 486,
+    "match": "exact",
+    "path_en": "Health & Beauty > Personal Care > Hair Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理 > 头发护理"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.bath_body",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Bath & body",
+   "label_zh": "身體清潔保養",
+   "synonyms_zh": [
+    "沐浴乳",
+    "身體乳",
+    "身體清潔",
+    "去角質"
+   ],
+   "synonyms_en": [
+    "body lotion",
+    "body wash",
+    "bath & body",
+    "body cleanser"
+   ],
+   "gpt": {
+    "id": 2915,
+    "match": "broader",
+    "path_en": "Health & Beauty > Personal Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  },
+  {
+   "id": "beauty.tools",
+   "level": 2,
+   "parent": "beauty",
+   "label_en": "Beauty tools",
+   "label_zh": "美妝工具",
+   "synonyms_zh": [
+    "化妝刷",
+    "睫毛夾",
+    "粉撲",
+    "美妝蛋",
+    "眉夾"
+   ],
+   "synonyms_en": [
+    "makeup brushes",
+    "eyelash curler",
+    "beauty accessory",
+    "tweezers"
+   ],
+   "gpt": {
+    "id": 2915,
+    "match": "broader",
+    "path_en": "Health & Beauty > Personal Care",
+    "path_zh_cn": "保健/美容/卫生/护理 > 个人护理"
+   },
+   "apparel": false,
+   "legacy_coarse": "other"
+  }
+ ],
+ "collections": [
+  {
+   "id": "coll.activewear",
+   "label_en": "Activewear / functional sportswear",
+   "label_zh": "運動機能服飾",
+   "synonyms_zh": [
+    "運動服",
+    "運動服飾",
+    "運動風",
+    "機能服",
+    "機能",
+    "運動休閒",
+    "健身",
+    "健身房",
+    "瑜珈",
+    "瑜伽",
+    "慢跑",
+    "跑步",
+    "運動",
+    "戶外機能",
+    "排汗"
+   ],
+   "synonyms_en": [
+    "activewear",
+    "sportswear",
+    "athleisure",
+    "athletic",
+    "gym",
+    "workout",
+    "running",
+    "training",
+    "performance",
+    "yoga"
+   ],
+   "gpt": {
+    "id": 5322,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Activewear"
+   },
+   "extra_source_values": {
+    "kagl": [
+     "Sports Sandals",
+     "Wristbands"
+    ],
+    "polyvore": [
+     "Activewear",
+     "Activewear Shorts",
+     "Activewear Skirts",
+     "Activewear Jackets",
+     "Men's Activewear Jackets",
+     "Men's Activewear Pants",
+     "Men's Activewear Tops"
+    ]
+   },
+   "note": "聚陽 2025 營收 52% 為 Functional Sportswear；但『運動』是跨部位的橫切屬性（運動上衣/運動褲/運動內衣/運動鞋），若做成 L1 會讓『黑色短褲』放寬時找不到運動短褲，也會破壞 Kansei 適用遮罩與搭配槽位。",
+   "members": [
+    "tops.active_tops",
+    "bottoms.track_pants",
+    "bottoms.leggings",
+    "sets.tracksuits",
+    "intimates.sports_bras",
+    "shoes.athletic"
+   ]
+  },
+  {
+   "id": "coll.ethnic",
+   "label_en": "South-Asian ethnic wear",
+   "label_zh": "印度傳統服飾",
+   "synonyms_zh": [
+    "印度傳統服飾",
+    "印度服飾",
+    "南亞傳統服飾"
+   ],
+   "synonyms_en": [
+    "ethnic wear",
+    "indian wear",
+    "traditional indian"
+   ],
+   "gpt": {
+    "id": 5388,
+    "match": "broader",
+    "path_en": "Apparel & Accessories > Clothing > Traditional & Ceremonial Clothing"
+   },
+   "extra_source_values": {
+    "kagl": [
+     "Dupatta",
+     "Nehru Jackets"
+    ],
+    "polyvore": []
+   },
+   "note": "KAGL（Myntra）特有；台灣使用者極少查詢。服裝仍依部位掛在 tops/bottoms/dresses/sets。",
+   "members": [
+    "bottoms.ethnic_bottoms",
+    "dresses.sarees_lehengas",
+    "sets.ethnic_sets"
+   ]
+  }
+ ]
+}

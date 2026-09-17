@@ -302,3 +302,11 @@ def test_design_weight_delta_and_learning(tmp_path):
     req.feedback.choice_history = [ChoiceRecord(shown_item_ids=["1", "2", "7", "10"], chosen_item_id="10")]
     out = svc.rank(req, "full")
     assert out.learned_preferences and out.learned_preferences["rounds"] == 1
+
+
+def test_taxonomy_category_in_pipeline(engine):
+    # Chinese category word resolves through the taxonomy; metric uses the taxonomy too
+    c = HardConstraints(category=Slot(state=SlotState.VALUE, values=["外套"]))
+    resp = engine.run(request(constraints=c), "full")
+    assert resp.items and all(it.category == "outerwear" for it in resp.items)
+    assert resp.metrics.hard_constraint_satisfaction == 1.0

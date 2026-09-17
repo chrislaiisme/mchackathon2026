@@ -34,6 +34,7 @@ from .explain import explain, template_reasons
 from .kansei import KanseiTable
 from .rerank import Term, additive_score, counterfactual_ranks, cutoff_explanations
 from .sparse import BM25Index
+from .taxonomy import filter_with_category_relaxation, load_taxonomy, resolve_category_values
 
 
 class CrossReranker(Protocol):
@@ -42,7 +43,7 @@ class CrossReranker(Protocol):
     def score(self, query: str, item_positions: list[int]) -> np.ndarray: ...
 
 
-def build_retrieval_text(req: Engine02Request) -> str:
+def build_retrieval_text(req: Engine02Request, catalog: str | None = None) -> str:
     if req.retrieval_text:
         return req.retrieval_text
     c = req.constraints
@@ -50,7 +51,11 @@ def build_retrieval_text(req: Engine02Request) -> str:
     for slot in (c.gender, c.color, c.style_keywords, c.season):
         if slot.state.value in ("value", "inferred"):
             parts += slot.values
-    parts += c.category.values or ["clothing"]
+    tax = load_taxonomy()
+    for v in c.category.values or ["clothing"]:
+        # taxonomy ids / Chinese words → English label + catalog fine values (BM25 needs catalog words)
+        ids = [i for i in resolve_category_values([v], tax) if i in tax.nodes]
+        parts += [tax.retrieval_terms(i, catalog) for i in ids] if ids else [v]
     if c.occasion.values:
         parts += ["for"] + c.occasion.values
     return " ".join(parts)
@@ -159,11 +164,14 @@ class Engine02:
         items = self.catalog.items
         k = req.options.top_k
         excluded = self.catalog.positions(req.feedback.excluded_item_ids)
-        fr = filter_with_relaxation(items, req.constraints, max(arm.min_results, k), excluded)
+        # hierarchical category relaxation (L2 → L1) via the unified taxonomy; unresolvable category
+        # values fall back to the legacy exact-match ladder (docs/research/taxonomy.md §5.2)
+        fr = filter_with_category_relaxation(items, req.constraints, max(arm.min_results, k), excluded,
+                                             catalog=self.catalog.name)
         pool = np.flatnonzero(fr.mask)
         lap("filter")
 
-        text = build_retrieval_text(req)
+        text = build_retrieval_text(req, self.catalog.name)
         q = self.query_embedding(req, arm, text)
         dense_all = self.image_emb[pool] @ q
         bm25_all = self.bm25.scores(text)[pool]
@@ -381,7 +389,22 @@ class Engine02:
         items = self.catalog.items
         if not shown_pos:
             return RoundMetrics()
-        sat = np.mean([satisfies(items, p, req.constraints) for p in shown_pos])
+        c = req.constraints
+        tax = load_taxonomy()
+        ids = resolve_category_values(c.category.values, tax) if (c.category.is_hard() and c.category.values) else []
+        roots = [tax.l1(i) or i for i in ids if i in tax.nodes] or ids
+        if ids and tax.category_mask(items, roots, self.catalog.name).any():
+            # category judged through the taxonomy (the original, un-relaxed request)
+            sub = items.iloc[shown_pos].reset_index(drop=True)
+            cat_ok = tax.category_mask(sub, ids, self.catalog.name)
+            c_rest = c.model_copy(deep=True)
+            c_rest.category.values = []
+            sat = np.mean([bool(cat_ok[j]) and satisfies(items, p, c_rest) for j, p in enumerate(shown_pos)])
+        else:
+            from .taxonomy import legacy_constraints
+
+            c_eval = legacy_constraints(c, ids, tax) if ids else c
+            sat = np.mean([satisfies(items, p, c_eval) for p in shown_pos])
         hits = 0
         for attr, vals in req.constraints.excluded_values.items():
             if attr in items.columns:
