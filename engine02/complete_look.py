@@ -95,6 +95,15 @@ class FastOutfitTransformer:
 
     name = "outfit-transformer"
 
+    _HEAD_PATTERNS = {"compatibility": "compatib", "complementary": "complementary"}
+
+    @classmethod
+    def checkpoints(cls, ot_dir: Path = OT_DIR) -> dict[str, list[Path]]:
+        """Which heads have a checkpoint on this machine — lets callers ask for only what is there."""
+        files = sorted((Path(ot_dir) / "checkpoints").rglob("*.pt*"))
+        found = {h: [p for p in files if pat in p.name.lower()] for h, pat in cls._HEAD_PATTERNS.items()}
+        return {h: v for h, v in found.items() if v}
+
     def __init__(self, catalog: Catalog, device: str = "auto", ot_dir: Path = OT_DIR,
                  heads: tuple[str, ...] = ("compatibility",), batch_size: int = 64, cache_file: Path | None = None):
         import torch
@@ -116,10 +125,9 @@ class FastOutfitTransformer:
         from src.models.outfit_clip_transformer import OutfitCLIPTransformer, OutfitCLIPTransformerConfig
 
         self.CQuery, self.RQuery, self.Item = FashionCompatibilityQuery, FashionComplementaryQuery, FashionItem
-        pats = {"compatibility": "compatib", "complementary": "complementary"}
         self.models = {}
         for h in heads:
-            ck = [p for p in sorted((ot_dir / "checkpoints").rglob("*.pt*")) if pats[h] in p.name.lower()]
+            ck = self.checkpoints(ot_dir).get(h, [])
             if not ck:
                 raise FileNotFoundError(f"no {h} checkpoint under {ot_dir}/checkpoints")
             state = torch.load(ck[0], map_location=self.device, weights_only=False)
@@ -134,6 +142,7 @@ class FastOutfitTransformer:
                 first = next(iter(self.models))
                 self.enc_head = {h: first for h in self.models}
         self.shared_item_encoder = len(set(self.enc_head.values())) == 1
+        self.heads = tuple(self.models)
         self.cache_file = Path(cache_file) if cache_file else None
         self._emb: dict[str, dict[int, np.ndarray]] = {h: {} for h in set(self.enc_head.values())}
         if self.cache_file and self.cache_file.exists():

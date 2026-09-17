@@ -16,6 +16,7 @@ Environment variables:
 
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -35,6 +36,8 @@ from .llm import get_llm
 from .composed import ComposedEngine02
 from .pipeline import Engine02
 from .service import Engine02Service, ServiceResponse
+
+log = logging.getLogger("engine02.api")
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE: dict = {}
@@ -84,7 +87,18 @@ async def lifespan(app: FastAPI):
         if os.environ.get("ENGINE02_OT") == "1":
             from .complete_look import FastOutfitTransformer
 
-            ot = FastOutfitTransformer(engine.catalog, device=os.environ.get("ENGINE02_DEVICE", "auto"))
+            # /complete-look ranks with the complementary head (best in T5: MRR 0.277), so load it —
+            # ENGINE02_OT_HEADS overrides; missing checkpoints are skipped instead of breaking startup.
+            want = tuple(h.strip() for h in os.environ.get("ENGINE02_OT_HEADS", "complementary,compatibility").split(",") if h.strip())
+            have = FastOutfitTransformer.checkpoints()
+            heads = tuple(h for h in want if h in have)
+            if not heads:
+                log.warning("ENGINE02_OT=1 but no OutfitTransformer checkpoint found; falling back to image similarity")
+            else:
+                if len(heads) < len(want):
+                    log.warning("OutfitTransformer heads missing: %s", sorted(set(want) - set(heads)))
+                ot = FastOutfitTransformer(engine.catalog, device=os.environ.get("ENGINE02_DEVICE", "auto"),
+                                           heads=heads)
         ctl = CompleteTheLook(engine.catalog, engine.image_emb, engine.cooc, ot=ot)
     STATE["service"] = Engine02Service(engine, ctl)
     yield
@@ -99,6 +113,16 @@ def engine() -> Engine02:
     return STATE["engine"]
 
 
+def _complete_look_status() -> dict:
+    svc = STATE.get("service")
+    ctl = getattr(svc, "ctl", None)
+    if ctl is None:
+        return {"available": False, "reason": "no category co-occurrence for this catalog"}
+    ot = getattr(ctl, "ot", None)
+    return {"available": True, "method": svc.complete_look_method(),
+            "ot_heads": list(getattr(ot, "heads", ()) or ())}
+
+
 @app.get("/health")
 def health() -> dict:
     e = engine()
@@ -111,6 +135,7 @@ def health() -> dict:
         "reranker": getattr(e.cross_reranker, "name", None),
         "llm": e.llm is not None,
         "kansei_version": e.kansei.version,
+        "complete_look": _complete_look_status(),
         "init_ms": round(e.init_ms, 1),
     }
 

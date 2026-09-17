@@ -100,11 +100,20 @@ class Engine02Service:
         return ServiceResponse(**div.model_dump(), composed=composed, learned_preferences=learned)
 
     # ------------------------------------------------------------------
+    def complete_look_method(self) -> str:
+        """Best method the loaded heads support: complementary (T5 winner) > compatibility > similarity."""
+        heads = getattr(getattr(self.ctl, "ot", None), "heads", ())
+        if "complementary" in heads:
+            return "ot_cir"
+        if "compatibility" in heads:
+            return "ot_sim"
+        return "similarity"
+
     def complete_look(self, anchor_ids: list[str], n_categories: int = 2, k: int = 5,
                       filters: dict[str, list[str]] | None = None) -> dict:
         if self.ctl is None:
             raise RuntimeError("complete-the-look is not configured (needs category co-occurrence)")
-        method = "ot_cir" if getattr(self.ctl, "ot", None) is not None else "similarity"
+        method = self.complete_look_method()
         slates = self.ctl.recommend(anchor_ids, n_categories=n_categories, k=k, method=method, filters=filters)
         items = self.engine.catalog.items
         return {
