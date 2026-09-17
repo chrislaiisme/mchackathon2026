@@ -113,6 +113,9 @@ class Engine02Service:
                       filters: dict[str, list[str]] | None = None) -> dict:
         if self.ctl is None:
             raise RuntimeError("complete-the-look is not configured (needs category co-occurrence)")
+        unknown = [i for i in anchor_ids if self.engine.catalog.pos(i) is None]
+        if unknown:  # otherwise the anchors are silently dropped and the caller gets empty slates
+            raise ValueError(f"unknown anchor_item_ids: {unknown}")
         method = self.complete_look_method()
         slates = self.ctl.recommend(anchor_ids, n_categories=n_categories, k=k, method=method, filters=filters)
         items = self.engine.catalog.items

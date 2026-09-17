@@ -264,7 +264,7 @@ Engine02Request
 | 從點選學偏好（T7） | Bayes 成對 logistic／Bradley–Terry（reward-rational choice, NeurIPS 2020）、Thompson、LinUCB（WWW 2010）、PRD ±1 規則 | 200 位模擬使用者 × 5 輪：Bayes+Rocchio 隱藏效用 2.48（5k）／2.36（44k），顯著勝過 PRD 規則約 0.18–0.20（p<0.001）；**勝過 Rocchio 的部分有循環性**（改用 metadata 口味時打平或小輸）；Thompson／LinUCB 沒有更好 | ✅ `choice_history` → Δβ |
 | 「這件但換成 X」（T8） | 組合式檢索 CIReVL（ICLR 2024）、CLIP4Cir、向量加減（latent linear critiquing） | 44k NDCG@10：只加硬條件 0.347 → 參考商品＋改寫文字＋新值過濾＋RRF **0.610**（p<0.001）；**放寬規則原本會吃掉 46% 的顏色批評** | ✅ `reference_item_id`＋`critique`；批評值改成永不放寬 |
 | 清單多樣化（T9） | MMR、DPP（NeurIPS 2018／YouTube CIKM 2018）、xQuAD | DPP θ=0.9（top-20）：44k 近似重複 2.45% → 0.35%，NDCG@5 −0.005（p=0.22）；被提前的卡片標「為了多樣性而納入」，忠實度檢查 300/300 | ✅ 預設 |
-| 搭配推薦 | P-Companion 先品類後商品（CIKM 2020）＋OutfitTransformer 互補頭 | Polyvore 100 選 1：MRR 0.277（互補頭）vs 0.216（相容性頭）vs 0.185（圖片相似度），p<0.001；**可能有訓練資料重疊** | ✅ `POST /complete-look` |
+| 搭配推薦 | P-Companion 先品類後商品（CIKM 2020）＋OutfitTransformer 互補頭 | Polyvore 100 選 1：MRR 0.277（互補頭）vs 0.216（相容性頭）vs 0.185（圖片相似度），p<0.001；**可能有訓練資料重疊** | ✅ `POST /complete-look`，已在真實 API 上以互補頭實測（§3.14） |
 | 排序權重學習（T10） | coordinate ascent、pairwise logistic（非負、保持可加總）、ranx fusion | 5-fold CV：學權重只比「依查詢類型分流」多 +0.009；以詞彙覆蓋率分流在 44k 失效 | ✅ 改由 ENGINE 01 回傳 `retrieval_text_normalized`，未正規化時只用 dense |
 
 **服務層** `engine02/service.py`（`POST /rank`）：點選歷史 → Δβ → 批評組合 → 加總排序與理由 → DPP 多樣化。`POST /rank/plain` 保留純 pipeline 供對照。
@@ -328,6 +328,26 @@ Engine02Request
 
 ### 3.13 合併商品庫的 VLM 標註（cfda4 V100 fp16）
 17,783 件全部標註完成，答案格式正確率 99.99%，每件 0.39 秒。在 397 件目視標註上的 AUROC 與 4090 一致（logo 0.981、領子 0.983、圖案 0.945、亮面 0.911、版型 0.775）。模型也會誠實回答「不適用」：肩線 46%、領子 61%、版型 26%（多為鞋包配件），適用性遮罩因此有實際依據。
+
+### 3.14 OutfitTransformer 接進 `/complete-look` 的實測（cfda4 V100）
+先前 `/complete-look` 在真實 API 上一律 500：服務層選的方法是 `ot_cir`（互補頭，T5 最佳 MRR 0.277），但 API 只載入相容性頭，`models["complementary"]` 直接 KeyError。修法是讓 `FastOutfitTransformer.checkpoints()` 回報這台機器有哪些頭、API 依 `ENGINE02_OT_HEADS`（預設 `complementary,compatibility`）載入、缺的頭只記警告不讓服務起不來，服務再依實際載到的頭選 `ot_cir > ot_sim > similarity`，`/health` 也把狀態吐出來：
+
+```json
+"complete_look": {"available": true, "method": "ot_cir", "ot_heads": ["complementary", "compatibility"]}
+```
+
+修好後在 `kagl_polyvore`（17,783 件）上實測（`.runtime/logs/api_ot_retest.log`，結果存 `reports/server/complete_look_api*.json`）：
+
+| 請求 | 結果 |
+| --- | --- |
+| 單錨點（藍色牛仔褲 `kagl:29178`），`n_categories=3, k=5` | `method=ot_cir`，三個品類都滿版：top（NPMI 0.127）、shoes（0.046）、outerwear（0.041），每格 5 件 |
+| 雙錨點（牛仔褲＋上衣）＋`filters={"gender":["Women"]}` | shoes（0.049）、bag（0.036）各 5 件，回傳商品全部是女裝，硬過濾有生效 |
+| 同一個服務的 `POST /rank` | 5 件全為 Navy Blue，理由如「整體風格和你描述的相近（+2.99）」「商品描述直接提到你要的關鍵字（+1.47）」 |
+
+兩件事要跟 ENGINE 03 講清楚：
+
+1. **互補頭的分數是負距離**（實測約 −136.04 ～ −136.09），只在同一個品類格內可比較，**不能**跨格比、也不該直接顯示給使用者；卡片要排序用它，要顯示信心就用格內排名。
+2. **錨點 id 打錯現在會回 400** 並列出不存在的 id；以前會被靜默丟掉、回一份空的 slates。壞掉的模型頭也不再是沒訊息的 500，而是帶型別與訊息的 500（伺服器端同時記 traceback）。
 
 ### 3.6 還沒跑的對照組
 - `full_concept_vlm` / `full_concept_hybrid`：修正版 VLM 全量標註完成後，重跑 T3（已排在 nycu 的 job4）。

@@ -206,8 +206,13 @@ def complete_look(body: CompleteLookRequest) -> dict:
     """給一件，推薦能搭的：complementary categories (NPMI) then items (OutfitTransformer / similarity)."""
     try:
         return STATE["service"].complete_look(body.anchor_item_ids, body.n_categories, body.k, body.filters or None)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     except RuntimeError as e:
         raise HTTPException(503, str(e))
+    except Exception as e:  # a broken model head used to surface as a bare 500 with no hint
+        log.exception("/complete-look failed")
+        raise HTTPException(500, f"{type(e).__name__}: {e}")
 
 
 @app.get("/items/{item_id}")
