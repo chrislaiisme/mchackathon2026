@@ -72,7 +72,9 @@ class TorchEncoder:
     def _txt(self, texts: list[str]):
         if self.backend == "open_clip":
             return self.model.encode_text(self.tok(texts).to(self.device))
-        if self.backend == "hf_siglip":  # SigLIP was trained with max_length padding (64)
+        if self.backend == "hf_siglip":
+            # SigLIP/SigLIP2 were trained on lowercased text with max_length padding (64)
+            texts = [t.lower() for t in texts]
             inp = self.proc(text=texts, padding="max_length", max_length=64, truncation=True, return_tensors="pt")
             return _pooled(self.model.get_text_features(**inp.to(self.device)))
         inp = self.proc(text=texts, padding=True, truncation=True, return_tensors="pt").to(self.device)
