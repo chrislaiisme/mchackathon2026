@@ -64,6 +64,8 @@ def main() -> None:
     ap.add_argument("--model", default="Qwen/Qwen3-VL-8B-Instruct")
     ap.add_argument("--limit", type=int, default=0, help="0 = all items")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--batch-size", type=int, default=16)
+    ap.add_argument("--checkpoint-every", type=int, default=50, help="batches between partial writes")
     args = ap.parse_args()
 
     import torch
@@ -92,31 +94,24 @@ def main() -> None:
     id_to_variant = {i: pre for pre, ids in variants.items() for i in ids}
     prompt = build_prompt()
 
-    rows, t_items = [], []
-    for _, r in items.iterrows():
-        img = (cat_dir / r["image_path"]).resolve().as_posix()
-        messages = [{"role": "user", "content": [{"type": "image", "image": f"file:///{img}"},
-                                                  {"type": "text", "text": prompt}]}]
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        images, videos, vkw = process_vision_info(messages, image_patch_size=16, return_video_kwargs=True,
-                                                  return_video_metadata=True)
-        inputs = processor(text=text, images=images, videos=videos, do_resize=False, return_tensors="pt", **vkw)
-        inputs = inputs.to(model.device)
-        t = time.perf_counter()
-        with torch.inference_mode():
-            gen = model.generate(**inputs, max_new_tokens=4 * len(QUESTIONS), do_sample=False,
-                                 output_scores=True, return_dict_in_generate=True)
-        t_items.append(time.perf_counter() - t)
-        out_ids = gen.sequences[0, inputs["input_ids"].shape[1]:]
-        answer = tok.decode(out_ids, skip_special_tokens=True).strip()
-        steps = [(k, id_to_variant[tid]) for k, tid in enumerate(out_ids.tolist()) if tid in id_to_variant]
+    out = Path(args.out) if args.out else cat_dir / f"vlm_attributes_{args.model.split('/')[-1]}.parquet"
+    partial = out.with_suffix(".partial.parquet")
+    rows = pd.read_parquet(partial).to_dict("records") if partial.exists() else []
+    done = {r["item_id"] for r in rows}
+    todo = items[~items["item_id"].astype(str).isin(done)]
+    print(json.dumps({"resume_from": len(rows), "todo": len(todo)}), flush=True)
+    processor.tokenizer.padding_side = "left"  # required for batched generation (Qwen3-VL README)
+    t_items = []
+
+    def parse(scores, b, seq):
+        answer = tok.decode(seq, skip_special_tokens=True).strip()
+        steps = [(k, id_to_variant[tid]) for k, tid in enumerate(seq.tolist()) if tid in id_to_variant]
         valid = len(steps) == len(QUESTIONS)
-        row = {"item_id": str(r["item_id"]), "raw_answer": answer, "valid": valid}
+        row = {"raw_answer": answer, "valid": valid}
         for qi, (qid, _, _) in enumerate(QUESTIONS):
             if valid:
                 k, pre = steps[qi]
-                logits = gen.scores[k][0, variants[pre]].float()
-                probs = torch.softmax(logits, dim=-1).cpu().numpy()
+                probs = torch.softmax(scores[k][b, variants[pre]].float(), dim=-1).cpu().numpy()
             else:  # malformed answer: never guess an alignment
                 probs = np.full(3, np.nan)
             for j, L in enumerate(LETTERS):
@@ -125,11 +120,34 @@ def main() -> None:
             pa, pb, pna = row[f"{qid}_A"], row[f"{qid}_B"], row[f"{qid}_C"]
             row[f"c_{el}"] = sign * (pa - pb)
             row[f"na_{el}"] = pna
-        rows.append(row)
-        print(json.dumps({"item": row["item_id"], "answer": answer, "s": round(t_items[-1], 2)}), flush=True)
+        return row
 
-    out = Path(args.out) if args.out else cat_dir / f"vlm_attributes_{args.model.split('/')[-1]}.parquet"
+    recs = list(todo.itertuples(index=False))
+    for bi in range(0, len(recs), args.batch_size):
+        batch = recs[bi : bi + args.batch_size]
+        convs = [[{"role": "user", "content": [
+            {"type": "image", "image": f"file:///{(cat_dir / r.image_path).resolve().as_posix()}"},
+            {"type": "text", "text": prompt}]}] for r in batch]
+        inputs = processor.apply_chat_template(convs, tokenize=True, add_generation_prompt=True, return_dict=True,
+                                               return_tensors="pt", padding=True).to(model.device)
+        t = time.perf_counter()
+        with torch.inference_mode():
+            gen = model.generate(**inputs, max_new_tokens=4 * len(QUESTIONS), do_sample=False,
+                                 output_scores=True, return_dict_in_generate=True)
+        dt = time.perf_counter() - t
+        t_items.append(dt / len(batch))
+        L0 = inputs["input_ids"].shape[1]
+        for b, r in enumerate(batch):
+            row = parse(gen.scores, b, gen.sequences[b, L0:])
+            row["item_id"] = str(r.item_id)
+            rows.append(row)
+        print(json.dumps({"done": len(rows), "batch_s": round(dt, 2), "s_per_item": round(dt / len(batch), 3),
+                          "last": rows[-1]["raw_answer"]}), flush=True)
+        if (bi // args.batch_size + 1) % args.checkpoint_every == 0:
+            pd.DataFrame(rows).to_parquet(partial, index=False)
+
     pd.DataFrame(rows).to_parquet(out, index=False)
+    partial.unlink(missing_ok=True)
     meta = {"model": args.model, "n_items": len(rows), "valid_rate": float(np.mean([r["valid"] for r in rows])) if rows else None, "load_s": round(load_s, 1),
             "sec_per_item_mean": round(float(np.mean(t_items)), 2) if t_items else None,
             "device": str(model.device), "questions": QUESTIONS, "element_map": ELEMENT_MAP}
