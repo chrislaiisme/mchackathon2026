@@ -181,3 +181,37 @@ def test_complete_the_look_contributions(tmp_path):
                 assert it.item_id != "0"
                 assert abs(sum(it.contributions.values()) - it.score) < 1e-9
                 assert cat.attr(it.position, "category") == s.category
+
+
+class HeadedOT(FakeOT):
+    """FakeOT that reports which checkpoints were loaded, like FastOutfitTransformer.heads."""
+
+    def __init__(self, *heads):
+        self.heads = tuple(heads)
+
+
+@pytest.mark.parametrize("heads, expected", [
+    (("complementary", "compatibility"), "ot_cir"),
+    (("complementary",), "ot_cir"),
+    (("compatibility",), "ot_sim"),   # the complementary checkpoint is missing → do not ask for that head
+    ((), "similarity"),
+])
+def test_service_method_follows_loaded_heads(tmp_path, heads, expected):
+    """Regression: the API loaded only the compatibility head while the service asked for ot_cir → KeyError."""
+    from engine02.composed import ComposedEngine02
+    from engine02.service import Engine02Service
+
+    items = pd.DataFrame(dict(item_id=[str(i) for i in range(8)], title=[f"t{i}" for i in range(8)],
+                              category=["top", "bottom", "bottom", "bottom", "shoes", "shoes", "top", "bag"],
+                              outfit_ids=[["a"], ["a"], ["b"], ["c"], ["a"], ["b"], ["b"], ["c"]],
+                              image_path=[f"images/{i}.jpg" for i in range(8)]))
+    cat = Catalog(items=items, root=tmp_path)
+    eng = ComposedEngine02(cat, HashEncoder(dim=16), cache_dir=tmp_path / "index")
+    ctl = CompleteTheLook(cat, eng.image_emb, cooccurrence_from_outfits(items),
+                          ot=HeadedOT(*heads) if heads else None)
+    svc = Engine02Service(eng, ctl)
+    assert svc.complete_look_method() == expected
+    out = svc.complete_look(["0"], n_categories=2, k=2)
+    assert out["method"] == expected and out["slates"]
+    with pytest.raises(ValueError, match="unknown anchor_item_ids"):
+        svc.complete_look(["nope"])
