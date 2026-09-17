@@ -150,7 +150,9 @@ class TemplateRewriter:
             word = OCCASION_WORD.get(_s(c.to_value), _s(c.to_value).lower())
             if c.from_value:
                 old = OCCASION_WORD.get(c.from_value, c.from_value.lower())
-                title, _ = _replace_ci(title, old, word)
+                title, hit = _replace_ci(title, old, word)
+                if hit:  # the title already carries the new occasion word — don't repeat it
+                    return title.strip()
             return f"{word} {title}".strip()
         if c.from_value:
             out, hit = _replace_ci(title, c.from_value, _s(c.to_value))

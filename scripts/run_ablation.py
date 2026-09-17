@@ -25,7 +25,7 @@ from engine02.encoders import HashEncoder  # noqa: E402
 from engine02.eval import tasks  # noqa: E402
 from engine02.pipeline import Engine02  # noqa: E402
 
-T1_ARMS = ["bm25", "dense", "hybrid_rrf", "hybrid_convex", "full", "hybrid_rrf_adaptive", "full_adaptive_bm25"]
+T1_ARMS = ["bm25", "dense", "hybrid_rrf", "hybrid_convex", "full", "hybrid_rrf_adaptive", "full_adaptive_bm25", "full_zclip3"]
 T3_ARMS = ["full_concept_descriptor", "full_concept_random", "full", "full_concept_no_mask", "prd_original"]
 T4_ARMS = ["full_reason_necessity", "full_reason_contrastive", "full", "prd_original"]
 T5_ARMS = {

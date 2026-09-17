@@ -35,14 +35,19 @@ class Term:
     # normalise with statistics from a wider population (e.g. the whole filtered pool),
     # so a card's explanation does not change when the candidate cut-off changes
     stats: tuple[float, float] | None = None
+    # clip normalised values to ±clip: pool-level BM25 is heavy-tailed (most items score 0), so a
+    # few keyword matches can reach z≈8 and drown every other term
+    clip: float | None = None
 
     def normalized(self) -> np.ndarray:
         if not self.normalize:
             return np.asarray(self.raw, dtype=np.float64)
         if self.stats is not None:
             mu, sd = self.stats
-            return (np.asarray(self.raw, dtype=np.float64) - mu) / (sd if sd > 1e-12 else 1.0)
-        return zscore(self.raw)
+            z = (np.asarray(self.raw, dtype=np.float64) - mu) / (sd if sd > 1e-12 else 1.0)
+        else:
+            z = zscore(self.raw)
+        return np.clip(z, -self.clip, self.clip) if self.clip else z
 
 
 @dataclass

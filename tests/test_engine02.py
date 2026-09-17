@@ -310,3 +310,13 @@ def test_taxonomy_category_in_pipeline(engine):
     resp = engine.run(request(constraints=c), "full")
     assert resp.items and all(it.category == "outerwear" for it in resp.items)
     assert resp.metrics.hard_constraint_satisfaction == 1.0
+
+
+def test_zclip_and_occasion_rewrite(engine):
+    from engine02.composed import Critique, TemplateRewriter
+
+    resp = engine.run(request(), "full_zclip3")
+    assert all(abs(c.normalized) <= 3.0 + 1e-9 for it in resp.items for c in it.contributions if c.group in ("dense", "bm25"))
+    row = pd.Series({"title": "Genesis Black Formal Shirt", "occasion": "Formal"})
+    out = TemplateRewriter("title").rewrite(row, Critique(attribute="occasion", to_value="Casual"))
+    assert out.lower().count("casual") == 1

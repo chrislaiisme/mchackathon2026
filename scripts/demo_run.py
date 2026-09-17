@@ -44,7 +44,7 @@ SCENARIOS = [
         "name": "B 面試（不要太正式但要可靠）",
         "utterance": "下週面試，不想太正式但要看起來可靠",
         "round1": {
-            "retrieval_text": "men shirts for formal",
+            "retrieval_text": "men smart casual shirts",  # ENGINE 01: 「不想太正式但要可靠」→ smart casual
             "constraints": {"category": {"state": "value", "values": ["top"]},
                             "gender": {"state": "value", "values": ["Men"]}},
             "needs": [{"need_id": "trustworthy", "prob": 0.5}, {"need_id": "avoid_tryhard", "prob": 0.3},

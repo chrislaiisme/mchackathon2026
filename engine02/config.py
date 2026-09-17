@@ -38,6 +38,7 @@ class ArmConfig:
     # CLIP antonym scores (chosen by AUROC against blind visual labels, docs/engine02-design.md §3.3c)
     vlm_elements: tuple[str, ...] = ("matte_fabric", "glossy_fabric", "visible_logo", "minimal_design",
                                      "bold_pattern", "crisp_collar")
+    z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty terms to ±z_clip
     need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
     w_dense: float = 1.0
     w_bm25: float = 0.5
@@ -62,6 +63,7 @@ ARMS: dict[str, ArmConfig] = {
     "hybrid_rrf_adaptive": ArmConfig(name="hybrid_rrf_adaptive", candidate_fusion="rrf", additive_rerank=False,
                                      bm25_adaptive=True),
     "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
+    "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),

@@ -328,8 +328,8 @@ class Engine02:
 
         pool_scope = arm.norm_scope == "pool"
         terms = [
-            Term("dense", "dense", dense, arm.w_dense, stats=_stats(dense_all) if pool_scope else None),
-            Term("bm25", "bm25", bm25, arm.w_bm25, stats=_stats(bm25_all) if pool_scope else None),
+            Term("dense", "dense", dense, arm.w_dense, stats=_stats(dense_all) if pool_scope else None, clip=arm.z_clip),
+            Term("bm25", "bm25", bm25, arm.w_bm25, stats=_stats(bm25_all) if pool_scope else None, clip=arm.z_clip),
         ]
         if arm.use_design and len(self.kansei.elements):
             c_mat = self.design_matrix(arm)
