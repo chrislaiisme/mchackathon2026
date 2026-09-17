@@ -66,6 +66,30 @@ def _stats(x: np.ndarray) -> tuple[float, float]:
     return (float(x.mean()), float(x.std())) if x.size else (0.0, 1.0)
 
 
+NEGATION_WORDS = (
+    # en — NegBench (ICML 2025): CLIP-family encoders are near chance on negation, so a negated
+    # retrieval_text silently retrieves the opposite of what the user meant
+    "not", "no", "without", "avoid", "except", "n't", "don't", "doesn't", "never", "less",
+    # zh
+    "不要", "不想", "不能", "不", "沒有", "別", "避免", "除了", "以外",
+)
+
+
+def input_warnings(req: "Engine02Request") -> list[str]:
+    """Input problems ENGINE 01 should fix. Warn, never silently rewrite the caller's text."""
+    out: list[str] = []
+    text = (req.retrieval_text or "").lower()
+    found = [w for w in NEGATION_WORDS if w in text]
+    if found:
+        out.append(
+            f"retrieval_text 含否定詞 {found}：CLIP 系編碼器對否定接近隨機（NegBench, ICML 2025），"
+            "否定請改放 constraints.excluded_values"
+        )
+    if req.retrieval_text and req.retrieval_text_normalized is False:
+        out.append("retrieval_text_normalized=false：本輪只用 dense 檢索，BM25 權重設為 0")
+    return out
+
+
 class Engine02:
     def __init__(
         self,
@@ -321,7 +345,8 @@ class Engine02:
             arm=arm.name,
             items=out_items,
             constraint_report=ConstraintReport(
-                applied=fr.applied, relaxed=fr.relaxed, n_catalog=len(items), n_after_filter=int(len(pool))
+                applied=fr.applied, relaxed=fr.relaxed, n_catalog=len(items), n_after_filter=int(len(pool)),
+                input_warnings=input_warnings(req),
             ),
             metrics=self._metrics(req, shown_pos),
             kansei_version=self.kansei.version,
@@ -433,5 +458,7 @@ class Engine02:
                 lv = {v.lower() for v in vals}
                 hits += sum(str(items.at[p, attr]).lower() in lv for p in shown_pos)
         bad_ids = set(req.feedback.excluded_item_ids) | set(req.feedback.rejected_item_ids)
-        viol = hits + sum(str(items.at[p, "item_id"]) in bad_ids for p in shown_pos)
-        return RoundMetrics(hard_constraint_satisfaction=float(sat), excluded_value_hits=hits, feedback_violations=viol)
+        id_hits = sum(str(items.at[p, "item_id"]) in bad_ids for p in shown_pos)
+        # cumulative over every earlier round (see RoundMetrics); the split is reported too
+        return RoundMetrics(hard_constraint_satisfaction=float(sat), excluded_value_hits=hits,
+                            rejected_item_hits=int(id_hits), feedback_violations=hits + int(id_hits))

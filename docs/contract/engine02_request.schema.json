@@ -169,7 +169,7 @@
           "type": "integer"
         },
         "arm": {
-          "default": "full",
+          "default": "full_zclip3",
           "title": "Arm",
           "type": "string"
         },

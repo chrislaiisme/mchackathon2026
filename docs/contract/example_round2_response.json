@@ -251,6 +251,7 @@
         "整體風格和你描述的相近（+3.36）",
         "商品描述直接提到你要的關鍵字（+0.73）"
       ],
+      "attribute_notes": [],
       "explanation": "整體風格和你描述的相近（+3.36）；商品描述直接提到你要的關鍵字（+0.73）",
       "explanation_source": "template"
     },
@@ -501,6 +502,7 @@
         "整體風格和你描述的相近（+3.36）",
         "商品描述直接提到你要的關鍵字（+0.73）"
       ],
+      "attribute_notes": [],
       "explanation": "整體風格和你描述的相近（+3.36）；商品描述直接提到你要的關鍵字（+0.73）",
       "explanation_source": "template"
     },
@@ -751,6 +753,7 @@
         "整體風格和你描述的相近（+3.08）",
         "商品描述直接提到你要的關鍵字（+0.73）"
       ],
+      "attribute_notes": [],
       "explanation": "整體風格和你描述的相近（+3.08）；商品描述直接提到你要的關鍵字（+0.73）",
       "explanation_source": "template"
     },
@@ -1003,6 +1006,7 @@
         "避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」",
         "避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」"
       ],
+      "attribute_notes": [],
       "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」；避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」",
       "explanation_source": "template"
     },
@@ -1255,6 +1259,7 @@
         "避開明顯 logo（+0.44），對應你想要的「怕顯得太用力、被信任」",
         "肩線挺（+0.21），對應你想要的「被信任」"
       ],
+      "attribute_notes": [],
       "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.44），對應你想要的「怕顯得太用力、被信任」；肩線挺（+0.21），對應你想要的「被信任」",
       "explanation_source": "template"
     }
@@ -1262,7 +1267,7 @@
   "constraint_report": {
     "applied": {
       "category": [
-        "top"
+        "tops"
       ],
       "gender": [
         "Men"
@@ -1273,11 +1278,13 @@
     },
     "relaxed": [],
     "n_catalog": 5000,
-    "n_after_filter": 862
+    "n_after_filter": 862,
+    "input_warnings": []
   },
   "metrics": {
     "hard_constraint_satisfaction": 1.0,
     "excluded_value_hits": 0,
+    "rejected_item_hits": 0,
     "feedback_violations": 0
   },
   "kansei_version": "kansei_v1_literature",
@@ -1290,11 +1297,11 @@
     "...truncated"
   ],
   "timings_ms": {
-    "filter": 20.05,
-    "retrieve": 7.59,
-    "fuse": 0.35,
-    "rerank": 2.05,
-    "counterfactual": 0.55,
-    "explain": 2.58
+    "filter": 14.28,
+    "retrieve": 5.37,
+    "fuse": 0.27,
+    "rerank": 1.12,
+    "counterfactual": 0.47,
+    "explain": 1.87
   }
 }

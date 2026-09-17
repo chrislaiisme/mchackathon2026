@@ -341,3 +341,36 @@ def test_predicted_attributes_are_marked(tmp_path):
     marked = {it.item_id: it.attribute_notes for it in resp.items}
     assert marked.get("7") == ["顏色為模型判讀"]
     assert all(v == [] for k, v in marked.items() if k != "7")
+
+
+def test_input_warnings_flag_negation_and_unnormalised_text():
+    """ENGINE 01 must move negation into excluded_values; we warn instead of rewriting the text."""
+    from engine02.pipeline import input_warnings
+
+    ok = Engine02Request(session_id="s", retrieval_text="navy blue formal shirts")
+    assert input_warnings(ok) == []
+
+    en = input_warnings(Engine02Request(session_id="s", retrieval_text="shirts without stripes"))
+    assert len(en) == 1 and "excluded_values" in en[0]
+
+    zh = input_warnings(Engine02Request(session_id="s", retrieval_text="要襯衫但不要條紋"))
+    assert len(zh) == 1
+
+    both = input_warnings(Engine02Request(session_id="s", retrieval_text="no stripes",
+                                          retrieval_text_normalized=False))
+    assert len(both) == 2 and any("dense" in w for w in both)
+
+
+def test_metrics_split_feedback_violations(engine):
+    """The screen shows three rule-based numbers; the violation count must be auditable."""
+    from engine02.contracts import FeedbackState
+
+    resp = engine.run(request(), "full")
+    shown = [it.item_id for it in resp.items]
+    m = resp.metrics
+    assert m.feedback_violations == m.excluded_value_hits + m.rejected_item_hits == 0
+
+    # ask again while rejecting an item that the first round showed
+    r2 = request(round=1, feedback=FeedbackState(rejected_item_ids=[shown[0]]))
+    m2 = engine.run(r2, "full_no_penalty" if "full_no_penalty" in ARMS else "full").metrics
+    assert m2.feedback_violations == m2.excluded_value_hits + m2.rejected_item_hits

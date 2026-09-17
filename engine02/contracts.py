@@ -218,6 +218,9 @@ class ConstraintReport(BaseModel):
     relaxed: list[str] = Field(default_factory=list)  # in the order they were relaxed
     n_catalog: int = 0
     n_after_filter: int = 0
+    # problems with the *input* that ENGINE 01 should fix, e.g. negation left in retrieval_text
+    # (CLIP-family encoders are near chance on negation — NegBench, ICML 2025)
+    input_warnings: list[str] = Field(default_factory=list)
 
 
 class RoundMetrics(BaseModel):
@@ -225,6 +228,12 @@ class RoundMetrics(BaseModel):
 
     hard_constraint_satisfaction: float | None = None
     excluded_value_hits: int = 0
+    rejected_item_hits: int = 0
+    # PRD §7 says "items in round 2 that violate round 1 feedback". We report it cumulatively:
+    # an item shown in round 3 that violates round 1 feedback still counts, because feedback is
+    # carried forward (excluded_values is never relaxed, excluded_item_ids are permanent). The two
+    # definitions agree at round 2, and the cumulative one can only be larger, never hide a miss.
+    # It is exactly excluded_value_hits + rejected_item_hits, so the screen can show the split.
     feedback_violations: int = 0
 
 

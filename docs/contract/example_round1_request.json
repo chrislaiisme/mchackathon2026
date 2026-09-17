@@ -86,7 +86,7 @@
   "options": {
     "top_k": 5,
     "n_candidates": 50,
-    "arm": "full",
+    "arm": "full_zclip3",
     "explain_with_llm": true,
     "counterfactual_check": true,
     "diversify": "dpp",

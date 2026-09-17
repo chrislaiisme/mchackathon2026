@@ -28,6 +28,13 @@
           "default": 0,
           "title": "N After Filter",
           "type": "integer"
+        },
+        "input_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Warnings",
+          "type": "array"
         }
       },
       "title": "ConstraintReport",
@@ -243,6 +250,13 @@
           "title": "Reasons",
           "type": "array"
         },
+        "attribute_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attribute Notes",
+          "type": "array"
+        },
         "explanation": {
           "default": "",
           "title": "Explanation",
@@ -287,6 +301,11 @@
         "excluded_value_hits": {
           "default": 0,
           "title": "Excluded Value Hits",
+          "type": "integer"
+        },
+        "rejected_item_hits": {
+          "default": 0,
+          "title": "Rejected Item Hits",
           "type": "integer"
         },
         "feedback_violations": {
