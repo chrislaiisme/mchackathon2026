@@ -225,3 +225,18 @@ def test_hybrid_concepts(tmp_path, engine):
     assert np.allclose(c[3:, j], base[3:, j])  # untagged items keep CLIP scores
     other = engine.kansei.element_ids.index("formal_style")
     assert np.allclose(c[:, other], base[:, other])
+
+
+def test_item_level_compat_model(engine):
+    class Fake:
+        name = "fake"
+
+        def score(self, anchors, cands):
+            return np.array([float(c) for c in cands])
+
+    engine.compat_model = Fake()
+    req = request()
+    req.feedback.anchor_item_ids = ["6"]
+    resp = engine.run(req, "full")
+    terms = {c.term for it in resp.items for c in it.contributions}
+    assert "compat:fake" in terms

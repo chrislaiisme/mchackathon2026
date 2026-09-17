@@ -71,6 +71,7 @@ class Engine02:
         cache_dir: str | Path | None = None,
         llm: Callable[[str], str] | None = None,
         cross_reranker: CrossReranker | None = None,
+        compat_model=None,  # e.g. compat_ot.OutfitTransformerCompat; None → category NPMI
     ):
         t0 = time.perf_counter()
         self.catalog = catalog
@@ -79,6 +80,7 @@ class Engine02:
         self.cooc = cooccurrence
         self.llm = llm
         self.cross_reranker = cross_reranker
+        self.compat_model = compat_model
         self.cache = Path(cache_dir) if cache_dir else catalog.root / "index"
         self._safe = encoder.name.replace("/", "__")
         self.image_emb = cached_image_embeddings(encoder, catalog.image_paths(), self.cache / f"img_{self._safe}.npy")
@@ -336,13 +338,18 @@ class Engine02:
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:
             anchors = self.catalog.positions(req.feedback.anchor_item_ids)
-            cs = compat_scores(
-                [self.catalog.attr(int(p), "category") for p in cand],
-                [self.catalog.attr(a, "category") for a in anchors],
-                self.cooc,
-            )
-            if cs is not None:  # NPMI is already on a fixed [-1, 1] scale
-                terms.append(Term("compat", "compat", cs, arm.w_compat, normalize=not pool_scope))
+            if self.compat_model is not None and anchors:
+                # item-level: distinguishes items within a category (NPMI cannot)
+                cs = self.compat_model.score(anchors, [int(p) for p in cand])
+                terms.append(Term(f"compat:{self.compat_model.name}", "compat", cs, arm.w_compat))
+            else:
+                cs = compat_scores(
+                    [self.catalog.attr(int(p), "category") for p in cand],
+                    [self.catalog.attr(a, "category") for a in anchors],
+                    self.cooc,
+                )
+                if cs is not None:  # NPMI is already on a fixed [-1, 1] scale
+                    terms.append(Term("compat", "compat", cs, arm.w_compat, normalize=not pool_scope))
         if arm.use_trend and self.trend_keywords:
             tr_all = self.bm25.scores(" ".join(self.trend_keywords))[pool]
             terms.append(Term("trend", "trend", tr_all[top], arm.w_trend, stats=_stats(tr_all) if pool_scope else None))
