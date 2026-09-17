@@ -32,6 +32,7 @@ def template_reasons(
     relaxed: list[str],
 ) -> tuple[list[str], list[dict]]:
     # the pipeline has already decided (and capped) which terms are displayed
+    need_labels = {**need_labels, "feedback_adjust": "你上一輪的回饋"}
     cited = [c for c in contribs if c.cited and c.contribution > 0]
     cited.sort(key=lambda c: -c.contribution)
     reasons, facts = [], []
@@ -41,8 +42,13 @@ def template_reasons(
             label = element_labels.get(d, d)
             top_needs = sorted(c.need_shares.items(), key=lambda kv: -kv[1])[:2]
             serves = "、".join(need_labels.get(n, n) for n, v in top_needs if v > 0)
-            text = f"{label}（+{c.contribution:.2f}）" + (f"，對應你想要的「{serves}」" if serves else "")
-            facts.append({"type": "design", "label": label, "contribution": round(c.contribution, 2),
+            # a positive contribution comes either from "has d and d is wanted" or from
+            # "lacks d and d is unwanted" — the sentence must say which
+            avoids = c.weight < 0
+            phrase = f"避開{label}" if avoids else label
+            text = f"{phrase}（+{c.contribution:.2f}）" + (f"，對應你想要的「{serves}」" if serves else "")
+            facts.append({"type": "design", "label": label, "direction": "avoids" if avoids else "has",
+                          "contribution": round(c.contribution, 2),
                           "serves_needs": [need_labels.get(n, n) for n, v in top_needs if v > 0]})
         else:
             text = f"{GROUP_LABEL.get(c.group, c.term)}（+{c.contribution:.2f}）"

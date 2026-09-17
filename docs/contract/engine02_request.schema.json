@@ -1,0 +1,316 @@
+{
+  "$defs": {
+    "BudgetSlot": {
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/SlotState",
+          "default": "unmentioned"
+        },
+        "max_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Price"
+        },
+        "min_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Price"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "hard": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hard"
+        }
+      },
+      "title": "BudgetSlot",
+      "type": "object"
+    },
+    "Engine02Options": {
+      "properties": {
+        "top_k": {
+          "default": 5,
+          "title": "Top K",
+          "type": "integer"
+        },
+        "n_candidates": {
+          "default": 50,
+          "title": "N Candidates",
+          "type": "integer"
+        },
+        "arm": {
+          "default": "full",
+          "title": "Arm",
+          "type": "string"
+        },
+        "explain_with_llm": {
+          "default": true,
+          "title": "Explain With Llm",
+          "type": "boolean"
+        },
+        "counterfactual_check": {
+          "default": true,
+          "title": "Counterfactual Check",
+          "type": "boolean"
+        }
+      },
+      "title": "Engine02Options",
+      "type": "object"
+    },
+    "FeedbackState": {
+      "properties": {
+        "design_adjust_steps": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Design Adjust Steps",
+          "type": "object"
+        },
+        "chosen_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Chosen Item Ids",
+          "type": "array"
+        },
+        "rejected_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejected Item Ids",
+          "type": "array"
+        },
+        "excluded_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded Item Ids",
+          "type": "array"
+        },
+        "anchor_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Anchor Item Ids",
+          "type": "array"
+        },
+        "concept_image_embedding": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Concept Image Embedding"
+        }
+      },
+      "title": "FeedbackState",
+      "type": "object"
+    },
+    "HardConstraints": {
+      "description": "Slots extracted by ENGINE 01 (M1). Values should already be normalised to the\ncatalog vocabulary (see engine02/resources/vocabulary.json).",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/Slot"
+        },
+        "color": {
+          "$ref": "#/$defs/Slot"
+        },
+        "occasion": {
+          "$ref": "#/$defs/Slot"
+        },
+        "season": {
+          "$ref": "#/$defs/Slot"
+        },
+        "gender": {
+          "$ref": "#/$defs/Slot"
+        },
+        "style_keywords": {
+          "$ref": "#/$defs/Slot"
+        },
+        "budget": {
+          "$ref": "#/$defs/BudgetSlot"
+        },
+        "excluded_values": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Excluded Values",
+          "type": "object"
+        }
+      },
+      "title": "HardConstraints",
+      "type": "object"
+    },
+    "NeedProbability": {
+      "description": "PRD M2 output p(n).",
+      "properties": {
+        "need_id": {
+          "title": "Need Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "prob": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Prob",
+          "type": "number"
+        }
+      },
+      "required": [
+        "need_id",
+        "prob"
+      ],
+      "title": "NeedProbability",
+      "type": "object"
+    },
+    "Slot": {
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/SlotState",
+          "default": "unmentioned"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Values",
+          "type": "array"
+        },
+        "hard": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hard"
+        }
+      },
+      "title": "Slot",
+      "type": "object"
+    },
+    "SlotState": {
+      "description": "PRD M1: every slot is in one of four states.",
+      "enum": [
+        "unmentioned",
+        "value",
+        "dont_care",
+        "inferred"
+      ],
+      "title": "SlotState",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "contract_version": {
+      "default": "0.1.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round": {
+      "default": 1,
+      "title": "Round",
+      "type": "integer"
+    },
+    "utterances": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Utterances",
+      "type": "array"
+    },
+    "retrieval_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retrieval Text"
+    },
+    "constraints": {
+      "$ref": "#/$defs/HardConstraints"
+    },
+    "needs": {
+      "items": {
+        "$ref": "#/$defs/NeedProbability"
+      },
+      "title": "Needs",
+      "type": "array"
+    },
+    "feedback": {
+      "$ref": "#/$defs/FeedbackState"
+    },
+    "options": {
+      "$ref": "#/$defs/Engine02Options"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "title": "Engine02Request",
+  "type": "object"
+}

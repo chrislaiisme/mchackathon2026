@@ -179,3 +179,21 @@ def test_vlm_concept_scores(tmp_path, engine):
     c = vlm_design_scores(["1", "2", "3", "4"], engine.kansei, f)
     j = engine.kansei.element_ids.index("structured_shoulders")
     assert c[0, j] > c[1, j] and c[2, j] == 0 and c[3, j] == 0
+
+
+def test_feedback_adjust_label_not_leaked(engine):
+    req = request()
+    req.feedback.design_adjust_steps = {"formal_style": -2}
+    resp = engine.run(req, "full")
+    assert all("feedback_adjust" not in r for it in resp.items for r in it.reasons)
+
+
+def test_reason_polarity(engine):
+    req = request()
+    req.needs = [NeedProbability(need_id="avoid_tryhard", prob=1.0)]  # K[avoid_tryhard, formal_style] < 0
+    resp = engine.run(req, "full")
+    for it in resp.items:
+        for c in it.contributions:
+            if c.cited and c.group == "design" and c.weight < 0:
+                label = engine.kansei.elements[engine.kansei.element_ids.index(c.term.split(":")[1])].label
+                assert any(f"避開{label}" in r for r in it.reasons)

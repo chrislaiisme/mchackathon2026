@@ -1,0 +1,98 @@
+{
+  "contract_version": "0.1.0",
+  "session_id": "demo-interview",
+  "round": 2,
+  "utterances": [
+    "下週面試，不想太正式但要看起來可靠",
+    "太像上班族，不要黑色"
+  ],
+  "retrieval_text": "men shirts for formal",
+  "constraints": {
+    "category": {
+      "state": "value",
+      "values": [
+        "top"
+      ],
+      "hard": null
+    },
+    "color": {
+      "state": "unmentioned",
+      "values": [],
+      "hard": null
+    },
+    "occasion": {
+      "state": "inferred",
+      "values": [
+        "Formal"
+      ],
+      "hard": null
+    },
+    "season": {
+      "state": "unmentioned",
+      "values": [],
+      "hard": null
+    },
+    "gender": {
+      "state": "value",
+      "values": [
+        "Men"
+      ],
+      "hard": null
+    },
+    "style_keywords": {
+      "state": "unmentioned",
+      "values": [],
+      "hard": null
+    },
+    "budget": {
+      "state": "unmentioned",
+      "max_price": null,
+      "min_price": null,
+      "currency": null,
+      "hard": null
+    },
+    "excluded_values": {
+      "color": [
+        "Black"
+      ]
+    }
+  },
+  "needs": [
+    {
+      "need_id": "trustworthy",
+      "label": "被信任",
+      "prob": 0.55
+    },
+    {
+      "need_id": "avoid_tryhard",
+      "label": "怕顯得太用力",
+      "prob": 0.3
+    },
+    {
+      "need_id": "approachable",
+      "label": "親切好相處",
+      "prob": 0.15
+    }
+  ],
+  "feedback": {
+    "design_adjust_steps": {
+      "formal_style": -1
+    },
+    "chosen_item_ids": [
+      "14738"
+    ],
+    "rejected_item_ids": [
+      "14737"
+    ],
+    "excluded_item_ids": [],
+    "anchor_item_ids": [],
+    "concept_image_embedding": null
+  },
+  "options": {
+    "top_k": 5,
+    "n_candidates": 50,
+    "arm": "full",
+    "explain_with_llm": true,
+    "counterfactual_check": true
+  }
+}
