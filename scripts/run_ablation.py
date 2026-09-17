@@ -45,6 +45,7 @@ def main() -> None:
     ap.add_argument("--tasks", default="t1,t2,t3,t4,t5")
     ap.add_argument("--n-queries", type=int, default=60)
     ap.add_argument("--n-targets", type=int, default=100)
+    ap.add_argument("--reranker", default=None, help="e.g. Qwen3-VL-Reranker-2B (adds full_cross_reranker to T1)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -61,8 +62,13 @@ def main() -> None:
         from engine02.models import TorchEncoder
 
         enc = TorchEncoder(args.encoder, device=args.device)
-    engine = Engine02(cat, enc, cooccurrence=cooc)
-    setup = {"encoder": enc.name, "catalog": str(args.catalog), "n_items": len(cat),
+    reranker = None
+    if args.reranker:
+        from engine02.models import CrossEncoderReranker
+
+        reranker = CrossEncoderReranker(args.reranker, cat, device=args.device)
+    engine = Engine02(cat, enc, cooccurrence=cooc, cross_reranker=reranker)
+    setup = {"reranker": args.reranker, "encoder": enc.name, "catalog": str(args.catalog), "n_items": len(cat),
              "setup_s": round(time.perf_counter() - t0, 1)}
     print(json.dumps(setup), flush=True)
 
@@ -70,8 +76,10 @@ def main() -> None:
     summary: dict = {"setup": setup, "n_queries": len(queries)}
     todo = set(args.tasks.split(","))
 
+    t1_arms = T1_ARMS + (["full_cross_reranker"] if reranker else [])
+    t3_arms = T3_ARMS + (["full_concept_vlm"] if any(cat.root.glob("vlm_attributes_*.parquet")) else [])
     if "t1" in todo:
-        df = tasks.t1_retrieval(engine, queries, T1_ARMS)
+        df = tasks.t1_retrieval(engine, queries, t1_arms)
         df.to_csv(out / "t1_retrieval.csv", index=False)
         s = pd.concat([tasks.summarize_paired(df, m, "dense") for m in ("ndcg10", "ndcg5", "mrr_exact")])
         s.to_csv(out / "t1_summary.csv", index=False)
@@ -88,7 +96,7 @@ def main() -> None:
         }
         print("t2 done", flush=True)
     if "t3" in todo:
-        df = tasks.t3_concepts(engine, T3_ARMS)
+        df = tasks.t3_concepts(engine, t3_arms)
         df.to_csv(out / "t3_concepts.csv", index=False)
         summary["t3"] = df.round(4).to_dict(orient="records")
         print("t3 done", flush=True)
