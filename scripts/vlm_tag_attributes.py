@@ -77,7 +77,11 @@ def main() -> None:
     if args.limit:
         items = items.head(args.limit)
     device_map = "auto" if torch.cuda.is_available() else "cpu"
-    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    if torch.cuda.is_available():
+        # bf16 needs compute capability ≥ 8 (Ampere); V100/P40 (7.x/6.x) use fp16
+        dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
+    else:
+        dtype = torch.float32
     t0 = time.perf_counter()
     model = AutoModelForImageTextToText.from_pretrained(args.model, dtype=dtype, device_map=device_map).eval()
     processor = AutoProcessor.from_pretrained(args.model)

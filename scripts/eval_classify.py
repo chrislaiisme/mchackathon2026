@@ -174,7 +174,8 @@ def stage_vlm(a):
     rows = pd.read_parquet(partial).to_dict("records") if partial.exists() else []
     done = {r["item_id"] for r in rows}
     todo = todo_all[~todo_all["item_id"].isin(done)]
-    model = AutoModelForImageTextToText.from_pretrained(a.model, dtype=torch.bfloat16, device_map="cuda").eval()
+    dtype = torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16  # V100 → fp16
+    model = AutoModelForImageTextToText.from_pretrained(a.model, dtype=dtype, device_map="cuda").eval()
     proc = AutoProcessor.from_pretrained(a.model)
     proc.tokenizer.padding_side = "left"
     tok = proc.tokenizer
