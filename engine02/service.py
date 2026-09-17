@@ -78,10 +78,11 @@ class Engine02Service:
         hist = [ChoiceRound(shown=cat.positions(r.shown_item_ids),
                             chosen=cat.pos(r.chosen_item_id) if r.chosen_item_id else None,
                             rejected=cat.positions(r.rejected_item_ids)) for r in fb.choice_history]
-        upd = BayesLogistic(rationality=0.5, prior_sd=1.0).update(hist, F, beta0)
+        # shrink_kappa=1: Δβ·n/(n+1) — halves the first-click over-reaction without utility loss (T7b)
+        upd = BayesLogistic(rationality=0.5, prior_sd=1.0, shrink_kappa=1.0).update(hist, F, beta0)
         new = req.model_copy(deep=True)
         new.feedback.design_weight_delta = space.to_dict(upd.delta)
-        return new, {"method": "bayes_pairwise_logistic", "rounds": len(hist),
+        return new, {"method": "bayes_pairwise_logistic", "shrink_kappa": 1.0, "rounds": len(hist),
                      "design_weight_delta": new.feedback.design_weight_delta}
 
     def rank(self, req: Engine02Request, arm: str | None = None) -> ServiceResponse:

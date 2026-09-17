@@ -279,6 +279,7 @@ class Sim:
             if method.oracle == "cand":
                 order = np.argsort(-u_cat[cand], kind="stable")
                 w_hat = None
+                d_used = np.zeros(self.space.dim)
             else:
                 if method.oracle == "w":
                     if w_star is None:
@@ -291,6 +292,7 @@ class Sim:
                 s = rerank_candidates(base, self.F[cand], upd, LEARN_ARM.need_scale)
                 order = np.argsort(-s, kind="stable")
                 w_hat = upd.mean if upd.mean is not None else beta0 + upd.delta
+                d_used = np.asarray(upd.delta, dtype=np.float64)
             slate = cand[order[: self.k]]
             slate_ids = [self.ids[p] for p in slate]
             cos = np.nan
@@ -305,6 +307,7 @@ class Sim:
                 ndcg_u=ndcg_at_k(slate_ids, u_grades, self.k),
                 attr_ndcg=ndcg_at_k(slate_ids, user["attr_grades"], self.k),
                 cos=cos, n_pool=len(pool),
+                dmean_abs=float(np.abs(d_used).mean()), dmax_abs=float(np.abs(d_used).max()),
             ))
             # --- the simulated user reacts -------------------------------------------------
             us = u_cat[slate]
@@ -322,6 +325,7 @@ class Sim:
             history.append(ChoiceRound(shown=[int(p) for p in slate], chosen=chosen, rejected=rejected))
             chosen_ids.append(self.ids[chosen])
             rejected_ids += [self.ids[p] for p in rejected]
+        self.last_history = history
         return rows
 
 

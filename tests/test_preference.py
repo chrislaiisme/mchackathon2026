@@ -136,3 +136,16 @@ def test_kansei_prior_cov_is_psd(engine):
     assert S.shape == (space.dim, space.dim)
     assert np.linalg.eigvalsh(S).min() > 0
     assert "casual_style" not in space.element_ids and "formal_style" in space.element_ids
+
+
+def test_bayes_damping_options():
+    w = np.array([2.0, -1.5, 0, 0, 1.0, 0, 0, 0, 0, 0, 0])
+    _, F, hist = _simulate(BayesLogistic(prior_sd=1.0), w, rounds=3)
+    base = BayesLogistic(prior_sd=1.0).update(hist, F, np.zeros(11)).delta
+    assert np.allclose(BayesLogistic(prior_sd=1.0, shrink_kappa=None, max_abs_delta=None)
+                       .update(hist, F, np.zeros(11)).delta, base)  # defaults = undamped
+    shrunk = BayesLogistic(prior_sd=1.0, shrink_kappa=2.0).update(hist, F, np.zeros(11)).delta
+    assert np.allclose(shrunk, base * 3 / 5)
+    capped = BayesLogistic(prior_sd=1.0, max_abs_delta=0.1).update(hist, F, np.zeros(11)).delta
+    assert np.abs(capped).max() <= 0.1 + 1e-12 and np.allclose(capped, np.clip(base, -0.1, 0.1))
+    assert BayesLogistic(shrink_kappa=1.0).update([], F, np.zeros(11)).delta.tolist() == [0.0] * 11

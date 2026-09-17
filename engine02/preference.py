@@ -289,6 +289,20 @@ class BayesLogistic:
     prior: str = "isotropic"  # | "kansei"
     likelihood: str = "pairwise"  # | "mnl"
     name: str = "bayes"
+    # damping of early updates (defaults = undamped). Applied to Δβ in this order:
+    # shrink_kappa κ: Δβ ← Δβ · n/(n+κ), n = number of rounds with a choice or rejection
+    # max_abs_delta c: per-element clip |Δβ_d| ≤ c (PRD adjust cap is 3 steps × 0.25 = 0.75)
+    shrink_kappa: float | None = None
+    max_abs_delta: float | None = None
+
+    def damp(self, delta: np.ndarray, history: list[ChoiceRound]) -> np.ndarray:
+        delta = np.asarray(delta, dtype=np.float64)
+        if self.shrink_kappa is not None:
+            n = sum(1 for r in history if r.chosen is not None or r.rejected)
+            delta = delta * (n / (n + self.shrink_kappa) if n > 0 else 0.0)
+        if self.max_abs_delta is not None:
+            delta = np.clip(delta, -self.max_abs_delta, self.max_abs_delta)
+        return delta
 
     def posterior(self, history, F, beta0, prior_cov=None) -> tuple[np.ndarray, np.ndarray]:
         S0 = prior_cov if prior_cov is not None else self.prior_sd**2 * np.eye(F.shape[1])
@@ -298,7 +312,7 @@ class BayesLogistic:
 
     def update(self, history, F, beta0, rng=None, prior_cov=None) -> PreferenceUpdate:
         mean, cov = self.posterior(history, F, beta0, prior_cov)
-        return PreferenceUpdate(delta=mean - beta0, mean=mean, cov=cov)
+        return PreferenceUpdate(delta=self.damp(mean - beta0, history), mean=mean, cov=cov)
 
 
 @dataclass
@@ -312,7 +326,7 @@ class ThompsonLogistic(BayesLogistic):
         if not history:  # nothing learned yet: do not perturb the first page
             return PreferenceUpdate(delta=np.zeros_like(mean), mean=mean, cov=cov)
         w = rng.multivariate_normal(mean, self.var_scale * cov, method="cholesky")
-        return PreferenceUpdate(delta=w - beta0, mean=mean, cov=cov)
+        return PreferenceUpdate(delta=self.damp(w - beta0, history), mean=mean, cov=cov)
 
 
 @dataclass
