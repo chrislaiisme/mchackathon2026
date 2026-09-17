@@ -155,11 +155,22 @@ BRIGHT = {"Red", "Yellow", "Orange", "Pink", "Green", "Magenta", "Turquoise Blue
 MUTED = {"Black", "White", "Grey", "Beige", "Navy Blue", "Charcoal", "Cream", "Off White", "Grey Melange", "Khaki", "Tan"}
 
 
-def concept_labels(items: pd.DataFrame) -> dict[str, np.ndarray]:
-    """Metadata-derived binary labels: 1 / 0 / -1 (= not labelled)."""
+def concept_labels(items: pd.DataFrame, allow_predicted: bool = False) -> dict[str, np.ndarray]:
+    """Metadata-derived binary labels: 1 / 0 / -1 (= not labelled).
+
+    On a filled catalog `occasion` and `color` may themselves be model predictions, and scoring a
+    model against its own output is circular (the VLM filled `occasion`, the probe on Marqo
+    embeddings filled `color`). So predicted values are dropped from the ground truth unless the
+    caller explicitly asks for them.
+    """
+    from engine02.attribute_fill import is_predicted
+
     apparel = items["category"].isin(APPAREL).to_numpy()
-    use = items["occasion"].to_numpy()
-    col = items["color"].to_numpy()
+    use = items["occasion"].to_numpy().copy()
+    col = items["color"].to_numpy().copy()
+    if not allow_predicted and "attr_source" in items.columns:
+        use[is_predicted(items, "occasion")] = None
+        col[is_predicted(items, "color")] = None
 
     def lab(pos_mask, neg_mask):
         y = np.full(len(items), -1)
