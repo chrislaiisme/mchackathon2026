@@ -6,4 +6,4 @@ Hybrid search (FashionCLIP dense embeddings + BM25/attribute sparse filtering) o
 
 Full spec: [../../docs/engine02-retrieval.md](../../docs/engine02-retrieval.md). Input/output JSON: [../../docs/interface-contract.md](../../docs/interface-contract.md) (`Intent` in, `RetrievalResult` out — see `ProductCard`).
 
-Depends on `OPENAI_API_KEY` for the reason-generation step (see root `CLAUDE.md` "P0 action item").
+Depends on `OPENAI_API_KEY` for the reason-generation step (see root `CLAUDE.md` "P0 status").

@@ -36,10 +36,13 @@ scripts/             Dev setup / data-download helpers
 
 ## Getting started
 
-Requirements: Python 3.11+, Node.js 18+, an `OPENAI_API_KEY` with a small prepaid balance (see [CLAUDE.md](CLAUDE.md) for why this is a P0 blocker for the team).
+Requirements: Python 3.11+, Node.js 18+.
+
+ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. Other modules (ENGINE02/03, generation) may need `OPENAI_API_KEY` depending on how their owners implement them — see [CLAUDE.md](CLAUDE.md).
 
 ```bash
-cp .env.example .env   # fill in OPENAI_API_KEY
+cp .env.example .env   # fill in OPENAI_API_KEY only if a module you're running needs it
+codex login             # one-time, needed for ENGINE01
 
 # backend
 pip install -r backend/requirements.txt

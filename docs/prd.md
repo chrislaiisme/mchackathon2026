@@ -46,10 +46,10 @@ Coding happens on-site over the two competition days (2026-09-19 +); pre-event t
 
 ## 7. Open items to close before this PRD is final
 
-Copied from [hackathon-brief.md](hackathon-brief.md) "寫 PRD 前還要定案的事項", plus the P0 gap found while scaffolding this repo:
+Copied from [hackathon-brief.md](hackathon-brief.md) "寫 PRD 前還要定案的事項", plus what was actually found while scaffolding this repo:
 
-- **P0 (blocks everything above):** nobody on the team has a platform.openai.com API key yet (only ChatGPT Plus/Pro subscriptions) — see root `CLAUDE.md` "P0 action item".
+- **Resolved for ENGINE01:** the team wants to avoid spending money, so ENGINE01 was switched to `codex exec` (rides ChatGPT Plus/Pro, $0/call, but ~8–17s and ~14-20K shared-quota tokens per call, measured — see root `CLAUDE.md` "ENGINE01 runtime: codex exec"). **Still open for ENGINE02/03/generation:** nobody on the team has a platform.openai.com API key; each of those owners needs to decide whether to get one or find their own zero-cost path.
 - Product catalog dataset: **confirmed**, Polyvore Outfits Dataset.
 - Which specific target images go on the curated Pinterest board (品諭).
 - Demo script: what exactly gets asked/fed back in round 1 vs. round 2.
-- Validation-loop image generation: confirm the Hermes Agent + Codex-auth batch-generation path with whoever tested it, and get the actual CLI/script commands into a README — or just use the `OPENAI_API_KEY` path directly once P0 is resolved, which sidesteps this "best-effort" dependency entirely.
+- Validation-loop image generation: the brief's original plan (Hermes Agent + Codex-auth for batch image gen) hasn't been tested in this repo yet — whoever owns the generation/validation line should verify it the same way ENGINE01's `codex exec` path was verified (actually run it, measure latency/quota) rather than assume the brief's description still holds.

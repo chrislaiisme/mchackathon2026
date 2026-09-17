@@ -53,16 +53,27 @@ scripts/                dev helper scripts (e.g. dataset download)
 
 **Do not restructure or remove the root-level `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`.** They're the Pinterest-app-review privacy policy site. GitHub Pages actually serves from the separate `gh-pages` branch (`chrislaiisme.github.io/mchackathon2026/`), so these files on `main` are currently just historical — but don't delete them without checking with the team first, and never push to `gh-pages` without confirming.
 
-## P0 action item — before any GPT/image-generation code can run
+## P0 status — GPT access for each module
 
-**The team currently only has ChatGPT Plus/Pro subscriptions. Nobody has a platform.openai.com API key yet.** Every module that calls structured output or the `image_generation` tool (ENGINE01, ENGINE02's reason generation, ENGINE03, generation) needs `OPENAI_API_KEY` set. Someone on the team needs to:
+**The team currently only has ChatGPT Plus/Pro subscriptions. Nobody has a platform.openai.com API key yet.** This still matters for ENGINE02 (reason generation), ENGINE03, and the generation module (`image_generation` tool via the Responses API), which do need `OPENAI_API_KEY`. If/when the team decides to get one: create an account at platform.openai.com, generate a key, add a small prepaid balance (whole-hackathon usage is estimated well under US$2, so US$5–10 is generous headroom), and share it out of band — never in a commit or plaintext chat log. Copy `.env.example` to `.env` locally and fill it in; `.env` is gitignored.
 
-1. Create an account at platform.openai.com and generate an API key.
-2. Add a small prepaid balance — the whole hackathon is estimated at well under US$2 of usage, so US$5–10 is generous headroom.
-3. Share the key with the team out of band (password manager / encrypted channel) — never in a commit, chat log in plaintext if avoidable, or issue.
-4. Everyone copies `.env.example` to `.env` locally and fills in `OPENAI_API_KEY`. `.env` is gitignored.
+**ENGINE01 specifically no longer needs this.** It runs on `codex exec` instead — see below. Don't assume the same is true for the other engines until someone actually wires them up; that decision is theirs to make.
 
-**Fallback if nobody wants to add billing:** the planning doc validated Hermes Agent riding ChatGPT Plus/Pro's Codex-auth usage pool for **batch image generation only** (`docs/hackathon-brief.md`, "量化驗證" section) — explicitly documented upstream as best-effort, not a supported path. It has not been validated for ENGINE01's text structured-output extraction, which is called every conversation turn and is latency-sensitive. Don't default to it for ENGINE01 unless the API key route is genuinely a dead end.
+## ENGINE01 runtime: `codex exec`, not an API key
+
+Deliberate choice, made after actually testing both paths: the team wants to avoid spending money, so ENGINE01 shells out to the OpenAI Codex CLI (`codex exec --output-schema`), which rides the developer's ChatGPT Plus/Pro subscription (`codex login`, already authenticated on this dev machine) instead of a billed API key. Zero marginal cost per call, confirmed by testing.
+
+The trade-off, also confirmed by testing, not assumed:
+
+| | `codex exec` (this project's choice) | Direct OpenAI API key |
+|---|---|---|
+| Cost | $0 | ~$0.001/call |
+| Latency | ~8–17 sec/call | ~1–3 sec |
+| Tokens per call | ~14,000–20,000 | ~1,500 |
+
+The token cost lands on the team's **shared** Codex usage allowance — the same pool used for AI-assisted coding (Claude Code/Codex) during the two on-site days. ENGINE01 calling this every conversational turn adds up; keep an eye on it, especially close to demo time. If it ever becomes a real problem (quota exhaustion, or 8–17s per turn is too slow for the live demo), the fix is swapping the implementation inside `extract_intent()` in `backend/engine01_intent/llm_client.py` back to a direct OpenAI API call — the function signature and everything calling it stays the same.
+
+Prerequisite on any machine running ENGINE01: `codex` CLI installed and authenticated once via `codex login` (no `OPENAI_API_KEY` involved). No separate Hermes Agent install needed — `codex exec --output-schema` already does native JSON-schema-constrained structured output, which was the thing Hermes's own one-shot mode didn't yet have when checked (open feature request upstream).
 
 ## Interface contract
 

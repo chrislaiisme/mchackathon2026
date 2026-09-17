@@ -23,6 +23,6 @@ Validates both the retrieval branch and the generation branch against real targe
 
 **Two things to keep honest**: this is an automated simulation, not a real-user study — label it that way in the deck. And Pinterest source images used as hidden targets are for internal scoring only, never shown in the demo or slides.
 
-**Image-generation budget**: 30–50 targets × 2–4 rounds × 2 branches (recommended + generated) ≈ 60–200 image-generation calls. Run this on day 1 of the two on-site days, not day 2, so it doesn't eat into the quota needed for the live demo. See root `CLAUDE.md` "P0 action item" for the underlying API-key/budget dependency this whole loop needs.
+**Image-generation budget**: 30–50 targets × 2–4 rounds × 2 branches (recommended + generated) ≈ 60–200 image-generation calls. Run this on day 1 of the two on-site days, not day 2, so it doesn't eat into the quota needed for the live demo. See root `CLAUDE.md` "P0 status" for the underlying API-key/budget dependency this whole loop needs.
 
 Owner: combined with the generation/Pinterest line, per the team's 5-people-for-6-lines split. Code: [`validation/`](../validation/).

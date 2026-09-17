@@ -6,4 +6,4 @@ Takes free-text feedback plus per-attribute scores (color/fit/pattern/collar —
 
 Full spec: [../../docs/engine03-feedback.md](../../docs/engine03-feedback.md). Input/output JSON: [../../docs/interface-contract.md](../../docs/interface-contract.md) (`FeedbackInput` in, `FeedbackResult` out).
 
-Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 action item").
+Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 status").

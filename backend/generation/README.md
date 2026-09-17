@@ -6,4 +6,4 @@ Produces one original concept image per round from the current `Intent`, using O
 
 Full spec: [../../docs/pinterest-and-generation.md](../../docs/pinterest-and-generation.md). Output JSON: `ConceptImage` inside `RetrievalResult` in [../../docs/interface-contract.md](../../docs/interface-contract.md).
 
-Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 action item"). Sample code is in [../../docs/hackathon-brief.md](../../docs/hackathon-brief.md) under "評分怎麼具體變成下一次生成的修正".
+Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 status"). Sample code is in [../../docs/hackathon-brief.md](../../docs/hackathon-brief.md) under "評分怎麼具體變成下一次生成的修正".

@@ -24,7 +24,7 @@ Fields the user didn't mention (weather, season, occasion implied by context, et
 ## Implementation
 
 - FastAPI service, `POST /intent` (see [`backend/engine01_intent/main.py`](../backend/engine01_intent/main.py)).
-- OpenAI Chat Completions structured output via the SDK's native Pydantic parsing (`client.beta.chat.completions.parse(..., response_format=IntentExtraction)`), not a hand-rolled JSON schema and not LangChain.
+- Structured output via `codex exec --output-schema` (OpenAI Codex CLI, shelled out to as a subprocess), riding the developer's ChatGPT Plus/Pro subscription instead of a billed `OPENAI_API_KEY` — a deliberate cost decision, not the original plan. See root [CLAUDE.md](../CLAUDE.md) "ENGINE01 runtime: codex exec" for the measured latency/quota trade-off (~8-17s and ~14-20K shared-quota tokens per call) that came with it, and what to do if it becomes a problem before demo day. The JSON schema handed to Codex is generated straight from the `IntentExtraction` Pydantic model (`intent` + `clarifying_questions`), post-processed to satisfy OpenAI's strict-mode requirements (`additionalProperties: false` and all fields listed as required, at every nesting level) since Pydantic doesn't emit that by default — see `_to_strict_schema()` in `llm_client.py`.
 - Multi-turn state: a plain in-memory `dict[session_id, SessionState]` (see `session_store.py`) holding the cumulative `Intent`. Each call sends the current intent + the new sentence and asks the model to return the full updated intent — simpler than introducing a conversation-state framework for a two-day build.
 
 ## Offline validation (this engine's quantified number)
@@ -33,5 +33,5 @@ Fields the user didn't mention (weather, season, occasion implied by context, et
 
 ## Dependencies
 
-- `OPENAI_API_KEY` — see root `CLAUDE.md` "P0 action item." Nothing here can run without it.
+- `codex` CLI installed and authenticated once via `codex login` — no `OPENAI_API_KEY` needed for this module. See root `CLAUDE.md` "ENGINE01 runtime: codex exec."
 - `backend/shared/schemas.py` — the `Intent`, `ClarifyingQuestion`, `IntentRequest`, `IntentResponse` models this module both produces and consumes.
