@@ -1,6 +1,6 @@
 # ENGINE 02｜檢索、排序與可驗證解釋 — 設計與實驗報告
 
-> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（20 項全過），實驗腳本 `scripts/run_ablation.py`。
+> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（21 項全過），實驗腳本 `scripts/run_ablation.py`。
 > 本文件取代原 PRD「ENGINE 02」小節裡**尚未經過驗證的部分**；PRD 原本的設計（M3–M7）全部保留成可切換的對照組 `prd_original`，所以任何修改都有數據對照。
 > 原始實驗數據（CSV、embedding 快取）只存在本機 `reports/ablation/`、`data/`，不進 git。
 
@@ -16,7 +16,7 @@
 | 設計要素分數 c(i,d) 改用**反義詞成對打分**，並做分布正規化 | T3：隨機字詞對照組的 AUROC 只有 0.33–0.70，證明 c(i,d) 真的在量東西；反義詞版在休閒感、深色上明顯優於 PRD 原版（Marqo：0.72→0.98、0.84→0.98），鮮豔色彩略低（0.88→0.85） |
 | 理由改用**最小充分集合**，不用 PRD 的「拿掉就掉出前 5」 | T4：PRD 原版有 10–20% 的卡片沒有任何理由，只有 66–68% 的理由組合本身足以讓商品留在前 5；新版 100% 有理由、100% 足以，隨機理由只有 12–16% |
 | 在卡片內 z-score 改成**用整個過濾後商品池的統計量**標準化 | 候選數量改變時，理由不會跟著變（method inventory §11） |
-| 穿搭相容性**只在有錨點商品時才啟用** | 文獻中所有相容性任務都需要錨點；T 測試：沒錨點時不會出現 compat 項 |
+| 穿搭相容性**只在有錨點商品時才啟用**，而且要用**商品層級**模型（OutfitTransformer） | 文獻中所有相容性任務都需要錨點；FITB 200 題：品類 NPMI 25%（＝隨機）、embedding 相似度 48%、OutfitTransformer 54.5% |
 | 回饋：批評回饋效果大，Rocchio **尚未證明有效** | T5：4 輪成功率 1–2% → 39–44%（p<0.001）；Rocchio 相對只用批評多 3 個百分點，p≈0.54–0.60，**不顯著** |
 | 推薦理由**預設用模板**，LLM 改寫要通過程式事實檢查 | 本地 Qwen3-1.7B 實測會把「盛夏偏熱」講反；有 OpenAI key 時才開改寫 |
 | 圖文 reranker（Qwen3-VL-Reranker-2B）**預設不開** | CPU 每個 pair 21.6 秒；4090 上加了它，用詞相同的查詢反而變差（0.840→0.797，p=0.001），每次查詢多約 1 秒 |
@@ -78,7 +78,7 @@ Engine02Request
   ├─ 3. 可加總 reranker（用商品池統計量標準化）
   │     S(i) = w_dense·z(dense) + w_bm25·z(bm25)
   │          + Σ_d β_d · c(i,d)          β_d = Σ_n p(n)K[n,d] + 0.25·steps_d
-  │          + w_compat·NPMI(類別, 錨點類別)     ← 只在有錨點時
+  │          + w_compat·compat(商品, 錨點)       ← 只在有錨點時；OutfitTransformer，無模型時退回品類 NPMI
   │          + w_trend·z(趨勢 BM25) − w_pen·z(和否決商品的最大相似度)
   │          [+ w_rerank·z(cross-encoder)]       ← GPU 才開
   │     [MMR 多樣化（對照組）]
