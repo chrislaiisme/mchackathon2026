@@ -1209,11 +1209,11 @@
     "...truncated"
   ],
   "timings_ms": {
-    "filter": 15.49,
-    "retrieve": 4.71,
-    "fuse": 1.05,
-    "rerank": 1.75,
+    "filter": 8.79,
+    "retrieve": 3.44,
+    "fuse": 0.29,
+    "rerank": 1.56,
     "counterfactual": 0.3,
-    "explain": 1.64
+    "explain": 1.63
   }
 }

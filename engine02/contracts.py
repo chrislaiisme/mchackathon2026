@@ -141,6 +141,10 @@ class Engine02Request(BaseModel):
     # (catalog text is English, users speak Chinese). No negations — those go to
     # constraints.excluded_values. If absent, ENGINE 02 builds one from the slots.
     retrieval_text: str | None = None
+    # ENGINE 01 sets True when retrieval_text uses catalog vocabulary (GET /vocabulary). False →
+    # dense only: BM25 on off-vocabulary wording only adds noise (T1: hybrid 0.09–0.21 vs dense
+    # 0.43–0.46; T10 learned weights put w_bm25=0 there). None → use the pipeline's arm as is.
+    retrieval_text_normalized: bool | None = None
     constraints: HardConstraints = Field(default_factory=HardConstraints)
     needs: list[NeedProbability] = Field(default_factory=list)
     feedback: FeedbackState = Field(default_factory=FeedbackState)

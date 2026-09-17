@@ -1290,11 +1290,11 @@
     "...truncated"
   ],
   "timings_ms": {
-    "filter": 10.01,
-    "retrieve": 3.42,
-    "fuse": 0.22,
-    "rerank": 1.61,
-    "counterfactual": 0.39,
-    "explain": 1.61
+    "filter": 12.86,
+    "retrieve": 3.21,
+    "fuse": 0.2,
+    "rerank": 1.49,
+    "counterfactual": 0.3,
+    "explain": 1.5
   }
 }

@@ -7,6 +7,7 @@
     "太像上班族，不要黑色"
   ],
   "retrieval_text": "men shirts for formal",
+  "retrieval_text_normalized": null,
   "constraints": {
     "category": {
       "state": "value",

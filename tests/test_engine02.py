@@ -270,3 +270,10 @@ def test_service_critique_and_diversity(tmp_path):
     assert all((it.color or "").lower() == "navy" for it in resp.items)
     assert all(it.item_id != "2" for it in resp.items)
     assert resp.diversification["method"] == "dpp"
+
+
+def test_unnormalized_query_routes_to_dense(engine):
+    req = request(retrieval_text_normalized=False)
+    resp = engine.run(req, "full")
+    assert resp.timings_ms.get("bm25_routed_off") == 1.0
+    assert not any(c.group == "bm25" for it in resp.items for c in it.contributions)

@@ -167,7 +167,11 @@ class Engine02:
         q = self.query_embedding(req, arm, text)
         dense_all = self.image_emb[pool] @ q
         bm25_all = self.bm25.scores(text)[pool]
-        if arm.bm25_adaptive:
+        if req.retrieval_text_normalized is False:
+            timings["bm25_routed_off"] = 1.0
+            arm = replace(arm, w_bm25=0.0, candidate_fusion="dense" if arm.candidate_fusion in ("rrf", "convex")
+                          else arm.candidate_fusion)
+        elif arm.bm25_adaptive:
             cov = self.bm25.coverage(text)
             timings["bm25_coverage"] = round(cov, 3)
             bm25_scale = cov if cov >= arm.bm25_min_coverage else 0.0

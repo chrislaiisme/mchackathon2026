@@ -412,6 +412,18 @@
       "default": null,
       "title": "Retrieval Text"
     },
+    "retrieval_text_normalized": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retrieval Text Normalized"
+    },
     "constraints": {
       "$ref": "#/$defs/HardConstraints"
     },
