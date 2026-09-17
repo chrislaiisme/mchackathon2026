@@ -101,6 +101,7 @@ Engine02Request
 ### 3.0 設定與限制（先讀）
 - 商品庫是 KAGL 的 5,000 件（shuffle buffer 抽樣，不是真正的隨機樣本）；筆電 CPU。
 - **不用 LLM，也沒有人工標註**：標準答案全部來自資料集屬性，image encoder 看不到這些屬性。所以這些都是**代理指標**，簡報上要照實說明。
+  §3.3 的 420 筆目視標註是**LLM 標註者**做的，所以那些 AUROC 是模型對模型。要把這個缺口補起來：`data/labels/human_tasks.csv`（已產生 140 題盲標，依設計要素分層、不含 LLM 標籤）給真人填 `label` 欄（1／0／na），再跑 `python scripts/eval_human_agreement.py score --human <檔案> --encoder marqo-fashionSigLIP`，就會印出每個要素的 Cohen's κ、雙方的「無法判斷」比例，以及同一批商品在**人工標準答案**與 LLM 標準答案下的 AUROC 對照。若人工那欄明顯較低，代表標註者與打分模型有共同盲點，§3.3 的數字偏樂觀，簡報必須講明。
 - 60 句查詢、100 個模擬目標；統計用 query 層級配對置換檢定（10,000 次）與 bootstrap 95% 信賴區間。
 - 原始檔在 `reports/ablation/kagl_<encoder>/`，指令：`python scripts/run_ablation.py --encoder <name>`。
 
