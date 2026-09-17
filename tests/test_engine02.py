@@ -240,3 +240,33 @@ def test_item_level_compat_model(engine):
     resp = engine.run(req, "full")
     terms = {c.term for it in resp.items for c in it.contributions}
     assert "compat:fake" in terms
+
+
+def test_required_values_never_relaxed(engine):
+    c = HardConstraints(category=Slot(state=SlotState.VALUE, values=["outerwear"]), required_values={"color": ["navy"]})
+    resp = engine.run(request(constraints=c), "full")
+    assert resp.items and all((it.color or "").lower() == "navy" for it in resp.items)
+    assert not any(r.startswith("color") for r in resp.constraint_report.relaxed)
+
+
+def test_service_critique_and_diversity(tmp_path):
+    from engine02.composed import ComposedEngine02
+    from engine02.contracts import Critique
+    from engine02.service import Engine02Service
+
+    df = pd.DataFrame(
+        [dict(item_id=i, title=t, description=None, category=c, subcategory=s, color=col, season=None,
+              occasion=None, gender=None, price=p, image_path=f"images/{i}.jpg") for i, t, c, s, col, p in ROWS]
+    )
+    cat = Catalog(items=df, root=tmp_path, name="toy")
+    enc = HashEncoder(dim=128, captions={f"{i}.jpg": t for i, t, *_ in ROWS})
+    svc = Engine02Service(ComposedEngine02(cat, enc, cache_dir=tmp_path / "index"))
+    req = request()
+    req.options.top_k = 3
+    req.feedback.reference_item_id = "2"
+    req.feedback.critique = Critique(attribute="color", to_value="navy")
+    resp = svc.rank(req, "full")
+    assert resp.composed and resp.composed["required_values"] == {"color": ["navy"]}
+    assert all((it.color or "").lower() == "navy" for it in resp.items)
+    assert all(it.item_id != "2" for it in resp.items)
+    assert resp.diversification["method"] == "dpp"

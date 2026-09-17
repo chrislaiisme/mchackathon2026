@@ -73,6 +73,9 @@ class HardConstraints(BaseModel):
     budget: BudgetSlot = Field(default_factory=BudgetSlot)
     # exclude(屬性, 值) from ENGINE 03 lands here, e.g. {"color": ["black"]}
     excluded_values: dict[str, list[str]] = Field(default_factory=dict)
+    # require(屬性, 值) / critique target values: hard and NEVER relaxed (the relaxation ladder
+    # silently dropped 46% of colour critiques before this existed; docs/research/recsys-composed.md)
+    required_values: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class NeedProbability(BaseModel):
@@ -88,6 +91,15 @@ class NeedProbability(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class Critique(BaseModel):
+    """「這件但換成 X」— critique on a reference item (composed retrieval, CIReVL-style)."""
+
+    attribute: Literal["color", "occasion", "category", "subcategory", "season"]
+    to_value: str | None = None  # catalog vocabulary, e.g. "Navy Blue"
+    from_value: str | None = None  # defaults to the reference item's value
+    direction: Literal["more_formal", "more_casual", "sportier"] | None = None
+
+
 class FeedbackState(BaseModel):
     # adjust(設計要素, ±1) accumulated by ENGINE 03 → Δβ_d (in steps; E2 maps steps to weight)
     design_adjust_steps: dict[str, int] = Field(default_factory=dict)
@@ -99,6 +111,9 @@ class FeedbackState(BaseModel):
     anchor_item_ids: list[str] = Field(default_factory=list)
     # proposed: embedding of the generated concept image (generation branch), optional
     concept_image_embedding: list[float] | None = None
+    # critique on a shown item: both set → composed retrieval (reference image + rewritten text)
+    reference_item_id: str | None = None
+    critique: Critique | None = None
 
 
 class Engine02Options(BaseModel):
@@ -107,6 +122,13 @@ class Engine02Options(BaseModel):
     arm: str = "full"  # ablation arm name, see engine02/config.py
     explain_with_llm: bool = True
     counterfactual_check: bool = True
+    # slate diversification (service layer): none | mmr | dpp | xquad; DPP θ=0.9 on top-20 is the
+    # evaluated default (docs/research/recsys-slate.md)
+    diversify: Literal["none", "mmr", "dpp", "xquad"] = "dpp"
+    diversify_param: float = 0.9
+    diversify_depth: int = 20
+    # weight of the reference image in composed critique queries (α=0 best NDCG@10 in T8)
+    critique_alpha: float = 0.0
 
 
 class Engine02Request(BaseModel):

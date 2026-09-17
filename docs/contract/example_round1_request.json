@@ -50,7 +50,8 @@
       "currency": null,
       "hard": null
     },
-    "excluded_values": {}
+    "excluded_values": {},
+    "required_values": {}
   },
   "needs": [
     {
@@ -75,13 +76,19 @@
     "rejected_item_ids": [],
     "excluded_item_ids": [],
     "anchor_item_ids": [],
-    "concept_image_embedding": null
+    "concept_image_embedding": null,
+    "reference_item_id": null,
+    "critique": null
   },
   "options": {
     "top_k": 5,
     "n_candidates": 50,
     "arm": "full",
     "explain_with_llm": true,
-    "counterfactual_check": true
+    "counterfactual_check": true,
+    "diversify": "dpp",
+    "diversify_param": 0.9,
+    "diversify_depth": 20,
+    "critique_alpha": 0.0
   }
 }

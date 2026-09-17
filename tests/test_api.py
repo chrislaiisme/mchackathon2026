@@ -37,3 +37,8 @@ def test_api_rank_roundtrip(tmp_path, monkeypatch):
             assert abs(sum(c["contribution"] for c in it["contributions"]) - it["score"]) < 1e-6
         assert client.get(f"/images/{data['items'][0]['item_id']}").status_code == 200
         assert client.post("/rank", json={**body, "options": {"arm": "nope"}}).status_code == 400
+        assert data["diversification"]["method"] == "dpp"
+        assert client.get("/health").json()["kansei_version"] == "kansei_v1_literature"
+        look = client.post("/complete-look", json={"anchor_item_ids": [data["items"][0]["item_id"]], "k": 3})
+        assert look.status_code == 200, look.text
+        assert look.json()["method"] == "similarity" and look.json()["slates"]

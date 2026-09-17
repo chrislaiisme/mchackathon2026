@@ -55,7 +55,8 @@
       "color": [
         "Black"
       ]
-    }
+    },
+    "required_values": {}
   },
   "needs": [
     {
@@ -79,20 +80,26 @@
       "formal_style": -1
     },
     "chosen_item_ids": [
-      "14738"
+      "14731"
     ],
     "rejected_item_ids": [
-      "14737"
+      "14716"
     ],
     "excluded_item_ids": [],
     "anchor_item_ids": [],
-    "concept_image_embedding": null
+    "concept_image_embedding": null,
+    "reference_item_id": null,
+    "critique": null
   },
   "options": {
     "top_k": 5,
     "n_candidates": 50,
     "arm": "full",
     "explain_with_llm": true,
-    "counterfactual_check": true
+    "counterfactual_check": true,
+    "diversify": "dpp",
+    "diversify_param": 0.9,
+    "diversify_depth": 20,
+    "critique_alpha": 0.0
   }
 }

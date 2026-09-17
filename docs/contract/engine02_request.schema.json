@@ -58,6 +58,68 @@
       "title": "BudgetSlot",
       "type": "object"
     },
+    "Critique": {
+      "description": "「這件但換成 X」— critique on a reference item (composed retrieval, CIReVL-style).",
+      "properties": {
+        "attribute": {
+          "enum": [
+            "color",
+            "occasion",
+            "category",
+            "subcategory",
+            "season"
+          ],
+          "title": "Attribute",
+          "type": "string"
+        },
+        "to_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Value"
+        },
+        "from_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Value"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "more_formal",
+                "more_casual",
+                "sportier"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        }
+      },
+      "required": [
+        "attribute"
+      ],
+      "title": "Critique",
+      "type": "object"
+    },
     "Engine02Options": {
       "properties": {
         "top_k": {
@@ -84,6 +146,32 @@
           "default": true,
           "title": "Counterfactual Check",
           "type": "boolean"
+        },
+        "diversify": {
+          "default": "dpp",
+          "enum": [
+            "none",
+            "mmr",
+            "dpp",
+            "xquad"
+          ],
+          "title": "Diversify",
+          "type": "string"
+        },
+        "diversify_param": {
+          "default": 0.9,
+          "title": "Diversify Param",
+          "type": "number"
+        },
+        "diversify_depth": {
+          "default": 20,
+          "title": "Diversify Depth",
+          "type": "integer"
+        },
+        "critique_alpha": {
+          "default": 0.0,
+          "title": "Critique Alpha",
+          "type": "number"
         }
       },
       "title": "Engine02Options",
@@ -140,6 +228,29 @@
           ],
           "default": null,
           "title": "Concept Image Embedding"
+        },
+        "reference_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Item Id"
+        },
+        "critique": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Critique"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "FeedbackState",
@@ -177,6 +288,16 @@
             "type": "array"
           },
           "title": "Excluded Values",
+          "type": "object"
+        },
+        "required_values": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Required Values",
           "type": "object"
         }
       },

@@ -86,6 +86,14 @@ def build_mask(
         mask &= ok
         applied["budget"] = [f"{b.min_price or 0}-{b.max_price}{'×1.2' if factor > 1 else ''}"]
 
+    # required values (critique targets) are hard and never relaxed
+    for attr, values in c.required_values.items():
+        if attr not in items.columns or not values:
+            continue
+        also = items["subcategory"] if attr == "category" and "subcategory" in items else None
+        mask &= _slot_mask(items[attr], values, False, also)
+        applied[f"require_{attr}"] = list(values)
+
     # exclusions from ENGINE 03 are always hard and never relaxed
     for attr, values in c.excluded_values.items():
         if attr not in items.columns or not values:
