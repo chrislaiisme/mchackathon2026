@@ -45,12 +45,21 @@ Optional: put `OPENAI_API_KEY=...` in `.env` to enable the fact-checked LLM para
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/rank` | `Engine02Request` → `Engine02Response` |
+| POST | `/rank/plain` | the additive pipeline alone, for ablations |
+| POST | `/view` | rank + the §7 panels (said/unsaid, needs, Div@k, provenance, round diff) |
+| POST | `/complete-look` | complete the look: categories by NPMI, items by the OutfitTransformer complementary head |
+| POST | `/concept-image/nearest` | items closest to a generated concept image (display only) |
+| GET | `/needs/supply` | Sup(n): share of the catalog expressing each hidden need |
+| GET | `/trends` | display-only trend badges (`ENGINE02_TRENDS=1`); never part of the score |
 | GET | `/vocabulary` | catalog values ENGINE 01 must normalise slot values to |
 | GET | `/kansei` | need ids and design-element ids |
 | GET | `/items/{id}`, `/images/{id}` | item metadata / image |
-| GET | `/arms`, `/health` | ablation arms, service status |
+| GET | `/arms`, `/health` | ablation arms, service status (including which OutfitTransformer heads loaded) |
 
 JSON Schemas and real two-round examples: [`docs/contract/`](../docs/contract/).
+The fixed operation set ENGINE 03 sends back (with its ledger) is specified in
+[`engine02/handshake.py`](handshake.py); the view model behind `/view` is in
+[`engine02/panels.py`](panels.py); offline replay for the demo is in [`engine02/replay.py`](replay.py).
 
 ## Reproducing the experiments
 
@@ -59,6 +68,7 @@ python scripts/verify_models.py --models all --device auto          # every cand
 python scripts/run_ablation.py --encoder marqo-fashionSigLIP --device auto [--reranker Qwen3-VL-Reranker-2B]
 python scripts/vlm_tag_attributes.py --catalog data/catalog/kagl --model Qwen/Qwen3-VL-8B-Instruct   # GPU
 python scripts/eval_visual_labels.py --encoder marqo-fashionSigLIP
+python scripts/reproduce.py --check-claims        # re-derives the numbers quoted in the design doc
 ```
 
 All ground truth in T1–T5 comes from catalog metadata or blind visual labels, never from the ranking score.
@@ -73,6 +83,8 @@ All ground truth in T1–T5 comes from catalog metadata or blind visual labels, 
 | Minimal-sufficient reasons cover every card | 100% coverage and sufficiency vs 80–90% coverage for the PRD necessity rule |
 | Critique feedback helps; Rocchio does not (yet) | success@4 rounds 1% → 39–42% (p<0.001); Rocchio vs critique-only p≈0.5 at both 5k and 44k |
 | Image reranker not worth it by default | Qwen3-VL-Reranker-2B: −0.043 NDCG@5 on lexical queries (p=0.001), +~1 s/query on RTX 4090 |
+| Trend keywords must stay out of the score | 28 configurations, all worse: −0.16 to −0.38 NDCG@5 (p≈1e-4) → badges only |
+| A concept image helps when the user cannot describe what they want | w=0.2: NDCG@5 0.078 → 0.278 on 44k (p≈1e-4) with a null random-image control (−0.004, p=0.71) |
 
 Limitations: public catalogs have no prices; KAGL lacks blazers/knitwear (Polyvore apparel merged as a
 workaround); simulated users are rule-based; visual labels were produced by an LLM annotator, not humans.
