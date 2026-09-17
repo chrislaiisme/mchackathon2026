@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 RESOURCES = Path(__file__).parent / "resources"
+DEFAULT_TABLE = "kansei_v1_literature.json"
 
 
 @dataclass
@@ -38,9 +39,15 @@ class KanseiTable:
     def element_ids(self) -> list[str]:
         return [e.id for e in self.elements]
 
+    folded: dict[str, str] = field(default_factory=dict)  # antonym element → canonical element
+
     @classmethod
-    def load(cls, path: str | Path | None = None) -> "KanseiTable":
-        path = Path(path) if path else RESOURCES / "kansei_v0.json"
+    def load(cls, path: str | Path | None = None, fold_antonyms: bool = True) -> "KanseiTable":
+        """fold_antonyms: two elements whose descriptor sets are each other's negatives
+        (formal ↔ casual) are one bipolar axis — with antonym scoring c(i,b) = −c(i,a)
+        exactly — so K[n,b] is folded into K[n,a] with the opposite sign (averaged when both
+        poles carry a value) and clipped to [−1, 1]. Otherwise one literature finding entered on both poles is counted twice."""
+        path = Path(path) if path else RESOURCES / DEFAULT_TABLE
         raw = json.loads(Path(path).read_text(encoding="utf-8"))
         elements = [DesignElement(**e) for e in raw["design_elements"]]
         el_index = {e.id: j for j, e in enumerate(elements)}
@@ -49,7 +56,21 @@ class KanseiTable:
         for i, n in enumerate(need_ids):
             for d, w in raw["K"].get(n, {}).items():
                 K[i, el_index[d]] = float(w)
+        folded: dict[str, str] = {}
+        if fold_antonyms:
+            for a, ea in enumerate(elements):
+                if ea.id in folded:
+                    continue
+                for b in range(a + 1, len(elements)):
+                    eb = elements[b]
+                    if eb.id not in folded and ea.negative_descriptors and                             sorted(eb.descriptors) == sorted(ea.negative_descriptors) and                             sorted(eb.negative_descriptors) == sorted(ea.descriptors):
+                        both = (K[:, a] != 0) & (K[:, b] != 0)
+                        # same finding entered on both poles → average, not sum
+                        K[:, a] = np.where(both, (K[:, a] - K[:, b]) / 2.0, K[:, a] - K[:, b])
+                        K[:, b] = 0.0
+                        folded[eb.id] = ea.id
         return cls(
+            folded=folded,
             version=raw["version"],
             needs=raw["needs"],
             elements=elements,
@@ -66,10 +87,14 @@ class KanseiTable:
         """Returns (β from needs, β from feedback adjustments), both shape (n_elements,)."""
         p = self.need_vector(probs)
         from_needs = p @ self.K
-        steps = np.array(
-            [np.clip(adjust_steps.get(d, 0), -self.max_steps, self.max_steps) for d in self.element_ids],
-            dtype=np.float64,
-        )
+        raw = {d: 0 for d in self.element_ids}
+        for d, v in adjust_steps.items():
+            if d in self.folded:  # "more casual" on a folded pole = "less formal" on the canonical axis
+                raw[self.folded[d]] = raw.get(self.folded[d], 0) - v
+            elif d in raw:
+                raw[d] += v
+        steps = np.array([np.clip(raw[d], -self.max_steps, self.max_steps) for d in self.element_ids],
+                         dtype=np.float64)
         return from_needs, steps * self.step_size
 
     def need_shares(self, probs: dict[str, float], j: int, c_value: float) -> dict[str, float]:

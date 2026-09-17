@@ -197,3 +197,16 @@ def test_reason_polarity(engine):
             if c.cited and c.group == "design" and c.weight < 0:
                 label = engine.kansei.elements[engine.kansei.element_ids.index(c.term.split(":")[1])].label
                 assert any(f"避開{label}" in r for r in it.reasons)
+
+
+def test_antonym_folding():
+    from engine02.kansei import KanseiTable
+
+    t = KanseiTable.load()
+    assert t.folded.get("casual_style") == "formal_style"
+    i, a, b = t.need_ids.index("polished"), t.element_ids.index("formal_style"), t.element_ids.index("casual_style")
+    assert t.K[i, b] == 0 and 0 < t.K[i, a] <= 1
+    _, fb = t.beta({}, {"casual_style": 1})
+    assert fb[a] == -t.step_size and fb[b] == 0
+    raw = KanseiTable.load(fold_antonyms=False)
+    assert raw.K[i, b] < 0
