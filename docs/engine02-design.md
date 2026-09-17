@@ -1,6 +1,6 @@
 # ENGINE 02｜檢索、排序與可驗證解釋 — 設計與實驗報告
 
-> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（15 項全過），實驗腳本 `scripts/run_ablation.py`。
+> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（18 項全過），實驗腳本 `scripts/run_ablation.py`。
 > 本文件取代原 PRD「ENGINE 02」小節裡**尚未經過驗證的部分**；PRD 原本的設計（M3–M7）全部保留成可切換的對照組 `prd_original`，所以任何修改都有數據對照。
 > 原始實驗數據（CSV、embedding 快取）只存在本機 `reports/ablation/`、`data/`，不進 git。
 
