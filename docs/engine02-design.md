@@ -357,6 +357,8 @@ Engine02Request
 ### 3.14b 補值商品庫上的端點驗收（cfda4，`kagl_polyvore_filled` 17,783 件）
 把 ENGINE 03 會呼叫的每個端點在真模型上跑一遍（`reports/server/*.json`）：`/view` 回傳完整面板（需求面板顯示「被信任」貢獻 2.17、主要來自正式感 1.35；Div@5 0.2，因為五件都是藍色洋裝）、`/rank` 對含否定詞的查詢回報 `input_warnings`、`/needs/supply` 給出各需求的供給比例（avoid_tryhard 0.356 最高）、`/trends` 標示 `used_in_ranking=false`、`/concept-image/nearest` 回傳最近三件、`/complete-look` 用互補頭。卡片上也如實標了「顏色為模型判讀」「性別為模型判讀」。
 
+驗收本身已經寫成 repo 內的腳本 `scripts/api_check.py`（在程式內直接跑 FastAPI app，不用起 port），會**斷言**而不是用眼睛看：貢獻加總等於總分、Div@k 對應實際卡片數、`feedback_violations` 等於兩個子項之和、滿足度用過濾器的同一把尺、否定詞會回報、商品自己的 embedding 最近鄰是自己、趨勢不進分數、錯誤錨點回 400。cfda4 上用 Marqo＋OT 實跑：15 項全過，`method=ot_cir`、slates 為 top×5／shoes×5。
+
 這輪驗收抓到一個會直接誤導評審的 bug：畫面上的**硬條件滿足度顯示 0.0**，但那五件洋裝正是過濾器依色系比對（Navy Blue → 藍色系）刻意放進來的——指標用嚴格字串比對，過濾器用色系比對，**兩把尺**。已修：`provenance_filter` 把它的前處理公開出來，指標改用同一把尺，並在 `metrics.match_policy` 標明是 `exact` 還是 `color_family`。
 
 ### 3.15 趨勢關鍵字：量測後決定「不進排序」（T11，稽核 sub-agent）
