@@ -38,6 +38,16 @@
 但 `pipeline.Engine02._terms` 只把 `clip` 傳給前兩項。實測顯示它不是趨勢項代價大的主因，
 但仍是「註解說一套、程式做一套」。修法是 pipeline 兩行，**我不改，附上包裝版與量測**。
 
+> **coordinator 後續處理（2026-09-18 凌晨，commit `144d98e`…`5515664`）**：稽核交回後，以下項目已經關掉——
+> `z_clip` 已套到 trend／penalty 四項；概念圖權重 0.2 成為服務預設 arm `full_zclip3`（`full` 保持 0 當重現基準）；
+> `POST /view`、`POST /concept-image/nearest`、`GET /needs/supply`、`GET /trends` 四個 endpoint 已接出並有測試；
+> `feedback_violations` 口徑裁定為**累計所有先前輪次**，並拆出 `rejected_item_hits` 讓畫面數字可逐項核對；
+> `retrieval_text` 否定詞檢查改以 `constraint_report.input_warnings` 回報（中英都抓）；
+> `full_concept_vlm` 消融已隨全量標註自動納入 `abl_filled`（`run_ablation.py` 偵測到 VLM parquet 就會加入 T3）；
+> 人工標註缺口補上工具側 `scripts/eval_human_agreement.py`（盲標抽樣＋Cohen's κ＋人工標準答案下的 AUROC），
+> 但**數字仍待真人標註**；K 表的不確定性補上 `scripts/eval_kansei_sensitivity.py`（T13）。
+> 仍然缺人／缺 key 的是：真人盲標、價格資料、ENGINE 01／03 的重播、LLM 幻覺率。
+
 **還沒關、而且會影響評分的**（詳見 §4，按優先序）：
 
 | 優先 | 缺口 | 影響 | 建議 owner | 估時 |
