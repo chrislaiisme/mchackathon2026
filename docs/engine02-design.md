@@ -395,12 +395,19 @@ PRD §6.6 要把趨勢關鍵字當小權重加分項。實際上 `set_trends()` 
 ## 4.3 串接方式
 - **API**：`uvicorn engine02.api:app --port 8002`。環境變數 `ENGINE02_ENCODER` 可設 `marqo-fashionSigLIP`、`fashion-clip`，或 `hash`（不載模型，用於測試）。
 - **端點**：
-  - `POST /rank`：主要排序
+  - `POST /rank`：主要排序（`POST /rank/plain` 是不做 critique 與多樣化的純管線，給消融用）
+  - `POST /view`：排序＋PRD §7 的所有面板（你說的 vs 你沒說的、需求面板、Div@k、資料來源、兩輪 diff、趨勢標籤）。**前端不要自己從卡片重算這些聚合值**，它們是用產生排序的同一組 contribution 算的
+  - `POST /complete-look`：搭配推薦（品類用 NPMI，商品用 OutfitTransformer 互補頭；分數是負距離，只在同一格內可比）
+  - `POST /concept-image/nearest`：概念圖最近的 3 件（純展示，刻意不走 reranker）
+  - `GET /needs/supply`：Sup(n)，ENGINE 03 算缺口乘積要用的供給側
+  - `GET /trends`：趨勢標籤關鍵字（`ENGINE02_TRENDS=1` 才載入），`used_in_ranking` 永遠是 false
   - `GET /vocabulary`：ENGINE 01 正規化要用的商品庫詞彙
   - `GET /kansei`：need 與 design element 的 id
   - `GET /items/{id}`、`GET /images/{id}`：商品資料與圖片
-  - `GET /arms`、`GET /health`
+  - `GET /arms`、`GET /health`（含載到哪些 OutfitTransformer 頭）
 - **規格檔**：`docs/contract/`，含 request／response 的 JSON Schema，以及第 1、2 輪的範例 request／response；範例是 ENGINE 03 把「太像上班族，不要黑色＋點選第 3 件」轉成回饋之後的真實輸出。
+- **回傳的輸入警告**：`constraint_report.input_warnings` 會回報 ENGINE 01 該修的問題——`retrieval_text` 殘留否定詞（中英都抓；CLIP 系對否定接近隨機，NegBench ICML 2025，否定請放 `excluded_values`）、以及 `retrieval_text_normalized=false` 導致本輪只走 dense。
+- **三個規則指標**：`metrics.feedback_violations` 現在剛好等於 `excluded_value_hits + rejected_item_hits`（口徑：**累計所有先前輪次**的回饋，不只第 1→2 輪；兩者在第 2 輪相同，累計版只會多報不會漏報）。
 - **理由方向**：權重為負的設計要素一律寫成「避開〇〇」。例如「避開正式感（+0.93），對應你想要的『你上一輪的回饋、怕顯得太用力』」，避免被讀成「因為很正式才推薦」。
 
 ## 4.4 GPU 實測（nycu，RTX 4090）
