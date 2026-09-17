@@ -327,8 +327,14 @@ class Engine02:
             c_mat = self.design_matrix(arm)
             probs = {n.need_id: n.prob for n in req.needs}
             beta_needs, beta_fb = self.kansei.beta(probs, req.feedback.design_adjust_steps)
+            # learned Δβ (already in γ-scaled units, see engine02/preference.py) on canonical axes
+            learned = np.zeros(len(self.kansei.elements))
+            for d, v in req.feedback.design_weight_delta.items():
+                canon = self.kansei.folded.get(d, d)
+                if canon in self.kansei.element_ids:
+                    learned[self.kansei.element_ids.index(canon)] += -v if d in self.kansei.folded else v
             for j, el in enumerate(self.kansei.elements):
-                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]))
+                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j])
                 if abs(w) < 1e-9:
                     continue
                 per_unit = {}
@@ -336,8 +342,9 @@ class Engine02:
                     v = arm.need_scale * probs.get(n, 0.0) * self.kansei.K[i, j]
                     if abs(v) > 1e-9:
                         per_unit[n] = float(v)
-                if abs(beta_fb[j]) > 1e-9:
-                    per_unit["feedback_adjust"] = float(arm.need_scale * beta_fb[j])
+                fb_part = arm.need_scale * beta_fb[j] + learned[j]
+                if abs(fb_part) > 1e-9:
+                    per_unit["feedback_adjust"] = float(fb_part)
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:

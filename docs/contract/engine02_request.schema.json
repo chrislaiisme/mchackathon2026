@@ -58,6 +58,42 @@
       "title": "BudgetSlot",
       "type": "object"
     },
+    "ChoiceRecord": {
+      "description": "One round of ENGINE 03's ledger: what was shown and what the user picked / rejected.",
+      "properties": {
+        "shown_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shown Item Ids",
+          "type": "array"
+        },
+        "chosen_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chosen Item Id"
+        },
+        "rejected_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejected Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shown_item_ids"
+      ],
+      "title": "ChoiceRecord",
+      "type": "object"
+    },
     "Critique": {
       "description": "「這件但換成 X」— critique on a reference item (composed retrieval, CIReVL-style).",
       "properties": {
@@ -251,6 +287,20 @@
             }
           ],
           "default": null
+        },
+        "choice_history": {
+          "items": {
+            "$ref": "#/$defs/ChoiceRecord"
+          },
+          "title": "Choice History",
+          "type": "array"
+        },
+        "design_weight_delta": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Design Weight Delta",
+          "type": "object"
         }
       },
       "title": "FeedbackState",

@@ -100,6 +100,14 @@ class Critique(BaseModel):
     direction: Literal["more_formal", "more_casual", "sportier"] | None = None
 
 
+class ChoiceRecord(BaseModel):
+    """One round of ENGINE 03's ledger: what was shown and what the user picked / rejected."""
+
+    shown_item_ids: list[str]
+    chosen_item_id: str | None = None
+    rejected_item_ids: list[str] = Field(default_factory=list)
+
+
 class FeedbackState(BaseModel):
     # adjust(設計要素, ±1) accumulated by ENGINE 03 → Δβ_d (in steps; E2 maps steps to weight)
     design_adjust_steps: dict[str, int] = Field(default_factory=dict)
@@ -114,6 +122,12 @@ class FeedbackState(BaseModel):
     # critique on a shown item: both set → composed retrieval (reference image + rewritten text)
     reference_item_id: str | None = None
     critique: Critique | None = None
+    # preference learning (T7): per-round choices; ENGINE 02 fits a Bayesian pairwise-logistic
+    # (Bradley–Terry, reward-rational choice) posterior over design weights and adds Δβ.
+    choice_history: list[ChoiceRecord] = Field(default_factory=list)
+    # continuous Δβ over design elements (antonym poles allowed, sign-flipped when folded).
+    # Filled by the service from choice_history when empty; may also be supplied directly.
+    design_weight_delta: dict[str, float] = Field(default_factory=dict)
 
 
 class Engine02Options(BaseModel):

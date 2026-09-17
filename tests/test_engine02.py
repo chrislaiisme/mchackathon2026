@@ -277,3 +277,28 @@ def test_unnormalized_query_routes_to_dense(engine):
     resp = engine.run(req, "full")
     assert resp.timings_ms.get("bm25_routed_off") == 1.0
     assert not any(c.group == "bm25" for it in resp.items for c in it.contributions)
+
+
+def test_design_weight_delta_and_learning(tmp_path):
+    from engine02.composed import ComposedEngine02
+    from engine02.contracts import ChoiceRecord
+    from engine02.service import Engine02Service
+
+    df = pd.DataFrame(
+        [dict(item_id=i, title=t, description=None, category=c, subcategory=s, color=col, season=None,
+              occasion=None, gender=None, price=p, image_path=f"images/{i}.jpg") for i, t, c, s, col, p in ROWS]
+    )
+    cat = Catalog(items=df, root=tmp_path, name="toy")
+    enc = HashEncoder(dim=128, captions={f"{i}.jpg": t for i, t, *_ in ROWS})
+    eng = ComposedEngine02(cat, enc, cache_dir=tmp_path / "index")
+    req = request()
+    req.feedback.design_weight_delta = {"formal_style": 0.7}
+    resp = eng.run(req, "full")
+    w = {c.term: c.weight for it in resp.items for c in it.contributions if c.group == "design"}
+    base = {c.term: c.weight for it in eng.run(request(), "full").items for c in it.contributions if c.group == "design"}
+    assert abs(w["design:formal_style"] - base.get("design:formal_style", 0.0) - 0.7) < 1e-9
+    svc = Engine02Service(eng)
+    req = request()
+    req.feedback.choice_history = [ChoiceRecord(shown_item_ids=["1", "2", "7", "10"], chosen_item_id="10")]
+    out = svc.rank(req, "full")
+    assert out.learned_preferences and out.learned_preferences["rounds"] == 1

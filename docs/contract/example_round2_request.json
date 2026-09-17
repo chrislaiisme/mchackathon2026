@@ -90,7 +90,9 @@
     "anchor_item_ids": [],
     "concept_image_embedding": null,
     "reference_item_id": null,
-    "critique": null
+    "critique": null,
+    "choice_history": [],
+    "design_weight_delta": {}
   },
   "options": {
     "top_k": 5,

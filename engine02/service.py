@@ -1,6 +1,8 @@
 """ENGINE 02 service layer: one call that combines the evaluated recommender components.
 
 rank(req):
+  0. preference learning from choice_history → Δβ over design elements (Bayesian pairwise logistic,
+     posterior mean; T7: beats the PRD ±1 rule at 5k and 44k, docs/research/recsys-preference.md)
   1. critique on a shown item (reference_item_id + critique) → composed retrieval
      (reference image ⊕ rewritten text, critique target as a never-relaxed required value;
      T8: 44k NDCG@10 0.347 → 0.610, docs/research/recsys-composed.md)
@@ -25,6 +27,7 @@ from .diversify import DiversifiedResponse, DiversityConfig, deep_request, diver
 
 class ServiceResponse(DiversifiedResponse):
     composed: dict[str, Any] | None = None  # what the critique turned into (auditable)
+    learned_preferences: dict[str, Any] | None = None  # Δβ learned from choice_history
 
 
 class Engine02Service:
@@ -59,7 +62,30 @@ class Engine02Service:
                 "required_values": cq.constraint_updates, "method": cq.method, **cq.params}
         return new, cq.query_embedding, info
 
+    def _learn_preferences(self, req: Engine02Request, arm_name: str | None) -> tuple[Engine02Request, dict | None]:
+        """T7 default: Bayesian pairwise logistic, posterior mean (docs/research/recsys-preference.md)."""
+        fb = req.feedback
+        if fb.design_weight_delta or not fb.choice_history:
+            return req, None
+        from .config import ARMS
+        from .preference import BayesLogistic, ChoiceRound, DesignSpace
+
+        arm = ARMS[arm_name or req.options.arm]
+        cat = self.engine.catalog
+        space = DesignSpace.from_kansei(self.engine.kansei)
+        F = space.features(self.engine.design_matrix(arm))
+        beta0 = space.prior_mean({n.need_id: n.prob for n in req.needs}, arm.need_scale)
+        hist = [ChoiceRound(shown=cat.positions(r.shown_item_ids),
+                            chosen=cat.pos(r.chosen_item_id) if r.chosen_item_id else None,
+                            rejected=cat.positions(r.rejected_item_ids)) for r in fb.choice_history]
+        upd = BayesLogistic(rationality=0.5, prior_sd=1.0).update(hist, F, beta0)
+        new = req.model_copy(deep=True)
+        new.feedback.design_weight_delta = space.to_dict(upd.delta)
+        return new, {"method": "bayes_pairwise_logistic", "rounds": len(hist),
+                     "design_weight_delta": new.feedback.design_weight_delta}
+
     def rank(self, req: Engine02Request, arm: str | None = None) -> ServiceResponse:
+        req, learned = self._learn_preferences(req, arm)
         req2, q_override, composed = self._apply_critique(req)
         o = req.options
         cfg = DiversityConfig(method=o.diversify, param=o.diversify_param, depth=o.diversify_depth)
@@ -70,7 +96,7 @@ class Engine02Service:
             self.engine._override = None
         req2.options = req.options  # explanation settings of the caller for the final cards
         div = diversify_response(self.engine, req2, deep, cfg, k=o.top_k)
-        return ServiceResponse(**div.model_dump(), composed=composed)
+        return ServiceResponse(**div.model_dump(), composed=composed, learned_preferences=learned)
 
     # ------------------------------------------------------------------
     def complete_look(self, anchor_ids: list[str], n_categories: int = 2, k: int = 5,
