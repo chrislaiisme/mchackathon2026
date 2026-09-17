@@ -227,6 +227,9 @@ class RoundMetrics(BaseModel):
     """PRD §7 rule-based metrics — computed from item attributes, never from the score."""
 
     hard_constraint_satisfaction: float | None = None
+    # how the rule check compared values: "exact", or "color_family" on catalogs with model-filled
+    # colours, where the filter itself matches "Navy Blue" against the whole blue family
+    match_policy: str = "exact"
     excluded_value_hits: int = 0
     rejected_item_hits: int = 0
     # PRD §7 says "items in round 2 that violate round 1 feedback". We report it cumulatively:

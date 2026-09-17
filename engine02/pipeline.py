@@ -437,6 +437,11 @@ class Engine02:
         if not shown_pos:
             return RoundMetrics()
         c = req.constraints
+        policy = "exact"
+        prep = getattr(self._attr_filter, "prepare", None)
+        if prep is not None:  # judge with the comparator the filter used, not a stricter one
+            items, c = prep(items, c)
+            policy = "color_family" if c.color.values != req.constraints.color.values else "exact"
         tax = load_taxonomy()
         ids = resolve_category_values(c.category.values, tax) if (c.category.is_hard() and c.category.values) else []
         roots = [tax.l1(i) or i for i in ids if i in tax.nodes] or ids
@@ -460,5 +465,6 @@ class Engine02:
         bad_ids = set(req.feedback.excluded_item_ids) | set(req.feedback.rejected_item_ids)
         id_hits = sum(str(items.at[p, "item_id"]) in bad_ids for p in shown_pos)
         # cumulative over every earlier round (see RoundMetrics); the split is reported too
-        return RoundMetrics(hard_constraint_satisfaction=float(sat), excluded_value_hits=hits,
-                            rejected_item_hits=int(id_hits), feedback_violations=hits + int(id_hits))
+        return RoundMetrics(hard_constraint_satisfaction=float(sat), match_policy=policy,
+                            excluded_value_hits=hits, rejected_item_hits=int(id_hits),
+                            feedback_violations=hits + int(id_hits))

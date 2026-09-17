@@ -440,4 +440,8 @@ def provenance_filter(predicted_policy: str = "family", min_confidence: float = 
         view, c2 = _prepare(items, c)
         return base(view, c2, min_results, excluded_positions, ladder)
 
+    # the rule-based metrics must judge with the same comparator the filter used, or the card says
+    # "0% of constraints satisfied" about items the filter deliberately admitted (colour family)
+    filter_fn.prepare = _prepare
+    filter_fn.policy = predicted_policy
     return filter_fn

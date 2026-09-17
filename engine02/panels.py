@@ -271,9 +271,10 @@ class RoundDiff(BaseModel):
     needs_delta: dict[str, float] = Field(default_factory=dict)
     relaxed_added: list[str] = Field(default_factory=list)
     relaxed_removed: list[str] = Field(default_factory=list)
-    # the three PRD §7 rule metrics, before → after (never the ranking score itself)
-    metrics_before: dict[str, float | int | None] = Field(default_factory=dict)
-    metrics_after: dict[str, float | int | None] = Field(default_factory=dict)
+    # the PRD §7 rule metrics, before → after (never the ranking score itself); the values are
+    # numbers plus RoundMetrics.match_policy, which says how the rule check compared values
+    metrics_before: dict[str, float | int | str | None] = Field(default_factory=dict)
+    metrics_after: dict[str, float | int | str | None] = Field(default_factory=dict)
 
 
 def _cited(it: RankedItem) -> list[str]:

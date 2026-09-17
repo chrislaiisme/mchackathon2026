@@ -135,3 +135,33 @@ def test_engine_accepts_filled_catalog(tmp_path, monkeypatch):
                           options=Engine02Options(top_k=1, explain_with_llm=False))
     resp = eng.run(req, "full")
     assert [it.item_id for it in resp.items] == ["p1"]
+
+
+def test_metrics_use_the_same_comparator_as_the_filter(tmp_path):
+    """A card must not report 0% satisfaction for items the colour-family filter admitted."""
+    import numpy as np
+    import pandas as pd
+
+    from engine02.catalog import Catalog
+    from engine02.contracts import Engine02Request, HardConstraints, Slot, SlotState
+    from engine02.encoders import HashEncoder
+    from engine02.pipeline import Engine02
+
+    n = 12
+    items = pd.DataFrame(dict(
+        item_id=[str(i) for i in range(n)], title=[f"blue dress {i}" for i in range(n)],
+        category=["dress"] * n, subcategory=["Dresses"] * n,
+        color=["Blue"] * n, gender=["Women"] * n, occasion=[None] * n, season=[None] * n,
+        price=[None] * n, image_path=[f"images/{i}.jpg" for i in range(n)],
+        attr_source=[json.dumps({"color": "predicted:lr_marqo"})] * n,
+        color_confidence=[0.95] * n,
+    ))
+    cat = Catalog(items=items, root=tmp_path, name="filled_toy")
+    eng = Engine02(cat, HashEncoder(dim=32), cache_dir=tmp_path / "index")
+    req = Engine02Request(session_id="s", retrieval_text="navy blue dress",
+                          constraints=HardConstraints(color=Slot(state=SlotState.VALUE, values=["Navy Blue"])))
+    resp = eng.run(req, "full")
+    assert resp.items, "colour-family filtering should admit blue items for a Navy Blue query"
+    assert resp.metrics.match_policy == "color_family"
+    assert resp.metrics.hard_constraint_satisfaction == 1.0
+    assert "顏色為模型判讀" in resp.items[0].attribute_notes
