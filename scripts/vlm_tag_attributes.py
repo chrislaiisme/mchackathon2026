@@ -126,7 +126,7 @@ def main() -> None:
     for bi in range(0, len(recs), args.batch_size):
         batch = recs[bi : bi + args.batch_size]
         convs = [[{"role": "user", "content": [
-            {"type": "image", "image": f"file:///{(cat_dir / r.image_path).resolve().as_posix()}"},
+            {"type": "image", "image": str((cat_dir / r.image_path).resolve())},
             {"type": "text", "text": prompt}]}] for r in batch]
         inputs = processor.apply_chat_template(convs, tokenize=True, add_generation_prompt=True, return_dict=True,
                                                return_tensors="pt", padding=True).to(model.device)
