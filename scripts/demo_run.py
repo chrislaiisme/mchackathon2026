@@ -88,7 +88,7 @@ def main() -> None:
     ap.add_argument("--catalog", default="data/catalog/kagl")
     ap.add_argument("--encoder", default="marqo-fashionSigLIP")
     ap.add_argument("--device", default="auto")
-    ap.add_argument("--arm", default="full")
+    ap.add_argument("--arm", default="full_zclip3")
     ap.add_argument("--cooccurrence", default="data/catalog/polyvore/category_cooccurrence.json")
     args = ap.parse_args()
 

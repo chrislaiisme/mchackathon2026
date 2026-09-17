@@ -53,6 +53,9 @@ class ArmConfig:
 
 
 FULL = ArmConfig(name="full")
+# serving default: full + z-clip ±3. 44k: lexical NDCG@5 −0.006 (p=0.65), paraphrased +0.101 (p<0.001);
+# 5k: −0.018 (p=0.036) / +0.098. Keeps single keyword matches from drowning the other reasons.
+DEFAULT_ARM = "full_zclip3"
 
 ARMS: dict[str, ArmConfig] = {
     "bm25": ArmConfig(name="bm25", candidate_fusion="bm25", additive_rerank=False),

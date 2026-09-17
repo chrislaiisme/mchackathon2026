@@ -10,7 +10,7 @@ Environment variables:
   ENGINE02_COOC      category co-occurrence json               (default data/catalog/polyvore/category_cooccurrence.json)
   ENGINE02_KANSEI    Kansei table json                         (default engine02/resources/kansei_v1_literature.json)
   ENGINE02_LLM       auto (OpenAI if OPENAI_API_KEY) | none    (default auto)
-  ENGINE02_ARM       default ablation arm when the request does not set one (default full)
+  ENGINE02_ARM       default ablation arm when the request does not set one (default full_zclip3)
   ENGINE02_OT        1 = load OutfitTransformer for /complete-look (GPU recommended); else image similarity
 """
 
@@ -152,7 +152,7 @@ def vocabulary() -> dict:
 @app.post("/rank", response_model=ServiceResponse)
 def rank(req: Engine02Request) -> ServiceResponse:
     """Composed critique (if reference_item_id + critique) → additive ranking → slate diversification."""
-    arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full")
+    arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     if ARMS[arm].use_cross_reranker and engine().cross_reranker is None:
@@ -163,7 +163,7 @@ def rank(req: Engine02Request) -> ServiceResponse:
 @app.post("/rank/plain", response_model=Engine02Response)
 def rank_plain(req: Engine02Request) -> Engine02Response:
     """The additive pipeline alone (no critique composition, no diversification) — for ablations."""
-    arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full")
+    arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     return engine().run(req, arm)

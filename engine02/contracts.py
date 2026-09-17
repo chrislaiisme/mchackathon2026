@@ -133,7 +133,7 @@ class FeedbackState(BaseModel):
 class Engine02Options(BaseModel):
     top_k: int = 5
     n_candidates: int = 50
-    arm: str = "full"  # ablation arm name, see engine02/config.py
+    arm: str = "full_zclip3"  # ablation arm name, see engine02/config.py (DEFAULT_ARM)
     explain_with_llm: bool = True
     counterfactual_check: bool = True
     # slate diversification (service layer): none | mmr | dpp | xquad; DPP θ=0.9 on top-20 is the
