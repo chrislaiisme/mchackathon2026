@@ -1,6 +1,6 @@
 # ENGINE 02｜檢索、排序與可驗證解釋 — 設計與實驗報告
 
-> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（64 項全過），實驗腳本 `scripts/run_ablation.py`。
+> 狀態：2026-09-17，分支 `engine02-research`。程式在 `engine02/`，測試 `tests/`（135 項全過），實驗腳本 `scripts/run_ablation.py`。
 > 本文件取代原 PRD「ENGINE 02」小節裡**尚未經過驗證的部分**；PRD 原本的設計（M3–M7）全部保留成可切換的對照組 `prd_original`，所以任何修改都有數據對照。
 > 原始實驗數據（CSV、embedding 快取）只存在本機 `reports/ablation/`、`data/`，不進 git。
 
@@ -268,6 +268,24 @@ Engine02Request
 | 排序權重學習（T10） | coordinate ascent、pairwise logistic（非負、保持可加總）、ranx fusion | 5-fold CV：學權重只比「依查詢類型分流」多 +0.009；以詞彙覆蓋率分流在 44k 失效 | ✅ 改由 ENGINE 01 回傳 `retrieval_text_normalized`，未正規化時只用 dense |
 
 **服務層** `engine02/service.py`（`POST /rank`）：點選歷史 → Δβ → 批評組合 → 加總排序與理由 → DPP 多樣化。`POST /rank/plain` 保留純 pipeline 供對照。
+
+### 3.8 服裝分類體系（taxonomy sub-agent，`docs/research/taxonomy.md`）
+
+- **結構**：12 個 L1（對應搭配槽位）→ 89 個 L2，每個節點附中文同義詞（「短T」「西裝外套」「瑜珈褲」…）、針織／梭織先驗與 HS 61/62 章。
+  - 運動機能、印度民族服飾做成**橫切集合**（`coll.activewear`、`coll.ethnic`），不當 L1。
+- **覆蓋率**（L2／含 L1）：KAGL 44k 95.3%／99.7%；Polyvore 25k 85.9%／91.5%。沒對到的主要是居家家具與泛用桶。
+- **現行粗分類驗證**：沒有系統性錯誤；但 KAGL 44k 的 `other` 混了 2,276 件**內著／睡衣**（聚陽產品線）和 2,400 件美妝，已拆開。
+- **流程整合**：
+  - 品類值接受 taxonomy id、中文或 catalog 詞，放寬改成 L2 → L1，而且先放寬類別、再丟顏色。
+  - taxonomy 對不到的商品庫退回原本的精確比對。
+  - 硬條件滿足率改由 taxonomy 判定。
+  - `GET /vocabulary` 附上封閉詞彙表，給 ENGINE 01 的 GPT 使用。
+- **實測**：「西裝外套＋藏青」→ KAGL 沒有男生西裝外套，放寬為「外套」後，第 1 名是藏青外套，理由寫明「西裝外套→外套」。滿足率照實記 0。
+
+### 3.9 跨硬體重現（cfda4 V100）
+- **環境**：torch 2.14 + CUDA 12.6，支援 sm_70；132 項測試通過。KAGL 5k 重建後與本地 5000/5000 相同。
+- **VLM 標註在 V100 上改用 fp16**（V100 沒有原生 bf16）：答案格式正確率 100%，AUROC 與 4090 bf16 幾乎一致。
+  - 強烈圖案 0.945／0.944、挺版領子 0.983／0.984、亮面材質 0.911／0.908、寬鬆版型 0.775／0.769、明顯 logo 0.981／0.977。
 
 ### 3.6 還沒跑的對照組
 - `full_concept_vlm` / `full_concept_hybrid`：修正版 VLM 全量標註完成後，重跑 T3（已排在 nycu 的 job4）。
