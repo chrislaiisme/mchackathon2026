@@ -93,6 +93,7 @@ def main() -> None:
                        n_content=len(content),
                        bm25_max=round(float(scores.max()), 4),
                        bm25_max_z=round(float((scores.max() - scores.mean()) / sd), 3),
+                       **{k: round(v, 6) for k, v in bm.match_stats(text).items() if k != "n_tokens"},
                        gold_in_bm25_top50=int(any(str(ids[p]) in gold for p in top)))
             for arm in ("dense", "hybrid_rrf", "full_zclip3", "full_adaptive_bm25"):
                 req = Engine02Request(session_id=q.qid, retrieval_text=text,
@@ -114,7 +115,8 @@ def main() -> None:
     df_rows.to_csv(out / f"{tag}.csv", index=False)
 
     print("\n=== per wording (mean)")
-    cols = ["coverage", "content_cov", "bm25_max_z", "gold_in_bm25_top50",
+    cols = ["coverage", "content_cov", "bm25_max_z", "share_docs_touched", "median_df_share",
+            "gold_in_bm25_top50",
             "ndcg5_dense", "ndcg5_hybrid_rrf", "ndcg5_full_zclip3", "ndcg5_full_adaptive_bm25",
             "hybrid_cost"]
     print(df_rows.groupby("wording")[cols].mean().round(3).to_string())
@@ -136,7 +138,8 @@ def main() -> None:
         return float(np.where(frame[sig] >= thr, frame["ndcg5_full_zclip3"], frame["ndcg5_dense"]).mean())
 
     report = {}
-    for sig in ("coverage", "content_cov", "bm25_max_z", "gold_in_bm25_top50"):
+    for sig in ("coverage", "content_cov", "bm25_max_z", "share_docs_touched", "median_df_share",
+                "gold_in_bm25_top50"):
         cands = list(np.quantile(dev[sig], np.linspace(0.05, 0.95, 19)))
         if sig in ("coverage", "content_cov"):
             cands.append(0.999)  # "every query token exists in the catalog" — the natural rule

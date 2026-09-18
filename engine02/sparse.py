@@ -72,6 +72,30 @@ class BM25Index:
         q = tokenize(query)
         return sum(t in self.vocab for t in q) / len(q) if q else 0.0
 
+    def match_stats(self, query: str) -> dict[str, float]:
+        """How much of the catalog the query's terms actually touch.
+
+        The paraphrase collapse is an idf pathology, not an absence of scores: a word like
+        "everyday" that occurs in ONE product title carries the highest idf in the query and drags a
+        single unrelated item to rank 1. So the useful signal is a **count**, not a dispersion —
+        "how many documents have any score at all" and "how common are the terms that matched".
+        Score-dispersion gates (max score, NQC) were measured to be useless or inverted here.
+        """
+        q = tokenize(query)
+        hits = [self.postings[t] for t in q if t in self.postings]
+        touched = set()
+        dfs = []
+        for idx, _ in hits:
+            touched.update(idx.tolist())
+            dfs.append(len(idx))
+        return dict(
+            n_tokens=float(len(q)),
+            n_matched=float(len(hits)),
+            share_docs_touched=len(touched) / self.corpus_size if self.corpus_size else 0.0,
+            median_df=float(np.median(dfs)) if dfs else 0.0,
+            median_df_share=float(np.median(dfs)) / self.corpus_size if (dfs and self.corpus_size) else 0.0,
+        )
+
     def scores(self, query: str) -> np.ndarray:
         out = np.zeros(self.corpus_size, dtype=np.float64)
         q = tokenize(query)
