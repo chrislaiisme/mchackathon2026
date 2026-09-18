@@ -59,8 +59,20 @@ class Catalog:
     def image_paths(self) -> list[Path]:
         return [self.root / p for p in self.items["image_path"].astype(str)]
 
+    def column(self, name: str) -> np.ndarray | None:
+        """Positionally indexable numpy view of one column, materialised once.
+
+        Building a card touches ~7 fields per item; `items.at[pos, name]` on an Arrow-backed frame
+        costs more than the ranking maths it accompanies, and the columns never change once loaded.
+        """
+        cache = self.__dict__.setdefault("_col_cache", {})
+        if name not in cache:
+            cache[name] = self.items[name].to_numpy() if name in self.items.columns else None
+        return cache[name]
+
     def attr(self, pos: int, name: str):
-        v = self.items.at[pos, name] if name in self.items.columns else None
-        if v is None or (isinstance(v, float) and np.isnan(v)):
+        col = self.column(name)
+        v = col[pos] if col is not None else None
+        if v is None or v is pd.NA or (isinstance(v, float) and np.isnan(v)):
             return None
         return v

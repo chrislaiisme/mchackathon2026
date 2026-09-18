@@ -98,8 +98,15 @@ async def lifespan(app: FastAPI):
             else:
                 if len(heads) < len(want):
                     log.warning("OutfitTransformer heads missing: %s", sorted(set(want) - set(heads)))
+                # item embeddings depend only on the catalog; without this cache every
+                # /complete-look re-encodes ~100 images inside the request (p50 554 ms → see
+                # docs/engine02-design.md §3.21). scripts/precompute_ot_cache.py writes it.
+                ot_cache = Path(os.environ.get("ENGINE02_OT_CACHE", "")) if os.environ.get("ENGINE02_OT_CACHE")                     else _path("ENGINE02_CATALOG", "data/catalog/kagl") / "index" / "ot_items.npz"
+                if not ot_cache.exists():
+                    log.warning("no OutfitTransformer embedding cache at %s — /complete-look will be slow; "
+                                "run scripts/precompute_ot_cache.py", ot_cache)
                 ot = FastOutfitTransformer(engine.catalog, device=os.environ.get("ENGINE02_DEVICE", "auto"),
-                                           heads=heads)
+                                           heads=heads, cache_file=ot_cache)
         ctl = CompleteTheLook(engine.catalog, engine.image_emb, engine.cooc, ot=ot)
     STATE["service"] = Engine02Service(engine, ctl)
     tr = os.environ.get("ENGINE02_TRENDS")

@@ -96,8 +96,8 @@ def main() -> None:
         from engine02.complete_look import FastOutfitTransformer
 
         heads = tuple(h for h in ("complementary", "compatibility") if h in FastOutfitTransformer.checkpoints())
-        ot = FastOutfitTransformer(cat, device=a.device, heads=heads,
-                                   cache_file=Path(a.ot_cache) if a.ot_cache else None) if heads else None
+        cache = Path(a.ot_cache) if a.ot_cache else ROOT / a.catalog / "index" / "ot_items.npz"
+        ot = FastOutfitTransformer(cat, device=a.device, heads=heads, cache_file=cache) if heads else None
         ctl = CompleteTheLook(cat, eng.image_emb, eng.cooc, ot=ot)
         ot_load_ms = (time.perf_counter() - t1) * 1000
     svc = Engine02Service(eng, ctl)

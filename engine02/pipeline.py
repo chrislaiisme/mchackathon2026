@@ -317,10 +317,10 @@ class Engine02:
             price = self.catalog.attr(pos, "price")
             out_items.append(
                 RankedItem(
-                    item_id=str(items.at[pos, "item_id"]),
+                    item_id=str(self.catalog.column("item_id")[pos]),
                     rank=rank,
-                    title=str(items.at[pos, "title"]),
-                    image_path=str(items.at[pos, "image_path"]),
+                    title=str(self.catalog.column("title")[pos]),
+                    image_path=str(self.catalog.column("image_path")[pos]),
                     category=self.catalog.attr(pos, "category"),
                     color=self.catalog.attr(pos, "color"),
                     price=float(price) if price is not None else None,
@@ -462,9 +462,11 @@ class Engine02:
         for attr, vals in req.constraints.excluded_values.items():
             if attr in items.columns:
                 lv = {v.lower() for v in vals}
-                hits += sum(str(items.at[p, attr]).lower() in lv for p in shown_pos)
+                col = items[attr].to_numpy()
+                hits += sum(str(col[p]).lower() in lv for p in shown_pos)
         bad_ids = set(req.feedback.excluded_item_ids) | set(req.feedback.rejected_item_ids)
-        id_hits = sum(str(items.at[p, "item_id"]) in bad_ids for p in shown_pos)
+        ids_col = self.catalog.column("item_id")
+        id_hits = sum(str(ids_col[p]) in bad_ids for p in shown_pos)
         # cumulative over every earlier round (see RoundMetrics); the split is reported too
         return RoundMetrics(hard_constraint_satisfaction=float(sat), match_policy=policy,
                             excluded_value_hits=hits, rejected_item_hits=int(id_hits),
