@@ -117,7 +117,10 @@ ARMS: dict[str, ArmConfig] = {
     # freshness device (§3.23/§3.25). `full` stays frozen as the reproducibility baseline for
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
-                           use_freshness=True, bm25_gate="docs_touched"),
+                           use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True),
+    # control for §3.33: the serving arm with the critique roles switched back off
+    "full_zclip3_noroles": replace(FULL, name="full_zclip3_noroles", z_clip=3.0, concept_image_weight=0.2,
+                                   use_freshness=True, bm25_gate="docs_touched"),
     # the critique-role arm: same serving arm plus the three named roles (§3.33), default off
     "full_zclip3_roles": replace(FULL, name="full_zclip3_roles", z_clip=3.0, concept_image_weight=0.2,
                                  use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True),
