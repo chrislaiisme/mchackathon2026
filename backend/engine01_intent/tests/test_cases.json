@@ -1,0 +1,89 @@
+[
+  {
+    "message": "我想要一件簡約風格的黑色正式外套",
+    "expected_intent": {
+      "item_type": "外套",
+      "colors": ["黑色"],
+      "occasion": "正式場合",
+      "style_keywords": ["簡約"]
+    }
+  },
+  {
+    "message": "夏天想找一件透氣一點的白色襯衫，上班穿",
+    "expected_intent": {
+      "item_type": "襯衫",
+      "colors": ["白色"],
+      "occasion": "上班",
+      "season": "夏天",
+      "style_keywords": ["透氣"]
+    }
+  },
+  {
+    "message": "預算大概兩千元以內，想要一件牛仔外套",
+    "expected_intent": {
+      "item_type": "牛仔外套",
+      "budget_max": 2000
+    }
+  },
+  {
+    "message": "我要一件休閒一點的連帽外套，深色系，圖案不要太花",
+    "expected_intent": {
+      "item_type": "連帽外套",
+      "occasion": "休閒",
+      "pattern": "素面"
+    }
+  },
+  {
+    "message": "約會要穿的洋裝，粉色，版型要修身",
+    "expected_intent": {
+      "item_type": "洋裝",
+      "colors": ["粉色"],
+      "occasion": "約會",
+      "fit": "修身"
+    }
+  },
+  {
+    "message": "登山用的防水外套，顏色不重要",
+    "expected_intent": {
+      "item_type": "外套",
+      "style_keywords": ["防水"],
+      "occasion": "登山"
+    }
+  },
+  {
+    "message": "圓領的棉質T恤，白色或米色都可以",
+    "expected_intent": {
+      "item_type": "T恤",
+      "colors": ["白色", "米色"],
+      "material": "棉",
+      "collar": "圓領"
+    }
+  },
+  {
+    "message": "秋冬要穿去上班的毛料大衣，黑色或深灰色",
+    "expected_intent": {
+      "item_type": "大衣",
+      "colors": ["黑色", "深灰色"],
+      "material": "毛料",
+      "occasion": "上班",
+      "season": "秋冬"
+    }
+  },
+  {
+    "message": "休閒短版牛仔外套，大地色系",
+    "expected_intent": {
+      "item_type": "牛仔外套",
+      "occasion": "休閒",
+      "style_keywords": ["短版", "大地色系"]
+    }
+  },
+  {
+    "message": "喜歡簡約風格，想要件V領針織衫，深藍色",
+    "expected_intent": {
+      "item_type": "針織衫",
+      "colors": ["深藍色"],
+      "collar": "V領",
+      "style_keywords": ["簡約"]
+    }
+  }
+]
