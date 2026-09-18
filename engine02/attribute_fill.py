@@ -374,11 +374,33 @@ def fill_attributes(items: pd.DataFrame, predictions: dict[str, pd.DataFrame], t
     return out
 
 
+# `attr_source` is one JSON string per row, so a naive is_predicted() parses the whole catalog on
+# every call — 711k json.loads for five requests (≈0.6 s each) once the filter and the metrics both
+# ask. The column never changes for a loaded catalog, so parse it once per frame.
+_PRED_CACHE: dict[tuple[int, int], dict[str, np.ndarray]] = {}
+_PRED_KEEPALIVE: dict[tuple[int, int], pd.DataFrame] = {}
+
+
+def _predicted_map(items: pd.DataFrame) -> dict[str, np.ndarray]:
+    key = (id(items), len(items))
+    hit = _PRED_CACHE.get(key)
+    if hit is not None:
+        return hit
+    out: dict[str, np.ndarray] = {}
+    if "attr_source" in items.columns:
+        parsed = [json.loads(s) if isinstance(s, str) and s else {} for s in items["attr_source"]]
+        attrs = {a for d in parsed for a in d}
+        for a in attrs:
+            out[a] = np.fromiter((str(d.get(a, "")).startswith("predicted:") for d in parsed),
+                                 dtype=bool, count=len(parsed))
+    _PRED_CACHE[key] = out
+    _PRED_KEEPALIVE[key] = items  # keep the frame alive so id() cannot be reused by another object
+    return out
+
+
 def is_predicted(items: pd.DataFrame, attr: str) -> np.ndarray:
-    if "attr_source" not in items.columns:
-        return np.zeros(len(items), dtype=bool)
-    return np.array([isinstance(s, str) and json.loads(s).get(attr, "").startswith("predicted:")
-                     for s in items["attr_source"]])
+    got = _predicted_map(items).get(attr)
+    return got if got is not None else np.zeros(len(items), dtype=bool)
 
 
 def provenance_note(items: pd.DataFrame, pos: int) -> dict[str, str]:
@@ -407,7 +429,17 @@ def provenance_filter(predicted_policy: str = "family", min_confidence: float = 
 
     base = base or C.filter_with_relaxation
 
-    def _prepare(items: pd.DataFrame, c) -> tuple[pd.DataFrame, object]:
+    # Both views depend only on the catalog, never on the request, so build each at most once per
+    # frame. Before this cache a colour-constrained request rebuilt a 17.8k-row copy and re-mapped
+    # every colour on every call (and the metrics asked for it a second time).
+    views: dict[tuple[int, int, bool], pd.DataFrame] = {}
+    keepalive: list[pd.DataFrame] = []
+
+    def _view(items: pd.DataFrame, family: bool) -> pd.DataFrame:
+        key = (id(items), len(items), family)
+        hit = views.get(key)
+        if hit is not None:
+            return hit
         view = items
         changed = False
         for attr in FILL_ATTRS:
@@ -424,10 +456,18 @@ def provenance_filter(predicted_policy: str = "family", min_confidence: float = 
                 if not changed:
                     view, changed = items.copy(), True
                 view.loc[drop, attr] = None
-        if predicted_policy in ("family", "unknown") and c.color.values:
+        if family:
             if not changed:
                 view, changed = items.copy(), True
             view["color"] = [color_family(v) for v in view["color"]]
+        views[key] = view
+        keepalive.append(items)  # hold a reference so id(items) cannot be recycled
+        return view
+
+    def _prepare(items: pd.DataFrame, c) -> tuple[pd.DataFrame, object]:
+        family = predicted_policy in ("family", "unknown") and bool(c.color.values)
+        view = _view(items, family)
+        if family:
             fams = sorted({color_family(v) or str(v).lower() for v in c.color.values})
             c = c.model_copy(deep=True)
             c.color.values = fams

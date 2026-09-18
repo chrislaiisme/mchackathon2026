@@ -45,6 +45,17 @@ def _norm(s) -> str | None:
     return str(s).strip().lower()
 
 
+def _slot_mask_indexed(items: pd.DataFrame, col: str, values: list[str], allow_unknown: bool,
+                       also: str | None = None) -> np.ndarray | None:
+    """Vectorised membership via the per-catalog code index; None when the column is not indexed."""
+    from .attrindex import AttrIndex
+
+    idx = AttrIndex.get(items)
+    if not idx.has(col):
+        return None
+    return idx.mask(col, values, allow_unknown, also if (also and idx.has(also)) else None)
+
+
 def _slot_mask(col: pd.Series, values: list[str], allow_unknown: bool, also: pd.Series | None = None) -> np.ndarray:
     vals = {v.strip().lower() for v in values}
     norm = col.map(_norm)
@@ -70,8 +81,13 @@ def build_mask(
         slot = getattr(c, slot_name)
         if not slot.is_hard() or not slot.values or state.get(slot_name) == "drop":
             continue
-        also = items["subcategory"] if slot_name == "category" and "subcategory" in items else None
-        mask &= _slot_mask(items[slot_name], slot.values, state.get(slot_name) == "allow_unknown", also)
+        allow_unknown = state.get(slot_name) == "allow_unknown"
+        also_col = "subcategory" if slot_name == "category" and "subcategory" in items else None
+        fast = _slot_mask_indexed(items, slot_name, slot.values, allow_unknown, also_col)
+        if fast is None:
+            also = items[also_col] if also_col else None
+            fast = _slot_mask(items[slot_name], slot.values, allow_unknown, also)
+        mask &= fast
         applied[slot_name] = list(slot.values)
 
     b = c.budget
@@ -90,16 +106,21 @@ def build_mask(
     for attr, values in c.required_values.items():
         if attr not in items.columns or not values:
             continue
-        also = items["subcategory"] if attr == "category" and "subcategory" in items else None
-        mask &= _slot_mask(items[attr], values, False, also)
+        also_col = "subcategory" if attr == "category" and "subcategory" in items else None
+        fast = _slot_mask_indexed(items, attr, values, False, also_col)
+        if fast is None:
+            fast = _slot_mask(items[attr], values, False, items[also_col] if also_col else None)
+        mask &= fast
         applied[f"require_{attr}"] = list(values)
 
     # exclusions from ENGINE 03 are always hard and never relaxed
     for attr, values in c.excluded_values.items():
         if attr not in items.columns or not values:
             continue
-        vals = {v.lower() for v in values}
-        mask &= ~items[attr].map(_norm).isin(vals).to_numpy(copy=True)
+        fast = _slot_mask_indexed(items, attr, values, False)
+        if fast is None:
+            fast = _slot_mask(items[attr], values, False)
+        mask &= ~fast
         applied[f"not_{attr}"] = list(values)
 
     if excluded_positions:

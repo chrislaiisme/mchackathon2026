@@ -180,16 +180,18 @@ class Taxonomy:
         when present so that values shared by both vocabularies ('Camisoles', 'Tights') resolve per source."""
         garment = [i for i in ids if i in self.nodes]
         colls = [i for i in ids if i in self.collections]
-        subs = items["subcategory"].astype(object).to_numpy()
-        if "source" in items.columns:
-            srcs = [(_source_key(s) or "") for s in items["source"].to_numpy()]
-        else:
-            default = self.sources_for(catalog)
-            srcs = [default[0] if len(default) == 1 else ""] * len(items)
+        if "subcategory" not in items.columns:
+            return np.zeros(len(items), dtype=bool)
+        # code-table lookups instead of a Python loop over the catalog on every request
+        from .attrindex import AttrIndex
+
+        idx = AttrIndex.get(items)
+        default = self.sources_for(catalog)
+        scodes, slookup = idx.source_codes(_source_key, "taxonomy",
+                                           default=default[0] if len(default) == 1 else None)
 
         def mask_for(pairs: set[tuple[str, str]]) -> np.ndarray:
-            vals_any = {v for _, v in pairs}
-            return np.array([((s, v) in pairs) if s else (v in vals_any) for s, v in zip(srcs, subs)], dtype=bool)
+            return idx.pair_mask(pairs, "subcategory", scodes, slookup)
 
         mask = np.ones(len(items), dtype=bool)
         if garment:
