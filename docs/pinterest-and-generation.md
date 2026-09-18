@@ -16,6 +16,16 @@ OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的
 
 生成出來的圖片同步轉成 FashionCLIP 向量，併入 ENGINE02 dense 側的分數，讓生成分支跟檢索分支互相加強，不是兩個各自獨立的功能。
 
+## 虛擬形象試穿（延伸功能，2026-09-18 使用者口頭補充，不在原始簡報或 hackathon-brief.md 裡）
+
+生圖之後的下一步：把生成出來的概念圖給虛擬形象「穿上」，讓使用者看到接近實際上身的樣子，不只是單純的服裝概念圖。跟前面的概念圖生成一樣，正式負責人接手後要把這裡展開成真正的規格，這裡先記下已經定案的方向：
+
+- **預設虛擬形象**：每個使用者一開始就有一個固定的預設虛擬形象可以用，不需要額外設定，零門檻就能看到試穿效果。
+- **客製化虛擬形象**：使用者願意的話，可以上傳一張全身照＋填身高體重，系統就用這些資料客製化出屬於這個使用者自己的虛擬形象（比預設形象更貼近本人）。全身照上傳這塊可以直接沿用 [engine01-intent.md](engine01-intent.md) 待辦事項裡「圖片上傳功能」同一套機制（本機 `data/uploads/`，不進資料庫）。
+- **回饋機制待定**：使用者對試穿結果的回饋，可能是細項打分（例如版型合身度、顏色是否適合本人），也可能是單純喜歡／不喜歡——這兩種都在考慮中，還沒定案，正式負責人要跟團隊拍板一個方向。如果最後走細項打分，設計上可以直接沿用 [interface-contract.md](interface-contract.md) 裡 `FeedbackInput`／`AttributeScore` 同一套結構（`target` 欄位目前只有 `"recommended"`／`"generated"` 兩種，屆時可能要加第三種，例如 `"tryon"`），不用另外發明一套回饋格式。
+
+跟 ENGINE01／ENGINE02 的關係：虛擬形象是「per-user」的持久資料（不是單一對話 session 裡的東西），性質上跟 `UserProfile` 裡已有的 `age_range`／`style_preferences` 類似，正式設計時可以考慮要不要併進 `UserProfile`，或另外開一個模型——這個決定留給正式負責人跟 ENGINE01 owner 一起談，這裡不先幫忙決定。
+
 ## 依賴
 
 `OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用）——兩個都在 `.env.example` 裡。

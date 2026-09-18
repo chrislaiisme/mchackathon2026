@@ -144,3 +144,4 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 - `ProductCard` 的 `attributes` 具體要放哪些 key——要看 Polyvore 資料集實際能乾淨拿到哪些欄位，ENGINE02 負責人請確認／擴充。
 - `weight_adjustments` 的 `field` 要不要固定成一個 enum，還是維持自由文字、對應 `Intent`／排序訊號的名稱——目前是自由格式，如果 ENGINE02/03 需要更嚴格的比對再收緊。
 - `AttributeScore.score` 和 `RetrievalResult.match_score` 的單位／範圍——目前都是 0–1 的浮點數，請確認這樣是否適合 ENGINE03 實際的權重運算方式。
+- `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：規劃中的「虛擬形象試穿」延伸功能（見 [pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）如果最後走細項打分的回饋方式，可以直接沿用這個結構加一個 `"tryon"` 選項，不用另外開一套——確切要不要走這個方向還沒定案。
