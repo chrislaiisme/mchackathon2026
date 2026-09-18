@@ -82,9 +82,12 @@ def main() -> None:
             body = r.json()
             check(len(body["items"]) > 0, "the shorthand request returns cards")
             applied = body["constraint_report"]["applied"]
-            # the value is normalised through the taxonomy ("top" → the node id "tops"), so check
-            # that it became a stated hard constraint, not that the string survived verbatim
-            check(bool(applied.get("category")) and applied.get("color") == ["Navy Blue"],
+            # Values are normalised on the way in, twice over: the taxonomy turns "top" into the
+            # node id "tops", and on a catalog with model-filled attributes the colour is compared
+            # at family level ("Navy Blue" → "blue", §3.14b). So assert that the constraint became
+            # a stated hard filter, not that the string survived verbatim.
+            colour = [c.lower() for c in applied.get("color", [])]
+            check(bool(applied.get("category")) and ("navy blue" in colour or "blue" in colour),
                   f"the shorthand became a real hard constraint (applied={applied})")
 
         # ---- 3. the smallest thing anyone would send
