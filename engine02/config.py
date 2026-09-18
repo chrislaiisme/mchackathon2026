@@ -40,9 +40,11 @@ class ArmConfig:
                                      "bold_pattern", "crisp_collar")
     # "shown in an earlier round but not chosen" is implicit negative feedback that the ranking
     # ignored entirely (ChoiceRecord.shown_item_ids existed but was never read), so round 2 could
-    # replay round 1. Off by default until measured; see arm `full_zclip3_fatigue`.
+    # replay round 1. T15 (§3.23) measured it: at w=0.15 the last round's novelty goes from 0.007
+    # to 0.213 (p<1e-4), the best item in the slate gets *better* (+0.15 hidden utility, p=0.015)
+    # and nothing measurable is lost, so the serving arm turns it on.
     use_fatigue: bool = False
-    w_fatigue: float = 0.3
+    w_fatigue: float = 0.15
     fatigue_decay: float = 0.5  # weight of a round r rounds back: decay**(r-1)
     z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty/fatigue terms to ±z_clip
     need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
@@ -73,11 +75,13 @@ ARMS: dict[str, ArmConfig] = {
                                      bm25_adaptive=True),
     "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
     # serving default: ±3 z-clip on every normalised term, concept-image fusion at the measured
-    # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding). `full` stays frozen
-    # as the reproducibility baseline for §3.1–3.13.
-    "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2),
-    "full_zclip3_fatigue": replace(FULL, name="full_zclip3_fatigue", z_clip=3.0, concept_image_weight=0.2,
-                                   use_fatigue=True),
+    # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding), and the fatigue
+    # term at the weight T15 picked (§3.23). `full` stays frozen as the reproducibility baseline
+    # for §3.1–3.13; `full_zclip3_nofatigue` is the control for rerunning the round-2 experiments.
+    "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
+                           use_fatigue=True, w_fatigue=0.15),
+    "full_zclip3_nofatigue": replace(FULL, name="full_zclip3_nofatigue", z_clip=3.0,
+                                     concept_image_weight=0.2),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),

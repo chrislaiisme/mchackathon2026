@@ -413,9 +413,9 @@ def test_fatigue_term_penalises_only_items_shown_but_not_chosen(engine):
     # the user picked the first card and ignored the rest (no explicit rejection)
     fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[0])])
     r2 = request(round=1, feedback=fb)
-    plain = {it.item_id: it for it in engine.run(r2, "full_zclip3").items}
-    tired = {it.item_id: it for it in engine.run(r2, "full_zclip3_fatigue").items}
-    w = ARMS["full_zclip3_fatigue"].w_fatigue
+    plain = {it.item_id: it for it in engine.run(r2, "full_zclip3_nofatigue").items}
+    tired = {it.item_id: it for it in engine.run(r2, "full_zclip3").items}
+    w = ARMS["full_zclip3"].w_fatigue
 
     for iid, it in tired.items():
         fat = [c.contribution for c in it.contributions if c.group == "fatigue"]
@@ -431,5 +431,5 @@ def test_fatigue_term_penalises_only_items_shown_but_not_chosen(engine):
 
 
 def test_fatigue_term_is_off_without_history(engine):
-    resp = engine.run(request(), "full_zclip3_fatigue")
+    resp = engine.run(request(), "full_zclip3")
     assert not [c for it in resp.items for c in it.contributions if c.group == "fatigue"]
