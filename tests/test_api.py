@@ -156,3 +156,49 @@ def test_visual_search_profiles_and_retrieves(monkeypatch, tmp_path):
                            ).status_code == 200
         assert client.post("/visual-search", json={"image_base64": "not base64!!"}).status_code == 400
         assert client.post("/visual-search", json={"image_base64": ""}).status_code == 400
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
+def test_visual_search_normalises_real_world_uploads(monkeypatch, tmp_path):
+    """Phone photos and screenshots: rotation, transparency, CMYK and oversize must not silently
+    change the embedding (or hang the demo)."""
+    import base64
+    import io
+
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    from fastapi.testclient import TestClient
+    from PIL import Image
+
+    from engine02.api import app
+
+    def b64(im, fmt="PNG"):
+        buf = io.BytesIO()
+        im.save(buf, format=fmt)
+        return base64.b64encode(buf.getvalue()).decode()
+
+    rgba = Image.new("RGBA", (80, 60), (200, 40, 40, 0))       # fully transparent
+    cmyk = Image.new("CMYK", (80, 60), (0, 0, 0, 0))
+    wide = Image.new("RGB", (2400, 1800), (10, 80, 160))        # larger than the 1600 cap
+
+    with TestClient(app) as client:
+        for name, payload in (("rgba", b64(rgba)), ("cmyk", b64(cmyk, "JPEG")), ("wide", b64(wide))):
+            r = client.post("/visual-search", json={"image_base64": payload, "top_k": 3})
+            assert r.status_code == 200, f"{name}: {r.text[:200]}"
+            assert len(r.json()["response"]["items"]) == 3
+
+        # not an image at all → 400 with a reason, not a 500
+        junk = base64.b64encode(b"this is a text file, not a picture").decode()
+        bad = client.post("/visual-search", json={"image_base64": junk})
+        assert bad.status_code == 400 and "could not read the image" in bad.json()["detail"]
+
+        # oversize is refused before decoding
+        monkeypatch.setenv("ENGINE02_MAX_UPLOAD_MB", "0")
+        import importlib
+
+        import engine02.api as api
+
+        importlib.reload(api)
+        with TestClient(api.app) as c2:
+            assert c2.post("/visual-search", json={"image_base64": b64(wide)}).status_code == 413
+    monkeypatch.delenv("ENGINE02_MAX_UPLOAD_MB")

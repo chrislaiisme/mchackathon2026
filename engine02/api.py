@@ -15,11 +15,13 @@ Environment variables:
   ENGINE02_TRENDS    1 or a file path = load trend keywords for display badges (never for ranking)
   ENGINE02_WARMUP    0 disables the startup warm-up query (default: run it)
   ENGINE02_DEMO      1 = never call the LLM for reasons, whatever the request asks
+  ENGINE02_MAX_UPLOAD_MB  /visual-search upload cap (default 12)
   ENGINE02_LLM_TIMEOUT / ENGINE02_LLM_BUDGET_S  per-call and per-request paraphrase budgets
 """
 
 from __future__ import annotations
 
+import io
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -163,6 +165,42 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 def engine() -> Engine02:
     return STATE["engine"]
+
+
+def _encode_upload(e, blob: bytes) -> "np.ndarray":
+    """Normalise whatever a phone or a screenshot hands us, then encode it with the catalog encoder.
+
+    Real uploads are not catalog images: they carry EXIF rotation (a sideways photo embeds as a
+    sideways photo), alpha or CMYK channels, and occasionally 50 MP. Each of those silently changes
+    the embedding, so normalise first and refuse clearly rather than returning a confident answer
+    about a rotated, transparent picture.
+    """
+    import tempfile
+
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    Image.MAX_IMAGE_PIXELS = 80_000_000  # refuse decompression bombs instead of freezing the demo
+    try:
+        with Image.open(io.BytesIO(blob)) as im:
+            im = ImageOps.exif_transpose(im)  # honour the camera's rotation flag
+            if im.mode in ("RGBA", "LA", "P"):  # flatten transparency onto white, like a product shot
+                im = im.convert("RGBA")
+                bg = Image.new("RGBA", im.size, (255, 255, 255, 255))
+                im = Image.alpha_composite(bg, im)
+            im = im.convert("RGB")
+            if max(im.size) > 1600:  # the encoder resizes to 224/384 anyway
+                im.thumbnail((1600, 1600))
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as fh:
+                im.save(fh, format="PNG")
+                tmp = Path(fh.name)
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise HTTPException(400, f"could not read the image: {type(exc).__name__}: {exc}")
+    try:
+        return e.encoder.encode_images([tmp])[0]
+    except Exception as exc:
+        raise HTTPException(400, f"could not encode the image: {type(exc).__name__}: {exc}")
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def _record_demand(req: Engine02Request) -> None:
@@ -351,7 +389,6 @@ def visual_search(body: VisualSearchRequest) -> dict:
     """
     import base64
     import binascii
-    import tempfile
 
     e = engine()
     arm = body.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
@@ -364,16 +401,10 @@ def visual_search(body: VisualSearchRequest) -> dict:
         raise HTTPException(400, f"image_base64 is not valid base64: {exc}")
     if not blob:
         raise HTTPException(400, "image_base64 is empty")
-    with tempfile.NamedTemporaryFile(suffix=".img", delete=False) as fh:
-        fh.write(blob)
-        tmp = Path(fh.name)
-    try:
-        emb = e.encoder.encode_images([tmp])
-    except Exception as exc:
-        raise HTTPException(400, f"could not read the image: {type(exc).__name__}: {exc}")
-    finally:
-        tmp.unlink(missing_ok=True)
-    vec = emb[0]
+    limit = int(os.environ.get("ENGINE02_MAX_UPLOAD_MB", "12")) * 1024 * 1024
+    if len(blob) > limit:
+        raise HTTPException(413, f"image is {len(blob) / 1e6:.1f} MB; the limit is {limit / 1e6:.0f} MB")
+    vec = _encode_upload(e, blob)
 
     out: dict = {"encoder": e.encoder.name, "arm": arm}
     if body.profile:
