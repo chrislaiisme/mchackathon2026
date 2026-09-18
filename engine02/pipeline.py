@@ -283,6 +283,7 @@ class Engine02:
         llm_for_request = (LlmBudget(self.llm, float(os.environ.get("ENGINE02_LLM_BUDGET_S", "1.5")))
                            if (self.llm is not None and req.options.explain_with_llm) else None)
 
+        bm25_gate_note: dict | None = None
         text = build_retrieval_text(req, self.catalog.name)
         q = self.query_embedding(req, arm, text)
         dense_all = self._dense_scores(q, pool)
@@ -291,7 +292,19 @@ class Engine02:
             timings["bm25_routed_off"] = 1.0
             arm = replace(arm, w_bm25=0.0, candidate_fusion="dense" if arm.candidate_fusion in ("rrf", "convex")
                           else arm.candidate_fusion)
-        elif arm.bm25_adaptive:
+        elif arm.bm25_gate == "docs_touched":
+            # The lexical side does not fail by going quiet, it fails by getting loud about the
+            # wrong thing: one word that appears in a single product title carries the highest idf
+            # in the query and owns the ranking. So ask how much of the catalog the query's terms
+            # touch at all, not how confident the top score looks.
+            st = self.bm25.match_stats(text)
+            timings["bm25_docs_touched"] = round(st["share_docs_touched"], 4)
+            if st["share_docs_touched"] < arm.bm25_min_docs_touched:
+                bm25_gate_note = st
+                arm = replace(arm, w_bm25=0.0,
+                              candidate_fusion="dense" if arm.candidate_fusion in ("rrf", "convex")
+                              else arm.candidate_fusion)
+        elif arm.bm25_adaptive or arm.bm25_gate == "coverage":
             cov = self.bm25.coverage(text)
             timings["bm25_coverage"] = round(cov, 3)
             bm25_scale = cov if cov >= arm.bm25_min_coverage else 0.0
@@ -417,7 +430,10 @@ class Engine02:
             constraint_report=ConstraintReport(
                 applied=fr.applied, relaxed=fr.relaxed, n_catalog=len(items), n_after_filter=int(len(pool)),
                 exposure_excluded=n_exposure_excluded, exposure_cap_skipped=cap_skipped,
-                input_warnings=input_warnings(req),
+                input_warnings=input_warnings(req) + (
+                    [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
+                     f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
+                    if bm25_gate_note else []),
             ),
             metrics=self._metrics(req, shown_pos),
             kansei_version=self.kansei.version,

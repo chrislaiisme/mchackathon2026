@@ -56,3 +56,55 @@ def test_coverage_unchanged():
     assert ours.coverage("navy dress") == 1.0
     assert ours.coverage("navy unseen") == 0.5
     assert ours.coverage("") == 0.0
+
+
+def test_match_stats_separate_a_real_query_from_a_paraphrase():
+    """The gate signal must be a count: the collapse comes from rare words, not silent ones."""
+    from engine02.sparse import BM25Index
+
+    texts = [f"men navy blue formal shirt cotton {i}" for i in range(200)]
+    texts += [f"women red casual dress {i}" for i in range(200)]
+    texts.append("nike everyday running shoe")          # "everyday" occurs exactly once
+    idx = BM25Index(texts)
+
+    lexical = idx.match_stats("men navy blue formal shirt")
+    para = idx.match_stats("guy's midnight everyday tee")
+    assert lexical["share_docs_touched"] > 0.4
+    assert para["share_docs_touched"] < 0.05, para
+    # and the old signal does NOT separate them: "everyday" is in the vocabulary
+    assert idx.coverage("guy's midnight everyday tee") > 0.0
+    assert para["median_df"] <= 2, "the matched terms are the rare ones"
+
+
+def test_docs_touched_gate_turns_the_lexical_side_off_only_when_it_is_noise(tmp_path):
+    import numpy as np
+    import pandas as pd
+
+    from engine02.catalog import Catalog
+    from engine02.contracts import Engine02Options, Engine02Request
+    from engine02.encoders import HashEncoder
+    from engine02.pipeline import Engine02
+
+    rows = [dict(item_id=str(i), title=f"men navy blue formal shirt {i}", description=None,
+                 category="top", subcategory="shirt", color="navy", season=None, occasion=None,
+                 gender="Men", price=None, image_path=f"images/{i}.jpg") for i in range(120)]
+    rows.append(dict(item_id="x", title="nike everyday running shoe", description=None,
+                     category="shoes", subcategory="shoes", color="white", season=None,
+                     occasion=None, gender="Men", price=None, image_path="images/x.jpg"))
+    cat = Catalog(items=pd.DataFrame(rows), root=tmp_path, name="toy")
+    eng = Engine02(cat, HashEncoder(dim=64, captions={f"{r['item_id']}.jpg": r["title"] for r in rows}),
+                   cache_dir=tmp_path / "index")
+
+    def run(text, arm):
+        req = Engine02Request(session_id="s", retrieval_text=text,
+                              options=Engine02Options(top_k=5, explain_with_llm=False))
+        return eng.run(req, arm)
+
+    lex = run("men navy blue formal shirt", "full_zclip3")
+    assert not any("對不上" in w for w in lex.constraint_report.input_warnings), "must not fire here"
+    assert any(c.group == "bm25" for it in lex.items for c in it.contributions)
+
+    para = run("guy's everyday tee", "full_zclip3")
+    assert any("對不上" in w for w in para.constraint_report.input_warnings), para.constraint_report
+    assert not any(c.group == "bm25" and c.contribution != 0 for it in para.items
+                   for c in it.contributions), "the lexical term must be switched off, not shrunk"

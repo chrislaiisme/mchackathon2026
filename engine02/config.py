@@ -69,9 +69,20 @@ class ArmConfig:
     w_penalty: float = 0.5
     w_rerank: float = 1.0
     min_results: int = 5
-    # scale the BM25 weight (and gate its RRF list) by query-token coverage of the catalog
-    bm25_adaptive: bool = False
+    # When does the lexical side get switched off?
+    #   "none"          never (the frozen `full` baseline)
+    #   "coverage"      the old rule: scale w_bm25 by the share of query tokens in the catalog
+    #                   vocabulary, off below bm25_min_coverage. Measured to almost never fire —
+    #                   a paraphrase still has 85% coverage because words like "everyday" DO exist
+    #   "docs_touched"  off when the query's terms touch less than bm25_min_docs_touched of the
+    #                   catalog. The collapse is an idf pathology (one rare word owns the ranking),
+    #                   so the signal has to be a count, not a score. Held-out test (§3.29):
+    #                   fires on 94% of paraphrased and 2% of lexical queries, +0.157 NDCG@5 on the
+    #                   former (p=0.0001) and −0.004 on the latter (p=1.00)
+    bm25_gate: str = "none"
+    bm25_adaptive: bool = False  # kept for the arms that measured the old rule
     bm25_min_coverage: float = 0.5
+    bm25_min_docs_touched: float = 0.12  # threshold chosen on a dev half, reported on the other
 
 
 FULL = ArmConfig(name="full")
@@ -86,14 +97,17 @@ ARMS: dict[str, ArmConfig] = {
     "hybrid_convex": ArmConfig(name="hybrid_convex", candidate_fusion="convex", additive_rerank=False),
     "full": FULL,
     "hybrid_rrf_adaptive": ArmConfig(name="hybrid_rrf_adaptive", candidate_fusion="rrf", additive_rerank=False,
-                                     bm25_adaptive=True),
-    "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
+                                     bm25_adaptive=True, bm25_gate="coverage"),
+    "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True,
+                                  bm25_gate="coverage"),
+    "full_zclip3_nogate": replace(FULL, name="full_zclip3_nogate", z_clip=3.0,
+                                  concept_image_weight=0.2, use_freshness=True),
     # serving default: ±3 z-clip on every normalised term, concept-image fusion at the measured
     # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding), and the session
     # freshness device (§3.23/§3.25). `full` stays frozen as the reproducibility baseline for
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
-                           use_freshness=True),
+                           use_freshness=True, bm25_gate="docs_touched"),
     "full_zclip3_nofresh": replace(FULL, name="full_zclip3_nofresh", z_clip=3.0,
                                    concept_image_weight=0.2),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
