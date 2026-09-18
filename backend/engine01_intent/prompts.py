@@ -1,5 +1,10 @@
 """System prompts for ENGINE01."""
 
+# 這段 prompt 會被 llm_client.py 的 extract_intent() 當成 system 指示的一部分，
+# 跟「目前累積的意圖」＋「這輪新句子」組在一起丟給 codex exec。
+# prompt 本身刻意用中文寫，因為使用者輸入本來就是中文，這樣模型比較不會
+# 在中英文之間切換造成理解落差。改這段文字會直接影響 ENGINE01 抽取的品質，
+# 修改後建議至少跑一次 tests/test_accuracy.py 確認沒有讓準確率變差。
 INTENT_SYSTEM_PROMPT = """你是「一句話讀懂消費者」系統的需求理解引擎（ENGINE01）。
 
 任務：讀使用者這一輪新說的一句話，把它併入目前累積的結構化意圖，回傳更新後的完整意圖。

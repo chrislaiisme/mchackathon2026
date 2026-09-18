@@ -6,6 +6,10 @@
 
 **所有 `.md` 文件一律用中文寫，包括這份檔案，以後新增的 md 文件也一樣。** 唯一例外是根目錄的 `README.md`——競賽交付項目明確要求「GitHub 原始碼＋英文 README」（見下方交付項目），所以它必須維持英文；對應的中文版放在 [README_TW.md](README_TW.md)，兩份互相連結，內容改動時兩邊都要同步更新。程式碼裡的變數名、函式名、commit message、PR 標題維持英文是正常慣例，不受這條規則影響——這條規則只管 `.md` 文件的內文語言。專有名詞、API 名稱、套件名、程式碼、檔案路徑、URL（例如 FastAPI、React、Vite、Pydantic、OpenAI、Codex、GPT、Pinterest、FashionCLIP、Polyvore、BM25、ENGINE01/02/03）維持原文，不用硬翻。
 
+## 程式碼註解規則
+
+**所有 `.py` 檔都要寫足夠的註解**——每個邏輯段落都要有基本註解，重要／不直覺的部分（例如為什麼選這個實作方式、跟其他模組的隱含依賴關係）要多寫一點，不要只寫 docstring 就結束。這條蓋過一般「只在必要時加註解」的預設寫法，是這個專案特別要求的。新增或編輯任何 `.py` 檔時都要記得補。註解用中文寫，跟這個專案其他地方的語言慣例一致；變數名、函式名等識別字維持英文是正常慣例，不受影響。
+
 ## 這是什麼
 
 **Consumer Intent Agent（一句話讀懂消費者）** — 為 **2026 梅竹黑客松 x 聚陽實業（Makalot Industrial）** 打造的 prototype，團隊名 **勢在必得**。題目：*「一句話讀懂消費者」*。比賽日：**2026-09-19**。完整背景見 [docs/hackathon-brief.md](docs/hackathon-brief.md)。
