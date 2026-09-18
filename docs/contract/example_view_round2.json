@@ -1,0 +1,403 @@
+{
+  "session_id": "demo-interview",
+  "round": 2,
+  "said_vs_unsaid": {
+    "stated": {
+      "category": [
+        "top"
+      ],
+      "gender": [
+        "Men"
+      ]
+    },
+    "inferred": {
+      "occasion": [
+        "Formal"
+      ]
+    },
+    "dont_care": [],
+    "unmentioned": [
+      "color",
+      "season",
+      "style_keywords",
+      "budget"
+    ],
+    "excluded_values": {
+      "color": [
+        "Black"
+      ]
+    },
+    "required_values": {},
+    "soft_only": [],
+    "utterances": [
+      "下週面試，不想太正式但要看起來可靠",
+      "太像上班族，不要黑色"
+    ],
+    "unstated_drivers": [
+      {
+        "need_id": "avoid_tryhard",
+        "label": "怕顯得太用力",
+        "prob": 0.5265624079688145,
+        "contribution": 3.8685,
+        "share_of_positive": 0.1662,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 1.9881,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "minimal_design",
+            "label": "素面簡約",
+            "contribution": 1.2871,
+            "direction": "has",
+            "phrase": "素面簡約"
+          },
+          {
+            "element": "matte_fabric",
+            "label": "霧面材質",
+            "contribution": 0.3538,
+            "direction": "has",
+            "phrase": "霧面材質"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      },
+      {
+        "need_id": "approachable",
+        "label": "親切好相處",
+        "prob": 0.11829987065784862,
+        "contribution": 0.5202,
+        "share_of_positive": 0.0224,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 0.2978,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "soft_knit",
+            "label": "柔軟針織",
+            "contribution": 0.2301,
+            "direction": "has",
+            "phrase": "柔軟針織"
+          },
+          {
+            "element": "dark_tone",
+            "label": "低明度深色",
+            "contribution": -0.0962,
+            "direction": "avoids",
+            "phrase": "有低明度深色（扣分）"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      },
+      {
+        "need_id": "trustworthy",
+        "label": "被信任",
+        "prob": 0.35513772137333693,
+        "contribution": -0.1137,
+        "share_of_positive": -0.0049,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 0.447,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "formal_style",
+            "label": "正式感",
+            "contribution": -0.3633,
+            "direction": "has",
+            "phrase": "缺少正式感（扣分）"
+          },
+          {
+            "element": "athletic_style",
+            "label": "運動機能風格",
+            "contribution": -0.2589,
+            "direction": "avoids",
+            "phrase": "有運動機能風格（扣分）"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      }
+    ],
+    "feedback_driven": 0.5683,
+    "sentence": "你說的是品類＝top、性別＝Men；你沒說、但真正在推薦裡加分的是「怕顯得太用力」（+3.87，主要靠避開明顯 logo）、「親切好相處」（+0.52，主要靠避開明顯 logo）。"
+  },
+  "needs": {
+    "needs": [
+      {
+        "need_id": "avoid_tryhard",
+        "label": "怕顯得太用力",
+        "prob": 0.5265624079688145,
+        "contribution": 3.8685,
+        "share_of_positive": 0.1662,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 1.9881,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "minimal_design",
+            "label": "素面簡約",
+            "contribution": 1.2871,
+            "direction": "has",
+            "phrase": "素面簡約"
+          },
+          {
+            "element": "matte_fabric",
+            "label": "霧面材質",
+            "contribution": 0.3538,
+            "direction": "has",
+            "phrase": "霧面材質"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      },
+      {
+        "need_id": "approachable",
+        "label": "親切好相處",
+        "prob": 0.11829987065784862,
+        "contribution": 0.5202,
+        "share_of_positive": 0.0224,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 0.2978,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "soft_knit",
+            "label": "柔軟針織",
+            "contribution": 0.2301,
+            "direction": "has",
+            "phrase": "柔軟針織"
+          },
+          {
+            "element": "dark_tone",
+            "label": "低明度深色",
+            "contribution": -0.0962,
+            "direction": "avoids",
+            "phrase": "有低明度深色（扣分）"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      },
+      {
+        "need_id": "trustworthy",
+        "label": "被信任",
+        "prob": 0.35513772137333693,
+        "contribution": -0.1137,
+        "share_of_positive": -0.0049,
+        "top_elements": [
+          {
+            "element": "visible_logo",
+            "label": "明顯 logo",
+            "contribution": 0.447,
+            "direction": "avoids",
+            "phrase": "避開明顯 logo"
+          },
+          {
+            "element": "formal_style",
+            "label": "正式感",
+            "contribution": -0.3633,
+            "direction": "has",
+            "phrase": "缺少正式感（扣分）"
+          },
+          {
+            "element": "athletic_style",
+            "label": "運動機能風格",
+            "contribution": -0.2589,
+            "direction": "avoids",
+            "phrase": "有運動機能風格（扣分）"
+          }
+        ],
+        "supports_items": [
+          "14731",
+          "14741",
+          "14759",
+          "14752",
+          "14742"
+        ]
+      }
+    ],
+    "total_positive_contribution": 23.2703,
+    "design_share_of_positive": 0.2662,
+    "feedback_share_of_positive": 0.0244,
+    "unserved_needs": [
+      "trustworthy"
+    ]
+  },
+  "diversity": {
+    "k": 5,
+    "distinct_categories": 1,
+    "distinct_colors": 4,
+    "div_at_k": 0.5,
+    "categories": {
+      "top": 5
+    },
+    "colors": {
+      "Lavender": 2,
+      "Brown": 1,
+      "Grey": 1,
+      "Blue": 1
+    },
+    "promoted_by_diversity": []
+  },
+  "provenance": {
+    "arm": "full",
+    "encoder": "hash-256",
+    "kansei_version": "kansei_v1_literature",
+    "contract_version": "0.1.0",
+    "n_catalog": 5000,
+    "n_after_filter": 862,
+    "applied_constraints": {
+      "category": [
+        "tops"
+      ],
+      "gender": [
+        "Men"
+      ],
+      "not_color": [
+        "Black"
+      ]
+    },
+    "relaxed": [],
+    "relaxed_human": [],
+    "model_filled_attributes": {},
+    "price_available": false,
+    "explanation_sources": {
+      "template": 5
+    },
+    "reason_modes": {
+      "sufficient": 5
+    },
+    "diversification": {},
+    "timings_ms": {
+      "filter": 2.7,
+      "retrieve": 0.95,
+      "fuse": 0.33,
+      "rerank": 1.65,
+      "counterfactual": 1.02,
+      "explain": 1.24
+    },
+    "caveats": [
+      "商品庫無價格資料，預算條件不做過濾（畫面需標示）"
+    ]
+  },
+  "round_diff": {
+    "prev_round": 1,
+    "round": 2,
+    "kept": [
+      {
+        "item_id": "14731",
+        "prev_rank": 3,
+        "rank": 1,
+        "delta": 2,
+        "score_delta": 1.1812,
+        "reasons_added": [],
+        "reasons_removed": [
+          "design:formal_style",
+          "design:visible_logo"
+        ]
+      },
+      {
+        "item_id": "14741",
+        "prev_rank": 4,
+        "rank": 2,
+        "delta": 2,
+        "score_delta": 1.1812,
+        "reasons_added": [],
+        "reasons_removed": [
+          "design:formal_style",
+          "design:visible_logo"
+        ]
+      }
+    ],
+    "new_items": [
+      "14759",
+      "14752",
+      "14742"
+    ],
+    "dropped_items": [
+      "14716",
+      "14715",
+      "14749"
+    ],
+    "turnover": 0.6,
+    "constraints_added": {},
+    "constraints_removed": {},
+    "excluded_added": {
+      "color": [
+        "Black"
+      ]
+    },
+    "required_added": {},
+    "design_adjust_delta": {
+      "formal_style": -1
+    },
+    "needs_delta": {
+      "trustworthy": -0.1949,
+      "avoid_tryhard": 0.2266,
+      "approachable": -0.0317
+    },
+    "relaxed_added": [],
+    "relaxed_removed": [],
+    "metrics_before": {
+      "hard_constraint_satisfaction": 1.0,
+      "match_policy": "exact",
+      "excluded_value_hits": 0,
+      "rejected_item_hits": 0,
+      "feedback_violations": 0
+    },
+    "metrics_after": {
+      "hard_constraint_satisfaction": 1.0,
+      "match_policy": "exact",
+      "excluded_value_hits": 0,
+      "rejected_item_hits": 0,
+      "feedback_violations": 0
+    }
+  }
+}

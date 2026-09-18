@@ -54,3 +54,13 @@ web/dist/
 
 # 本機 clone，不要一起 commit
 /mchackathon2026/
+
+# --- 併自 engine02-research ---
+models/
+artifacts/
+third_party/
+reports/ablation/
+reports/server/
+reports/agents/
+reports/demo/
+reports/llm_paraphrase/
