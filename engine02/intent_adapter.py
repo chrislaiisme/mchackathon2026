@@ -93,15 +93,41 @@ ELEMENT_EN: dict[str, str] = {
 }
 
 
+# Chinese colour words that name a specific catalog value, not just a family. Without these,
+# 「深藍色」 collapses to the family canonical "Blue" and the 195 Navy Blue items are excluded.
+ZH_COLOR_EXACT: dict[str, str] = {
+    "深藍": "Navy Blue", "藏青": "Navy Blue", "海軍藍": "Navy Blue", "丹寧": "Navy Blue",
+    "湖水藍": "Turquoise Blue", "土耳其藍": "Turquoise Blue", "藍綠": "Teal",
+    "深灰": "Charcoal", "炭灰": "Charcoal", "麻灰": "Grey Melange", "銀": "Silver",
+    "酒紅": "Burgundy", "暗紅": "Maroon", "磚紅": "Rust",
+    "墨綠": "Olive", "軍綠": "Olive", "草綠": "Lime Green", "湖綠": "Sea Green",
+    "米白": "Off White", "乳白": "Cream", "象牙": "Cream",
+    "芥末": "Mustard", "金": "Gold", "銅": "Copper", "古銅": "Bronze",
+    "咖啡": "Coffee Brown", "卡其": "Khaki", "駝": "Tan", "裸": "Nude", "膚": "Skin",
+    "薰衣草": "Lavender", "桃紅": "Magenta", "玫瑰": "Rose", "蜜桃": "Peach", "藕": "Mauve",
+}
+
+
 def _zh_lookup(value: str | None, table: dict[str, str]) -> str | None:
     """Longest key first, so 「正式場合」 wins over 「正式」."""
+    hits = _zh_lookup_all(value, table)
+    return hits[0] if hits else None
+
+
+def _zh_lookup_all(value: str | None, table: dict[str, str]) -> list[str]:
+    """Every distinct value named in the phrase, longest key first.
+
+    「秋冬」 names two seasons; returning only the longest match dropped Winter entirely, and
+    ENGINE 01's own test set contains exactly that string.
+    """
     if not value:
-        return None
+        return []
     v = str(value).strip().lower()
+    out: list[str] = []
     for key in sorted(table, key=len, reverse=True):
-        if key.lower() in v:
-            return table[key]
-    return None
+        if key.lower() in v and table[key] not in out:
+            out.append(table[key])
+    return out
 
 
 def design_steps_from_words(words: list[str], steps: int = 2) -> tuple[dict[str, int], list[str]]:
@@ -126,6 +152,17 @@ def design_steps_from_words(words: list[str], steps: int = 2) -> tuple[dict[str,
     return out, caption
 
 
+def catalog_family_values(family: str, items=None) -> list[str]:
+    """Every colour value a catalog actually has in a family, or the KAGL defaults without one."""
+    from .attribute_fill import COLOR_FAMILIES, color_family
+
+    known = list(COLOR_FAMILIES.get(family, ()))
+    if items is None or "color" not in getattr(items, "columns", []):
+        return known
+    have = [str(v) for v in items["color"].dropna().unique() if color_family(v) == family]
+    return have or known
+
+
 def intent_to_request(
     intent: dict[str, Any] | Any,
     session_id: str,
@@ -133,6 +170,7 @@ def intent_to_request(
     *,
     message: str | None = None,
     catalog_name: str | None = None,
+    catalog_items=None,
     top_k: int = 5,
     arm: str | None = None,
     steps: int = 2,
@@ -180,10 +218,19 @@ def intent_to_request(
         widened = []
         for raw in colors:
             low = str(raw).strip().lower()
-            hit = next((COLOR_ZH[k] for k in sorted(COLOR_ZH, key=len, reverse=True)
+            exact = next((ZH_COLOR_EXACT[k] for k in sorted(ZH_COLOR_EXACT, key=len, reverse=True)
+                          if k.lower() in low), None)
+            if exact:
+                widened.append(exact)          # 「深藍色」 is Navy Blue, not "some blue"
+                continue
+            fam = next((COLOR_ZH[k] for k in sorted(COLOR_ZH, key=len, reverse=True)
                         if k.lower() in low), None)
-            widened.append(FAMILY_CANONICAL[hit] if hit else raw)
-        colors = widened
+            if fam:
+                # a bare family word means the whole family: 「藍色」 must not exclude Navy Blue
+                widened += list(catalog_family_values(fam, catalog_items))
+                continue
+            widened.append(raw)
+        colors = list(dict.fromkeys(widened))
         mapped, _ = normalize_color_values(colors)
         known = [m for m in mapped if not any("一" <= ch <= "鿿" for ch in m)]
         if known:
@@ -200,10 +247,10 @@ def intent_to_request(
         raw = data.get(field)
         if not raw:
             continue
-        hit = _zh_lookup(str(raw), table)
-        if hit:
-            setattr(c, slot_name, Slot(state=state(field), values=[hit]))
-            caption.append(hit.lower())
+        hits = _zh_lookup_all(str(raw), table)
+        if hits:
+            setattr(c, slot_name, Slot(state=state(field), values=hits))
+            caption += [h.lower() for h in hits]
         else:
             unresolved.append(f"{field}「{raw}」對不到商品庫的 {sorted(set(table.values()))}，只進檢索文字")
             caption.append(str(raw))

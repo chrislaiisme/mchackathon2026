@@ -149,3 +149,30 @@ def test_a_card_never_calls_this_round_words_last_round_feedback(monkeypatch):
         assert "你上一輪的回饋" not in text, text
         shares = [c["need_shares"] for it in b["items"] for c in it["contributions"]]
         assert any("stated_design" in s for s in shares), shares
+
+
+def test_a_two_season_phrase_keeps_both_seasons():
+    """ENGINE 01's own test set contains 「秋冬」; dropping Winter would be silent."""
+    from engine02.intent_adapter import intent_to_request
+
+    req, _ = intent_to_request({"item_type": "大衣", "season": "秋冬"}, session_id="t")
+    assert set(req.constraints.season.values) == {"Fall", "Winter"}, req.constraints.season.values
+
+
+def test_a_specific_colour_word_is_not_flattened_to_its_family():
+    """「深藍色」 is Navy Blue. Collapsing it to 'Blue' excludes every navy item in the catalog."""
+    from pathlib import Path
+
+    from engine02.catalog import Catalog
+    from engine02.intent_adapter import intent_to_request
+
+    items = Catalog.load(Path(__file__).resolve().parents[1] / "data" / "catalog" / "kagl").items
+    req, _ = intent_to_request({"item_type": "襯衫", "colors": ["深藍色"]},
+                               session_id="t", catalog_items=items)
+    assert req.constraints.color.values == ["Navy Blue"], req.constraints.color.values
+
+    # a bare family word means the whole family, so it must INCLUDE the navy items
+    req2, _ = intent_to_request({"item_type": "襯衫", "colors": ["藍色"]},
+                                session_id="t", catalog_items=items)
+    assert "Navy Blue" in req2.constraints.color.values, req2.constraints.color.values
+    assert len(req2.constraints.color.values) > 1

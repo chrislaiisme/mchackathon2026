@@ -436,8 +436,8 @@ def intent_rank(body: IntentRankRequest) -> dict:
     try:
         req, unresolved = intent_to_request(
             body.intent, session_id=body.session_id, round=body.round, message=body.message,
-            catalog_name=getattr(e.catalog, "name", None), top_k=body.top_k, arm=arm,
-            feedback=body.feedback)
+            catalog_name=getattr(e.catalog, "name", None), catalog_items=e.catalog.items,
+            top_k=body.top_k, arm=arm, feedback=body.feedback)
     except ValidationError as exc:
         raise HTTPException(422, {"error": "intent could not be converted to an Engine02Request",
                                   "detail": exc.errors(include_url=False)})
