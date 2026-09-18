@@ -6,7 +6,14 @@ Run locally:
 
 from __future__ import annotations
 
+from dotenv import load_dotenv
+
+load_dotenv()  # must run before importing modules that read env vars at import time (llm_client)
+
+import os
+
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.engine01_intent import llm_client, session_store
 from backend.shared import user_store
@@ -21,6 +28,20 @@ from backend.shared.schemas import (
 )
 
 app = FastAPI(title="ENGINE01 - Intent Understanding")
+
+# Same origins as the Google OAuth Client ID's "Authorized JavaScript origins"
+# (see CLAUDE.md "Google OAuth Client ID") -- the browser blocks the frontend's
+# calls to this API otherwise, regardless of auth. Comma-separated env override
+# for whatever port/domain a given frontend actually runs on.
+_CORS_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/auth/google", response_model=AuthResponse)
