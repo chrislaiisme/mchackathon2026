@@ -113,6 +113,7 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 - 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
 - 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。
 - 前端：React + Vite，不用 Next.js／SSR——UI 就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。
+- 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設 `http://localhost:5173`），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
 
 ## 想找更多細節的話
 

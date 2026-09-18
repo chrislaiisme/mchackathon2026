@@ -20,6 +20,8 @@
 
 不需要 client secret、不需要 server-side redirect callback，因為全程只驗證前端拿到的 ID token。Google Cloud Console 那邊要建什麼、怎麼建，見根目錄 [CLAUDE.md](../CLAUDE.md) 的「Google OAuth Client ID」。
 
+**已用真實 Google 帳號完整測過一輪**（不是只測 bypass）：一個放在本機暫存資料夾（不在 repo 裡）的測試頁，載入 Google Identity Services 的官方按鈕，登入成功後把 `credential` 丟給 `POST /auth/google`，正確拿回 `session_token`＋`profile`，後續 `/intent` 呼叫帶著 `Authorization: Bearer` header 也正常運作。這個測試頁目前還沒決定要不要正式收進 repo（見下面「目前進度與待辦事項」）。
+
 **開發方便用**：`.env` 裡 `DEV_BYPASS_AUTH=true` 時，`get_current_user()` 直接回傳一個固定的本機測試使用者，不用每次真的跑 Google 登入流程也能測 `/intent`／`/profile`。預設關閉，**demo 現場絕對不能開著**。
 
 ## 登入後的偏好調查（可略過）
@@ -65,4 +67,21 @@
 
 - `codex` CLI 要先裝好，並且用 `codex login` 登入過一次——`/intent` 的模型呼叫不需要 `OPENAI_API_KEY`。見根目錄 `CLAUDE.md` 的「ENGINE01 執行方式：codex exec」。
 - `GOOGLE_CLIENT_ID`、`SESSION_SECRET`——登入需要，見根目錄 `CLAUDE.md` 的「Google OAuth Client ID」。開發階段可以先用 `DEV_BYPASS_AUTH=true` 跳過。
+- `CORS_ALLOWED_ORIGINS`——瀏覽器前端（不管是正式前端還是測試頁）要能呼叫這幾個端點，來源網址必須在這個清單裡，預設只開 `http://localhost:5173`；有其他 port 或部署網址要另外加，見 `.env.example`。
 - `backend/shared/schemas.py`——這個模組產出跟消費的 `Intent`、`ClarifyingQuestion`、`IntentRequest`、`IntentResponse`、`UserProfile`、`ProfileUpdate`、`GoogleAuthRequest`、`AuthResponse` 都定義在這裡。
+
+## 目前進度與待辦事項
+
+**已完成**：
+- `POST /intent` 核心邏輯（結構化抽取、情境推斷、澄清問題、多輪狀態）。
+- Google 登入全流程（後端邏輯＋真實帳號端到端測過，非僅 bypass）、`GET`/`PUT /profile` 偏好調查。
+- `.env` 自動載入、CORS 設定（原本這兩個是漏掉的，靠 VS Code 提示才抓到，見 git log）。
+- 離線測試骨架，目前 10 句起始集。
+
+**還沒做，依優先度大致排序**：
+1. **測試句擴充到 30–50 句**，實際跑一次 `test_accuracy.py` 拿到真正的準確率數字，放進簡報／README。
+2. **介面契約要跟 ENGINE02/03/前端的負責人對過**——`backend/shared/schemas.py` 目前是 ENGINE01 單方面先寫的 draft v1，欄位名稱／型別都可能要改。
+3. **圖片上傳功能**：讓使用者能傳一張參考圖，不是只能塞網址進 `reference_image_url`。已經決定存放方式——存本機 `data/uploads/`（跟 `data/users/` 一樣，不進資料庫、已被 `.gitignore` 排除），回傳一個本機可讀的網址；還沒設計實際的上傳端點（檔案大小限制、接受的格式等）跟實作。
+4. 偏好調查資料（年齡／風格）還沒接進意圖抽取的 prompt，要跟 ENGINE02/03 討論個人化訊號怎麼用。
+5. 語音輸入（前端的 Web Speech API）、Pinterest 參考圖 fallback（等 `backend/pinterest/` 查詢介面）——這兩塊 ENGINE01 這邊已經留好介面，不擋自己的進度，只是還沒有別人接上。
+6. 分支 `engine01-intent` 還沒讓其他組員 checkout 確認過整體架構，也還沒開 PR 併回 `main`（見根目錄 `CLAUDE.md` 的「Git 工作流程」）。
