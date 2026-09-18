@@ -1,0 +1,15 @@
+請直接呼叫 image_generate 工具生成一張圖，不要只描述圖片。完成後請回報產出檔案路徑。
+
+Fashion product photograph of a Sweet Lolita jumperskirt (JSK) dress, displayed on a headless dress form / ghost mannequin against a plain soft neutral studio background, front view, full garment visible, knee-length, perfectly symmetrical left-right design, sharp focus, high production-quality garment photography.
+
+Base fabric: baby pink cotton. Silhouette: full princess-cake bell shape, held out by an underlying petticoat/crinoline.
+
+Bodice: fitted, tailored princess-line cut. Center front has faux corset-style lacing — a white satin ribbon laced criss-cross through three rose-pink bows running vertically down the front center seam.
+
+Chest: one large layered bow in rose pink, backed with white lace, scalloped edges, long trailing ribbon tails. Waist: a second, larger layered bow with the same treatment.
+
+Sleeves: short white puff sleeves, cuffs trimmed with white lace. Collar: white Peter Pan collar, edged with ruffled white lace. White lace piping runs along every seam and edge of the bodice and sleeves.
+
+Skirt: three tiered ruffle layers. Each tier edged with white heart-motif scalloped lace. One tier uses pink embroidered lace. Rose-pink bows evenly spaced around each tier.
+
+Style: sweet lolita fashion, pastel, ornate, symmetrical. No text, no logos, no brand marks, no human model, no visible face.

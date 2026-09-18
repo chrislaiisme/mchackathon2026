@@ -1,0 +1,11 @@
+# Hermes Profile Distribution manifest — owned by Line 4.
+# Install from the repo root: hermes profile install ./agent --alias
+name: consumer-intent-agent          # working title (PRD open question 14)
+version: 0.1.0
+description: "Understands a one-sentence apparel request, probes unstated preferences with image choice questions, and improves with feedback."
+hermes_requires: ">=0.21.2"
+author: "TODO"
+license: "TODO"
+# TODO (Line 4): list required keys once the text-model and image-generation accounts are decided
+# (PRD open questions 9–11).
+env_requires: []
