@@ -1,0 +1,57 @@
+{
+  "current_intent": {
+    "item_type": "top",
+    "occasion": "面試",
+    "style_keywords": ["可靠", "不要太正式"],
+    "inferred_fields": []
+  },
+  "feedback_inputs": [],
+  "engine02_request": {
+    "contract_version": "0.1.0",
+    "session_id": "demo-interview",
+    "round": 1,
+    "utterances": ["下週面試，不想太正式但要看起來可靠"],
+    "constraints": {},
+    "needs": [
+      {"need_id": "trustworthy", "label": "被信任", "prob": 0.55},
+      {"need_id": "avoid_tryhard", "label": "怕顯得太用力", "prob": 0.45}
+    ],
+    "feedback": {}
+  },
+  "engine02_response": {
+    "contract_version": "0.1.0",
+    "session_id": "demo-interview",
+    "round": 1,
+    "items": [
+      {
+        "item_id": "14716",
+        "rank": 1,
+        "title": "White formal shirt",
+        "category": "top",
+        "color": "White",
+        "score": 4.69,
+        "design_scores": {"formal_style": 1.78},
+        "reasons": ["整體風格和描述相近"]
+      },
+      {
+        "item_id": "14731",
+        "rank": 2,
+        "title": "Lavender solid shirt",
+        "category": "top",
+        "color": "Lavender",
+        "score": 3.12,
+        "design_scores": {"formal_style": 0.72},
+        "reasons": ["較不正式"]
+      }
+    ]
+  },
+  "interaction": {
+    "chosen_item_id": "14731",
+    "rejected_item_ids": ["14716"]
+  },
+  "allowed_design_elements": ["formal_style", "casual_style"],
+  "allowed_attribute_values": {
+    "category": ["top"],
+    "color": ["White", "Black", "Lavender"]
+  }
+}
