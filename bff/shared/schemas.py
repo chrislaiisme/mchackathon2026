@@ -28,7 +28,7 @@ AGE_RANGE_OPTIONS = ["18-24", "25-34", "35-44", "45+"]
 
 class UserProfile(BaseModel):
     """Persisted per-user record, created on first Google login. JSON
-    file-backed (backend/shared/user_store.py), not a database -- see
+    file-backed (bff/shared/user_store.py), not a database -- see
     CLAUDE.md "資料庫"."""
 
     sub: str
@@ -63,7 +63,7 @@ class GoogleAuthRequest(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    # session_token 是我們自己簽的（見 backend/shared/auth.py），
+    # session_token 是我們自己簽的（見 bff/shared/auth.py），
     # 前端登入成功後要存起來，之後每次打 API 都帶在 Authorization header 裡。
     session_token: str
     profile: UserProfile

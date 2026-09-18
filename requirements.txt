@@ -1,4 +1,4 @@
-# Shared across all backend/ modules -- one environment for the whole hackathon,
+# Shared across all bff/ modules -- one environment for the whole hackathon,
 # see CLAUDE.md for why. Add to this file rather than creating per-engine
 # requirements files.
 
@@ -15,7 +15,7 @@ google-auth
 requests
 
 # ENGINE02 / ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
-# backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
+# bff/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
 openai>=1.40
 
 # ENGINE02 -- hybrid search, embeddings, reranking

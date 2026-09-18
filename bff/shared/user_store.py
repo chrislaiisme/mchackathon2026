@@ -12,9 +12,9 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from backend.shared.schemas import UserProfile
+from bff.shared.schemas import UserProfile
 
-# 存放每個使用者 JSON 檔的資料夾，路徑是相對這個檔案往上三層（backend/shared → backend → repo 根目錄）
+# 存放每個使用者 JSON 檔的資料夾，路徑是相對這個檔案往上三層（bff/shared → backend → repo 根目錄）
 # 再進 data/users。這個資料夾已經被 .gitignore 排除，不會進 git。
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "users"
 

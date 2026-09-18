@@ -4,7 +4,7 @@
 
 ## 1. 離線（賽前算好，放進簡報／README）
 
-- **ENGINE01 意圖抽取準確率**：手動標註 30–50 句消費者情境測試句，配上期望的結構化意圖，跑完算填對的欄位比例。起始實作在 [`backend/engine01_intent/tests/`](../backend/engine01_intent/tests/)（目前是 10 句的起始集——正式引用這個數字前要擴充）。
+- **ENGINE01 意圖抽取準確率**：手動標註 30–50 句消費者情境測試句，配上期望的結構化意圖，跑完算填對的欄位比例。起始實作在 [`bff/engine01_intent/tests/`](../bff/engine01_intent/tests/)（目前是 10 句的起始集——正式引用這個數字前要擴充）。
 - **ENGINE02 ablation 實驗**：同一批測試 query，分別跑純關鍵字搜尋、純 embedding 搜尋、hybrid+rerank 三種，比較 Precision@5／NDCG@5，畫成圖表。負責人：ENGINE02。
 
 ## 2. Live／現場即時（demo 當場秀出來）
@@ -25,4 +25,4 @@
 
 **生圖額度**：30–50 張目標圖 × 2–4 輪 × 2 個分支（推薦＋生成）≈ 60–200 次生圖呼叫。排在現場兩天的第一天跑完，不要留到第二天，才不會擠掉 demo 當天要用的額度。這整條迴圈背後的 API key／預算依賴，見根目錄 `CLAUDE.md` 的「P0 現況」。
 
-負責人：跟生成模組／Pinterest 那條線合併，依團隊「5 人對 6 條線」的分法。程式碼：[`validation/`](../validation/)。
+負責人：跟生成模組／Pinterest 那條線合併，依團隊「5 人對 6 條線」的分法。程式碼：[`evals/`](../evals/)。

@@ -26,8 +26,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from backend.engine01_intent.prompts import INTENT_SYSTEM_PROMPT
-from backend.shared.schemas import ClarifyingQuestion, Intent
+from bff.engine01_intent.prompts import INTENT_SYSTEM_PROMPT
+from bff.shared.schemas import ClarifyingQuestion, Intent
 
 # 這幾個都可以用環境變數覆蓋，預設值對大多數情況已經夠用：
 # CODEX_BIN：codex 執行檔路徑或名稱（一般裝好就在 PATH 裡，用預設值 "codex" 即可）。
@@ -139,7 +139,7 @@ def extract_intent(message: str, current_intent: Intent) -> IntentExtraction:
             # 找不到 codex 這個執行檔，通常代表還沒安裝或不在 PATH 裡。
             raise RuntimeError(
                 f"'{_CODEX_BIN}' was not found on PATH. Install the Codex CLI and run "
-                "`codex login` once (see backend/engine01_intent/README.md)."
+                "`codex login` once (see bff/engine01_intent/README.md)."
             ) from exc
 
         if result.returncode != 0:

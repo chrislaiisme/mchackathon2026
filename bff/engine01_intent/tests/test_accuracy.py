@@ -1,7 +1,7 @@
 """Offline slot-filling accuracy check for ENGINE01.
 
 Usage:
-    python -m backend.engine01_intent.tests.test_accuracy
+    python -m bff.engine01_intent.tests.test_accuracy
 
 Loads test_cases.json (a 10-sentence starter set -- expand to 30-50
 hand-labeled sentences before quoting the resulting number in the deck or
@@ -15,8 +15,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from backend.engine01_intent.llm_client import extract_intent
-from backend.shared.schemas import Intent
+from bff.engine01_intent.llm_client import extract_intent
+from bff.shared.schemas import Intent
 
 # 測試句集就放在同資料夾的 test_cases.json，每筆資料是一句話＋期望抽出來的欄位。
 _CASES_PATH = Path(__file__).parent / "test_cases.json"

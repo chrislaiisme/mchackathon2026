@@ -2,7 +2,7 @@
 
 **狀態：draft v1，由 ENGINE01 負責人先寫，目的是讓其他線可以馬上平行開發。ENGINE02/03／前端的負責人確認過、簽核過才算定案——有想改欄位名稱或想加欄位，請直接提出。**
 
-Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/schemas.py)（Pydantic models）。這份文件是講「為什麼」有這些欄位、附上範例 JSON；如果兩邊有出入，一律以程式碼為準。
+Python 版的真相來源是 [`bff/shared/schemas.py`](../bff/shared/schemas.py)（Pydantic models）。這份文件是講「為什麼」有這些欄位、附上範例 JSON；如果兩邊有出入，一律以程式碼為準。
 
 ## 為什麼要有這份文件
 

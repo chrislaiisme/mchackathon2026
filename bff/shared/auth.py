@@ -26,8 +26,8 @@ from fastapi import Header, HTTPException
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 
-from backend.shared.schemas import UserProfile
-from backend.shared.user_store import get_or_create_user, load_user
+from bff.shared.schemas import UserProfile
+from bff.shared.user_store import get_or_create_user, load_user
 
 # session token 效期：7 天，比 Google ID token 的約 1 小時長很多，
 # 這樣前端登入一次之後不用一直處理 Google 那邊的 token 過期／refresh 流程。

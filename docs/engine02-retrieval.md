@@ -15,7 +15,7 @@ Polyvore Outfits Dataset（[huggingface.co/datasets/mvasil/polyvore-outfits](htt
 - **Dense 側**：FashionCLIP embedding 抓語意風格相似度（例如「簡約」「正式」「防水」）。
 - **Sparse 側**：屬性過濾／BM25（`rank_bm25`）抓精確條件（顏色、價格區間、季節、尺寸）。
 - **Reranker**：合併 dense/sparse 相似度分數、Polyvore 式的穿搭相容性分數、ENGINE03 學到的偏好權重，決定最終排序——因為每個訊號都可追溯，每個結果都能講出「為什麼排在這裡」（呼應「可解釋」要求）。
-- 生成模組（`backend/generation/`）產出的概念圖，也會轉成 FashionCLIP 向量併入 dense 側分數，讓檢索和生成互相加強，不是各跑各的兩套系統。
+- 生成模組（`bff/images/`）產出的概念圖，也會轉成 FashionCLIP 向量併入 dense 側分數，讓檢索和生成互相加強，不是各跑各的兩套系統。
 - 向量儲存：Chroma 或 FAISS，嵌在 Python process 裡——兩天的開發時程用不到另外開一套資料庫服務。
 - 推薦理由生成：排序後的商品屬性 → GPT chat completions → 一句根據真實檢索屬性寫成的自然語言句子，不是憑空生成。
 

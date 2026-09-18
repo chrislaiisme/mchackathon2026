@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 
-from backend.shared.schemas import Intent
+from bff.shared.schemas import Intent
 
 
 @dataclass

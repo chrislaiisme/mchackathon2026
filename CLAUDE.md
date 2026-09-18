@@ -29,13 +29,13 @@
 
 | 模組 | 負責 | 核心技術 | 資料夾 |
 |---|---|---|---|
-| ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `backend/engine01_intent/` |
-| ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `backend/engine02_retrieval/` |
-| ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
-| 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
-| Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
-| 前端 | UI | React + Vite | `frontend/` |
-| 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `validation/` |
+| ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `bff/engine01_intent/` |
+| ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `mcp_servers/catalog/` |
+| ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `bff/feedback/` |
+| 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `bff/images/` |
+| Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `mcp_servers/trends/` |
+| 前端 | UI | React + Vite | `web/` |
+| 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `evals/` |
 
 整個專案不用 LangChain／LlamaIndex——每個模組都直接呼叫 GPT API（chat completions structured output，或 Responses API 做圖片生成）。這是規劃文件裡的刻意決定，不是漏掉沒做。
 
@@ -47,16 +47,16 @@ README.md               英文，根目錄（交付項目 #2 要求）
 README_TW.md            README.md 的中文版
 CLAUDE.md               這份檔案
 docs/                    所有 markdown 文件＋架構圖都放這裡
-backend/
+bff/
   shared/                跨引擎共用的 Pydantic schema — 介面契約的程式碼版本
   engine01_intent/        \
   engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格
   engine03_feedback/      /
   generation/
   pinterest/
-  requirements.txt        整個 backend/ 共用一份依賴檔
-frontend/                React + Vite
-validation/              模擬使用者驗證迴圈腳本
+  requirements.txt        整個 bff/ 共用一份依賴檔
+web/                React + Vite
+evals/              模擬使用者驗證迴圈腳本
 scripts/                 開發輔助腳本（例如下載資料集）
 ```
 
@@ -80,7 +80,7 @@ scripts/                 開發輔助腳本（例如下載資料集）
 | 延遲 | 每次約 8–17 秒 | 約 1–3 秒 |
 | 每次呼叫的 token 數 | 約 14,000–20,000 | 約 1,500 |
 
-這些 token 花費是算在團隊**共用**的 ChatGPT 方案 Codex 額度上——跟現場兩天大家用 Claude Code／Codex 輔助寫程式是同一個額度池。ENGINE01 每輪對話都要呼叫一次，累積起來不是小數目，尤其接近 demo 時段要多留意。如果之後真的變成問題（額度用完，或現場每輪等 8–17 秒太慢），修法是把 `backend/engine01_intent/llm_client.py` 裡 `extract_intent()` 的實作換回直接呼叫 OpenAI API——函式簽名和呼叫它的地方都不用動。
+這些 token 花費是算在團隊**共用**的 ChatGPT 方案 Codex 額度上——跟現場兩天大家用 Claude Code／Codex 輔助寫程式是同一個額度池。ENGINE01 每輪對話都要呼叫一次，累積起來不是小數目，尤其接近 demo 時段要多留意。如果之後真的變成問題（額度用完，或現場每輪等 8–17 秒太慢），修法是把 `bff/engine01_intent/llm_client.py` 裡 `extract_intent()` 的實作換回直接呼叫 OpenAI API——函式簽名和呼叫它的地方都不用動。
 
 任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。不需要另外裝 Hermes Agent——`codex exec --output-schema` 本身就有原生的 JSON schema 限制輸出功能，這正是查證當下 Hermes 自己的 one-shot 模式還沒有的東西（上游有一個開放中的 feature request）。Hermes Agent 在這個專案裡的角色就停在這裡（ENGINE01 的模型呼叫備選方案），不是使用者面對的對話框架——`POST /intent` 本身透過 session 狀態重複呼叫，已經是完整的「使用者跟 AI 對話」迴圈了，不需要再疊一層 Hermes 上去當 webapp 的對話引擎。
 
@@ -97,7 +97,7 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 ## 介面契約
 
-`backend/shared/schemas.py` 是引擎之間流動的 JSON（結構化意圖、回饋 delta、商品卡片等）的程式碼版真相來源——這樣訂出來是為了讓各條線能平行開發、不用互相等待。書面規格見 [docs/interface-contract.md](docs/interface-contract.md)。要改這裡的欄位名稱／型別之前，先知會其他引擎的負責人再 merge，因為 ENGINE02/03／前端都依賴它。
+`bff/shared/schemas.py` 是引擎之間流動的 JSON（結構化意圖、回饋 delta、商品卡片等）的程式碼版真相來源——這樣訂出來是為了讓各條線能平行開發、不用互相等待。書面規格見 [docs/interface-contract.md](docs/interface-contract.md)。要改這裡的欄位名稱／型別之前，先知會其他引擎的負責人再 merge，因為 ENGINE02/03／前端都依賴它。
 
 ## Git 工作流程
 
@@ -114,8 +114,8 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 ## 環境備註
 
-- 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
-- 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。
+- 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `web/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
+- 後端：Python 3.11+，整個 `bff/` 共用一份 `requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。
 - 前端：React + Vite，不用 Next.js／SSR——UI 就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。
 - 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設 `http://localhost:5173`），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
 

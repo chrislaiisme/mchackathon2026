@@ -27,9 +27,9 @@ codex login
 從 repo 根目錄：
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 cp .env.example .env   # 至少填 SESSION_SECRET；GOOGLE_CLIENT_ID 沒建好前先設 DEV_BYPASS_AUTH=true
-uvicorn backend.engine01_intent.main:app --reload
+uvicorn bff.engine01_intent.main:app --reload
 ```
 
 `DEV_BYPASS_AUTH=true` 時試打一次（第一次呼叫會等好幾秒，見上面的延遲說明）：
@@ -50,7 +50,7 @@ VS Code 預設終端機是 PowerShell，指令跟上面的 bash 版本不太一�
 
 ```powershell
 cd "C:\Users\Celestine\OneDrive\桌面\Hackathon"
-.venv\Scripts\python -m uvicorn backend.engine01_intent.main:app --reload
+.venv\Scripts\python -m uvicorn bff.engine01_intent.main:app --reload
 ```
 
 **在另一個分頁測試端點**：
@@ -67,7 +67,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/intent -ContentType "a
 **跑離線準確率測試**：
 
 ```powershell
-.venv\Scripts\python -m backend.engine01_intent.tests.test_accuracy
+.venv\Scripts\python -m bff.engine01_intent.tests.test_accuracy
 ```
 
 **開 [`scripts/engine01-test-page/`](../../scripts/engine01-test-page/) 測試頁**（要兩個 terminal 分頁同時跑）：
@@ -97,7 +97,7 @@ python -m http.server 5173
 ## 離線準確率檢查
 
 ```bash
-python -m backend.engine01_intent.tests.test_accuracy
+python -m bff.engine01_intent.tests.test_accuracy
 ```
 
 需要先跑過一次 `codex login`（見上面）。

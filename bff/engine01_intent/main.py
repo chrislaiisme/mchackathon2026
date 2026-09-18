@@ -1,7 +1,7 @@
 """ENGINE01 FastAPI service: one sentence -> structured intent.
 
 Run locally:
-    uvicorn backend.engine01_intent.main:app --reload
+    uvicorn bff.engine01_intent.main:app --reload
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ import os
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.engine01_intent import llm_client, session_store
-from backend.shared import user_store
-from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
-from backend.shared.schemas import (
+from bff.engine01_intent import llm_client, session_store
+from bff.shared import user_store
+from bff.shared.auth import create_session_token, get_current_user, verify_google_id_token
+from bff.shared.schemas import (
     AuthResponse,
     GoogleAuthRequest,
     IntentRequest,

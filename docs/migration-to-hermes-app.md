@@ -2,9 +2,21 @@
 
 決議：本專案以 Hermes Agent 應用的形式建置與交付（PRD 第 7 章）。這份文件列出三個進行中的分支，每個檔案要搬到哪裡、什麼要改、什麼不用改。
 
-**先搬位置，再改呼叫方式。** 第一階段只是移動檔案，不改任何邏輯，確保搬完仍然可以跑。
+**先搬位置，再改呼叫方式。** 第一階段只移動檔案、不改邏輯。
 
-## 1. engine01-intent（HoYunChen）
+## 目前進度
+
+| 階段 | 狀態 |
+|---|---|
+| 1. 搬移位置（`main` 上已合併的 engine01 程式） | ✅ 已在本 PR 完成，import 路徑同步更新，語法檢查通過 |
+| 2. `bff/` 內嵌 Hermes Agent，先接需求理解一個端點 | 待做 |
+| 3. 生圖改走 Hermes | 待做 |
+| 4. engine02 包成 MCP 工具服務 | 待做（等 `engine02-research` 合併） |
+| 5. `agent/` 打包與英文 README | 待做 |
+
+`engine02-research` 與 `feature/frontend-user-ui` 尚未合併，下面第 2、3 節的搬移要由分支作者在 rebase 時處理。
+
+## 1. engine01-intent（HoYunChen）— ✅ 已完成
 
 | 現在 | 搬到 | 說明 |
 |---|---|---|
