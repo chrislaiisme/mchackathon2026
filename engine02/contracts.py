@@ -169,7 +169,7 @@ class Engine02Request(BaseModel):
 # Output to ENGINE 03 / frontend
 # ---------------------------------------------------------------------------
 
-TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank", "fatigue"]
+TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank", "freshness"]
 
 
 class Contribution(BaseModel):
@@ -218,6 +218,11 @@ class ConstraintReport(BaseModel):
     relaxed: list[str] = Field(default_factory=list)  # in the order they were relaxed
     n_catalog: int = 0
     n_after_filter: int = 0
+    # items dropped because the user has already effectively seen them this session (the
+    # position-weighted frequency cap), and whether the cap had to be skipped to keep enough
+    # candidates — a demo that quietly shows the same cards should say so instead
+    exposure_excluded: int = 0
+    exposure_cap_skipped: bool = False
     # problems with the *input* that ENGINE 01 should fix, e.g. negation left in retrieval_text
     # (CLIP-family encoders are near chance on negation — NegBench, ICML 2025)
     input_warnings: list[str] = Field(default_factory=list)

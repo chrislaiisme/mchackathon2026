@@ -128,6 +128,36 @@ class Engine02:
         self.vocabulary = list(self.kansei.needs.values()) + [e.label for e in self.kansei.elements]
         self.init_ms = (time.perf_counter() - t0) * 1000
 
+    def exposure_by_position(self, req: Engine02Request, arm: ArmConfig, decay: bool) -> dict[int, float]:
+        """Position-weighted impressions per catalog position, from this session's rounds.
+
+        `ε(rank)` is P(examined | rank) measured by eye tracking (Joachims et al., SIGIR 2005), so
+        an item ignored at rank 5 counts far less than one ignored at rank 1 — "not chosen" and
+        "not looked at" are different events and rank is the only evidence we have about which
+        happened. A round where the user chose nothing is an outside-option event and counts
+        `outside_option_kappa` (it used to count as the strongest evidence, which is backwards).
+
+        decay=True applies `freshness_decay` per round of age for the score term; the frequency cap
+        uses decay=False, because a cap that forgets is not a cap.
+        """
+        eps = arm.exposure_weights or (1.0,)
+        n_rounds = len(req.feedback.choice_history)
+        out: dict[int, float] = {}
+        for r, rec in enumerate(req.feedback.choice_history):
+            age = n_rounds - 1 - r
+            gamma = (arm.freshness_decay ** age) if decay else 1.0
+            kappa = 1.0 if rec.chosen_item_id else arm.outside_option_kappa
+            ignored = [i for i in rec.shown_item_ids
+                       if i and i != rec.chosen_item_id and i not in set(rec.rejected_item_ids)]
+            for iid in ignored:
+                p_ = self.catalog.pos(iid)
+                if p_ is None:
+                    continue
+                rank = rec.shown_item_ids.index(iid)  # 0-based; the list is in display order
+                e = eps[min(rank, len(eps) - 1)]
+                out[int(p_)] = out.get(int(p_), 0.0) + gamma * kappa * e
+        return out
+
     def _dense_scores(self, q: np.ndarray, pool: np.ndarray) -> np.ndarray:
         """Cosine of every pooled item against the query.
 
@@ -231,6 +261,22 @@ class Engine02:
         fr = filter_with_category_relaxation(items, req.constraints, max(arm.min_results, k), excluded,
                                              catalog=self.catalog.name, base=self._attr_filter)
         pool = np.flatnonzero(fr.mask)
+        # Position-weighted frequency cap. A score term cannot guarantee the top of the list
+        # changes — the measured score gap from rank 1 to rank 6 is ≈0.5, so any weight big enough
+        # to move it would outweigh "this matches what you asked for". Dropping items the user has
+        # already effectively seen is a rule, so it needs no estimator; but it must never empty the
+        # pool, and when it is skipped the response says so instead of quietly repeating cards.
+        n_exposure_excluded, cap_skipped = 0, False
+        if arm.use_freshness and arm.exposure_cap > 0 and req.feedback.choice_history:
+            seen_enough = [p_ for p_, x in self.exposure_by_position(req, arm, decay=False).items()
+                           if x >= arm.exposure_cap]
+            if seen_enough:
+                keep = ~np.isin(pool, np.asarray(seen_enough, dtype=int))
+                if keep.sum() >= max(arm.min_results, k):
+                    n_exposure_excluded = int((~keep).sum())
+                    pool = pool[keep]
+                else:
+                    cap_skipped = True
         lap("filter")
         # one shared budget per request: cards after the budget (or after the first failure) use
         # templates instead of each waiting for its own timeout
@@ -370,6 +416,7 @@ class Engine02:
             items=out_items,
             constraint_report=ConstraintReport(
                 applied=fr.applied, relaxed=fr.relaxed, n_catalog=len(items), n_after_filter=int(len(pool)),
+                exposure_excluded=n_exposure_excluded, exposure_cap_skipped=cap_skipped,
                 input_warnings=input_warnings(req),
             ),
             metrics=self._metrics(req, shown_pos),
@@ -451,31 +498,26 @@ class Engine02:
                     Term("penalty:rejected_similarity", "penalty", sim_all[top], -arm.w_penalty,
                          stats=_stats(sim_all) if pool_scope else None, clip=arm.z_clip)
                 )
-        if arm.use_fatigue and req.feedback.choice_history:
-            # implicit negative feedback: shown in an earlier round, not chosen, not rejected
-            # (rejections already have their own term). Older rounds count less.
-            weight_by_pos: dict[int, float] = {}
-            n_rounds = len(req.feedback.choice_history)
-            for r, rec in enumerate(req.feedback.choice_history):
-                w = arm.fatigue_decay ** (n_rounds - 1 - r)
-                ignored = set(rec.shown_item_ids) - {rec.chosen_item_id} - set(rec.rejected_item_ids)
-                for p_ in self.catalog.positions(sorted(i for i in ignored if i)):
-                    weight_by_pos[p_] = weight_by_pos.get(p_, 0.0) + w
-            if weight_by_pos:
+        if arm.use_freshness and req.feedback.choice_history:
+            exposure = self.exposure_by_position(req, arm, decay=True)
+            if exposure:
                 seen_all = np.zeros(len(pool), dtype=np.float64)
                 pos_index = {int(p_): j for j, p_ in enumerate(pool)}
-                for p_, w in weight_by_pos.items():
+                for p_, x in exposure.items():
                     j = pos_index.get(int(p_))
                     if j is not None:
-                        seen_all[j] = w
+                        seen_all[j] = x
                 if seen_all.any():
-                    # deliberately NOT z-scored: the count is already on a fixed, interpretable
-                    # scale (1.0 = ignored in the latest round). Normalising it would hand every
-                    # never-shown item a positive "fatigue" contribution, which is nonsense on a
-                    # card — an item the user has not seen should get exactly 0 from this term.
+                    # Phrased as freshness, not blame: raw = 1 − exposure, so an item the user has
+                    # not seen contributes +w (and the card may say so), one they have effectively
+                    # seen once contributes 0, and a repeatedly shown one goes negative. This is
+                    # rank-identical to a −w·exposure penalty but it is sayable: "因為你沒選它" is
+                    # an accusation the data cannot support, "你還沒看過這件" is a fact.
+                    # Deliberately NOT z-scored — normalising handed never-seen items a positive
+                    # "fatigue" score in an earlier version, which was nonsense on a card.
                     terms.append(
-                        Term("fatigue:shown_not_chosen", "fatigue", seen_all[top], -arm.w_fatigue,
-                             normalize=False)
+                        Term("freshness:not_yet_seen", "freshness", 1.0 - seen_all[top],
+                             arm.w_freshness, normalize=False)
                     )
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])

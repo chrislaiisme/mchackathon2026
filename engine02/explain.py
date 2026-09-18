@@ -22,6 +22,7 @@ GROUP_LABEL = {
     "trend": "符合近期趨勢關鍵字",
     "rerank": "重排模型判定和需求高度相關",
     "penalty": "和你否決過的商品不同",
+    "freshness": "這件你這輪還沒看過",
 }
 
 

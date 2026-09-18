@@ -400,36 +400,70 @@ def test_paraphrase_reply_parsing_accepts_both_formats(tmp_path):
     assert got == {"q1-100": "這件的整體風格和你描述的相近", "q1-101": "版型俐落"}
 
 
-def test_fatigue_term_penalises_only_items_shown_but_not_chosen(engine):
-    """Round 2 must not silently replay round 1: shown-not-chosen is implicit negative feedback."""
+def test_freshness_term_is_sayable_and_position_weighted(engine):
+    """Round 2 must not silently replay round 1, and the card must be able to say why it did not."""
+    from engine02.config import ARMS
     from engine02.contracts import ChoiceRecord, FeedbackState
 
-    from engine02.config import ARMS
-
-    base = engine.run(request(), "full_zclip3")
+    base = engine.run(request(), "full_zclip3_nofresh")
     shown = [it.item_id for it in base.items]
     assert len(shown) >= 3
 
     # the user picked the first card and ignored the rest (no explicit rejection)
     fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[0])])
     r2 = request(round=1, feedback=fb)
-    plain = {it.item_id: it for it in engine.run(r2, "full_zclip3_nofatigue").items}
-    tired = {it.item_id: it for it in engine.run(r2, "full_zclip3").items}
-    w = ARMS["full_zclip3"].w_fatigue
+    plain = {it.item_id: it for it in engine.run(r2, "full_zclip3_nofresh").items}
+    fresh = engine.run(r2, "full_zclip3")
+    arm = ARMS["full_zclip3"]
+    w, eps = arm.w_freshness, arm.exposure_weights
 
-    for iid, it in tired.items():
-        fat = [c.contribution for c in it.contributions if c.group == "fatigue"]
-        if iid == shown[0] or iid not in shown:
-            assert not fat or fat == [0.0] or fat == [-0.0], f"{iid} was chosen or unseen: {fat}"
+    for it in fresh.items:
+        vals = [c.contribution for c in it.contributions if c.group == "freshness"]
+        assert vals, "every candidate gets the term once the session has history"
+        if it.item_id not in shown or it.item_id == shown[0]:
+            assert vals[0] == pytest.approx(w), "never seen (or chosen) → the full freshness bonus"
         else:
-            assert fat and fat[0] == pytest.approx(-w), f"{iid} was ignored last round: {fat}"
-        # the penalty is the only difference, and the parts still sum to the whole
+            rank = shown.index(it.item_id)          # ignored at this rank last round
+            expect = w * (1.0 - eps[min(rank, len(eps) - 1)])
+            assert vals[0] == pytest.approx(expect), f"rank {rank} should count ε={eps[min(rank, len(eps)-1)]}"
         assert abs(sum(c.contribution for c in it.contributions) - it.score) < 1e-6
-        if iid in plain:
-            expect = plain[iid].score - (w if (iid in shown and iid != shown[0]) else 0.0)
-            assert it.score == pytest.approx(expect, abs=1e-6)
+
+    # nothing here reaches the cap: ignored at rank 2 is only ε=0.85 of an impression, which is
+    # the point of weighting by rank rather than counting impressions
+    assert fresh.constraint_report.exposure_excluded == 0
 
 
-def test_fatigue_term_is_off_without_history(engine):
+def test_freshness_cap_drops_an_item_ignored_at_rank_one(engine):
+    """Only a fully-examined item (rank 1, one full effective impression) hits the cap."""
+    from engine02.contracts import ChoiceRecord, FeedbackState, HardConstraints
+
+    plain_req = request(constraints=HardConstraints())  # whole toy catalog, so the pool survives
+    base = engine.run(plain_req, "full_zclip3_nofresh")
+    shown = [it.item_id for it in base.items]
+    assert len(shown) >= 3
+
+    # the user picked the third card, so the first two were examined and passed over
+    fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[2])])
+    resp = engine.run(request(round=1, feedback=fb, constraints=HardConstraints()), "full_zclip3")
+    rep = resp.constraint_report
+    assert rep.exposure_excluded == 1, f"rank-1 ignored item should be capped out: {rep}"
+    assert shown[0] not in [it.item_id for it in resp.items]
+    assert shown[1] in [it.item_id for it in resp.items], "rank 2 is 0.85 of an impression, under the cap"
+
+
+def test_freshness_reason_is_shown_on_the_card(engine):
+    """The term changes the ranking, so the explanation has to be able to mention it."""
+    from engine02.contracts import ChoiceRecord, FeedbackState
+
+    base = engine.run(request(), "full_zclip3_nofresh")
+    shown = [it.item_id for it in base.items]
+    fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[0])])
+    resp = engine.run(request(round=1, feedback=fb), "full_zclip3")
+    texts = " ".join(r for it in resp.items for r in it.reasons)
+    assert "還沒看過" in texts, f"no freshness reason surfaced: {texts[:200]}"
+
+
+def test_freshness_term_is_off_without_history(engine):
     resp = engine.run(request(), "full_zclip3")
-    assert not [c for it in resp.items for c in it.contributions if c.group == "fatigue"]
+    assert not [c for it in resp.items for c in it.contributions if c.group == "freshness"]
+    assert resp.constraint_report.exposure_excluded == 0

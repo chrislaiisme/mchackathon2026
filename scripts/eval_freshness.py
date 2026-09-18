@@ -1,4 +1,4 @@
-"""T15: should "shown earlier but not chosen" be a ranking term by default?
+"""T15: how much repeat exposure should a session suppress, and how should it be weighted?
 
 The demo is judged over rounds, and without this term round 2 can replay round 1 unchanged — the
 judges would see the same cards after giving feedback. The term is cheap, but it can also push
@@ -7,7 +7,7 @@ away an item the user simply had not got to yet, so it needs both numbers:
   novelty@k    share of the shown slate that was not shown in an earlier round   (should go UP)
   utility@k    hidden utility of the shown slate in the last round               (must NOT go down)
 
-  python scripts/eval_fatigue.py --catalog data/catalog/kagl_full --encoder marqo-fashionSigLIP \
+  python scripts/eval_freshness.py --catalog data/catalog/kagl_full --encoder marqo-fashionSigLIP \
       --device cuda --users 60 --rounds 4 --weights 0,0.15,0.3,0.5,1.0
 
 Simulated user, same assumptions as T7 (docs/research/recsys-preference.md): a hidden taste vector
@@ -56,6 +56,9 @@ def main() -> None:
     ap.add_argument("--k", type=int, default=5)
     ap.add_argument("--weights", default="0,0.15,0.3,0.5,1.0")
     ap.add_argument("--decay", type=float, default=0.5)
+    ap.add_argument("--cap", type=float, default=1.0, help="position-weighted frequency cap (0 = off)")
+    ap.add_argument("--flat-exposure", action="store_true",
+                    help="ignore the eye-tracking curve and count every rank equally (ablation)")
     ap.add_argument("--tau", type=float, default=0.3, help="choice temperature (0 = argmax)")
     ap.add_argument("--strength", type=float, default=1.0, help="weight of taste vs attribute relevance")
     ap.add_argument("--out", default="reports/ablation")
@@ -110,8 +113,10 @@ def main() -> None:
     weights = [float(w) for w in a.weights.split(",")]
     rows = []
     for w in weights:
-        arm = replace(base_arm, name=f"{a.arm}_fat{w}", use_fatigue=w > 0, w_fatigue=w,
-                      fatigue_decay=a.decay)
+        arm = replace(base_arm, name=f"{a.arm}_fresh{w}", use_freshness=w > 0, w_freshness=w,
+                      freshness_decay=a.decay,
+                      exposure_weights=(1.0,) * 5 if a.flat_exposure else base_arm.exposure_weights,
+                      exposure_cap=a.cap)
         for ui, user in enumerate(users):
             q = user["q"]
             u = utility(user)
@@ -144,21 +149,21 @@ def main() -> None:
                 seen.update(shown)
                 history.append(ChoiceRecord(shown_item_ids=shown, chosen_item_id=pick))
             for r in per_round:
-                rows.append(dict(w_fatigue=w, user=ui, **r))
+                rows.append(dict(w_freshness=w, user=ui, **r))
         print(f"w={w} done", flush=True)
 
     df = pd.DataFrame(rows)
     last = df[df["round"] == df["round"].max()]
-    piv_nov = last.pivot_table(index="user", columns="w_fatigue", values="novelty")
-    piv_util = last.pivot_table(index="user", columns="w_fatigue", values="utility_mean")
-    piv_found = last.pivot_table(index="user", columns="w_fatigue", values="found_target")
+    piv_nov = last.pivot_table(index="user", columns="w_freshness", values="novelty")
+    piv_util = last.pivot_table(index="user", columns="w_freshness", values="utility_mean")
+    piv_found = last.pivot_table(index="user", columns="w_freshness", values="found_target")
     base_w = weights[0]
     summary = []
     for w in weights:
         summary.append(dict(
-            w_fatigue=w,
+            w_freshness=w,
             novelty_last=round(float(piv_nov[w].mean()), 4),
-            novelty_all_rounds=round(float(df[df.w_fatigue == w]["novelty"].mean()), 4),
+            novelty_all_rounds=round(float(df[df.w_freshness == w]["novelty"].mean()), 4),
             utility_last=round(float(piv_util[w].mean()), 4),
             found_target_last=round(float(piv_found[w].mean()), 4),
             p_novelty_vs_off=paired_permutation(piv_nov[w], piv_nov[base_w], seed=SEED),
@@ -166,7 +171,7 @@ def main() -> None:
         ))
     out = ROOT / a.out
     out.mkdir(parents=True, exist_ok=True)
-    tag = f"fatigue_{Path(a.catalog).name}_{eng.encoder.name}"
+    tag = f"freshness_{Path(a.catalog).name}_{eng.encoder.name}"
     df.to_csv(out / f"{tag}.csv", index=False)
     sdf = pd.DataFrame(summary)
     (out / f"{tag}.json").write_text(json.dumps(

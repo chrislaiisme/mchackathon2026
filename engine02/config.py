@@ -38,15 +38,28 @@ class ArmConfig:
     # CLIP antonym scores (chosen by AUROC against blind visual labels, docs/engine02-design.md §3.3c)
     vlm_elements: tuple[str, ...] = ("matte_fabric", "glossy_fabric", "visible_logo", "minimal_design",
                                      "bold_pattern", "crisp_collar")
-    # "shown in an earlier round but not chosen" is implicit negative feedback that the ranking
-    # ignored entirely (ChoiceRecord.shown_item_ids existed but was never read), so round 2 could
-    # replay round 1. T15 (§3.23) measured it: at w=0.15 the last round's novelty goes from 0.007
-    # to 0.213 (p<1e-4), the best item in the slate gets *better* (+0.15 hidden utility, p=0.015)
-    # and nothing measurable is lost, so the serving arm turns it on.
-    use_fatigue: bool = False
-    w_fatigue: float = 0.15
-    fatigue_decay: float = 0.5  # weight of a round r rounds back: decay**(r-1)
-    z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty/fatigue terms to ±z_clip
+    # Repeat exposure within one session. "Shown earlier and not chosen" is NOT a taste signal —
+    # it is "not seen" ∪ "seen and disliked" and those are not separable from one session's ~20
+    # impressions (ExpoMF; Schnabel et al. 2016). It is also already read, properly, by the
+    # preference learner's choice likelihood (`preference.py`, MNL/Bradley–Terry over the shown
+    # set). So this is a **session-level freshness device**, phrased positively so the card can
+    # say the true thing ("你還沒看過這件"), never an accusation about taste.
+    use_freshness: bool = False
+    w_freshness: float = 0.5
+    freshness_decay: float = 0.5  # a round r rounds back counts decay**r for the score term
+    # P(examined | rank) from eye tracking (Joachims, Granka, Pan, Hembrooke & Gay, SIGIR 2005,
+    # 29 subjects), normalised to rank 1. Deliberately a lookup table, not a power law: attention
+    # is flat over ranks 1–3 and falls off a cliff at 4–5, which r^-1 does not reproduce.
+    exposure_weights: tuple[float, ...] = (1.0, 0.85, 0.71, 0.47, 0.37)
+    # A round where the user chose nothing is an outside-option event: the weakest evidence, not
+    # the strongest. Before this it counted every card at full weight.
+    outside_option_kappa: float = 0.5
+    # Position-weighted frequency cap: undecayed effective impressions ≥ this ⇒ drop from the
+    # candidate pool for this round. A score penalty alone cannot guarantee the head changes
+    # (measured: the rank-1→rank-6 score gap is ~0.50, so a defensible weight cannot bridge it),
+    # and a cap is a rule, so it needs no estimator. 0 disables it.
+    exposure_cap: float = 1.0
+    z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty terms to ±z_clip
     need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
     w_dense: float = 1.0
     w_bm25: float = 0.5
@@ -75,13 +88,13 @@ ARMS: dict[str, ArmConfig] = {
                                      bm25_adaptive=True),
     "full_adaptive_bm25": replace(FULL, name="full_adaptive_bm25", bm25_adaptive=True),
     # serving default: ±3 z-clip on every normalised term, concept-image fusion at the measured
-    # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding), and the fatigue
-    # term at the weight T15 picked (§3.23). `full` stays frozen as the reproducibility baseline
-    # for §3.1–3.13; `full_zclip3_nofatigue` is the control for rerunning the round-2 experiments.
+    # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding), and the session
+    # freshness device (§3.23/§3.25). `full` stays frozen as the reproducibility baseline for
+    # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
-                           use_fatigue=True, w_fatigue=0.15),
-    "full_zclip3_nofatigue": replace(FULL, name="full_zclip3_nofatigue", z_clip=3.0,
-                                     concept_image_weight=0.2),
+                           use_freshness=True),
+    "full_zclip3_nofresh": replace(FULL, name="full_zclip3_nofresh", z_clip=3.0,
+                                   concept_image_weight=0.2),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),
