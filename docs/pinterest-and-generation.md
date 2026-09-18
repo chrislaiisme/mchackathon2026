@@ -26,6 +26,8 @@ OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的
 
 跟 ENGINE01／ENGINE02 的關係：虛擬形象是「per-user」的持久資料（不是單一對話 session 裡的東西），性質上跟 `UserProfile` 裡已有的 `age_range`／`style_preferences` 類似，正式設計時可以考慮要不要併進 `UserProfile`，或另外開一個模型——這個決定留給正式負責人跟 ENGINE01 owner 一起談，這裡不先幫忙決定。
 
+**前端互動想法（同樣還沒定案）**：點一下虛擬形象圖片切換「穿上生成的衣服」跟「沒穿」，像奇跡暖暖那樣——只要試穿後的圖跟原本（沒穿／預設）的圖都準備好了，前端純粹是切換顯示哪一張，不用額外呼叫後端。細節見 [frontend.md](frontend.md#延伸功能待討論想法使用者口頭提出還沒定案正式負責人接手時要評估要不要做)。
+
 ## 依賴
 
 `OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用）——兩個都在 `.env.example` 裡。
