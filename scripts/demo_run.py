@@ -55,6 +55,25 @@ SCENARIOS = [
                    "reject_rank": 1, "choose_rank": 3, "critique_rank": 3,
                    "critique": {"attribute": "occasion", "direction": "more_casual"}},
     },
+    {
+        # The judge says the one thing that has no attribute in it. Nothing is excluded, nothing is
+        # chosen, no critique — so a system that only reads explicit feedback has nothing to act on
+        # and replays the same slate. This is the scenario the fatigue term exists for (§3.23).
+        "name": "C 沒有具體回饋：「這幾件都不喜歡，再給我看別的」",
+        "utterance": "想找一件約會可以穿的上衣，不要太隆重",
+        "round1": {
+            "retrieval_text": "women casual date top",
+            "constraints": {"category": {"state": "value", "values": ["top"]},
+                            "gender": {"state": "value", "values": ["Women"]}},
+            "needs": [{"need_id": "approachable", "prob": 0.4}, {"need_id": "avoid_tryhard", "prob": 0.35},
+                      {"need_id": "polished", "prob": 0.25}],
+        },
+        "feedback_utterance": "這幾件都不喜歡，再給我看別的",
+        # "none of these" is an explicit signal, so it maps to both hard exclusion (never show
+        # these five again) and the rejection penalty (push away items that look like them).
+        # The fatigue term (§3.23) covers the weaker case: the user says nothing about the slate.
+        "round2": {"reject_all": True},
+    },
 ]
 
 
@@ -70,6 +89,10 @@ def build_request(sc: dict, rnd: int, prev_items: list | None) -> Engine02Reques
             feedback["chosen_item_ids"] = [prev_items[fb["choose_rank"] - 1].item_id]
         if prev_items and fb.get("reject_rank") and len(prev_items) >= fb["reject_rank"]:
             feedback["rejected_item_ids"] = [prev_items[fb["reject_rank"] - 1].item_id]
+        if prev_items and fb.get("reject_all"):
+            ids = [it.item_id for it in prev_items]
+            feedback["rejected_item_ids"] = ids      # similarity penalty
+            feedback["excluded_item_ids"] = ids      # and never show these again
         if prev_items:
             feedback["choice_history"] = [{
                 "shown_item_ids": [it.item_id for it in prev_items],
