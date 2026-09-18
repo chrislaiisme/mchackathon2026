@@ -17,6 +17,8 @@ A Hermes Agent application that turns a consumer's one-sentence apparel request 
 | `web/` | Web front end used in the demo | Line 5 |
 | `evals/` | Quantitative validation and the charts it produces | Lines 1–3 |
 | `contracts/` | Agreed data formats between modules, plus shared sample data | Line 4 leads, all lines agree |
+| `docs/` | Project docs and architecture diagrams, including the migration map at `docs/migration-to-hermes-app.md` | Line 4 |
+| `scripts/` | Dev setup and data-processing helpers | Each owning line |
 | `data/` | Local-only data that is never committed | Lines 1, 2, 3, 5 |
 | `index.html`, `privacy.html`, `styles.css`, `assets/`, `.nojekyll` | Pinterest developer application site, served by GitHub Pages. Already in the repo before this skeleton — leave it in place; the Pinterest app review depends on those URLs staying live. | Line 2 |
 
