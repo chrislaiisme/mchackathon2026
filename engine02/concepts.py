@@ -98,8 +98,14 @@ def element_profile(encoder: Encoder, catalog_emb: np.ndarray, emb: np.ndarray, 
     cards' design terms use, so a profile and a reason can be read side by side.
     """
     img = np.asarray(emb, dtype=np.float64).reshape(1, -1)
-    cat = np.asarray(catalog_emb, dtype=np.float64)
     cache = prompt_cache if prompt_cache is not None else {}
+    # Convert the catalog once per cache, not once per call: the conversion is a full copy of the
+    # embedding matrix (320 MB on a 52k x 768 catalog), and doing it inside the call also made the
+    # per-element statistics cache below miss every time, because its key used the fresh copy's id.
+    cat_key = ("__cat__", id(catalog_emb), getattr(catalog_emb, "shape", None))
+    cat = cache.get(cat_key)
+    if cat is None:
+        cat = cache[cat_key] = np.asarray(catalog_emb, dtype=np.float64)
     neutral = cache.get("__neutral__")
     if neutral is None:
         neutral = cache["__neutral__"] = encoder.encode_text([NEUTRAL_PROMPT])[0].astype(np.float64)
@@ -121,12 +127,20 @@ def element_profile(encoder: Encoder, catalog_emb: np.ndarray, emb: np.ndarray, 
                 return 1.0 / (1.0 + np.exp(-d / temperature))
             return (x @ pos.T).mean(axis=1) - x @ neutral
 
-        r_cat = raw(cat)
+        # The catalog's distribution per element depends only on the catalog and the prompts, so
+        # keep the mean/sd and a sorted copy for percentiles. Without this every profiled image
+        # costs 15 catalog-wide matvecs, which is fine for one upload and hopeless for an
+        # experiment that profiles thousands (and it made the second upload as slow as the first).
+        stats_key = (el.id, mode, "stats") + cat_key
+        stats = cache.get(stats_key)
+        if stats is None:
+            r_cat = raw(cat)
+            stats = cache[stats_key] = (float(r_cat.mean()), float(r_cat.std()) or 1e-9,
+                                        np.sort(r_cat))
+        mean, sd, sorted_cat = stats
         r_img = float(raw(img)[0])
-        sd = float(r_cat.std()) or 1e-9
-        out.append(dict(element=el.id, label=el.label,
-                        z=round((r_img - float(r_cat.mean())) / sd, 3),
-                        percentile=round(float((r_cat < r_img).mean()), 3)))
+        out.append(dict(element=el.id, label=el.label, z=round((r_img - mean) / sd, 3),
+                        percentile=round(float(np.searchsorted(sorted_cat, r_img) / len(sorted_cat)), 3)))
     out.sort(key=lambda d: -abs(d["z"]))
     return out
 
