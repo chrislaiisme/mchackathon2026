@@ -29,6 +29,16 @@
           "title": "N After Filter",
           "type": "integer"
         },
+        "grounded_terms": {
+          "items": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": "Grounded Terms",
+          "type": "array"
+        },
         "exposure_excluded": {
           "default": 0,
           "title": "Exposure Excluded",

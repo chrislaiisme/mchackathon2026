@@ -16,7 +16,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 CONTRACT_VERSION = "0.1.0"
 
@@ -40,6 +40,25 @@ class Slot(BaseModel):
     values: list[str] = Field(default_factory=list)
     # Stated values are hard filters; inferred values are soft preferences only.
     hard: bool | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_shorthand(cls, v):
+        """`"top"` and `["top"]` mean the same as `{"state": "value", "values": ["top"]}`.
+
+        ENGINE 01 is an LLM. Asking it to emit the long form every time buys nothing and costs a
+        422 on the demo floor, so the short forms are accepted and normalised to a stated value.
+        """
+        if isinstance(v, str):
+            return {"state": SlotState.VALUE, "values": [v]} if v.strip() else {}
+        if isinstance(v, (list, tuple, set)):
+            vals = [str(x) for x in v if str(x).strip()]
+            return {"state": SlotState.VALUE, "values": vals} if vals else {}
+        if isinstance(v, dict) and "values" in v and "state" not in v:
+            vals = v["values"]
+            vals = [vals] if isinstance(vals, str) else list(vals or [])
+            return {**v, "state": SlotState.VALUE if vals else SlotState.UNMENTIONED, "values": vals}
+        return v
 
     def is_hard(self) -> bool:
         if self.hard is not None:
@@ -169,6 +188,14 @@ class Engine02Request(BaseModel):
     design_weight_prior: dict[str, float] = Field(default_factory=dict)
     constraints: HardConstraints = Field(default_factory=HardConstraints)
     needs: list[NeedProbability] = Field(default_factory=list)
+
+    @field_validator("needs", mode="before")
+    @classmethod
+    def _accept_needs_mapping(cls, v):
+        """`{"trustworthy": 0.6}` is what an LLM writes; treat it as the list of probabilities."""
+        if isinstance(v, dict):
+            return [{"need_id": k, "prob": float(p)} for k, p in v.items()]
+        return v
     feedback: FeedbackState = Field(default_factory=FeedbackState)
     options: Engine02Options = Field(default_factory=Engine02Options)
 
