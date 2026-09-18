@@ -406,6 +406,48 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+class IntentRankRequest(BaseModel):
+    """ENGINE 01 speaks this. `intent` is `backend.shared.schemas.Intent` as plain JSON."""
+
+    session_id: str = "engine01"
+    round: int = 0
+    message: str | None = None          # the user's original sentence, for the record
+    intent: dict = {}
+    feedback: dict | None = None        # ENGINE 03's ledger, unchanged
+    top_k: int = 5
+    arm: str | None = None
+
+
+@app.post("/intent/rank")
+def intent_rank(body: IntentRankRequest) -> dict:
+    """ENGINE 01's `Intent` in, the team's `RetrievalResult` out (docs/interface-contract.md).
+
+    The whole cross-engine boundary lives in `engine02/intent_adapter.py`: Chinese free text is
+    resolved to this catalog's own vocabulary, `inferred_fields` stay soft, and anything that could
+    not be resolved is reported rather than quietly dropped — a Chinese value passed straight
+    through would fall out of the relaxation ladder and return a confident, wrong slate.
+    """
+    from .intent_adapter import intent_to_request, response_to_retrieval_result
+
+    e = engine()
+    arm = body.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
+    if arm not in ARMS:
+        raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
+    try:
+        req, unresolved = intent_to_request(
+            body.intent, session_id=body.session_id, round=body.round, message=body.message,
+            catalog_name=getattr(e.catalog, "name", None), top_k=body.top_k, arm=arm,
+            feedback=body.feedback)
+    except ValidationError as exc:
+        raise HTTPException(422, {"error": "intent could not be converted to an Engine02Request",
+                                  "detail": exc.errors(include_url=False)})
+    resp = rank(req)
+    out = response_to_retrieval_result(e, req, resp, arm=arm)
+    # what ENGINE 01 should fix, in ENGINE 01's own terms, next to what the pipeline itself found
+    out["engine02"]["unresolved_from_intent"] = unresolved
+    return out
+
+
 @app.get("/context")
 def context() -> dict:
     """External context (weather) as fetched EARLIER by scripts/fetch_context.py — never now.
