@@ -404,12 +404,13 @@ def is_predicted(items: pd.DataFrame, attr: str) -> np.ndarray:
 
 
 def provenance_note(items: pd.DataFrame, pos: int) -> dict[str, str]:
-    """Attribute → Traditional-Chinese note for explanations, only for predicted attributes."""
+    """Attribute → Traditional-Chinese note for explanations, only for predicted attributes.
+
+    Reads the per-frame parse cache: this runs once per shown card, and materialising the
+    `attr_source` column here cost 30 ms per request on the filled catalog.
+    """
     names = {"color": "顏色", "gender": "性別", "occasion": "場合", "season": "季節"}
-    src = items["attr_source"].to_numpy() if "attr_source" in items.columns else None
-    s = src[pos] if src is not None else None
-    d = json.loads(s) if isinstance(s, str) and s else {}
-    return {a: f"{names.get(a, a)}為模型判讀" for a, v in d.items() if str(v).startswith("predicted:")}
+    return {a: f"{names.get(a, a)}為模型判讀" for a, flags in _predicted_map(items).items() if flags[pos]}
 
 
 # ---------------------------------------------------------------------------------------------

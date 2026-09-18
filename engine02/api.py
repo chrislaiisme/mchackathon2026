@@ -164,6 +164,50 @@ def engine() -> Engine02:
     return STATE["engine"]
 
 
+def _record_demand(req: Engine02Request) -> None:
+    """Keep what was asked for, so the gap panel has a real (and small, and stated) denominator."""
+    from collections import deque
+
+    buf = STATE.get("demand")
+    if buf is None:
+        buf = STATE["demand"] = deque(maxlen=int(os.environ.get("ENGINE02_DEMAND_LOG", "500")))
+    c = req.constraints
+    buf.append((
+        {n.need_id: n.prob for n in req.needs},
+        dict(req.feedback.design_adjust_steps),
+        ((c.category.values[0] if c.category.values else None),
+         (c.color.values[0] if c.color.values else None)),
+    ))
+
+
+@app.get("/gap/elements")
+def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
+    """Design-element demand (from the queries this server served) vs catalog supply.
+
+    What a garment maker can act on: an element many requests wanted that little of the catalog
+    expresses. `n_sessions` is the denominator — say it out loud when showing this.
+    """
+    from .panels import element_gap
+
+    if arm not in ARMS:
+        raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
+    buf = list(STATE.get("demand", []))
+    labels = {e.id: e.label for e in engine().kansei.elements}
+    rep = element_gap(engine(), [(p, s) for p, s, _ in buf], arm, threshold, labels)
+    return rep.model_dump()
+
+
+@app.get("/gap/cells")
+def gap_cells(top: int = 20) -> dict:
+    """Requested (category, colour) cells against how many items the catalog has in each."""
+    from .panels import category_color_gap
+
+    buf = list(STATE.get("demand", []))
+    rows = category_color_gap(engine(), [cell for _, _, cell in buf], top)
+    return {"n_sessions": len(buf), "cells": [r.model_dump() for r in rows],
+            "note": "需求側 = 本服務實際收到的查詢，不是市場量測"}
+
+
 def _complete_look_status() -> dict:
     svc = STATE.get("service")
     ctl = getattr(svc, "ctl", None)
@@ -243,6 +287,7 @@ def rank(req: Engine02Request) -> ServiceResponse:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     if ARMS[arm].use_cross_reranker and engine().cross_reranker is None:
         raise HTTPException(400, "this arm needs ENGINE02_RERANKER to be set on the server")
+    _record_demand(req)
     return STATE["service"].rank(req, arm)
 
 

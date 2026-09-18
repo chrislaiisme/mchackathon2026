@@ -480,6 +480,107 @@ def need_supply(engine, arm: str | Any = "full", threshold: float = 0.5,
     return {n: float((s[:, i] > threshold).mean()) for i, n in enumerate(engine.kansei.need_ids)}
 
 
+class ElementGap(BaseModel):
+    """One design element: how much the demand side asked for it vs how much of the catalog has it."""
+
+    element: str
+    label: str
+    demand: float          # Σ over sessions of β_d, positive and negative kept apart
+    demand_share: float    # demand / Σ|demand| over elements, so the scale is readable
+    direction: str         # "wanted" (β>0) or "avoided" (β<0)
+    supply: float          # share of the catalog expressing the element above the threshold
+    gap: float             # |demand_share| · (1 − supply) for wanted, · supply for avoided
+    n_items_above: int
+
+
+class GapReport(BaseModel):
+    """PRD §6.7 gap map at design-element level — what a garment maker can act on.
+
+    The demand side is **the queries this server has actually served** (ENGINE 03 owns the real
+    aggregation across sessions), so every reading of this panel must state its denominator:
+    `n_sessions` is exactly the number of requests behind the numbers, not a market measurement.
+    """
+
+    n_sessions: int
+    threshold: float
+    arm: str
+    elements: list[ElementGap] = Field(default_factory=list)
+    note: str = "需求側 = 本服務實際收到的查詢，不是市場量測"
+
+
+def element_gap(engine, sessions: Sequence[tuple[dict[str, float], dict[str, int]]],
+                arm: str | Any = "full", threshold: float = 0.5,
+                element_labels: dict[str, str] | None = None,
+                mask: np.ndarray | None = None) -> GapReport:
+    """Demand (β_d aggregated over sessions) against supply (share of catalog with c(i,d) > τ).
+
+    Positive and negative demand are **not** summed together: "everyone wants a crisp collar" and
+    "everyone wants to avoid a crisp collar" are different findings, and averaging them into ~0
+    would hide both. A wanted element with low supply is an opening; an avoided element with high
+    supply is an over-supply the catalog should trim.
+    """
+    from .config import ARMS
+
+    cfg = ARMS[arm] if isinstance(arm, str) else arm
+    labels = element_labels or {e.id: e.label for e in engine.kansei.elements}
+    ids = engine.kansei.element_ids
+    demand = np.zeros(len(ids))
+    for probs, steps in sessions:
+        needs_beta, fb_beta = engine.kansei.beta(probs or {}, steps or {})
+        demand += needs_beta + fb_beta
+    total = float(np.abs(demand).sum())
+
+    c = engine.design_matrix(cfg)
+    if mask is not None:  # supply measured on a subset (used by scripts/eval_gap.py)
+        c = c[np.asarray(mask, dtype=bool)]
+    above = (c > threshold)
+    rows = []
+    for j, d in enumerate(ids):
+        if abs(demand[j]) < 1e-9:
+            continue
+        share = float(demand[j] / total) if total else 0.0
+        supply = float(above[:, j].mean())
+        wanted = demand[j] > 0
+        rows.append(ElementGap(
+            element=d, label=labels.get(d, d), demand=float(demand[j]), demand_share=share,
+            direction="wanted" if wanted else "avoided",
+            supply=supply, gap=abs(share) * ((1 - supply) if wanted else supply),
+            n_items_above=int(above[:, j].sum())))
+    rows.sort(key=lambda r: -r.gap)
+    return GapReport(n_sessions=len(sessions), threshold=threshold, arm=cfg.name, elements=rows)
+
+
+class CellGap(BaseModel):
+    category: str
+    color: str
+    requests: int          # how many served queries asked for this cell
+    catalog_items: int     # how many catalog items are in it
+    items_per_request: float
+    gap: float             # requests / (1 + catalog_items), the colourway-level degenerate case
+
+
+def category_color_gap(engine, cells: Sequence[tuple[str | None, str | None]],
+                       top: int = 20) -> list[CellGap]:
+    """Requested (category, colour) cells against how many items the catalog has there.
+
+    This is the crudest possible colourway view, and it is the one a manufacturer reads first:
+    "they keep asking for navy outerwear and we have four of them".
+    """
+    from collections import Counter
+
+    items = engine.catalog.items
+    counts = Counter((str(a).lower(), str(b).lower()) for a, b in cells if a and b)
+    cat_col = items["category"].astype(str).str.lower()
+    col_col = items["color"].astype(str).str.lower() if "color" in items.columns else None
+    out = []
+    for (cat, col), n in counts.most_common():
+        have = int(((cat_col == cat) & (col_col == col)).sum()) if col_col is not None else 0
+        out.append(CellGap(category=cat, color=col, requests=n, catalog_items=have,
+                           items_per_request=round(have / n, 2), gap=round(n / (1 + have), 4)))
+    out.sort(key=lambda r: -r.gap)
+    return out[:top]
+
+
 def concept_image_neighbors(engine, embedding: Sequence[float], k: int = 3,
                             mask: np.ndarray | None = None) -> list[dict[str, Any]]:
     """PRD §6.5 接回推薦: the k catalog items closest to a generated concept image.

@@ -120,6 +120,16 @@ def main() -> None:
         check(c.post("/concept-image/nearest", json={"embedding": [0.0], "k": 3}).status_code == 400,
               "a wrong embedding size is a 400, not a silent broadcast")
 
+        gap = c.get("/gap/elements", params={"arm": a.arm, "threshold": 0.5}).json()
+        save("gap_elements", gap)
+        check(gap["n_sessions"] > 0, "the gap panel counts the requests this run made")
+        check(all(0.0 <= e["supply"] <= 1.0 for e in gap["elements"]), "supply is a share in [0, 1]")
+        check(all(e["direction"] in ("wanted", "avoided") for e in gap["elements"]),
+              "wanted and avoided demand are kept apart, not averaged to zero")
+        cells = c.get("/gap/cells").json()
+        save("gap_cells", cells)
+        check("需求側" in cells["note"], "the gap panels state their denominator")
+
         tr = c.get("/trends").json()
         save("trends", tr)
         check(tr["loaded"] is bool(a.trends), "trend loading follows ENGINE02_TRENDS")
