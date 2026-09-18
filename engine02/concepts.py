@@ -86,9 +86,23 @@ def design_scores(
     return c
 
 
+def load_profile_stability(path=None) -> dict:
+    """Measured cross-presentation stability per design element (T16, §3.24).
+
+    `mean_abs_delta_z` is how far an element's z-score moves when the same garment is shot on a
+    model instead of flat. Elements above the threshold cannot be reported as fact for an uploaded
+    photo — 9.7% of elements flip sign across presentations of the identical garment.
+    """
+    import json
+    from pathlib import Path as _Path
+
+    f = _Path(path) if path else _Path(__file__).with_name("resources") / "profile_stability_v1.json"
+    return json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+
+
 def element_profile(encoder: Encoder, catalog_emb: np.ndarray, emb: np.ndarray, table: KanseiTable,
                     mode: str = "antonym", temperature: float = 0.01,
-                    prompt_cache: dict | None = None) -> list[dict]:
+                    prompt_cache: dict | None = None, stability: dict | None = None) -> list[dict]:
     """Where one image sits on each design-element axis, **relative to this catalog**.
 
     Same prompts and same formula as :func:`design_scores`, but for a single embedding (an uploaded
@@ -139,8 +153,16 @@ def element_profile(encoder: Encoder, catalog_emb: np.ndarray, emb: np.ndarray, 
                                         np.sort(r_cat))
         mean, sd, sorted_cat = stats
         r_img = float(raw(img)[0])
-        out.append(dict(element=el.id, label=el.label, z=round((r_img - mean) / sd, 3),
-                        percentile=round(float(np.searchsorted(sorted_cat, r_img) / len(sorted_cat)), 3)))
+        row = dict(element=el.id, label=el.label, z=round((r_img - mean) / sd, 3),
+                   percentile=round(float(np.searchsorted(sorted_cat, r_img) / len(sorted_cat)), 3))
+        if stability:
+            deltas = stability.get("mean_abs_delta_z", {})
+            thr = float(stability.get("reliable_threshold_abs_delta_z", 0.4))
+            d_z = deltas.get(el.id)
+            row["stability_abs_delta_z"] = d_z
+            # unknown stability is not the same as stable: say so rather than implying confidence
+            row["reliable"] = None if d_z is None else bool(d_z <= thr)
+        out.append(row)
     out.sort(key=lambda d: -abs(d["z"]))
     return out
 

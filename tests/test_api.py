@@ -202,3 +202,33 @@ def test_visual_search_normalises_real_world_uploads(monkeypatch, tmp_path):
         with TestClient(api.app) as c2:
             assert c2.post("/visual-search", json={"image_base64": b64(wide)}).status_code == 413
     monkeypatch.delenv("ENGINE02_MAX_UPLOAD_MB")
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
+def test_visual_search_marks_unreliable_elements(monkeypatch, tmp_path):
+    """T16 measured that ~1 in 10 elements flips sign between presentations of the same garment,
+    so the unstable ones must be labelled rather than reported as fact."""
+    import base64
+
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    from fastapi.testclient import TestClient
+    from PIL import Image
+
+    from engine02.api import app
+    from engine02.concepts import load_profile_stability
+
+    stab = load_profile_stability()
+    assert stab and stab["mean_abs_delta_z"], "the measured stability table must ship with the package"
+
+    img = tmp_path / "s.png"
+    Image.new("RGB", (48, 48), (90, 90, 120)).save(img)
+    with TestClient(app) as client:
+        d = client.post("/visual-search",
+                        json={"image_base64": base64.b64encode(img.read_bytes()).decode()}).json()
+        prof = {p["element"]: p for p in d["profile"]}
+        # fit and sheen were the least stable elements; dark tone was the most stable
+        assert prof["relaxed_fit"]["reliable"] is False
+        assert prof["dark_tone"]["reliable"] is True
+        assert all(p["stability_abs_delta_z"] is not None for p in d["profile"])
+        assert "profile_caveat" in d and "正負反轉" in d["profile_caveat"]

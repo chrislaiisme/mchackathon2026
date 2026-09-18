@@ -408,12 +408,19 @@ def visual_search(body: VisualSearchRequest) -> dict:
 
     out: dict = {"encoder": e.encoder.name, "arm": arm}
     if body.profile:
-        from .concepts import element_profile
+        from .concepts import element_profile, load_profile_stability
 
         cache = STATE.setdefault("prompt_cache", {})
-        out["profile"] = element_profile(e.encoder, e.image_emb, vec, e.kansei,
-                                         mode=ARMS[arm].concept_mode, prompt_cache=cache)
+        stab = STATE.setdefault("profile_stability", load_profile_stability())
+        prof = element_profile(e.encoder, e.image_emb, vec, e.kansei,
+                               mode=ARMS[arm].concept_mode, prompt_cache=cache, stability=stab)
+        out["profile"] = prof
+        shaky = [p["label"] for p in prof if p.get("reliable") is False]
         out["profile_note"] = "z 與百分位都是相對於本商品庫，和卡片上的設計要素用同一把尺"
+        if shaky:
+            out["profile_caveat"] = (
+                "下列要素在『同一件衣服、不同拍攝方式』下不穩定（T16 實測平均 |Δz| > 0.4，"
+                f"整體有 9.7% 的要素會正負反轉），只當參考不要當事實：{'、'.join(shaky)}")
     req = Engine02Request(session_id="visual", retrieval_text=body.retrieval_text,
                           constraints=HardConstraints(**body.constraints) if body.constraints else HardConstraints(),
                           options=Engine02Options(top_k=body.top_k, explain_with_llm=False))
