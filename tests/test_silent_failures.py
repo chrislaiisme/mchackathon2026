@@ -73,3 +73,22 @@ def test_visual_search_malformed_constraints_is_422_not_500(client):
                                             "constraints": {"category": {"state": "maybe"}}})
     assert r.status_code == 422, r.status_code
     assert "constraints" in str(r.json()).lower()
+
+
+def test_facets_do_not_change_the_ranking(client):
+    """The facet panel is a reading of the list, never a reordering of it."""
+    body = {"session_id": "t", "retrieval_text": "a shirt for an interview", "options": {"top_k": 50}}
+    ranked = [it["item_id"] for it in client.post("/rank", json=body).json()["items"]]
+    f = client.post("/facets", json={"request": body, "n_pool": 50}).json()
+    assert f["n_ranked"] == len(ranked)
+    panel = f["facets"]
+    grouped = [i for g in panel["groups"] for i in g["item_ids"]]
+    # every ranked item lands in exactly one group, and no item is invented
+    assert sorted(grouped) == sorted(ranked)
+    # and the ranking itself is untouched by having asked for facets
+    assert [it["item_id"] for it in client.post("/rank", json=body).json()["items"]] == ranked
+    assert panel["groups"] and panel["axis"]
+    # groups are ordered along the axis, and each is a real group
+    means = [g["mean_z"] for g in panel["groups"]]
+    assert means == sorted(means)
+    assert all(g["n"] >= 1 for g in panel["groups"])

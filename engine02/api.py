@@ -406,6 +406,38 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+class FacetRequest(BaseModel):
+    """Read one ranking three ways. The ranking itself is untouched."""
+
+    request: Engine02Request
+    n_pool: int = 50      # how many ranked items to slice (the cards shown stay request.options.top_k)
+    n_groups: int = 3
+    examples: int = 2
+
+
+@app.post("/facets")
+def facets(body: FacetRequest) -> dict:
+    """Named facets over the SAME ranking: "your sentence reads three ways, here is the axis".
+
+    Inspired by GenFacet (SIGIR 2026, shipped at JD.com, facet CTR +42.0% relative online), but
+    deliberately not its method: our facets are not generated, they are the design-element axes of
+    §3.3 that already have AUROC evidence behind them. This is a panel, never a reranker — the
+    order, the scores and every contribution are exactly what /rank returns, so no retrieval
+    number in docs/engine02-design.md changes and the facet cannot misdescribe the score.
+    """
+    from .panels import facet_slices
+
+    req = body.request.model_copy(deep=True)
+    req.options.top_k = max(body.n_pool, req.options.top_k)
+    req.options.explain_with_llm = False           # a panel never pays for wording
+    resp = rank(req)
+    arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
+    panel = facet_slices(engine(), arm, [it.item_id for it in resp.items],
+                         [it.score for it in resp.items], n_groups=body.n_groups,
+                         examples=body.examples)
+    return {"arm": arm, "n_ranked": len(resp.items), "facets": panel.model_dump()}
+
+
 class VisualSearchRequest(BaseModel):
     """A photo the customer or the brand hands over. base64 so no multipart dependency is needed."""
 

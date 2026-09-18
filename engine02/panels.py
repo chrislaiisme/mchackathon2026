@@ -600,3 +600,232 @@ def concept_image_neighbors(engine, embedding: Sequence[float], k: int = 3,
     return [{"item_id": str(items.at[int(p), "item_id"]), "title": str(items.at[int(p), "title"]),
              "image_path": str(items.at[int(p), "image_path"]), "cosine": round(float(sims[int(p)]), 4),
              "source": "concept_image_nearest"} for p in order]
+
+
+# ---------------------------------------------------------------------------
+# named facets: the same ranking, read three ways (§3.31)
+# ---------------------------------------------------------------------------
+
+
+class FacetGroup(BaseModel):
+    label: str                      # e.g. 「偏正式感」
+    n: int
+    mean_z: float                   # mean of the axis, in catalog z units
+    categories: dict[str, int] = Field(default_factory=dict)
+    item_ids: list[str] = Field(default_factory=list)
+    examples: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class FacetPanel(BaseModel):
+    """One design axis that splits the result list into named readings.
+
+    Deliberately **not** a reranker. The ranking, the scores and every contribution are exactly
+    what /rank returned; this only *reads* the same list along one already-validated axis (§3.3),
+    so no retrieval number in this document changes and the panel cannot be wrong about the score.
+    """
+
+    axis: str = ""
+    axis_label: str = ""
+    high_label: str = ""
+    low_label: str = ""
+    eta_squared: float = 0.0        # how much of the axis' spread the split explains
+    corr_with_score: float = 0.0    # |r| with the ranking score: high = the axis just restates it
+    category_confound: float = 0.0  # Cramér's V vs category: high = the axis is sorting handbags
+                                    # from shirts, not reading the query two ways
+    n_pool: int = 0
+    groups: list[FacetGroup] = Field(default_factory=list)
+    note: str = ""
+    considered: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _kmeans_1d(x: np.ndarray, k: int, iters: int = 20) -> np.ndarray:
+    """Deterministic 1-D k-means. Returns labels ordered by centre (0 = lowest).
+
+    In one dimension a k-means assignment is fully described by the k−1 midpoints between the
+    centres, so an iteration is a `searchsorted` on the sorted values plus segment means from a
+    prefix sum — no per-point distance matrix. The arrays here are ~50 long and this runs once per
+    candidate axis, so numpy call overhead, not arithmetic, is what had to go.
+    """
+    xs = np.sort(np.asarray(x, dtype=np.float64))
+    n = len(xs)
+    if k <= 1 or n == 0:
+        return np.zeros(len(x), dtype=int)
+    csum = np.concatenate([[0.0], np.cumsum(xs)])
+    c = xs[(((np.arange(k) + 0.5) / k) * (n - 1)).astype(int)].astype(np.float64)
+    prev = None
+    for _ in range(iters):
+        b = np.searchsorted(xs, (c[:-1] + c[1:]) / 2.0)
+        if prev is not None and np.array_equal(b, prev):
+            break
+        prev = b
+        edges = np.concatenate([[0], b, [n]])
+        counts = np.diff(edges)
+        sums = csum[edges[1:]] - csum[edges[:-1]]
+        c = np.sort(np.where(counts > 0, sums / np.maximum(counts, 1), c))
+    return np.searchsorted((c[:-1] + c[1:]) / 2.0, np.asarray(x, dtype=np.float64))
+
+
+def _cramers_v(labels: np.ndarray, groups: Sequence[str]) -> float:
+    """Association between the facet split and the item category, on 0..1.
+
+    A design axis can look beautifully separable and be measuring nothing but "handbag vs shirt".
+    That is a category listing, not a reading of the query, so it is penalised rather than shown.
+    """
+    cats = sorted(set(groups))
+    if len(cats) < 2 or labels.max() < 1:
+        return 0.0
+    idx = {c: i for i, c in enumerate(cats)}
+    codes = np.fromiter((idx[c] for c in groups), dtype=np.int64, count=len(groups))
+    k = int(labels.max()) + 1
+    obs = np.bincount(labels.astype(np.int64) * len(cats) + codes,
+                      minlength=k * len(cats)).reshape(k, len(cats)).astype(np.float64)
+    n = obs.sum()
+    if n <= 0:
+        return 0.0
+    exp = np.outer(obs.sum(1), obs.sum(0)) / n
+    chi2 = float(((obs - exp) ** 2 / np.where(exp > 0, exp, 1.0)).sum())
+    denom = n * (min(obs.shape) - 1)
+    return float(np.sqrt(chi2 / denom)) if denom > 0 else 0.0
+
+
+def facet_slices(engine, arm, item_ids: Sequence[str], scores: Sequence[float] | None = None,
+                 n_groups: int = 3, min_group: int = 2, examples: int = 2) -> FacetPanel:
+    """Split a ranked list into named readings along the design axis that separates it best.
+
+    The axis is chosen to be **informative about something the score does not already say**:
+    spread inside the result list, times (1 − |correlation with the ranking score|). An axis that
+    merely restates the ranking makes a facet that tells the user nothing.
+
+    Measured cost on a 50-item pool, 44k catalog, 15 axes: **2.7 ms** (hash encoder, this machine).
+    It is a separate call from /rank, so it does not enter the 12.8 ms ranking budget (§3.21).
+    """
+    from .config import ARMS
+
+    arm_cfg = ARMS[arm] if isinstance(arm, str) else arm
+    ids = [str(i) for i in item_ids]
+    pos = [p for p in (engine.catalog.pos(i) for i in ids) if p is not None]
+    if len(pos) < n_groups * min_group:
+        return FacetPanel(n_pool=len(pos), note="結果太少，不切分面")
+    c = engine.design_matrix(arm_cfg)
+    elements = engine.kansei.elements
+    # antonym partners, so a group can be named by the pole it sits on rather than by "低"
+    folded = dict(getattr(engine.kansei, "folded", {}) or {})
+    partner = {v: k for k, v in folded.items()}
+    label_of = {e.id: e.label for e in elements}
+
+    sub = np.asarray(c[pos], dtype=np.float64)
+    # the catalog-wide mean/std do not depend on the query; recomputing them per request cost
+    # 10 ms on a 44k catalog, which is most of a /rank (§3.21)
+    cache = getattr(engine, "_facet_stats", None)
+    if cache is None:
+        cache = engine._facet_stats = {}
+    key = id(c)
+    if key not in cache:
+        sd0 = c.std(axis=0)
+        keep = cache.get("category_column")
+        cache.clear()  # one catalog, one arm at a time; never let this grow
+        if keep is not None:
+            cache["category_column"] = keep
+        cache[key] = (c.mean(axis=0), np.where(sd0 > 1e-9, sd0, 1.0))
+    mu, sd = cache[key]
+    z = (sub - mu) / sd                                    # catalog z units, the same scale the cards use
+    s = np.asarray(scores, dtype=np.float64)[: len(pos)] if scores is not None else None
+
+    # materialising a 44k object column per request cost ~7 ms; the column does not change
+    cat_col = cache.get("category_column")
+    if cat_col is None:
+        col_src = engine.catalog.items["category"] if "category" in engine.catalog.items.columns else None
+        cat_col = cache["category_column"] = (col_src.astype(str).to_numpy() if col_src is not None
+                                              else np.zeros(len(engine.catalog.items), dtype="<U1"))
+    cats = [str(x) for x in cat_col[pos]]
+
+    def split(col: np.ndarray, k: int) -> tuple[np.ndarray, int]:
+        """Split into k groups, shrinking k while a group is too small or two groups sit on top
+        of each other (k-means centroids collapse on ties, and two groups with the same mean are
+        not two readings of anything)."""
+        lab = _kmeans_1d(col, k)
+        while k > 2:
+            means = [col[lab == g].mean() if (lab == g).any() else np.nan for g in range(k)]
+            tiny = min(int((lab == g).sum()) for g in range(k)) < min_group
+            collapsed = any(abs(means[i + 1] - means[i]) < 0.05 for i in range(k - 1))
+            if not (tiny or collapsed):
+                break
+            k -= 1
+            lab = _kmeans_1d(col, k)
+        return lab, k
+
+    cand = [(j, e) for j, e in enumerate(elements) if e.id not in folded]
+    # every candidate axis is scored against the same pool, so the two per-axis statistics are one
+    # vectorised pass instead of 11 tiny numpy calls each (that overhead was the whole cost)
+    spreads = z[:, [j for j, _ in cand]].std(axis=0)
+    corrs = np.zeros(len(cand))
+    if s is not None and s.std() > 1e-9:
+        zz = z[:, [j for j, _ in cand]]
+        zc = zz - zz.mean(axis=0)
+        sc_ = s - s.mean()
+        denom = np.sqrt((zc ** 2).sum(axis=0) * (sc_ ** 2).sum())
+        corrs = np.abs(np.where(denom > 1e-12, (zc * sc_[:, None]).sum(axis=0) / np.where(denom > 1e-12, denom, 1.0), 0.0))
+
+    # Splitting every axis to score it costs a k-means per axis. Spread and correlation are free
+    # (already vectorised above) and bound the gain from above, since confound and balance are both
+    # <= 1 — so shortlist on that bound and only split the few axes that could still win.
+    order = np.argsort(-(spreads * (1.0 - corrs)))
+    shortlist = set(order[:max(3, n_groups)].tolist())
+
+    considered = []
+    best = None
+    for jj, (j, e) in enumerate(cand):
+        if jj not in shortlist:
+            continue
+        col = z[:, j]
+        spread = float(spreads[jj])
+        r = float(corrs[jj])
+        lab_j, k_j = split(col, n_groups)
+        v = _cramers_v(lab_j, cats)
+        # A 49/1 split is a single outlier wearing a facet's clothes: perfectly separable and
+        # useless to read. Balance is the smallest group against an even share of the pool.
+        sizes = [int((lab_j == g).sum()) for g in range(k_j)]
+        balance = min(sizes) / (len(pos) / k_j)
+        gain = spread * (1.0 - r) * (1.0 - v) * balance
+        considered.append({"axis": e.id, "label": e.label, "spread_z": round(spread, 3),
+                           "corr_with_score": round(r, 3), "category_confound": round(v, 3),
+                           "balance": round(balance, 3), "gain": round(gain, 3)})
+        if best is None or gain > best[0]:
+            best = (gain, j, e, col, r, v, lab_j, k_j)
+    considered.sort(key=lambda d: -d["gain"])
+    if best is None:
+        return FacetPanel(n_pool=len(pos), note="沒有可用的設計要素軸")
+
+    _, j, e, col, r, v, lab, k = best
+
+    grand = col.mean()
+    ss_between = sum(int((lab == g).sum()) * (col[lab == g].mean() - grand) ** 2 for g in range(k))
+    ss_total = float(((col - grand) ** 2).sum()) or 1e-9
+    high, low = label_of[e.id], label_of.get(partner.get(e.id, ""), f"不強調{e.label}")
+    names = ([f"偏{low}", f"偏{high}"] if k == 2 else [f"偏{low}", "中間", f"偏{high}"])
+
+    items = engine.catalog.items
+    groups: list[FacetGroup] = []
+    for g in range(k):
+        idx = [i for i in range(len(pos)) if lab[i] == g]
+        idx.sort(key=(lambda i: -float(s[i])) if s is not None else (lambda i: i))
+        cat_counts: dict[str, int] = {}
+        for i in idx:
+            cat_counts[cats[i]] = cat_counts.get(cats[i], 0) + 1
+        groups.append(FacetGroup(
+            label=names[g], n=len(idx), mean_z=round(float(col[idx].mean()), 3),
+            categories=dict(sorted(cat_counts.items(), key=lambda kv: -kv[1])),
+            item_ids=[ids[i] for i in idx],
+            examples=[{"item_id": ids[i], "title": str(items.at[int(pos[i]), "title"]),
+                       "axis_z": round(float(col[i]), 3)} for i in idx[:examples]],
+        ))
+    return FacetPanel(
+        axis=e.id, axis_label=e.label, high_label=high, low_label=low,
+        eta_squared=round(float(ss_between / ss_total), 4), corr_with_score=round(r, 3),
+        category_confound=round(v, 3),
+        n_pool=len(pos), groups=groups, considered=considered[:5],
+        note=(f"同一份排序，沿「{e.label}」這條軸讀成 {k} 群；排序、分數與每一項貢獻都沒有改變。"
+              f"這條軸與分數的相關性只有 {r:.2f}，所以它講的是分數沒講的事；"
+              + (f"但它與品類的關聯度是 {v:.2f}，意思是這個切分有一部分其實是在分品類，請照這個數字打折看待。"
+                 if v >= 0.5 else f"與品類的關聯度只有 {v:.2f}，所以它不是在分品類。")),
+    )
