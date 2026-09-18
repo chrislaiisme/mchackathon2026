@@ -20,7 +20,7 @@
 
 不需要 client secret、不需要 server-side redirect callback，因為全程只驗證前端拿到的 ID token。Google Cloud Console 那邊要建什麼、怎麼建，見根目錄 [CLAUDE.md](../CLAUDE.md) 的「Google OAuth Client ID」。
 
-**已用真實 Google 帳號完整測過一輪**（不是只測 bypass）：一個放在本機暫存資料夾（不在 repo 裡）的測試頁，載入 Google Identity Services 的官方按鈕，登入成功後把 `credential` 丟給 `POST /auth/google`，正確拿回 `session_token`＋`profile`，後續 `/intent` 呼叫帶著 `Authorization: Bearer` header 也正常運作。這個測試頁目前還沒決定要不要正式收進 repo（見下面「目前進度與待辦事項」）。
+**已用真實 Google 帳號完整測過一輪**（不是只測 bypass）：[`scripts/engine01-test-page/`](../scripts/engine01-test-page/) 這個非正式測試頁，載入 Google Identity Services 的官方按鈕，登入成功後把 `credential` 丟給 `POST /auth/google`，正確拿回 `session_token`＋`profile`，後續 `/intent` 呼叫帶著 `Authorization: Bearer` header 也正常運作。也能在同一個 session 裡點澄清問題的選項卡片，正確累加進同一組意圖。
 
 **開發方便用**：`.env` 裡 `DEV_BYPASS_AUTH=true` 時，`get_current_user()` 直接回傳一個固定的本機測試使用者，不用每次真的跑 Google 登入流程也能測 `/intent`／`/profile`。預設關閉，**demo 現場絕對不能開著**。
 
@@ -77,6 +77,7 @@
 - Google 登入全流程（後端邏輯＋真實帳號端到端測過，非僅 bypass）、`GET`/`PUT /profile` 偏好調查。
 - `.env` 自動載入、CORS 設定（原本這兩個是漏掉的，靠 VS Code 提示才抓到，見 git log）。
 - 離線測試骨架，目前 10 句起始集。
+- [`scripts/engine01-test-page/`](../scripts/engine01-test-page/)——已經正式收進 repo 的測試頁，任何人 clone 下來都能用它驗證 ENGINE01（含真實 Google 登入）。
 
 **還沒做，依優先度大致排序**：
 1. **測試句擴充到 30–50 句**，實際跑一次 `test_accuracy.py` 拿到真正的準確率數字，放進簡報／README。

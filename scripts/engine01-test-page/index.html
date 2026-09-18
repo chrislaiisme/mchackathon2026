@@ -1,0 +1,281 @@
+<!--
+  ENGINE01 非正式測試頁 —— 不是正式前端，純粹拿來驗證後端邏輯／登入流程用。
+  正式的聊天介面是團隊另一條「前端」線（React + Vite），這個頁面不取代它。
+
+  怎麼跑：
+    1. 後端要先啟動：uvicorn backend.engine01_intent.main:app --host 127.0.0.1 --port 8000
+    2. 這個資料夾要用靜態伺服器跑在 5173 port（要跟 .env 的 CORS_ALLOWED_ORIGINS、
+       Google OAuth Client ID 的 Authorized JavaScript origins 一致）：
+           cd scripts/engine01-test-page
+           python -m http.server 5173
+    3. 瀏覽器開 http://localhost:5173，用 Google 帳號登入（.env 的 DEV_BYPASS_AUTH
+       設 false 才會真的要求登入；設 true 會直接當本機測試帳號跳過登入）。
+-->
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>ENGINE01 測試頁（非正式前端）</title>
+<style>
+  body { font-family: -apple-system, "Noto Sans TC", sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #1e293b; }
+  h1 { font-size: 20px; }
+  .badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 12px; padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
+  #composer { display: flex; gap: 8px; margin: 16px 0; }
+  #message { flex: 1; padding: 10px 12px; font-size: 15px; border: 1px solid #cbd5e1; border-radius: 8px; }
+  button { padding: 10px 16px; font-size: 15px; border: none; border-radius: 8px; background: #2563eb; color: white; cursor: pointer; }
+  button:disabled { background: #94a3b8; cursor: default; }
+  .round { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .round h3 { margin: 0 0 8px; font-size: 14px; color: #64748b; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  td:first-child { color: #64748b; width: 110px; }
+  .inferred { background: #fef9c3; }
+  .inferred-tag { font-size: 11px; color: #a16207; margin-left: 6px; }
+  .questions { margin-top: 12px; }
+  .q { background: #f8fafc; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
+  .q .opts { margin-top: 6px; }
+  .q .opt { display: inline-block; background: #e2e8f0; border: none; border-radius: 999px; padding: 4px 12px; margin: 2px 4px 2px 0; font-size: 13px; cursor: pointer; color: #1e293b; }
+  .q .opt:hover:not(:disabled) { background: #cbd5e1; }
+  .q .opt:disabled { cursor: default; opacity: 0.6; }
+  .q .opt.freetext { background: transparent; border: 1px dashed #94a3b8; color: #64748b; }
+  #status { color: #64748b; font-size: 13px; min-height: 18px; }
+  #mic { background: #16a34a; }
+  #mic.recording { background: #dc2626; }
+  #login-box { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  #who { font-size: 14px; color: #166534; display: none; align-items: center; gap: 8px; margin: 16px 0; }
+  #who img { width: 28px; height: 28px; border-radius: 50%; }
+  #composer, #status, #rounds { display: none; }
+</style>
+</head>
+<body>
+  <h1>ENGINE01 測試頁 <span class="badge">非正式前端，僅供測試</span></h1>
+  <p style="color:#64748b; font-size:14px;">
+    打一句話進去，看 ENGINE01 抽出來的結構化意圖。黃底欄位＝系統推斷（不是你說的）。
+    每次呼叫用的是 <code>codex exec</code>，正常會等 8–17 秒，不是卡住。
+  </p>
+
+  <div id="login-box">
+    <p style="margin-top:0; font-size:14px;">必須先用 Google 登入才能用 <code>/intent</code>（DEV_BYPASS_AUTH 已關閉，這是真實登入流程）。</p>
+    <div id="g_id_button"></div>
+  </div>
+  <div id="who"></div>
+
+  <div id="composer">
+    <input id="message" placeholder="例如：我想要一件簡約風格的黑色外套" />
+    <button id="mic" title="語音輸入（Web Speech API，僅供這個測試頁方便用，不是正式功能）">🎤</button>
+    <button id="send">送出</button>
+  </div>
+  <div id="status"></div>
+
+  <div id="rounds"></div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    // 後端服務網址，本機開發固定是這個。
+    const API_BASE = "http://127.0.0.1:8000";
+    // 這組 Client ID 要跟後端 .env 的 GOOGLE_CLIENT_ID 一致，才能通過驗證；
+    // Client ID 本身不是密鑰，公開寫在前端程式碼裡是正常做法，Google 那邊是靠
+    // 「Authorized JavaScript origins」限制哪些網址可以用它完成登入。
+    const GOOGLE_CLIENT_ID = "150603794752-hllffi1mgqqpkqc5mv2ibfnok792afq6.apps.googleusercontent.com";
+    let sessionId = null;
+    let sessionToken = null;
+
+    // 登入成功後把登入框藏起來、換成「已登入：xxx」，並且把原本隱藏的
+    // 輸入框／對話紀錄區塊顯示出來——登入前這些都是看不到、也用不了的。
+    function showLoggedIn(profile) {
+      document.getElementById("login-box").style.display = "none";
+      const who = document.getElementById("who");
+      who.style.display = "flex";
+      who.innerHTML = `
+        ${profile.picture ? `<img src="${profile.picture}" alt="" />` : ""}
+        <span>已登入：${profile.name || profile.email}（${profile.email}）</span>
+      `;
+      document.getElementById("composer").style.display = "flex";
+      document.getElementById("status").style.display = "block";
+      document.getElementById("rounds").style.display = "block";
+    }
+
+    // Google 登入按鈕點下去、選完帳號之後，Google 會呼叫這個函式，
+    // response.credential 就是拿去給後端驗證的 ID token。
+    async function handleCredentialResponse(response) {
+      const status = document.getElementById("status");
+      status.style.display = "block";
+      status.textContent = "驗證 Google 登入中……";
+      try {
+        const res = await fetch(`${API_BASE}/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token: response.credential }),
+        });
+        if (!res.ok) {
+          status.textContent = `登入失敗：HTTP ${res.status} — ${await res.text()}`;
+          return;
+        }
+        const data = await res.json();
+        // 後端驗證通過後會回傳自己簽的 session_token，之後每次呼叫 /intent
+        // 都要帶這個 token，不是繼續用 Google 的 ID token。
+        sessionToken = data.session_token;
+        status.textContent = "";
+        showLoggedIn(data.profile);
+      } catch (err) {
+        status.textContent = "連不到後端的 /auth/google（" + err + "）";
+      }
+    }
+
+    // 頁面載入後初始化 Google Identity Services，畫出官方的登入按鈕。
+    window.addEventListener("load", () => {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleCredentialResponse,
+      });
+      google.accounts.id.renderButton(document.getElementById("g_id_button"), {
+        theme: "outline",
+        size: "large",
+        text: "signin_with",
+      });
+    });
+
+    // Intent 欄位的中文顯示名稱，key 要跟 backend/shared/schemas.py 的 Intent
+    // 欄位名稱一致。
+    const fieldLabels = {
+      item_type: "品項", colors: "顏色", occasion: "場合",
+      budget_min: "預算下限", budget_max: "預算上限", style_keywords: "風格關鍵字",
+      material: "材質", season: "季節", fit: "版型", pattern: "圖案",
+      collar: "領子", notes: "備註",
+    };
+
+    // 把後端回傳的 intent 物件畫成一個表格，只顯示有值的欄位；
+    // inferred_fields 有列到的欄位會加黃底＋「系統推斷」標籤，跟使用者原話分開。
+    function renderIntent(intent) {
+      const inferred = new Set(intent.inferred_fields || []);
+      const rows = Object.keys(fieldLabels).map((key) => {
+        let val = intent[key];
+        if (val === null || val === undefined || (Array.isArray(val) && val.length === 0)) return "";
+        if (Array.isArray(val)) val = val.join("、");
+        const cls = inferred.has(key) ? "inferred" : "";
+        const tag = inferred.has(key) ? '<span class="inferred-tag">系統推斷</span>' : "";
+        return `<tr class="${cls}"><td>${fieldLabels[key]}</td><td>${val}${tag}</td></tr>`;
+      }).join("");
+      return `<table>${rows || '<tr><td colspan="2" style="color:#94a3b8">（目前還沒有任何欄位）</td></tr>'}</table>`;
+    }
+
+    // 把澄清問題畫成可以點擊的選項卡片；每個選項是一個按鈕，
+    // 「自由輸入」是另一個特殊按鈕，點了只是把游標移到輸入框，不會直接送出。
+    function renderQuestions(questions) {
+      if (!questions || questions.length === 0) return "";
+      const items = questions.map((q) => {
+        const opts = q.options
+          .map((o) => `<button type="button" class="opt" data-text="${o.label}">${o.label}</button>`)
+          .join("");
+        const freeText = q.allow_free_text
+          ? '<button type="button" class="opt freetext" data-focus-only="1">（自由輸入…）</button>'
+          : "";
+        return `<div class="q"><strong>${q.question}</strong><div class="opts">${opts}${freeText}</div></div>`;
+      }).join("");
+      return `<div class="questions">${items}</div>`;
+    }
+
+    // Clicking an option sends it as the next round's message (so you can
+    // actually walk through the clarifying-question loop, not just look at
+    // it). The free-text chip just focuses the input instead.
+    // （點擊事件掛在 #rounds 這個容器上，用「事件委派」的寫法，這樣就算
+    // 選項按鈕是之後動態產生的，也不用每次重新綁定事件。）
+    document.getElementById("rounds").addEventListener("click", (e) => {
+      const btn = e.target.closest(".opt");
+      if (!btn) return;
+      if (btn.dataset.focusOnly) {
+        document.getElementById("message").focus();
+        return;
+      }
+      send(btn.dataset.text);
+    });
+
+    // 送出一句話給 /intent：overrideText 有值就用它（點選項時走這條），
+    // 沒有就讀輸入框目前的內容（打字送出走這條）。
+    async function send(overrideText) {
+      const input = document.getElementById("message");
+      const message = (overrideText ?? input.value).trim();
+      if (!message) return;
+      const sendBtn = document.getElementById("send");
+      const status = document.getElementById("status");
+      sendBtn.disabled = true;
+      document.querySelectorAll(".opt").forEach((b) => (b.disabled = true));
+      status.textContent = "呼叫 codex exec 中，通常要等 8–17 秒……";
+
+      try {
+        const res = await fetch(`${API_BASE}/intent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // 登入完才會有 sessionToken；DEV_BYPASS_AUTH=true 時沒登入也能用，
+            // 這裡就不會帶這個 header，後端會走 bypass 邏輯。
+            ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+          },
+          body: JSON.stringify({ session_id: sessionId, message }),
+        });
+        if (!res.ok) {
+          status.textContent = `錯誤：HTTP ${res.status} — ${await res.text()}`;
+          return;
+        }
+        const data = await res.json();
+        // 記住這次回傳的 session_id，下一輪對話才會接續同一個 session，
+        // 而不是每次都開新的。
+        sessionId = data.session_id;
+        status.textContent = "";
+        input.value = "";
+
+        const block = document.createElement("div");
+        block.className = "round";
+        block.innerHTML = `
+          <h3>第 ${data.round} 輪 · 你說：「${message}」</h3>
+          ${renderIntent(data.intent)}
+          ${renderQuestions(data.clarifying_questions)}
+        `;
+        // 新的一輪插在最上面，最新的結果永遠在畫面最上方最先看到。
+        document.getElementById("rounds").prepend(block);
+      } catch (err) {
+        status.textContent = "連不到後端，確認 uvicorn 有跑在 " + API_BASE + "（" + err + "）";
+      } finally {
+        sendBtn.disabled = false;
+        document.querySelectorAll(".opt").forEach((b) => (b.disabled = false));
+      }
+    }
+
+    document.getElementById("send").addEventListener("click", () => send());
+    document.getElementById("message").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") send();
+    });
+
+    // Voice input via the browser's native Web Speech API -- this is purely a
+    // convenience for using this test page, not a stand-in for the real
+    // frontend's voice feature. Only works in Chromium-based browsers.
+    // （語音輸入純粹方便自己測試打字用，跟正式前端的語音功能無關，
+    // 只有 Chromium 系瀏覽器支援，不支援就把麥克風按鈕直接disable掉。）
+    const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const micBtn = document.getElementById("mic");
+    if (!SpeechRecognitionImpl) {
+      micBtn.disabled = true;
+      micBtn.title = "這個瀏覽器不支援 Web Speech API";
+    } else {
+      const recognition = new SpeechRecognitionImpl();
+      recognition.lang = "zh-TW";
+      recognition.interimResults = false;
+
+      recognition.addEventListener("result", (e) => {
+        document.getElementById("message").value = e.results[0][0].transcript;
+      });
+      recognition.addEventListener("end", () => micBtn.classList.remove("recording"));
+      recognition.addEventListener("error", () => micBtn.classList.remove("recording"));
+
+      micBtn.addEventListener("click", () => {
+        if (micBtn.classList.contains("recording")) {
+          recognition.stop();
+        } else {
+          micBtn.classList.add("recording");
+          recognition.start();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
