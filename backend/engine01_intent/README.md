@@ -42,6 +42,48 @@ curl -X POST http://127.0.0.1:8000/intent \
 
 `DEV_BYPASS_AUTH` 關掉之後，要先用真的 Google 登入拿 session token（前端會處理這步；手動測試的話要自己組一個 Google ID token 丟給 `POST /auth/google`），再把回傳的 `session_token` 帶進 `Authorization: Bearer <token>` header。
 
+## 在 VS Code Terminal（PowerShell）測試
+
+VS Code 預設終端機是 PowerShell，指令跟上面的 bash 版本不太一樣，整理一份對照給自己用。不用 activate 虛擬環境，直接呼叫 `.venv` 裡的 python／uvicorn 最省事，也不會遇到 PowerShell 「不能執行指令碼」的權限問題。
+
+**啟動後端**（這個 terminal 分頁的視窗會一直顯示 log、卡住不能再打其他指令，這是正常的，不要關掉；要測試的話另外開一個新分頁——VS Code 左上角「+」或 `Ctrl+Shift+5`）：
+
+```powershell
+cd "C:\Users\Celestine\OneDrive\桌面\Hackathon"
+.venv\Scripts\python -m uvicorn backend.engine01_intent.main:app --reload
+```
+
+**在另一個分頁測試端點**：
+
+```powershell
+# 健康檢查
+Invoke-RestMethod http://127.0.0.1:8000/health
+
+# 打 /intent（先確定 .env 的 DEV_BYPASS_AUTH=true，不然要先登入才有 token；
+# 這行會真的打 codex exec，等 8–17 秒是正常的）
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/intent -ContentType "application/json" -Body '{"message": "我想要件簡約風格的黑色外套"}'
+```
+
+**跑離線準確率測試**：
+
+```powershell
+.venv\Scripts\python -m backend.engine01_intent.tests.test_accuracy
+```
+
+**開 [`scripts/engine01-test-page/`](../../scripts/engine01-test-page/) 測試頁**（要兩個 terminal 分頁同時跑）：
+
+```powershell
+# 分頁 1：跑上面「啟動後端」那組指令
+
+# 分頁 2：
+cd "C:\Users\Celestine\OneDrive\桌面\Hackathon\scripts\engine01-test-page"
+python -m http.server 5173
+```
+
+然後瀏覽器開 `http://localhost:5173`。
+
+**停掉一個正在跑的服務**：滑鼠點到那個 terminal 分頁，按 `Ctrl+C`。
+
 ## 檔案說明
 
 - `main.py` — FastAPI app，`POST /intent`、`POST /auth/google`、`GET /profile`、`PUT /profile`。
