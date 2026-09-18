@@ -118,10 +118,32 @@ def main() -> None:
                     r_at_10=round(float((ranks <= 10).mean()), 4),
                     mrr=round(float((1.0 / ranks).mean()), 4), median_rank=int(np.median(ranks)))
 
+    def evaluate_subset(query_pos: list[int], target_rows: list[int], label: str) -> dict:
+        """Same as evaluate(), but only over a subset of garments (the index stays the full set)."""
+        q = emb[np.array(query_pos)]
+        q = q / (np.linalg.norm(q, axis=1, keepdims=True) + 1e-12)
+        sims = q @ flat_emb.T
+        order = np.argsort(-sims, axis=1)
+        ranks = np.array([int(np.where(order[i] == target_rows[i])[0][0]) + 1 for i in range(len(target_rows))])
+        return dict(query=label, n=len(ranks), r_at_1=round(float((ranks == 1).mean()), 4),
+                    r_at_10=round(float((ranks <= 10).mean()), 4),
+                    mrr=round(float((1.0 / ranks).mean()), 4), median_rank=int(np.median(ranks)))
+
     on_model_q = [m[0] for _, _, m in usable]
-    same_domain_q = [(f[1] if len(f) > 1 else f[0]) for _, f, _ in usable]
-    retrieval = [evaluate(on_model_q, "on-model → flat (domain shift)"),
-                 evaluate(same_domain_q, "another flat → flat (same domain, control)")]
+    retrieval = [evaluate(on_model_q, "on-model → flat (domain shift)")]
+    # a second on-model view separates "a different photo" from "a different domain"
+    second_view = [(i, m[1]) for i, (_, _, m) in enumerate(usable) if len(m) > 1]
+    if second_view:
+        retrieval.append(evaluate_subset([q for _, q in second_view], [i for i, _ in second_view],
+                                         "another on-model view → flat (same domain shift, different photo)"))
+    # the true same-domain control needs a SECOND flat: using the only flat as its own query would
+    # score R@1 = 1.0 by construction, which is what the first version of this script did.
+    two_flats = [(i, f[1]) for i, (_, f, _) in enumerate(usable) if len(f) > 1]
+    if two_flats:
+        retrieval.append(evaluate_subset([q for _, q in two_flats], [i for i, _ in two_flats],
+                                         "another flat → flat (same domain, control)"))
+    else:
+        print("no garment has two flat photos: the same-domain control is not available", flush=True)
     for r in retrieval:
         print(r, flush=True)
 
