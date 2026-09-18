@@ -1,49 +1,75 @@
 # Consumer Intent Agent
 
-> Working title. Built for the 2026 Meichu Hackathon × Makalot Industrial challenge: *understand the consumer from one sentence*.
+> This file stays in English per the competition's deliverable requirement ("GitHub source + English README"). For the Chinese version, see [README_TW.md](README_TW.md) — keep both in sync when either changes.
 
-A Hermes Agent application that turns a consumer's one-sentence apparel request into structured needs, asks image-based choice questions to uncover preferences the consumer did not say out loud, recommends existing products, generates concept images, and gets more accurate with every round of feedback.
+A prototype built by team **勢在必得** for **MCHackathon 2026 x Makalot Industrial (聚陽實業)**, on the theme *"Understand the consumer from one sentence."*
 
-**Status:** repository skeleton only. Application code is written during the event.
+Consumer Intent Agent turns a shopper's one-sentence apparel request into a structured, explainable intent, retrieves matching products with a hybrid search + reranker pipeline, generates an original concept image alongside the retrieved products, and improves both across rounds based on user feedback — with the improvement shown as a quantified, verifiable score, not just a claim.
+
+## System overview
+
+The system is two engines plus a generation module, wired together behind a FastAPI backend and a React frontend:
+
+- **ENGINE 01 — Intent Understanding**: one sentence → structured JSON intent (item, color, occasion, budget, style keywords), using GPT structured outputs. Ambiguous fields are inferred and labeled as system-inferred (never silently guessed); unclear intent triggers clarifying multiple-choice questions.
+- **ENGINE 02 — Retrieval & Ranking**: hybrid search (FashionCLIP dense embeddings + BM25/attribute sparse filtering) over the [Polyvore Outfits Dataset](https://huggingface.co/datasets/mvasil/polyvore-outfits), reranked with outfit-compatibility and learned preference weights. GPT turns the ranked result into a natural-language reason, grounded in the retrieved item's real attributes.
+- **ENGINE 03 — Preference Feedback Loop**: turns free-text and per-attribute feedback (color/fit/pattern/collar, scored separately for recommended vs. generated items) into structured weight/intent adjustments that re-trigger the next round.
+- **Generation module**: OpenAI Responses API `image_generation` tool produces an original concept image per round alongside the retrieval results; the image is embedded back into ENGINE 02's dense score so retrieval and generation reinforce each other.
+- **Pinterest trend signal**: a team-curated Pinterest board (Trial API access) feeds recent-trend signal into ENGINE 02's ranking weights.
+
+Two separate loops share the same ENGINE 01–03 code: the **live loop** (real user/judge interacting in the browser) and an **offline validation loop** (a simulated LLM user with a hidden target image, used only during development to produce quantified accuracy numbers — never shown in the live demo). See [docs/system-architecture.svg](docs/system-architecture.svg) and [docs/validation-flow.svg](docs/validation-flow.svg).
+
+Full background, scoring criteria, and design rationale: [docs/hackathon-brief.md](docs/hackathon-brief.md). Project instructions for AI coding agents: [CLAUDE.md](CLAUDE.md).
 
 ## Repository layout
 
-| Path | What it holds | Workstream |
-|---|---|---|
-| `agent/` | Hermes Profile Distribution: identity, skills, config | Line 4 (packaging), skills by Lines 1–4 |
-| `agent/skills/` | One skill per job: intent, need probing, recommendation reasons, concept images, feedback | Lines 1–4 |
-| `mcp_servers/` | Tool services the agent calls: product catalog search, trend signals | Line 2 |
-| `bff/` | Runtime that embeds Hermes Agent: flow control, choice-image checks, preferences, activity log | Lines 3–4 |
-| `web/` | Web front end used in the demo | Line 5 |
-| `evals/` | Quantitative validation and the charts it produces | Lines 1–3 |
-| `contracts/` | Agreed data formats between modules, plus shared sample data | Line 4 leads, all lines agree |
-| `docs/` | Project docs and architecture diagrams, including the migration map at `docs/migration-to-hermes-app.md` | Line 4 |
-| `scripts/` | Dev setup and data-processing helpers | Each owning line |
-| `data/` | Local-only data that is never committed | Lines 1, 2, 3, 5 |
-| `index.html`, `privacy.html`, `styles.css`, `assets/`, `.nojekyll` | Pinterest developer application site, served by GitHub Pages. Already in the repo before this skeleton — leave it in place; the Pinterest app review depends on those URLs staying live. | Line 2 |
+```
+agent/              Hermes profile distribution: identity, skills, config (one-command install)
+bff/                Runtime that embeds the Hermes Agent
+  engine01_intent/   Intent understanding
+  shared/            Cross-engine Pydantic schemas (the interface contract)
+  images/            Choice-image generation and checks, concept images
+  feedback/          Preference feedback loop
+  activity_log/      Which skills and tools each round used
+mcp_servers/
+  catalog/           Product retrieval: hybrid search + reranker
+  trends/            Pinterest trend signal ingestion
+web/                Front end
+evals/              Simulated-user offline validation loop and its charts
+contracts/          Agreed data formats and shared sample data
+docs/               All project markdown docs and architecture diagrams
+scripts/            Dev setup / data-download helpers
+data/               Datasets and Pinterest images (never committed)
+```
 
-## Requirements
+The project is built and shipped as a Hermes Agent application. If you have an open branch, [docs/migration-to-hermes-app.md](docs/migration-to-hermes-app.md) lists where each of your files moves.
 
-- Hermes Agent v0.21.2 or later
-- TODO: remaining runtime requirements (Line 4)
+## Getting started
 
-## Install
+Requirements: Python 3.11+, Node.js 18+.
 
-TODO (Line 4). Planned flow:
+ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. Other modules (ENGINE02/03, generation) may need `OPENAI_API_KEY` depending on how their owners implement them — see [CLAUDE.md](CLAUDE.md).
 
-1. Install Hermes Agent.
-2. Install the agent profile: `hermes profile install ./agent --alias`
-3. Copy the generated `.env.EXAMPLE` to `.env` in the profile and fill in your own keys.
-4. Start the tool services, the runtime, and the web front end.
+```bash
+cp .env.example .env   # fill in OPENAI_API_KEY only if a module you're running needs it
+codex login             # one-time, needed for ENGINE01
 
-## Run
+# backend
+pip install -r requirements.txt
+uvicorn bff.engine01_intent.main:app --reload
 
-TODO (Lines 4 and 5)
+# frontend
+cd web && npm install && npm run dev
+```
 
-## Validation
+Each module under `bff/` and `mcp_servers/` has its own `README.md` with module-specific run/test instructions.
 
-TODO (Lines 1–3). Charts are written to `evals/results/`. All validation uses automated simulated users, not real user testing.
+## Deliverables checklist (per competition brief)
 
-## Security
+1. Working, interactively demoable prototype.
+2. This GitHub repo + English README (reproducibility).
+3. 2–3 minute demo video (MP4).
+4. Live Q&A and on-the-spot adjustment — no model weights required after the event.
 
-See [SECURITY.md](SECURITY.md).
+## License
+
+Non-commercial hackathon prototype. Not for production use.

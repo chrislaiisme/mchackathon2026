@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1180" width="1200" height="1180" font-family="Microsoft JhengHei, PingFang TC, Noto Sans CJK TC, Noto Sans TC, sans-serif">
+
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+  </marker>
+  <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#ea580c"/>
+  </marker>
+  <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#0d9488"/>
+  </marker>
+  <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/>
+  </marker>
+  <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/>
+  </marker>
+</defs>
+
+<rect x="0" y="0" width="1200" height="1180" fill="#ffffff"/>
+<rect x="8" y="8" width="1184" height="1164" rx="18" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+<text x="600" y="40" text-anchor="middle" font-size="23" font-weight="700" fill="#0f172a">系統整體架構示意</text>
+<text x="600" y="62" text-anchor="middle" font-size="13" fill="#64748b">Live 流程；ENGINE 02 與生成模組每輪並行執行；橘色虛線為回饋後重新觸發的路徑</text>
+<rect x="270" y="80" width="560" height="92" rx="16" fill="#eef2f7" stroke="#94a3b8" stroke-width="2"/>
+<text x="550" y="114" text-anchor="middle" font-size="19" font-weight="700" fill="#1e293b">使用者輸入</text>
+<text x="550" y="138" text-anchor="middle" font-size="13" fill="#64748b">文字或語音，可附一張參考圖</text>
+<text x="550" y="158" text-anchor="middle" font-size="12" fill="#64748b" font-style="italic">沒附圖時系統去 Pinterest 板子找一張相近的當輔助參考．React 前端</text>
+<line x1="550" y1="172" x2="550" y2="212" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="582" y="198" font-size="13" fill="#475569">自然語言查詢</text>
+<rect x="270" y="212" width="560" height="182" rx="16" fill="#e8f0fe" stroke="#3b82f6" stroke-width="2"/>
+<rect x="294" y="232" width="94" height="26" rx="13" fill="#2563eb"/>
+<text x="341" y="250" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">ENGINE 01</text>
+<text x="400" y="250" font-size="18" font-weight="700" fill="#1e293b">需求理解：一句話 → 結構化意圖</text>
+<text x="294" y="286" font-size="14" fill="#334155">GPT API structured output／function calling，多輪狀態自己用 session 記錄</text>
+<text x="294" y="312" font-size="14" fill="#334155">情境資訊（天氣／季節）由 GPT API 推斷，標成「系統推斷」跟原話分開</text>
+<text x="294" y="338" font-size="14" fill="#334155">意圖不夠明確時，GPT API 出選擇題＋一個自由輸入欄位，每輪都適用</text>
+<text x="294" y="368" font-size="12" fill="#64748b" font-style="italic">後端：FastAPI．不引入 LangChain／LangGraph</text>
+<line x1="550" y1="394" x2="470" y2="452" stroke="#7c3aed" stroke-width="2.3" marker-end="url(#arrowPurple)"/>
+<line x1="550" y1="394" x2="630" y2="452" stroke="#16a34a" stroke-width="2.3" marker-end="url(#arrowGreen)"/>
+<text x="558" y="424" text-anchor="middle" font-size="12" fill="#475569">同一輪同時觸發，兩條路徑</text>
+<text x="558" y="440" text-anchor="middle" font-size="11" fill="#64748b">不是互為備援關係</text>
+<rect x="270" y="456" width="265" height="210" rx="16" fill="#f3e8ff" stroke="#8b5cf6" stroke-width="2"/>
+<rect x="286" y="474" width="90" height="24" rx="12" fill="#7c3aed"/>
+<text x="331" y="490" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">ENGINE 02</text>
+<text x="286" y="518" font-size="15.5" font-weight="700" fill="#1e293b">檢索與排序</text>
+<text x="286" y="544" font-size="12" fill="#334155">Hybrid Search：FashionCLIP embedding</text>
+<text x="286" y="562" font-size="12" fill="#334155">＋ 屬性過濾／BM25</text>
+<text x="286" y="586" font-size="12" fill="#334155">Reranker：相似度＋Polyvore 相容性</text>
+<text x="286" y="604" font-size="12" fill="#334155">＋ ENGINE 03 偏好權重＋概念圖向量</text>
+<text x="286" y="630" font-size="11" fill="#64748b" font-style="italic">推薦理由由 GPT API 生成</text>
+<rect x="565" y="456" width="265" height="210" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+<rect x="581" y="474" width="90" height="24" rx="12" fill="#15803d"/>
+<text x="626" y="490" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">生成模組</text>
+<text x="581" y="518" font-size="15.5" font-weight="700" fill="#1e293b">生成新款式概念圖</text>
+<text x="581" y="544" font-size="12" fill="#166534">OpenAI Responses API</text>
+<text x="581" y="562" font-size="12" fill="#166534">image_generation tool</text>
+<text x="581" y="586" font-size="12" fill="#166534">prompt 用抽象描述，避免特定</text>
+<text x="581" y="604" font-size="12" fill="#166534">品牌／設計師風格</text>
+<text x="581" y="630" font-size="11" fill="#166534" font-style="italic">previous_response_id 接續多輪</text>
+<rect x="20" y="490" width="200" height="112" rx="14" fill="#ccfbf1" stroke="#0d9488" stroke-width="2"/>
+<text x="120" y="518" text-anchor="middle" font-size="14" font-weight="700" fill="#0f766e">Pinterest 趨勢訊號</text>
+<text x="120" y="540" text-anchor="middle" font-size="11.5" fill="#0f766e">團隊帳號手動存板子</text>
+<text x="120" y="558" text-anchor="middle" font-size="11.5" fill="#0f766e">Trial access 讀自己 pins</text>
+<text x="120" y="580" text-anchor="middle" font-size="10.5" fill="#0f766e" font-style="italic">餵給 ENGINE 02 排序權重</text>
+<line x1="220" y1="546" x2="268" y2="546" stroke="#0d9488" stroke-width="2.2" marker-end="url(#arrowTeal)"/>
+<line x1="565" y1="556" x2="539" y2="556" stroke="#16a34a" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
+<line x1="400" y1="666" x2="465" y2="712" stroke="#7c3aed" stroke-width="2.3" marker-end="url(#arrowPurple)"/>
+<line x1="700" y1="666" x2="635" y2="712" stroke="#16a34a" stroke-width="2.3" marker-end="url(#arrowGreen)"/>
+<text x="358" y="694" font-size="11" fill="#6d28d9">商品清單＋理由</text>
+<text x="700" y="694" font-size="11" fill="#15803d">概念圖</text>
+<rect x="270" y="716" width="560" height="100" rx="16" fill="#eef2f7" stroke="#94a3b8" stroke-width="2"/>
+<text x="550" y="752" text-anchor="middle" font-size="17" font-weight="700" fill="#1e293b">前端呈現</text>
+<text x="550" y="778" text-anchor="middle" font-size="14" fill="#334155">商品卡片／推薦理由／概念圖／意圖面板，一起呈現</text>
+<text x="550" y="798" text-anchor="middle" font-size="12" fill="#64748b" font-style="italic">React</text>
+<line x1="550" y1="816" x2="550" y2="858" stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="582" y="838" font-size="13" fill="#475569">使用者／評審回饋</text>
+<text x="582" y="854" font-size="12.5" fill="#475569">分項打分（顏色／版型／圖案／領子）＋選擇題／自由輸入</text>
+<rect x="270" y="866" width="560" height="150" rx="16" fill="#fff4e5" stroke="#f59e0b" stroke-width="2"/>
+<rect x="294" y="886" width="94" height="26" rx="13" fill="#b45309"/>
+<text x="341" y="904" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">ENGINE 03</text>
+<text x="400" y="904" font-size="18" font-weight="700" fill="#1e293b">偏好回饋迴圈：愈用愈懂你</text>
+<text x="294" y="942" font-size="14" fill="#334155">GPT API structured output：回饋＋分項評分 → 權重調整／意圖修正</text>
+<text x="294" y="968" font-size="14" fill="#334155">觸發 ENGINE 01／02／生成模組重新跑一次，產生下一輪結果</text>
+<text x="294" y="994" font-size="12" fill="#64748b" font-style="italic">後端：FastAPI</text>
+<path d="M830,940 C1010,940 1010,300 830,300" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-dasharray="7,6" marker-end="url(#arrowOrange)"/>
+<rect x="845" y="596" width="190" height="54" rx="8" fill="#ffffff" opacity="0.95"/>
+<text x="940" y="618" text-anchor="middle" font-size="13" fill="#c2410c" font-weight="700">更新意圖／權重，重新觸發</text>
+<text x="940" y="638" text-anchor="middle" font-size="13" fill="#c2410c">直到使用者滿意為止</text>
+<rect x="30" y="1058" width="12" height="12" fill="#3b82f6"/>
+<text x="48" y="1068" font-size="11.5" fill="#334155">ENGINE 01（意圖理解）</text>
+<rect x="230" y="1058" width="12" height="12" fill="#8b5cf6"/>
+<text x="248" y="1068" font-size="11.5" fill="#334155">ENGINE 02（檢索排序）</text>
+<rect x="430" y="1058" width="12" height="12" fill="#16a34a"/>
+<text x="448" y="1068" font-size="11.5" fill="#334155">生成模組（概念圖）</text>
+<rect x="630" y="1058" width="12" height="12" fill="#f59e0b"/>
+<text x="648" y="1068" font-size="11.5" fill="#334155">ENGINE 03（回饋迴圈）</text>
+<rect x="830" y="1058" width="12" height="12" fill="#94a3b8"/>
+<text x="848" y="1068" font-size="11.5" fill="#334155">前端（React）</text>
+<rect x="1000" y="1058" width="12" height="12" fill="#0d9488"/>
+<text x="1018" y="1068" font-size="11.5" fill="#334155">Pinterest（趨勢訊號）</text>
+<text x="30" y="1100" font-size="11.5" fill="#64748b">綠色實線＝概念圖向量併入 ENGINE 02 檢索分數的回饋；橘色虛線＝使用者回饋後重新觸發主流程，不固定輪數</text>
+</svg>

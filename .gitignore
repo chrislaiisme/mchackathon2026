@@ -1,5 +1,39 @@
-# Secrets — never commit
+# secrets
 .env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# data / model caches (large, don't commit)
+backend/pinterest/cache/
+backend/generation/output/
+*.faiss
+*.chroma/
+data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local AI coding tool settings (per-user, not project config)
+.claude/
+
+# --- Hermes app skeleton additions ---
+# Secrets — never commit
 .env.*
 !.env.example
 auth.json
@@ -9,22 +43,14 @@ data/*
 !data/README.md
 
 # Python
-__pycache__/
-*.pyc
-.venv/
-venv/
 
 # Node
-node_modules/
 web/dist/
 
 # Hermes profile exports (share via releases, not commits)
 *.tar.gz
 
 # OS / editor
-.DS_Store
-.vscode/
-.idea/
 
 # 本機 clone，不要一起 commit
 /mchackathon2026/
