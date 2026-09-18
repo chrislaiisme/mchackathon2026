@@ -6,8 +6,16 @@
 
 ```
 ENGINE 01（意圖理解）→ 【ENGINE 02：檢索＋排序＋解釋】→ ENGINE 03（對話與回饋）
+   Intent（中文）          POST /retrieve            RetrievalResult
                               ↑ 契約：docs/contract/（JSON Schema ＋ 兩輪真實範例）
 ```
+
+**已經和 ENGINE 01 對接完成**：ENGINE 01 輸出的是繁體中文自由文字（`item_type: "連帽外套"`、
+`occasion: "約會"`、`fit: "修身"`），我們的商品庫是英文 KAGL 詞彙。
+轉接層在 [`engine02/intent_adapter.py`](engine02/intent_adapter.py)，
+服務層在 [`backend/engine02_retrieval/`](backend/engine02_retrieval/)（照團隊 repo 的框架），
+測試固定樣本直接取自 ENGINE 01 自己的 `test_cases.json`。細節見
+[`backend/engine02_retrieval/README.md`](backend/engine02_retrieval/README.md)。
 
 ## 30 秒跑起來
 
@@ -48,6 +56,7 @@ python -m uvicorn engine02.api:app --host 0.0.0.0 --port 8002
 
 | Method | Path | 用途 |
 |---|---|---|
+| POST | `/retrieve` | **ENGINE 01 的 `Intent` → `RetrievalResult`**（團隊契約；`backend.engine02_retrieval.main`） |
 | POST | `/rank` | `Engine02Request` → `Engine02Response`（卡片＋逐項貢獻＋理由） |
 | POST | `/view` | 排序 ＋ 全部面板（說了／沒說、需求、Div@k、來源、與上一輪的差異） |
 | POST | `/facets` | **同一份排序讀成 2–3 群**（「素面簡約 ↔ 強烈圖案」），2.7 ms，**排序零變動** |
