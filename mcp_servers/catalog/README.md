@@ -36,3 +36,13 @@ Hybrid search（FashionCLIP dense embedding ＋ BM25／屬性 sparse 過濾）�
 完整規格：[../../docs/engine02-retrieval.md](../../docs/engine02-retrieval.md)。輸入輸出 JSON：[../../docs/interface-contract.md](../../docs/interface-contract.md)（`Intent` 進、`RetrievalResult` 出——看 `ProductCard`）。
 
 推薦理由生成這一步需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。
+
+---
+
+## 引擎實作的位置
+
+檢索排序的實作是 repo 根目錄的 `engine02/`，**刻意不搬進這個資料夾**：它是一個 Python package，`api.py`、`ltr.py`、`tests/`、`scripts/` 有多處絕對 import（`from engine02.x import ...`），`pyproject.toml` 也寫死 `packages = ["engine02"]`。搬動會破壞這些引用，而且會跟持續進行中的開發不斷衝突。
+
+包裝成 MCP 工具服務不需要先搬動 package：這個資料夾放 MCP 包裝層，直接 import 根目錄的 `engine02`。等 engine02 的開發告一段落，再決定要不要實際搬進來。
+
+`tests/`、`reports/`、`docs/contract/` 同理維持原位（被 `pyproject.toml`、程式與文件引用）。

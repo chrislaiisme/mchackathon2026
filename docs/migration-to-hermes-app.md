@@ -14,7 +14,7 @@
 | 4. engine02 包成 MCP 工具服務 | 待做（等 `engine02-research` 合併） |
 | 5. `agent/` 打包與英文 README | 待做 |
 
-`engine02-research` 與 `feature/frontend-user-ui` 尚未合併，下面第 2、3 節的搬移要由分支作者在 rebase 時處理。
+整合在 `integration/hermes-app` 分支上進行，**不需要動到任何人的分支**。分支作者照常在自己的分支開發，整合分支會定期重新合併。
 
 ## 1. engine01-intent（HoYunChen）— ✅ 已完成
 
@@ -36,23 +36,23 @@
 | `frontend/README.md` | `web/` | |
 | `CLAUDE.md`、`README_TW.md`、`.env.example` | repo 根目錄 | |
 
-## 2. engine02-research（Evan-Jiamg）
+## 2. engine02-research（Evan-Jiamg）— ✅ 已整合（package 維持原位）
 
 | 現在 | 搬到 | 說明 |
 |---|---|---|
-| `engine02/*.py`（catalog、encoders、fusion、ltr、rerank 等） | `mcp_servers/catalog/` | 檢索與排序邏輯原封不動 |
-| `engine02/api.py` | `mcp_servers/catalog/` | HTTP 介面改成 MCP 工具；過渡期可先保留 HTTP，由 runtime 直接呼叫 |
-| `engine02/eval/` | `evals/recommendation/` | |
+| `engine02/*.py` | **維持在根目錄不搬** | 是 Python package，多處絕對 import 與 `pyproject.toml` 依賴它的位置；`mcp_servers/catalog/` 放 MCP 包裝層去 import 它 |
+| `engine02/api.py` | 維持原位 | HTTP 介面保留；MCP 包裝層在 `mcp_servers/catalog/` |
+| `engine02/eval/` | 維持原位 | 屬於 package 的一部分 |
 | `docs/contract/*.schema.json` | `contracts/` | 與 `backend/shared/schemas.py` 擇一為準，不要兩套並存 |
-| `tests/` | `mcp_servers/catalog/tests/` | |
-| `reports/` | `evals/results/` | |
+| `tests/`、`reports/`、`docs/contract/` | 維持原位 | 被 `pyproject.toml`、程式與文件引用 |
+
 | `scripts/`、`pyproject.toml` | `scripts/`、repo 根目錄 | |
 
-## 3. feature/frontend-user-ui（許綺文）
+## 3. feature/frontend-user-ui（許綺文）— ✅ 已完成
 
 | 現在 | 搬到 | 說明 |
 |---|---|---|
-| `frontend/`（Next.js） | `web/` | 只改資料夾名稱，框架不動 |
+| `frontend/`（Next.js） | `web/` | ✅ 已在整合分支完成，框架不動 |
 
 前端維持 Next.js。PRD 與 `engine01-intent` 的 README 寫的是 React + Vite，以實際的 Next.js 為準，兩份文件要更新。
 
