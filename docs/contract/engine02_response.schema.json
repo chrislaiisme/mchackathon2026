@@ -75,7 +75,8 @@
             "design",
             "penalty",
             "rerank",
-            "freshness"
+            "freshness",
+            "critique"
           ],
           "title": "Group",
           "type": "string"

@@ -9,6 +9,8 @@
     ],
     "retrieval_text": "men shirts for formal",
     "retrieval_text_normalized": null,
+    "design_weight_prior": {},
+    "profile": null,
     "constraints": {
       "category": {
         "state": "value",
@@ -253,6 +255,8 @@
     ],
     "retrieval_text": "men shirts for formal",
     "retrieval_text_normalized": null,
+    "design_weight_prior": {},
+    "profile": null,
     "constraints": {
       "category": {
         "state": "value",
@@ -428,7 +432,9 @@
   ],
   "round_2_metrics": {
     "hard_constraint_satisfaction": 1.0,
+    "match_policy": "exact",
     "excluded_value_hits": 0,
+    "rejected_item_hits": 0,
     "feedback_violations": 0
   },
   "choice_likelihood_example": {

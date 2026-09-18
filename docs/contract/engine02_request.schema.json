@@ -387,6 +387,30 @@
       "title": "NeedProbability",
       "type": "object"
     },
+    "ProfilePrior": {
+      "description": "A handful of forced choices made before round 1, as a prior over the design axes.\n\n`weights` is in user-feedback steps (the same ±1 units as `design_adjust_steps`), so the\nexisting clip to one `KanseiTable.step_size` applies unchanged. Zou et al. (SIGIR 2020) measure\nthat preference elicitation \"reaches very good performance already within the first 10\nquestions\"; three is a stage decision, not a literature result — see\ndocs/research/novelty-and-profile.md §B.",
+      "properties": {
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        },
+        "n_answers": {
+          "default": 0,
+          "title": "N Answers",
+          "type": "integer"
+        },
+        "kappa0": {
+          "default": 3.0,
+          "title": "Kappa0",
+          "type": "number"
+        }
+      },
+      "title": "ProfilePrior",
+      "type": "object"
+    },
     "Slot": {
       "properties": {
         "state": {
@@ -480,6 +504,17 @@
       },
       "title": "Design Weight Prior",
       "type": "object"
+    },
+    "profile": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProfilePrior"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "constraints": {
       "$ref": "#/$defs/HardConstraints"

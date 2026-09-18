@@ -127,3 +127,20 @@ def test_unknown_profile_axis_is_reported(client):
                                    "profile": {"weights": {"no_such_axis": 1.0}, "n_answers": 1}})
     assert r.status_code == 200
     assert any("no_such_axis" in w for w in r.json()["constraint_report"]["input_warnings"])
+
+
+def test_context_is_a_no_op_without_a_file(client, tmp_path, monkeypatch):
+    """External context must degrade to nothing, not to an error."""
+    monkeypatch.setenv("ENGINE02_CONTEXT", str(tmp_path / "does_not_exist.json"))
+    r = client.get("/context")
+    assert r.status_code == 200 and r.json()["available"] is False
+
+
+def test_context_never_shrinks_the_candidate_pool(client):
+    """An inferred season is a soft signal: it may change wording, never the hard filter."""
+    body = {"session_id": "ctx", "retrieval_text": "something to wear today", "options": {"top_k": 3}}
+    plain = client.post("/rank", json=body).json()["constraint_report"]
+    with_ctx = client.post("/rank", json={**body, "constraints": {
+        "season": {"state": "inferred", "values": ["Winter"]}}}).json()["constraint_report"]
+    assert with_ctx["n_after_filter"] == plain["n_after_filter"]
+    assert not with_ctx["relaxed"]

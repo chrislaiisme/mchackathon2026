@@ -746,6 +746,29 @@ T16 量到域差之後，最自然的下一步是文獻裡效果最大的那一�
 目前只有機制與上界的測試，**沒有離線效果數字**；要跑需要模擬使用者，方法見
 `docs/research/novelty-and-profile.md` §B。上台前若沒跑，這一項就只能說「機制」不能說「有效」。
 
+### 3.34 連外部訊號的方式：側車，不是請求路徑（`scripts/fetch_context.py` + `GET /context`）
+
+**要求**：系統最好能連網擴充（天氣、外部趨勢平台、贊助商系統）。
+**限制**：從台北冷連線 Open-Meteo 實測 p50 **1.57 秒**（光 TLS 握手就 0.95 秒），暖連線 0.295 秒，
+而 `/rank` 是 **12.8 ms**、每請求預算 1.5 秒；而且 `ENGINE02_DEMO=1` 的服務路徑本來就沒有網路。
+
+**做法（兩者都要）**：
+1. **抓取在服務路徑之外**：`scripts/fetch_context.py` 連網一次（或 `--every 900` 當背景更新器），
+   寫成 `data/context/weather.json`。Open-Meteo 免金鑰、10k/日、資料 CC-BY-4.0（2026-09-18 查證）。
+2. **服務路徑只讀本地檔**：`GET /context` 回傳情境、**它有多舊**、以及呼叫端**可以**附上的
+   `constraints.season = {state:"inferred"}`。檔案不存在或過期**不是錯誤，是文件寫明的 no-op**。
+
+**兩條刻意的界線**：
+- **ENGINE 02 不會自己附上季節**。季節是呼叫端對使用者的判斷，不是我們的。
+- **它不是分數項**。`inferred` 的 slot 不進硬過濾（`Slot.is_hard()` 回 False），只進檢索句，
+  實測候選池 5,000 → 5,000、放寬清單為空（`tests/test_silent_failures.py::test_context_never_shrinks_the_candidate_pool`）。
+
+**為什麼不做成天氣加分項**：§3.15／§3.26／§3.27／§3.28／§3.30 同一條標準——不能量的東西不能上。
+`docs/research/context-weather-recsys.md` 量到本商品庫的 `season` 不是體感季節
+（756 件 Winter 裡有 294 支手錶、144 副太陽眼鏡，毛衣的 Winter 是 0），
+所以天氣分數項在這份資料上**無法被驗證**。管線先接好、誠實標示；
+換到有材質與厚度欄位的贊助商商品庫，`c(i, thermal)` 這條軸的成本仍近乎零。
+
 ### 3.6 還沒跑的對照組
 - `full_concept_vlm` / `full_concept_hybrid`：修正版 VLM 全量標註完成後，重跑 T3（已排在 nycu 的 job4）。
 - 合併商品庫 `kagl_polyvore`（KAGL＋Polyvore 服飾，補外套、洋裝、針織）：VLM 標註加消融實驗（已排在 job3）。

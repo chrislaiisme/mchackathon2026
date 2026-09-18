@@ -2,7 +2,7 @@
   "contract_version": "0.1.0",
   "session_id": "demo-interview",
   "round": 2,
-  "arm": "full",
+  "arm": "full_zclip3",
   "items": [
     {
       "item_id": "14731",
@@ -12,521 +12,19 @@
       "category": "top",
       "color": "Lavender",
       "price": null,
-      "score": 4.231857098811331,
+      "score": 4.375070964951528,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
           "raw": 0.7208878993988037,
-          "normalized": 3.3567861338598033,
+          "normalized": 3.0,
           "weight": 1.0,
-          "contribution": 3.3567861338598033,
+          "contribution": 3.0,
           "need_shares": {},
-          "rank_without": 49,
+          "rank_without": 47,
           "necessary": true,
-          "diff_vs_cutoff": 1.1251180576202162,
-          "sufficient": true,
-          "cited": true
-        },
-        {
-          "term": "bm25",
-          "group": "bm25",
-          "raw": 5.027343213279651,
-          "normalized": 1.4671850944615301,
-          "weight": 0.5,
-          "contribution": 0.7335925472307651,
-          "need_shares": {},
-          "rank_without": 5,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0,
-          "sufficient": true,
-          "cited": true
-        },
-        {
-          "term": "design:structured_shoulders",
-          "group": "design",
-          "raw": -0.2625404402959678,
-          "normalized": -0.2625404402959678,
-          "weight": 0.11000000000000001,
-          "contribution": -0.02887944843255646,
-          "need_shares": {
-            "trustworthy": -0.02887944843255646
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0012508538885505523,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:matte_fabric",
-          "group": "design",
-          "raw": 0.662683445828576,
-          "normalized": 0.662683445828576,
-          "weight": 0.06,
-          "contribution": 0.039761006749714556,
-          "need_shares": {
-            "avoid_tryhard": 0.039761006749714556
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -0.0011532215871252888,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:dark_tone",
-          "group": "design",
-          "raw": 0.8026210453229505,
-          "normalized": 0.8026210453229505,
-          "weight": -0.03,
-          "contribution": -0.024078631359688515,
-          "need_shares": {
-            "approachable": -0.024078631359688515
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0006775510733588626,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:bright_color",
-          "group": "design",
-          "raw": 0.7290412248943757,
-          "normalized": 0.7290412248943757,
-          "weight": 0.03,
-          "contribution": 0.021871236746831273,
-          "need_shares": {
-            "approachable": 0.021871236746831273
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -9.590398192352995e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:visible_logo",
-          "group": "design",
-          "raw": -1.2403180116283172,
-          "normalized": -1.2403180116283172,
-          "weight": -0.35,
-          "contribution": 0.434111304069911,
-          "need_shares": {
-            "trustworthy": 0.1364349812791149,
-            "approachable": 0.07441908069769904,
-            "avoid_tryhard": 0.22325724209309708
-          },
-          "rank_without": 3,
-          "necessary": false,
-          "diff_vs_cutoff": -0.01326268489612542,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:minimal_design",
-          "group": "design",
-          "raw": 1.9553999567676739,
-          "normalized": 1.9553999567676739,
-          "weight": 0.075,
-          "contribution": 0.14665499675757554,
-          "need_shares": {
-            "avoid_tryhard": 0.14665499675757554
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -1.5223428249971915e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:formal_style",
-          "group": "design",
-          "raw": 1.7864250009989535,
-          "normalized": 1.7864250009989535,
-          "weight": -0.09249999999999997,
-          "contribution": -0.16524431259240316,
-          "need_shares": {
-            "trustworthy": 0.44214018774724106,
-            "approachable": -0.053592750029968605,
-            "avoid_tryhard": -0.10718550005993721,
-            "feedback_adjust": -0.4466062502497384
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": -0.34550407680703693,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:crisp_collar",
-          "group": "design",
-          "raw": 0.007989080419865922,
-          "normalized": 0.007989080419865922,
-          "weight": 0.11000000000000001,
-          "contribution": 0.0008787988461852516,
-          "need_shares": {
-            "trustworthy": 0.0008787988461852516
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -0.00015163367894370668,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:soft_knit",
-          "group": "design",
-          "raw": 1.9447184435115135,
-          "normalized": 1.9447184435115135,
-          "weight": 0.03,
-          "contribution": 0.0583415533053454,
-          "need_shares": {
-            "approachable": 0.0583415533053454
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -1.0994244542844589e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:athletic_style",
-          "group": "design",
-          "raw": 1.2689683090699038,
-          "normalized": 1.2689683090699038,
-          "weight": -0.11000000000000001,
-          "contribution": -0.13958651399768943,
-          "need_shares": {
-            "trustworthy": -0.13958651399768943
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0002029905053857195,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "penalty:rejected_similarity",
-          "group": "penalty",
-          "raw": 0.41812098026275635,
-          "normalized": 0.40470314474492564,
-          "weight": -0.5,
-          "contribution": -0.20235157237246282,
-          "need_shares": {},
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0,
-          "sufficient": false,
-          "cited": false
-        }
-      ],
-      "need_contributions": {
-        "trustworthy": 0.4109880054422954,
-        "avoid_tryhard": 0.30248774554045,
-        "approachable": 0.0769604893602186,
-        "feedback_adjust": -0.4466062502497384
-      },
-      "design_scores": {
-        "structured_shoulders": -0.2625404402959678,
-        "matte_fabric": 0.662683445828576,
-        "glossy_fabric": -0.6626834458285757,
-        "dark_tone": 0.8026210453229505,
-        "bright_color": 0.7290412248943757,
-        "visible_logo": -1.2403180116283172,
-        "minimal_design": 1.9553999567676739,
-        "bold_pattern": -1.9553999567676743,
-        "relaxed_fit": -2.146894665014314,
-        "tailored_fit": 2.1468946650143144,
-        "formal_style": 1.7864250009989535,
-        "casual_style": -1.7864250009989533,
-        "crisp_collar": 0.007989080419865922,
-        "soft_knit": 1.9447184435115135,
-        "athletic_style": 1.2689683090699038
-      },
-      "margin_vs_cutoff": 0.7670557144635639,
-      "reason_mode": "sufficient",
-      "reasons": [
-        "整體風格和你描述的相近（+3.36）",
-        "商品描述直接提到你要的關鍵字（+0.73）"
-      ],
-      "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+3.36）；商品描述直接提到你要的關鍵字（+0.73）",
-      "explanation_source": "template"
-    },
-    {
-      "item_id": "14741",
-      "rank": 2,
-      "title": "Arrow Men Solid Lavender Shirts",
-      "image_path": "images/14741.jpg",
-      "category": "top",
-      "color": "Lavender",
-      "price": null,
-      "score": 4.231857098811331,
-      "contributions": [
-        {
-          "term": "dense",
-          "group": "dense",
-          "raw": 0.7208878993988037,
-          "normalized": 3.3567861338598033,
-          "weight": 1.0,
-          "contribution": 3.3567861338598033,
-          "need_shares": {},
-          "rank_without": 49,
-          "necessary": true,
-          "diff_vs_cutoff": 1.1251180576202162,
-          "sufficient": true,
-          "cited": true
-        },
-        {
-          "term": "bm25",
-          "group": "bm25",
-          "raw": 5.027343213279651,
-          "normalized": 1.4671850944615301,
-          "weight": 0.5,
-          "contribution": 0.7335925472307651,
-          "need_shares": {},
-          "rank_without": 5,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0,
-          "sufficient": true,
-          "cited": true
-        },
-        {
-          "term": "design:structured_shoulders",
-          "group": "design",
-          "raw": -0.2625404402959678,
-          "normalized": -0.2625404402959678,
-          "weight": 0.11000000000000001,
-          "contribution": -0.02887944843255646,
-          "need_shares": {
-            "trustworthy": -0.02887944843255646
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0012508538885505523,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:matte_fabric",
-          "group": "design",
-          "raw": 0.662683445828576,
-          "normalized": 0.662683445828576,
-          "weight": 0.06,
-          "contribution": 0.039761006749714556,
-          "need_shares": {
-            "avoid_tryhard": 0.039761006749714556
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -0.0011532215871252888,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:dark_tone",
-          "group": "design",
-          "raw": 0.8026210453229505,
-          "normalized": 0.8026210453229505,
-          "weight": -0.03,
-          "contribution": -0.024078631359688515,
-          "need_shares": {
-            "approachable": -0.024078631359688515
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0006775510733588626,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:bright_color",
-          "group": "design",
-          "raw": 0.7290412248943757,
-          "normalized": 0.7290412248943757,
-          "weight": 0.03,
-          "contribution": 0.021871236746831273,
-          "need_shares": {
-            "approachable": 0.021871236746831273
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -9.590398192352995e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:visible_logo",
-          "group": "design",
-          "raw": -1.2403180116283172,
-          "normalized": -1.2403180116283172,
-          "weight": -0.35,
-          "contribution": 0.434111304069911,
-          "need_shares": {
-            "trustworthy": 0.1364349812791149,
-            "approachable": 0.07441908069769904,
-            "avoid_tryhard": 0.22325724209309708
-          },
-          "rank_without": 3,
-          "necessary": false,
-          "diff_vs_cutoff": -0.01326268489612542,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:minimal_design",
-          "group": "design",
-          "raw": 1.9553999567676739,
-          "normalized": 1.9553999567676739,
-          "weight": 0.075,
-          "contribution": 0.14665499675757554,
-          "need_shares": {
-            "avoid_tryhard": 0.14665499675757554
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -1.5223428249971915e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:formal_style",
-          "group": "design",
-          "raw": 1.7864250009989535,
-          "normalized": 1.7864250009989535,
-          "weight": -0.09249999999999997,
-          "contribution": -0.16524431259240316,
-          "need_shares": {
-            "trustworthy": 0.44214018774724106,
-            "approachable": -0.053592750029968605,
-            "avoid_tryhard": -0.10718550005993721,
-            "feedback_adjust": -0.4466062502497384
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": -0.34550407680703693,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:crisp_collar",
-          "group": "design",
-          "raw": 0.007989080419865922,
-          "normalized": 0.007989080419865922,
-          "weight": 0.11000000000000001,
-          "contribution": 0.0008787988461852516,
-          "need_shares": {
-            "trustworthy": 0.0008787988461852516
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -0.00015163367894370668,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:soft_knit",
-          "group": "design",
-          "raw": 1.9447184435115135,
-          "normalized": 1.9447184435115135,
-          "weight": 0.03,
-          "contribution": 0.0583415533053454,
-          "need_shares": {
-            "approachable": 0.0583415533053454
-          },
-          "rank_without": 2,
-          "necessary": false,
-          "diff_vs_cutoff": -1.0994244542844589e-05,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "design:athletic_style",
-          "group": "design",
-          "raw": 1.2689683090699038,
-          "normalized": 1.2689683090699038,
-          "weight": -0.11000000000000001,
-          "contribution": -0.13958651399768943,
-          "need_shares": {
-            "trustworthy": -0.13958651399768943
-          },
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0002029905053857195,
-          "sufficient": false,
-          "cited": false
-        },
-        {
-          "term": "penalty:rejected_similarity",
-          "group": "penalty",
-          "raw": 0.41812098026275635,
-          "normalized": 0.40470314474492564,
-          "weight": -0.5,
-          "contribution": -0.20235157237246282,
-          "need_shares": {},
-          "rank_without": 1,
-          "necessary": false,
-          "diff_vs_cutoff": 0.0,
-          "sufficient": false,
-          "cited": false
-        }
-      ],
-      "need_contributions": {
-        "trustworthy": 0.4109880054422954,
-        "avoid_tryhard": 0.30248774554045,
-        "approachable": 0.0769604893602186,
-        "feedback_adjust": -0.4466062502497384
-      },
-      "design_scores": {
-        "structured_shoulders": -0.2625404402959678,
-        "matte_fabric": 0.662683445828576,
-        "glossy_fabric": -0.6626834458285757,
-        "dark_tone": 0.8026210453229505,
-        "bright_color": 0.7290412248943757,
-        "visible_logo": -1.2403180116283172,
-        "minimal_design": 1.9553999567676739,
-        "bold_pattern": -1.9553999567676743,
-        "relaxed_fit": -2.146894665014314,
-        "tailored_fit": 2.1468946650143144,
-        "formal_style": 1.7864250009989535,
-        "casual_style": -1.7864250009989533,
-        "crisp_collar": 0.007989080419865922,
-        "soft_knit": 1.9447184435115135,
-        "athletic_style": 1.2689683090699038
-      },
-      "margin_vs_cutoff": 0.7670557144635639,
-      "reason_mode": "sufficient",
-      "reasons": [
-        "整體風格和你描述的相近（+3.36）",
-        "商品描述直接提到你要的關鍵字（+0.73）"
-      ],
-      "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+3.36）；商品描述直接提到你要的關鍵字（+0.73）",
-      "explanation_source": "template"
-    },
-    {
-      "item_id": "14749",
-      "rank": 3,
-      "title": "Arrow Men Stripes Lavender Shirts",
-      "image_path": "images/14749.jpg",
-      "category": "top",
-      "color": "Lavender",
-      "price": null,
-      "score": 3.8708952061643953,
-      "contributions": [
-        {
-          "term": "dense",
-          "group": "dense",
-          "raw": 0.6822348237037659,
-          "normalized": 3.075506619454749,
-          "weight": 1.0,
-          "contribution": 3.075506619454749,
-          "need_shares": {},
-          "rank_without": 49,
-          "necessary": true,
-          "diff_vs_cutoff": 0.843838543215162,
+          "diff_vs_cutoff": 0.7683319237604129,
           "sufficient": true,
           "cited": true
         },
@@ -547,165 +45,165 @@
         {
           "term": "design:structured_shoulders",
           "group": "design",
-          "raw": -0.26150777606591263,
-          "normalized": -0.26150777606591263,
+          "raw": -0.2625404402959678,
+          "normalized": -0.2625404402959678,
           "weight": 0.11000000000000001,
-          "contribution": -0.028765855367250393,
+          "contribution": -0.02887944843255646,
           "need_shares": {
-            "trustworthy": -0.028765855367250393
+            "trustworthy": -0.02887944843255646
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": 0.0013644469538566205,
+          "diff_vs_cutoff": 0.0012508538885505523,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:matte_fabric",
           "group": "design",
-          "raw": 0.6609332685242109,
-          "normalized": 0.6609332685242109,
+          "raw": 0.662683445828576,
+          "normalized": 0.662683445828576,
           "weight": 0.06,
-          "contribution": 0.03965599611145265,
+          "contribution": 0.039761006749714556,
           "need_shares": {
-            "avoid_tryhard": 0.03965599611145265
+            "avoid_tryhard": 0.039761006749714556
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": -0.001258232225387193,
+          "diff_vs_cutoff": -0.0011532215871252888,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:dark_tone",
           "group": "design",
-          "raw": 0.8004442787749348,
-          "normalized": 0.8004442787749348,
+          "raw": 0.8026210453229505,
+          "normalized": 0.8026210453229505,
           "weight": -0.03,
-          "contribution": -0.024013328363248043,
+          "contribution": -0.024078631359688515,
           "need_shares": {
-            "approachable": -0.024013328363248043
+            "approachable": -0.024078631359688515
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": 0.0007428540697993341,
+          "diff_vs_cutoff": 0.0006775510733588626,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:bright_color",
           "group": "design",
-          "raw": 0.7287118313655943,
-          "normalized": 0.7287118313655943,
+          "raw": 0.7290412248943757,
+          "normalized": 0.7290412248943757,
           "weight": 0.03,
-          "contribution": 0.021861354940967827,
+          "contribution": 0.021871236746831273,
           "need_shares": {
-            "approachable": 0.021861354940967827
+            "approachable": 0.021871236746831273
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": -0.00010578578778697514,
+          "diff_vs_cutoff": -9.590398192352995e-05,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:visible_logo",
           "group": "design",
-          "raw": -1.2368186351451975,
-          "normalized": -1.2368186351451975,
+          "raw": -1.2403180116283172,
+          "normalized": -1.2403180116283172,
           "weight": -0.35,
-          "contribution": 0.4328865223008191,
+          "contribution": 0.434111304069911,
           "need_shares": {
-            "trustworthy": 0.13605004986597174,
-            "approachable": 0.07420911810871185,
-            "avoid_tryhard": 0.22262735432613553
+            "trustworthy": 0.1364349812791149,
+            "approachable": 0.07441908069769904,
+            "avoid_tryhard": 0.22325724209309708
           },
           "rank_without": 10,
           "necessary": true,
-          "diff_vs_cutoff": -0.01448746666521733,
+          "diff_vs_cutoff": -0.01326268489612542,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:minimal_design",
           "group": "design",
-          "raw": 0.9083406739273341,
-          "normalized": 0.9083406739273341,
+          "raw": 1.9553999567676739,
+          "normalized": 1.9553999567676739,
           "weight": 0.075,
-          "contribution": 0.06812555054455005,
+          "contribution": 0.14665499675757554,
           "need_shares": {
-            "avoid_tryhard": 0.06812555054455005
+            "avoid_tryhard": 0.14665499675757554
           },
-          "rank_without": 3,
+          "rank_without": 2,
           "necessary": false,
-          "diff_vs_cutoff": -0.07854466964127546,
+          "diff_vs_cutoff": -1.5223428249971915e-05,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:formal_style",
           "group": "design",
-          "raw": 1.786410026131586,
-          "normalized": 1.786410026131586,
+          "raw": 1.7864250009989535,
+          "normalized": 1.7864250009989535,
           "weight": -0.09249999999999997,
-          "contribution": -0.16524292741717167,
+          "contribution": -0.16524431259240316,
           "need_shares": {
-            "trustworthy": 0.4421364814675676,
-            "approachable": -0.05359230078394758,
-            "avoid_tryhard": -0.10718460156789517,
-            "feedback_adjust": -0.4466025065328965
+            "trustworthy": 0.44214018774724106,
+            "approachable": -0.053592750029968605,
+            "avoid_tryhard": -0.10718550005993721,
+            "feedback_adjust": -0.4466062502497384
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": -0.34550269163180547,
+          "diff_vs_cutoff": -0.34550407680703693,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:crisp_collar",
           "group": "design",
-          "raw": 0.007863996914279471,
-          "normalized": 0.007863996914279471,
+          "raw": 0.007989080419865922,
+          "normalized": 0.007989080419865922,
           "weight": 0.11000000000000001,
-          "contribution": 0.0008650396605707419,
+          "contribution": 0.0008787988461852516,
           "need_shares": {
-            "trustworthy": 0.0008650396605707419
+            "trustworthy": 0.0008787988461852516
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": -0.00016539286455821635,
+          "diff_vs_cutoff": -0.00015163367894370668,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:soft_knit",
           "group": "design",
-          "raw": 1.944677755797949,
-          "normalized": 1.944677755797949,
+          "raw": 1.9447184435115135,
+          "normalized": 1.9447184435115135,
           "weight": 0.03,
-          "contribution": 0.05834033267393847,
+          "contribution": 0.0583415533053454,
           "need_shares": {
-            "approachable": 0.05834033267393847
+            "approachable": 0.0583415533053454
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": -1.2214875949774495e-05,
+          "diff_vs_cutoff": -1.0994244542844589e-05,
           "sufficient": false,
           "cited": false
         },
         {
           "term": "design:athletic_style",
           "group": "design",
-          "raw": 1.2687733930298595,
-          "normalized": 1.2687733930298595,
+          "raw": 1.2689683090699038,
+          "normalized": 1.2689683090699038,
           "weight": -0.11000000000000001,
-          "contribution": -0.13956507323328457,
+          "contribution": -0.13958651399768943,
           "need_shares": {
-            "trustworthy": -0.13956507323328457
+            "trustworthy": -0.13958651399768943
           },
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
-          "diff_vs_cutoff": 0.00022443126979057593,
+          "diff_vs_cutoff": 0.0002029905053857195,
           "sufficient": false,
           "cited": false
         },
@@ -717,55 +215,70 @@
           "weight": -0.5,
           "contribution": -0.20235157237246282,
           "need_shares": {},
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
           "diff_vs_cutoff": 0.0,
           "sufficient": false,
           "cited": false
+        },
+        {
+          "term": "freshness:not_yet_seen",
+          "group": "freshness",
+          "raw": 1.0,
+          "normalized": 1.0,
+          "weight": 0.5,
+          "contribution": 0.5,
+          "need_shares": {},
+          "rank_without": 11,
+          "necessary": true,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": true,
+          "cited": true
         }
       ],
       "need_contributions": {
-        "trustworthy": 0.4107206423935751,
-        "avoid_tryhard": 0.2232242994142431,
-        "approachable": 0.07680517657642252,
-        "feedback_adjust": -0.4466025065328965
+        "trustworthy": 0.4109880054422954,
+        "avoid_tryhard": 0.30248774554045,
+        "approachable": 0.0769604893602186,
+        "feedback_adjust": -0.4466062502497384
       },
       "design_scores": {
-        "structured_shoulders": -0.26150777606591263,
-        "matte_fabric": 0.6609332685242109,
-        "glossy_fabric": -0.6609332685242109,
-        "dark_tone": 0.8004442787749348,
-        "bright_color": 0.7287118313655943,
-        "visible_logo": -1.2368186351451975,
-        "minimal_design": 0.9083406739273341,
-        "bold_pattern": -0.9083406739273348,
-        "relaxed_fit": -2.1468945912229493,
-        "tailored_fit": 2.1468945912229493,
-        "formal_style": 1.786410026131586,
-        "casual_style": -1.7864100261315863,
-        "crisp_collar": 0.007863996914279471,
-        "soft_knit": 1.944677755797949,
-        "athletic_style": 1.2687733930298595
+        "structured_shoulders": -0.2625404402959678,
+        "matte_fabric": 0.662683445828576,
+        "glossy_fabric": -0.6626834458285757,
+        "dark_tone": 0.8026210453229505,
+        "bright_color": 0.7290412248943757,
+        "visible_logo": -1.2403180116283172,
+        "minimal_design": 1.9553999567676739,
+        "bold_pattern": -1.9553999567676743,
+        "relaxed_fit": -2.146894665014314,
+        "tailored_fit": 2.1468946650143144,
+        "formal_style": 1.7864250009989535,
+        "casual_style": -1.7864250009989533,
+        "crisp_collar": 0.007989080419865922,
+        "soft_knit": 1.9447184435115135,
+        "athletic_style": 1.2689683090699038
       },
-      "margin_vs_cutoff": 0.4060938218166279,
+      "margin_vs_cutoff": 0.4102695806037602,
       "reason_mode": "sufficient",
       "reasons": [
-        "整體風格和你描述的相近（+3.08）",
-        "商品描述直接提到你要的關鍵字（+0.73）"
+        "整體風格和你描述的相近（+3.00）",
+        "商品描述直接提到你要的關鍵字（+0.73）",
+        "這件你這輪還沒看過（+0.50）"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+3.08）；商品描述直接提到你要的關鍵字（+0.73）",
+      "explanation": "整體風格和你描述的相近（+3.00）；商品描述直接提到你要的關鍵字（+0.73）；這件你這輪還沒看過（+0.50）",
       "explanation_source": "template"
     },
     {
       "item_id": "14759",
-      "rank": 4,
+      "rank": 2,
       "title": "Arrow Men Solid Brown Shirts",
       "image_path": "images/14759.jpg",
       "category": "top",
       "color": "Brown",
       "price": null,
-      "score": 3.7611815361689067,
+      "score": 4.261181536168907,
       "contributions": [
         {
           "term": "dense",
@@ -775,7 +288,7 @@
           "weight": 1.0,
           "contribution": 2.231668076239587,
           "need_shares": {},
-          "rank_without": 49,
+          "rank_without": 47,
           "necessary": true,
           "diff_vs_cutoff": 0.0,
           "sufficient": true,
@@ -805,7 +318,7 @@
           "need_shares": {
             "trustworthy": -0.030022052835513034
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": 0.00010824948559397946,
           "sufficient": false,
@@ -821,7 +334,7 @@
           "need_shares": {
             "avoid_tryhard": 0.04081466182054588
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": -9.95665162939613e-05,
           "sufficient": false,
@@ -837,7 +350,7 @@
           "need_shares": {
             "approachable": -0.024700466371253657
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": 5.571606179372024e-05,
           "sufficient": false,
@@ -853,7 +366,7 @@
           "need_shares": {
             "approachable": 0.021959706882018395
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": -7.4338467364078176e-06,
           "sufficient": false,
@@ -887,7 +400,7 @@
           "need_shares": {
             "avoid_tryhard": 0.14666913881796179
           },
-          "rank_without": 5,
+          "rank_without": 4,
           "necessary": false,
           "diff_vs_cutoff": -1.0813678637255908e-06,
           "sufficient": false,
@@ -922,7 +435,7 @@
           "need_shares": {
             "trustworthy": 0.0010172997141852196
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": -1.313281094373871e-05,
           "sufficient": false,
@@ -938,7 +451,7 @@
           "need_shares": {
             "approachable": 0.05835175229856935
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": -7.952513188941301e-07,
           "sufficient": false,
@@ -968,11 +481,25 @@
           "weight": -0.5,
           "contribution": -0.20235157237246282,
           "need_shares": {},
-          "rank_without": 3,
+          "rank_without": 1,
           "necessary": false,
           "diff_vs_cutoff": 0.0,
           "sufficient": false,
           "cited": false
+        },
+        {
+          "term": "freshness:not_yet_seen",
+          "group": "freshness",
+          "raw": 1.0,
+          "normalized": 1.0,
+          "weight": 0.5,
+          "contribution": 0.5,
+          "need_shares": {},
+          "rank_without": 14,
+          "necessary": true,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": true,
+          "cited": true
         }
       ],
       "need_contributions": {
@@ -998,27 +525,294 @@
         "soft_knit": 1.9450584099523118,
         "athletic_style": -1.4334666113190773
       },
-      "margin_vs_cutoff": 0.2963801518211393,
+      "margin_vs_cutoff": 0.29638015182113975,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+2.23）",
         "商品描述直接提到你要的關鍵字（+0.73）",
+        "這件你這輪還沒看過（+0.50）",
         "避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」",
         "避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」；避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」",
+      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；這件你這輪還沒看過（+0.50）；避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」；避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」",
+      "explanation_source": "template"
+    },
+    {
+      "item_id": "14741",
+      "rank": 3,
+      "title": "Arrow Men Solid Lavender Shirts",
+      "image_path": "images/14741.jpg",
+      "category": "top",
+      "color": "Lavender",
+      "price": null,
+      "score": 4.140070964951527,
+      "contributions": [
+        {
+          "term": "dense",
+          "group": "dense",
+          "raw": 0.7208878993988037,
+          "normalized": 3.0,
+          "weight": 1.0,
+          "contribution": 3.0,
+          "need_shares": {},
+          "rank_without": 50,
+          "necessary": true,
+          "diff_vs_cutoff": 0.7683319237604129,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "bm25",
+          "group": "bm25",
+          "raw": 5.027343213279651,
+          "normalized": 1.4671850944615301,
+          "weight": 0.5,
+          "contribution": 0.7335925472307651,
+          "need_shares": {},
+          "rank_without": 34,
+          "necessary": true,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "design:structured_shoulders",
+          "group": "design",
+          "raw": -0.2625404402959678,
+          "normalized": -0.2625404402959678,
+          "weight": 0.11000000000000001,
+          "contribution": -0.02887944843255646,
+          "need_shares": {
+            "trustworthy": -0.02887944843255646
+          },
+          "rank_without": 3,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0012508538885505523,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:matte_fabric",
+          "group": "design",
+          "raw": 0.662683445828576,
+          "normalized": 0.662683445828576,
+          "weight": 0.06,
+          "contribution": 0.039761006749714556,
+          "need_shares": {
+            "avoid_tryhard": 0.039761006749714556
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -0.0011532215871252888,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:dark_tone",
+          "group": "design",
+          "raw": 0.8026210453229505,
+          "normalized": 0.8026210453229505,
+          "weight": -0.03,
+          "contribution": -0.024078631359688515,
+          "need_shares": {
+            "approachable": -0.024078631359688515
+          },
+          "rank_without": 3,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0006775510733588626,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:bright_color",
+          "group": "design",
+          "raw": 0.7290412248943757,
+          "normalized": 0.7290412248943757,
+          "weight": 0.03,
+          "contribution": 0.021871236746831273,
+          "need_shares": {
+            "approachable": 0.021871236746831273
+          },
+          "rank_without": 4,
+          "necessary": false,
+          "diff_vs_cutoff": -9.590398192352995e-05,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:visible_logo",
+          "group": "design",
+          "raw": -1.2403180116283172,
+          "normalized": -1.2403180116283172,
+          "weight": -0.35,
+          "contribution": 0.434111304069911,
+          "need_shares": {
+            "trustworthy": 0.1364349812791149,
+            "approachable": 0.07441908069769904,
+            "avoid_tryhard": 0.22325724209309708
+          },
+          "rank_without": 15,
+          "necessary": true,
+          "diff_vs_cutoff": -0.01326268489612542,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "design:minimal_design",
+          "group": "design",
+          "raw": 1.9553999567676739,
+          "normalized": 1.9553999567676739,
+          "weight": 0.075,
+          "contribution": 0.14665499675757554,
+          "need_shares": {
+            "avoid_tryhard": 0.14665499675757554
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -1.5223428249971915e-05,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:formal_style",
+          "group": "design",
+          "raw": 1.7864250009989535,
+          "normalized": 1.7864250009989535,
+          "weight": -0.09249999999999997,
+          "contribution": -0.16524431259240316,
+          "need_shares": {
+            "trustworthy": 0.44214018774724106,
+            "approachable": -0.053592750029968605,
+            "avoid_tryhard": -0.10718550005993721,
+            "feedback_adjust": -0.4466062502497384
+          },
+          "rank_without": 2,
+          "necessary": false,
+          "diff_vs_cutoff": -0.34550407680703693,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:crisp_collar",
+          "group": "design",
+          "raw": 0.007989080419865922,
+          "normalized": 0.007989080419865922,
+          "weight": 0.11000000000000001,
+          "contribution": 0.0008787988461852516,
+          "need_shares": {
+            "trustworthy": 0.0008787988461852516
+          },
+          "rank_without": 3,
+          "necessary": false,
+          "diff_vs_cutoff": -0.00015163367894370668,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:soft_knit",
+          "group": "design",
+          "raw": 1.9447184435115135,
+          "normalized": 1.9447184435115135,
+          "weight": 0.03,
+          "contribution": 0.0583415533053454,
+          "need_shares": {
+            "approachable": 0.0583415533053454
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -1.0994244542844589e-05,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:athletic_style",
+          "group": "design",
+          "raw": 1.2689683090699038,
+          "normalized": 1.2689683090699038,
+          "weight": -0.11000000000000001,
+          "contribution": -0.13958651399768943,
+          "need_shares": {
+            "trustworthy": -0.13958651399768943
+          },
+          "rank_without": 2,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0002029905053857195,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "penalty:rejected_similarity",
+          "group": "penalty",
+          "raw": 0.41812098026275635,
+          "normalized": 0.40470314474492564,
+          "weight": -0.5,
+          "contribution": -0.20235157237246282,
+          "need_shares": {},
+          "rank_without": 2,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "freshness:not_yet_seen",
+          "group": "freshness",
+          "raw": 0.53,
+          "normalized": 0.53,
+          "weight": 0.5,
+          "contribution": 0.265,
+          "need_shares": {},
+          "rank_without": 11,
+          "necessary": true,
+          "diff_vs_cutoff": -0.235,
+          "sufficient": false,
+          "cited": false
+        }
+      ],
+      "need_contributions": {
+        "trustworthy": 0.4109880054422954,
+        "avoid_tryhard": 0.30248774554045,
+        "approachable": 0.0769604893602186,
+        "feedback_adjust": -0.4466062502497384
+      },
+      "design_scores": {
+        "structured_shoulders": -0.2625404402959678,
+        "matte_fabric": 0.662683445828576,
+        "glossy_fabric": -0.6626834458285757,
+        "dark_tone": 0.8026210453229505,
+        "bright_color": 0.7290412248943757,
+        "visible_logo": -1.2403180116283172,
+        "minimal_design": 1.9553999567676739,
+        "bold_pattern": -1.9553999567676743,
+        "relaxed_fit": -2.146894665014314,
+        "tailored_fit": 2.1468946650143144,
+        "formal_style": 1.7864250009989535,
+        "casual_style": -1.7864250009989533,
+        "crisp_collar": 0.007989080419865922,
+        "soft_knit": 1.9447184435115135,
+        "athletic_style": 1.2689683090699038
+      },
+      "margin_vs_cutoff": 0.17526958060375986,
+      "reason_mode": "sufficient",
+      "reasons": [
+        "整體風格和你描述的相近（+3.00）",
+        "商品描述直接提到你要的關鍵字（+0.73）",
+        "避開明顯 logo（+0.43），對應你想要的「怕顯得太用力、被信任」"
+      ],
+      "attribute_notes": [],
+      "explanation": "整體風格和你描述的相近（+3.00）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.43），對應你想要的「怕顯得太用力、被信任」",
       "explanation_source": "template"
     },
     {
       "item_id": "14752",
-      "rank": 5,
+      "rank": 4,
       "title": "Arrow Men Solid Grey Shirts",
       "image_path": "images/14752.jpg",
       "category": "top",
       "color": "Grey",
       "price": null,
-      "score": 3.630881546662016,
+      "score": 4.130881546662016,
       "contributions": [
         {
           "term": "dense",
@@ -1028,7 +822,7 @@
           "weight": 1.0,
           "contribution": 2.231668076239587,
           "need_shares": {},
-          "rank_without": 49,
+          "rank_without": 47,
           "necessary": true,
           "diff_vs_cutoff": 0.0,
           "sufficient": true,
@@ -1090,7 +884,7 @@
           "need_shares": {
             "approachable": -0.024418653440214672
           },
-          "rank_without": 5,
+          "rank_without": 3,
           "necessary": false,
           "diff_vs_cutoff": 0.00033752899283270507,
           "sufficient": false,
@@ -1106,7 +900,7 @@
           "need_shares": {
             "approachable": -0.04350728693578679
           },
-          "rank_without": 5,
+          "rank_without": 3,
           "necessary": false,
           "diff_vs_cutoff": -0.06547442766454159,
           "sufficient": false,
@@ -1175,7 +969,7 @@
           "need_shares": {
             "trustworthy": 0.0009527720708983297
           },
-          "rank_without": 5,
+          "rank_without": 4,
           "necessary": false,
           "diff_vs_cutoff": -7.76604542306286e-05,
           "sufficient": false,
@@ -1207,7 +1001,7 @@
           "need_shares": {
             "trustworthy": -0.13969276137793407
           },
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": 9.674312514107442e-05,
           "sufficient": false,
@@ -1221,11 +1015,25 @@
           "weight": -0.5,
           "contribution": -0.20235157237246282,
           "need_shares": {},
-          "rank_without": 4,
+          "rank_without": 2,
           "necessary": false,
           "diff_vs_cutoff": 0.0,
           "sufficient": false,
           "cited": false
+        },
+        {
+          "term": "freshness:not_yet_seen",
+          "group": "freshness",
+          "raw": 1.0,
+          "normalized": 1.0,
+          "weight": 0.5,
+          "contribution": 0.5,
+          "need_shares": {},
+          "rank_without": 15,
+          "necessary": true,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": true,
+          "cited": true
         }
       ],
       "need_contributions": {
@@ -1251,16 +1059,283 @@
         "soft_knit": 1.9449146464334428,
         "athletic_style": 1.269934194344855
       },
-      "margin_vs_cutoff": 0.1660801623142487,
+      "margin_vs_cutoff": 0.16608016231424827,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+2.23）",
         "商品描述直接提到你要的關鍵字（+0.73）",
+        "這件你這輪還沒看過（+0.50）",
         "避開明顯 logo（+0.44），對應你想要的「怕顯得太用力、被信任」",
         "肩線挺（+0.21），對應你想要的「被信任」"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.44），對應你想要的「怕顯得太用力、被信任」；肩線挺（+0.21），對應你想要的「被信任」",
+      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；這件你這輪還沒看過（+0.50）；避開明顯 logo（+0.44），對應你想要的「怕顯得太用力、被信任」；肩線挺（+0.21），對應你想要的「被信任」",
+      "explanation_source": "template"
+    },
+    {
+      "item_id": "14749",
+      "rank": 5,
+      "title": "Arrow Men Stripes Lavender Shirts",
+      "image_path": "images/14749.jpg",
+      "category": "top",
+      "color": "Lavender",
+      "price": null,
+      "score": 4.110388586709647,
+      "contributions": [
+        {
+          "term": "dense",
+          "group": "dense",
+          "raw": 0.6822348237037659,
+          "normalized": 3.0,
+          "weight": 1.0,
+          "contribution": 3.0,
+          "need_shares": {},
+          "rank_without": 50,
+          "necessary": true,
+          "diff_vs_cutoff": 0.7683319237604129,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "bm25",
+          "group": "bm25",
+          "raw": 5.027343213279651,
+          "normalized": 1.4671850944615301,
+          "weight": 0.5,
+          "contribution": 0.7335925472307651,
+          "need_shares": {},
+          "rank_without": 34,
+          "necessary": true,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "design:structured_shoulders",
+          "group": "design",
+          "raw": -0.26150777606591263,
+          "normalized": -0.26150777606591263,
+          "weight": 0.11000000000000001,
+          "contribution": -0.028765855367250393,
+          "need_shares": {
+            "trustworthy": -0.028765855367250393
+          },
+          "rank_without": 4,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0013644469538566205,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:matte_fabric",
+          "group": "design",
+          "raw": 0.6609332685242109,
+          "normalized": 0.6609332685242109,
+          "weight": 0.06,
+          "contribution": 0.03965599611145265,
+          "need_shares": {
+            "avoid_tryhard": 0.03965599611145265
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -0.001258232225387193,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:dark_tone",
+          "group": "design",
+          "raw": 0.8004442787749348,
+          "normalized": 0.8004442787749348,
+          "weight": -0.03,
+          "contribution": -0.024013328363248043,
+          "need_shares": {
+            "approachable": -0.024013328363248043
+          },
+          "rank_without": 4,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0007428540697993341,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:bright_color",
+          "group": "design",
+          "raw": 0.7287118313655943,
+          "normalized": 0.7287118313655943,
+          "weight": 0.03,
+          "contribution": 0.021861354940967827,
+          "need_shares": {
+            "approachable": 0.021861354940967827
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -0.00010578578778697514,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:visible_logo",
+          "group": "design",
+          "raw": -1.2368186351451975,
+          "normalized": -1.2368186351451975,
+          "weight": -0.35,
+          "contribution": 0.4328865223008191,
+          "need_shares": {
+            "trustworthy": 0.13605004986597174,
+            "approachable": 0.07420911810871185,
+            "avoid_tryhard": 0.22262735432613553
+          },
+          "rank_without": 15,
+          "necessary": true,
+          "diff_vs_cutoff": -0.01448746666521733,
+          "sufficient": true,
+          "cited": true
+        },
+        {
+          "term": "design:minimal_design",
+          "group": "design",
+          "raw": 0.9083406739273341,
+          "normalized": 0.9083406739273341,
+          "weight": 0.075,
+          "contribution": 0.06812555054455005,
+          "need_shares": {
+            "avoid_tryhard": 0.06812555054455005
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -0.07854466964127546,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:formal_style",
+          "group": "design",
+          "raw": 1.786410026131586,
+          "normalized": 1.786410026131586,
+          "weight": -0.09249999999999997,
+          "contribution": -0.16524292741717167,
+          "need_shares": {
+            "trustworthy": 0.4421364814675676,
+            "approachable": -0.05359230078394758,
+            "avoid_tryhard": -0.10718460156789517,
+            "feedback_adjust": -0.4466025065328965
+          },
+          "rank_without": 2,
+          "necessary": false,
+          "diff_vs_cutoff": -0.34550269163180547,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:crisp_collar",
+          "group": "design",
+          "raw": 0.007863996914279471,
+          "normalized": 0.007863996914279471,
+          "weight": 0.11000000000000001,
+          "contribution": 0.0008650396605707419,
+          "need_shares": {
+            "trustworthy": 0.0008650396605707419
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -0.00016539286455821635,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:soft_knit",
+          "group": "design",
+          "raw": 1.944677755797949,
+          "normalized": 1.944677755797949,
+          "weight": 0.03,
+          "contribution": 0.05834033267393847,
+          "need_shares": {
+            "approachable": 0.05834033267393847
+          },
+          "rank_without": 5,
+          "necessary": false,
+          "diff_vs_cutoff": -1.2214875949774495e-05,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "design:athletic_style",
+          "group": "design",
+          "raw": 1.2687733930298595,
+          "normalized": 1.2687733930298595,
+          "weight": -0.11000000000000001,
+          "contribution": -0.13956507323328457,
+          "need_shares": {
+            "trustworthy": -0.13956507323328457
+          },
+          "rank_without": 3,
+          "necessary": false,
+          "diff_vs_cutoff": 0.00022443126979057593,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "penalty:rejected_similarity",
+          "group": "penalty",
+          "raw": 0.41812098026275635,
+          "normalized": 0.40470314474492564,
+          "weight": -0.5,
+          "contribution": -0.20235157237246282,
+          "need_shares": {},
+          "rank_without": 2,
+          "necessary": false,
+          "diff_vs_cutoff": 0.0,
+          "sufficient": false,
+          "cited": false
+        },
+        {
+          "term": "freshness:not_yet_seen",
+          "group": "freshness",
+          "raw": 0.63,
+          "normalized": 0.63,
+          "weight": 0.5,
+          "contribution": 0.315,
+          "need_shares": {},
+          "rank_without": 11,
+          "necessary": true,
+          "diff_vs_cutoff": -0.185,
+          "sufficient": false,
+          "cited": false
+        }
+      ],
+      "need_contributions": {
+        "trustworthy": 0.4107206423935751,
+        "avoid_tryhard": 0.2232242994142431,
+        "approachable": 0.07680517657642252,
+        "feedback_adjust": -0.4466025065328965
+      },
+      "design_scores": {
+        "structured_shoulders": -0.26150777606591263,
+        "matte_fabric": 0.6609332685242109,
+        "glossy_fabric": -0.6609332685242109,
+        "dark_tone": 0.8004442787749348,
+        "bright_color": 0.7287118313655943,
+        "visible_logo": -1.2368186351451975,
+        "minimal_design": 0.9083406739273341,
+        "bold_pattern": -0.9083406739273348,
+        "relaxed_fit": -2.1468945912229493,
+        "tailored_fit": 2.1468945912229493,
+        "formal_style": 1.786410026131586,
+        "casual_style": -1.7864100261315863,
+        "crisp_collar": 0.007863996914279471,
+        "soft_knit": 1.944677755797949,
+        "athletic_style": 1.2687733930298595
+      },
+      "margin_vs_cutoff": 0.14558720236187916,
+      "reason_mode": "sufficient",
+      "reasons": [
+        "整體風格和你描述的相近（+3.00）",
+        "商品描述直接提到你要的關鍵字（+0.73）",
+        "避開明顯 logo（+0.43），對應你想要的「怕顯得太用力、被信任」"
+      ],
+      "attribute_notes": [],
+      "explanation": "整體風格和你描述的相近（+3.00）；商品描述直接提到你要的關鍵字（+0.73）；避開明顯 logo（+0.43），對應你想要的「怕顯得太用力、被信任」",
       "explanation_source": "template"
     }
   ],
@@ -1297,15 +1372,15 @@
     0.0,
     0.0589623861014843,
     0.0,
-    0.0,
-    "...truncated"
+    0.0
   ],
   "timings_ms": {
-    "filter": 1.4,
-    "retrieve": 0.83,
-    "fuse": 0.25,
-    "rerank": 1.04,
-    "counterfactual": 0.3,
-    "explain": 0.76
+    "filter": 1.15,
+    "bm25_docs_touched": 0.5134,
+    "retrieve": 0.93,
+    "fuse": 0.17,
+    "rerank": 1.19,
+    "counterfactual": 0.32,
+    "explain": 0.74
   }
 }

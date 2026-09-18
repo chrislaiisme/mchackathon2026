@@ -406,6 +406,45 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+@app.get("/context")
+def context() -> dict:
+    """External context (weather) as fetched EARLIER by scripts/fetch_context.py — never now.
+
+    The serving path does not touch the network: from Taipei a cold call to Open-Meteo is p50
+    1.57 s against a 12.8 ms /rank, and ENGINE02_DEMO=1 has no network at all. So this reads a
+    local file, reports how stale it is, and hands the caller a season word it MAY attach as
+    `constraints.season` with state="inferred" (a soft signal that never shrinks the candidate
+    pool). ENGINE 02 never attaches it by itself: season is the caller's statement about the user.
+
+    Missing or stale file is not an error — it is the documented no-op.
+    """
+    import json as _json
+    from datetime import datetime, timezone
+
+    f = _path("ENGINE02_CONTEXT", "data/context/weather.json")
+    if not f.exists():
+        return {"available": False,
+                "note": "沒有情境檔；這是正常的 no-op。要啟用請先跑 scripts/fetch_context.py（它會連網，服務路徑不會）。"}
+    try:
+        ctx = _json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return {"available": False, "note": f"情境檔讀不起來（{type(e).__name__}），視為 no-op"}
+    age = None
+    try:
+        age = (datetime.now(timezone.utc)
+               - datetime.fromisoformat(str(ctx.get("fetched_at")))).total_seconds()
+    except (TypeError, ValueError):
+        pass
+    fresh = age is not None and age < float(os.environ.get("ENGINE02_CONTEXT_MAX_AGE_S", "10800"))
+    return {"available": True, "age_seconds": None if age is None else round(age), "fresh": fresh,
+            "context": ctx,
+            "suggested_constraint": ({"season": {"state": "inferred",
+                                                 "values": [ctx["suggested_season"]]}}
+                                     if fresh and ctx.get("suggested_season") else None),
+            "note": ("情境是離線抓好的，排序不會因此連網。" +
+                     ("" if fresh else "這份情境已過期，建議忽略或重新抓。"))}
+
+
 @app.get("/profile/questions")
 def profile_questions_endpoint(n: int = 3, arm: str | None = None) -> dict:
     """n forced choices between two real photos, to build a prior before the user types anything.

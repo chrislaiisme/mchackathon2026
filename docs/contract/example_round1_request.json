@@ -8,6 +8,7 @@
   "retrieval_text": "men shirts for formal",
   "retrieval_text_normalized": null,
   "design_weight_prior": {},
+  "profile": null,
   "constraints": {
     "category": {
       "state": "value",

@@ -2,7 +2,7 @@
   "contract_version": "0.1.0",
   "session_id": "demo-interview",
   "round": 1,
-  "arm": "full",
+  "arm": "full_zclip3",
   "items": [
     {
       "item_id": "14716",
@@ -12,7 +12,7 @@
       "category": "top",
       "color": "White",
       "price": null,
-      "score": 4.691011162413621,
+      "score": 4.266671435635173,
       "contributions": [
         {
           "term": "dense",
@@ -22,7 +22,7 @@
           "weight": 1.0,
           "contribution": 2.411645053308499,
           "need_shares": {},
-          "rank_without": 43,
+          "rank_without": 50,
           "necessary": true,
           "diff_vs_cutoff": 0.8356243918364858,
           "sufficient": true,
@@ -32,13 +32,13 @@
           "term": "bm25",
           "group": "bm25",
           "raw": 7.993256587255697,
-          "normalized": 3.8486794535568984,
+          "normalized": 3.0,
           "weight": 0.5,
-          "contribution": 1.9243397267784492,
+          "contribution": 1.5,
           "need_shares": {},
           "rank_without": 6,
           "necessary": true,
-          "diff_vs_cutoff": 1.1735777783904011,
+          "diff_vs_cutoff": 0.7492380516119519,
           "sufficient": true,
           "cited": true
         },
@@ -229,14 +229,14 @@
         "soft_knit": 1.9441688167969746,
         "athletic_style": -0.15272252587418556
       },
-      "margin_vs_cutoff": 1.8531413616970656,
+      "margin_vs_cutoff": 1.4288016349186177,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+2.41）",
-        "商品描述直接提到你要的關鍵字（+1.92）"
+        "商品描述直接提到你要的關鍵字（+1.50）"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+2.41）；商品描述直接提到你要的關鍵字（+1.92）",
+      "explanation": "整體風格和你描述的相近（+2.41）；商品描述直接提到你要的關鍵字（+1.50）",
       "explanation_source": "template"
     },
     {
@@ -247,7 +247,7 @@
       "category": "top",
       "color": "White",
       "price": null,
-      "score": 4.691011162413621,
+      "score": 4.266671435635173,
       "contributions": [
         {
           "term": "dense",
@@ -257,7 +257,7 @@
           "weight": 1.0,
           "contribution": 2.411645053308499,
           "need_shares": {},
-          "rank_without": 43,
+          "rank_without": 50,
           "necessary": true,
           "diff_vs_cutoff": 0.8356243918364858,
           "sufficient": true,
@@ -267,13 +267,13 @@
           "term": "bm25",
           "group": "bm25",
           "raw": 7.993256587255697,
-          "normalized": 3.8486794535568984,
+          "normalized": 3.0,
           "weight": 0.5,
-          "contribution": 1.9243397267784492,
+          "contribution": 1.5,
           "need_shares": {},
           "rank_without": 6,
           "necessary": true,
-          "diff_vs_cutoff": 1.1735777783904011,
+          "diff_vs_cutoff": 0.7492380516119519,
           "sufficient": true,
           "cited": true
         },
@@ -464,14 +464,14 @@
         "soft_knit": 1.9441688167969746,
         "athletic_style": -0.15272252587418556
       },
-      "margin_vs_cutoff": 1.8531413616970656,
+      "margin_vs_cutoff": 1.4288016349186177,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+2.41）",
-        "商品描述直接提到你要的關鍵字（+1.92）"
+        "商品描述直接提到你要的關鍵字（+1.50）"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+2.41）；商品描述直接提到你要的關鍵字（+1.92）",
+      "explanation": "整體風格和你描述的相近（+2.41）；商品描述直接提到你要的關鍵字（+1.50）",
       "explanation_source": "template"
     },
     {
@@ -1216,15 +1216,15 @@
     0.0,
     0.0,
     0.0,
-    0.0,
-    "...truncated"
+    0.0
   ],
   "timings_ms": {
-    "filter": 131.83,
-    "retrieve": 1.3,
-    "fuse": 0.32,
-    "rerank": 1.78,
+    "filter": 115.45,
+    "bm25_docs_touched": 0.5134,
+    "retrieve": 1.5,
+    "fuse": 0.29,
+    "rerank": 2.09,
     "counterfactual": 0.31,
-    "explain": 2.36
+    "explain": 2.42
   }
 }

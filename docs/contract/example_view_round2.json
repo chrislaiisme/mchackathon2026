@@ -270,6 +270,22 @@
       "trustworthy"
     ]
   },
+  "diversity": {
+    "k": 5,
+    "distinct_categories": 1,
+    "distinct_colors": 4,
+    "div_at_k": 0.5,
+    "categories": {
+      "top": 5
+    },
+    "colors": {
+      "Lavender": 2,
+      "Brown": 1,
+      "Grey": 1,
+      "Blue": 1
+    },
+    "promoted_by_diversity": []
+  },
   "provenance": {
     "arm": "full",
     "encoder": "hash-256",
@@ -300,12 +316,12 @@
     },
     "diversification": {},
     "timings_ms": {
-      "filter": 12.06,
-      "retrieve": 4.21,
-      "fuse": 0.19,
-      "rerank": 0.64,
-      "counterfactual": 0.3,
-      "explain": 1.44
+      "filter": 2.7,
+      "retrieve": 0.95,
+      "fuse": 0.33,
+      "rerank": 1.65,
+      "counterfactual": 1.02,
+      "explain": 1.24
     },
     "caveats": [
       "商品庫無價格資料，預算條件不做過濾（畫面需標示）"
@@ -363,20 +379,24 @@
       "formal_style": -1
     },
     "needs_delta": {
-      "approachable": -0.0317,
+      "trustworthy": -0.1949,
       "avoid_tryhard": 0.2266,
-      "trustworthy": -0.1949
+      "approachable": -0.0317
     },
     "relaxed_added": [],
     "relaxed_removed": [],
     "metrics_before": {
       "hard_constraint_satisfaction": 1.0,
+      "match_policy": "exact",
       "excluded_value_hits": 0,
+      "rejected_item_hits": 0,
       "feedback_violations": 0
     },
     "metrics_after": {
       "hard_constraint_satisfaction": 1.0,
+      "match_policy": "exact",
       "excluded_value_hits": 0,
+      "rejected_item_hits": 0,
       "feedback_violations": 0
     }
   }

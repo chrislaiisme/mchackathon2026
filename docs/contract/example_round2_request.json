@@ -9,6 +9,7 @@
   "retrieval_text": "men shirts for formal",
   "retrieval_text_normalized": null,
   "design_weight_prior": {},
+  "profile": null,
   "constraints": {
     "category": {
       "state": "value",
@@ -92,7 +93,19 @@
     "concept_image_embedding": null,
     "reference_item_id": null,
     "critique": null,
-    "choice_history": [],
+    "choice_history": [
+      {
+        "shown_item_ids": [
+          "14716",
+          "14715",
+          "14731",
+          "14741",
+          "14749"
+        ],
+        "chosen_item_id": "14731",
+        "rejected_item_ids": []
+      }
+    ],
     "design_weight_delta": {}
   },
   "options": {
