@@ -54,7 +54,9 @@ def test_chinese_values_become_catalog_values():
         {"item_type": "洋裝", "colors": ["粉色"], "occasion": "約會", "fit": "修身"},
         session_id="t")
     assert req.constraints.category.values, "「洋裝」 must resolve through the taxonomy"
-    assert req.constraints.color.values == ["Pink"]
+    # 「粉色」 is a family word, so it expands to the family (Pink, Magenta, Rose, ...) rather
+    # than to one value — see test_a_specific_colour_word_is_not_flattened_to_its_family
+    assert "Pink" in req.constraints.color.values
     assert req.constraints.occasion.values == ["Smart Casual"]
     # it must land on the channel that is attributed to the user's own sentence, never on
     # feedback (which the card calls 「你上一輪的回饋」)
