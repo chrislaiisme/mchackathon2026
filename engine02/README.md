@@ -79,6 +79,7 @@ All ground truth in T1–T5 comes from catalog metadata or blind visual labels, 
 
 | Finding | Evidence |
 |---|---|
+| The lexical side switches itself off when the query barely touches the catalog | paraphrased queries 0.111 → 0.308 NDCG@5 (p<1e-5) with no cost on lexical ones (−0.002, p=0.50); the old coverage gate never fired because rare words like "everyday" ARE in the vocabulary |
 | Hybrid retrieval needs ENGINE 01 to normalise values to catalog vocabulary | NDCG@5 lexical: hybrid 0.80–0.87 vs dense 0.53–0.61; paraphrased: hybrid 0.09–0.21 vs dense 0.43–0.46 (5k and 44k) |
 | Antonym-pair concept scores beat the PRD descriptor scores | AUROC casual 0.66–0.72 → 0.98, dark tone 0.84–0.86 → 0.98; random-word control 0.33–0.70 |
 | VLM tags fix material/sheen | glossy AUROC CLIP 0.71 → Qwen3-VL-8B 0.90 (LLM-annotated labels) |

@@ -35,7 +35,7 @@ ENGINE 03 的 JSON（分數分解、需求貢獻、規則指標、輸入警告�
 | # | 階段 | 程式 | 進 / 出 | 關鍵決策與依據 |
 |---|---|---|---|---|
 | ① | 硬條件過濾 | `constraints.py`、`taxonomy.py`、`attrindex.py` | 全庫 → 候選池 | 硬條件**是過濾不是加分**（Taobao MGDSPR, KDD 2021；Vespa）。過濾空了就依固定階梯放寬（顏色 allow_unknown → 季節 → 場合 → 丟季節 → 丟場合 → 預算 ×1.2 → 丟顏色 → 丟預算），**品類與性別永不放寬**，放寬了一定寫進理由。品類走 12/89 節點的分類體系做 L2→L1 階層放寬 |
-| ② | 混合檢索 | `sparse.py`、`fusion.py`、`models.py` | 候選池 → 候選 | 詞彙一致時 BM25 幫助大、換句話說時只會加噪，所以**詞彙正規化是 ENGINE 01 的硬需求**；`retrieval_text_normalized=false` 時本輪自動只走 dense。BM25 用 postings 計分（與 rank_bm25 逐分相同，`tests/test_sparse.py`） |
+| ② | 混合檢索 | `sparse.py`、`fusion.py`、`models.py` | 候選池 → 候選 | 詞彙一致時 BM25 幫助大、換句話說時只會加噪，所以**詞彙正規化是 ENGINE 01 的硬需求**；`retrieval_text_normalized=false` 時本輪自動只走 dense。**而且不必等 ENGINE 01 告知**：若查詢的詞總共只碰到 <12% 的商品，系統自己關掉關鍵字比對並在回應寫明原因（§3.29，換句話說的查詢 0.111→0.308，用詞相同零代價）。BM25 用 postings 計分（與 rank_bm25 逐分相同，`tests/test_sparse.py`） |
 | ③ | 可加總重排 | `rerank.py`、`pipeline.py::_terms`、`kansei.py` | 候選 → 分數分解 | 每一項都是 `(原始值, 權重, 貢獻)`；設計要素項 β_d 來自感性對照表 K（32 篇文獻編碼）×需求機率，c(i,d) 用反義詞成對打分（隨機字詞對照 AUROC 0.33–0.70 證明它真的在量東西）。z 標準化用**整個候選池**的統計量並截斷 ±3，否則 BM25 的長尾會壓掉其他理由 |
 | ④ | 忠實理由 | `explain.py` | 分數分解 → 中文句子 | 預設**最小充分集合**（ERASER 式）：被引用的那幾項單獨就足以讓商品留在前 k。PRD 原本的「必要性」規則有 10–20% 卡片沒有任何理由。權重為負的要素寫成「避開〇〇」（極性寫反過一次，已修並有測試）。LLM 改寫要通過程式事實檢查，過不了就退回模板 |
 | ⑤ | 多樣化 | `diversify.py` | 深層清單 → 前 k | DPP 快速貪婪 MAP；被多樣化推上來的卡片會標「為了多樣性而納入」並附原本排名 |
@@ -107,6 +107,7 @@ BM25 改成 postings 計分（rank_bm25 是「每個查詢詞掃全庫」）、d
 |---|---|---|
 | LLM（沒有 key／斷網／超時） | 模板理由 | 一樣有理由，`explanation_source="template"` |
 | OutfitTransformer checkpoint 缺失 | `/complete-look` 退回圖片相似度 | `/health` 的 `method` 會說是哪一種 |
+| 查詢用字對不上商品庫 | 關掉關鍵字比對、只用語意檢索 | `input_warnings` 寫明「只觸及 X% 的商品」 |
 | 過濾後沒有結果 | 固定順序放寬 | 「已放寬季節條件」寫在卡片上 |
 | 商品缺屬性 | 校準後補值或標 unknown | 「顏色為模型判讀」 |
 | 分類體系對不到該商品庫 | 退回舊的精確字串比對 | 無感，結果一致 |
