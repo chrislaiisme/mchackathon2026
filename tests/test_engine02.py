@@ -434,9 +434,13 @@ def test_freshness_term_is_sayable_and_position_weighted(engine):
 
 
 def test_freshness_cap_drops_an_item_ignored_at_rank_one(engine):
-    """Only a fully-examined item (rank 1, one full effective impression) hits the cap."""
+    """The cap is off by default (it costs utility, §3.25) but must work when switched on."""
+    from dataclasses import replace
+
+    from engine02.config import ARMS
     from engine02.contracts import ChoiceRecord, FeedbackState, HardConstraints
 
+    capped = replace(ARMS["full_zclip3"], name="capped", exposure_cap=1.0)
     plain_req = request(constraints=HardConstraints())  # whole toy catalog, so the pool survives
     base = engine.run(plain_req, "full_zclip3_nofresh")
     shown = [it.item_id for it in base.items]
@@ -444,7 +448,10 @@ def test_freshness_cap_drops_an_item_ignored_at_rank_one(engine):
 
     # the user picked the third card, so the first two were examined and passed over
     fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[2])])
-    resp = engine.run(request(round=1, feedback=fb, constraints=HardConstraints()), "full_zclip3")
+    assert ARMS["full_zclip3"].exposure_cap == 0.0, "the cap must stay off by default"
+    assert engine.run(request(round=1, feedback=fb, constraints=HardConstraints()),
+                      "full_zclip3").constraint_report.exposure_excluded == 0
+    resp = engine.run(request(round=1, feedback=fb, constraints=HardConstraints()), capped)
     rep = resp.constraint_report
     assert rep.exposure_excluded == 1, f"rank-1 ignored item should be capped out: {rep}"
     assert shown[0] not in [it.item_id for it in resp.items]

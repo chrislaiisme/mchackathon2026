@@ -159,6 +159,14 @@ class Engine02Request(BaseModel):
     # dense only: BM25 on off-vocabulary wording only adds noise (T1: hybrid 0.09–0.21 vs dense
     # 0.43–0.46; T10 learned weights put w_bm25=0 there). None → use the pipeline's arm as is.
     retrieval_text_normalized: bool | None = None
+    # An external, non-user prior over design elements: a merchandiser's guidance, or the output
+    # of a trend platform the sponsor already runs. Kept OUT of `feedback` because it is not the
+    # user's voice, attributed separately on the card, and clipped to one user feedback step
+    # (KanseiTable.step_size) so a population signal can never outvote the person in front of us.
+    # We deliberately do not *produce* this signal: Heuritech's own HERMES release shows an
+    # influencer signal buys ~1% MASE at 100 series and needs pooling across thousands
+    # (arXiv:2202.03224); see docs/research/social-trend-signals.md.
+    design_weight_prior: dict[str, float] = Field(default_factory=dict)
     constraints: HardConstraints = Field(default_factory=HardConstraints)
     needs: list[NeedProbability] = Field(default_factory=list)
     feedback: FeedbackState = Field(default_factory=FeedbackState)

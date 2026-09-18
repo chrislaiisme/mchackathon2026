@@ -55,10 +55,11 @@ class ArmConfig:
     # the strongest. Before this it counted every card at full weight.
     outside_option_kappa: float = 0.5
     # Position-weighted frequency cap: undecayed effective impressions ≥ this ⇒ drop from the
-    # candidate pool for this round. A score penalty alone cannot guarantee the head changes
-    # (measured: the rank-1→rank-6 score gap is ~0.50, so a defensible weight cannot bridge it),
-    # and a cap is a rule, so it needs no estimator. 0 disables it.
-    exposure_cap: float = 1.0
+    # candidate pool for this round. Implemented, MEASURED, and off by default: it does buy a lot
+    # of novelty (0.41 vs 0.24 at the last round) but it significantly damages what the user gets
+    # (hidden utility 2.23 vs 2.58, p=0.0004) — it evicts items the user simply had not reached
+    # yet. Set it only when a stakeholder asks for a hard "never repeat" guarantee. (§3.25)
+    exposure_cap: float = 0.0
     z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty terms to ±z_clip
     need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
     w_dense: float = 1.0

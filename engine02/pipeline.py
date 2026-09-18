@@ -458,8 +458,19 @@ class Engine02:
                 canon = self.kansei.folded.get(d, d)
                 if canon in self.kansei.element_ids:
                     learned[self.kansei.element_ids.index(canon)] += -v if d in self.kansei.folded else v
+            # an external prior (merchandiser guidance, or a trend platform's output) enters the
+            # same additive slot but is attributed separately and clipped to one user feedback
+            # step, so the population can never outvote the person in front of us
+            prior = np.zeros(len(self.kansei.elements))
+            cap = float(self.kansei.step_size)
+            for d, v in req.design_weight_prior.items():
+                canon = self.kansei.folded.get(d, d)
+                if canon in self.kansei.element_ids:
+                    signed = -float(v) if d in self.kansei.folded else float(v)
+                    j_ = self.kansei.element_ids.index(canon)
+                    prior[j_] = float(np.clip(prior[j_] + signed, -cap, cap))
             for j, el in enumerate(self.kansei.elements):
-                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j])
+                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j] + prior[j])
                 if abs(w) < 1e-9:
                     continue
                 per_unit = {}
@@ -470,6 +481,8 @@ class Engine02:
                 fb_part = arm.need_scale * beta_fb[j] + learned[j]
                 if abs(fb_part) > 1e-9:
                     per_unit["feedback_adjust"] = float(fb_part)
+                if abs(prior[j]) > 1e-9:
+                    per_unit["external_prior"] = float(prior[j])
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:
