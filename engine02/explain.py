@@ -87,6 +87,33 @@ def verify_paraphrase(text: str, facts: list[dict], vocabulary: list[str]) -> bo
     return True
 
 
+class LlmBudget:
+    """Caps what one request can spend on paraphrases, and gives up after the first failure.
+
+    `explain()` falls back to the template whenever the callable raises, so exhausting the budget
+    is expressed as an exception. Without this, a slow or dead endpoint costs (cards x timeout).
+    """
+
+    def __init__(self, llm: Callable[[str], str], total_s: float = 1.5):
+        self.llm, self.total_s = llm, total_s
+        self.spent = 0.0
+        self.failed = False
+
+    def __call__(self, prompt: str) -> str:
+        import time
+
+        if self.failed or self.spent >= self.total_s:
+            raise TimeoutError(f"paraphrase budget of {self.total_s}s used up ({self.spent:.2f}s)")
+        t = time.perf_counter()
+        try:
+            return self.llm(prompt)
+        except Exception:
+            self.failed = True  # one failure is enough: the rest of the cards use templates
+            raise
+        finally:
+            self.spent += time.perf_counter() - t
+
+
 PARAPHRASE_PROMPT = (
     "你是服飾推薦系統的說明撰寫器。只能使用下面 JSON 裡的事實，把它寫成一句自然、"
     "不超過 60 字的繁體中文推薦理由。不得加入 JSON 沒有的屬性、需求、數字或形容。\n"

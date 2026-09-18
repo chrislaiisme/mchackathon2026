@@ -84,3 +84,44 @@ def test_api_view_panels_and_helpers(tmp_path, monkeypatch):
 
         tr = client.get("/trends").json()
         assert tr["loaded"] and tr["used_in_ranking"] is False and tr["keywords"]
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
+def test_demo_mode_refuses_llm_paraphrase(monkeypatch):
+    """A live demo cannot afford a network call per card; the server decides, not the client."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    import importlib
+
+    import engine02.api as api
+
+    importlib.reload(api)
+    from fastapi.testclient import TestClient
+
+    with TestClient(api.app) as client:
+        assert client.get("/health").json()["demo_mode"] is True
+        r = client.post("/rank", json={"session_id": "d", "retrieval_text": "navy shirt",
+                                       "options": {"top_k": 3, "explain_with_llm": True}})
+        assert r.status_code == 200
+        assert {it["explanation_source"] for it in r.json()["items"]} == {"template"}
+    monkeypatch.delenv("ENGINE02_DEMO")
+    importlib.reload(api)
+
+
+def test_llm_budget_gives_up_after_one_failure():
+    """Cards after a failure must not each wait for their own timeout."""
+    from engine02.explain import LlmBudget
+
+    calls = []
+
+    def flaky(prompt: str) -> str:
+        calls.append(prompt)
+        raise TimeoutError("network gone")
+
+    b = LlmBudget(flaky, total_s=5.0)
+    with pytest.raises(TimeoutError):
+        b("first")
+    with pytest.raises(TimeoutError):
+        b("second")
+    assert len(calls) == 1, "the second card should not have called out again"

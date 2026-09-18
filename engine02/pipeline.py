@@ -8,6 +8,7 @@ filter (with relaxation) → candidate retrieval (BM25 / dense / RRF / convex)
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -30,7 +31,7 @@ from .contracts import (
     RoundMetrics,
 )
 from .encoders import Encoder, cached_image_embeddings, l2n
-from .explain import explain, template_reasons
+from .explain import LlmBudget, explain, template_reasons
 from .kansei import KanseiTable
 from .rerank import Term, additive_score, counterfactual_ranks, cutoff_explanations
 from .sparse import BM25Index
@@ -127,6 +128,25 @@ class Engine02:
         self.vocabulary = list(self.kansei.needs.values()) + [e.label for e in self.kansei.elements]
         self.init_ms = (time.perf_counter() - t0) * 1000
 
+    def _dense_scores(self, q: np.ndarray, pool: np.ndarray) -> np.ndarray:
+        """Cosine of every pooled item against the query.
+
+        `image_emb[pool] @ q` looks innocent but fancy-indexing copies the pool and, because the
+        cache is float32 while the query is float64, the copy is upcast too: ~12 ms at 17.8k items
+        and ~40 ms at 50k. One float32 matvec over the whole catalog is cheaper than the copy, and
+        the pool is a slice of the result. ENGINE02_DENSE_F64=1 restores the float64 path for
+        bit-comparable reproduction of earlier numbers.
+        """
+        if os.environ.get("ENGINE02_DENSE_F64") == "1":
+            return self.image_emb[pool] @ q
+        if getattr(self, "_emb32", None) is None:
+            self._emb32 = np.ascontiguousarray(self.image_emb, dtype=np.float32)
+        q32 = np.asarray(q, dtype=np.float32)
+        # a narrow pool is cheaper to copy than the catalog is to multiply, and vice versa
+        if len(pool) * 3 < len(self._emb32):
+            return (self._emb32[pool] @ q32).astype(np.float64)
+        return (self._emb32 @ q32)[pool].astype(np.float64)
+
     def attribute_notes(self, pos: int, c) -> list[str]:
         """Provenance notes for attributes the user constrained (before relaxation) that are model-filled."""
         if not self._has_predicted:
@@ -212,10 +232,14 @@ class Engine02:
                                              catalog=self.catalog.name, base=self._attr_filter)
         pool = np.flatnonzero(fr.mask)
         lap("filter")
+        # one shared budget per request: cards after the budget (or after the first failure) use
+        # templates instead of each waiting for its own timeout
+        llm_for_request = (LlmBudget(self.llm, float(os.environ.get("ENGINE02_LLM_BUDGET_S", "1.5")))
+                           if (self.llm is not None and req.options.explain_with_llm) else None)
 
         text = build_retrieval_text(req, self.catalog.name)
         q = self.query_embedding(req, arm, text)
-        dense_all = self.image_emb[pool] @ q
+        dense_all = self._dense_scores(q, pool)
         bm25_all = self.bm25.scores(text)[pool]
         if req.retrieval_text_normalized is False:
             timings["bm25_routed_off"] = 1.0
@@ -312,7 +336,7 @@ class Engine02:
             reasons, facts = template_reasons(contribs, el_labels, self.kansei.needs, fr.relaxed)
             notes = self.attribute_notes(pos, req.constraints)
             reasons += [f"注意：{n}" for n in notes]
-            use_llm = self.llm if req.options.explain_with_llm else None
+            use_llm = llm_for_request
             text_expl, src = explain(reasons, facts, self.vocabulary, use_llm)
             price = self.catalog.attr(pos, "price")
             out_items.append(

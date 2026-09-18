@@ -25,13 +25,23 @@ def load_dotenv(path: Path = REPO_ROOT / ".env") -> None:
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def openai_llm(model: str | None = None, temperature: float = 0.0) -> Callable[[str], str] | None:
+def openai_llm(model: str | None = None, temperature: float = 0.0,
+               timeout: float | None = None) -> Callable[[str], str] | None:
+    """One paraphrase call per shown card, so the timeout is a live-demo safety requirement.
+
+    The SDK defaults to a 600 s timeout with two retries. On a venue network that drops, every
+    card would block for minutes before `explain()` fell back to its template — the fallback only
+    runs once the exception arrives. ENGINE02_LLM_TIMEOUT (seconds, default 2.0) and no retries
+    keep the worst case bounded; ENGINE02_LLM_RETRIES can raise it off the demo path.
+    """
     load_dotenv()
     if not os.environ.get("OPENAI_API_KEY"):
         return None
     from openai import OpenAI
 
-    client = OpenAI()
+    if timeout is None:
+        timeout = float(os.environ.get("ENGINE02_LLM_TIMEOUT", "2.0"))
+    client = OpenAI(timeout=timeout, max_retries=int(os.environ.get("ENGINE02_LLM_RETRIES", "0")))
     model = model or os.environ.get("ENGINE02_LLM_MODEL", "gpt-4o-mini")
 
     def call(prompt: str) -> str:

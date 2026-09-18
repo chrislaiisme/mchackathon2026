@@ -14,6 +14,8 @@ Environment variables:
   ENGINE02_OT        1 = load OutfitTransformer for /complete-look (GPU recommended); else image similarity
   ENGINE02_TRENDS    1 or a file path = load trend keywords for display badges (never for ranking)
   ENGINE02_WARMUP    0 disables the startup warm-up query (default: run it)
+  ENGINE02_DEMO      1 = never call the LLM for reasons, whatever the request asks
+  ENGINE02_LLM_TIMEOUT / ENGINE02_LLM_BUDGET_S  per-call and per-request paraphrase budgets
 """
 
 from __future__ import annotations
@@ -183,6 +185,7 @@ def health() -> dict:
         "encoder": e.encoder.name,
         "reranker": getattr(e.cross_reranker, "name", None),
         "llm": e.llm is not None,
+        "demo_mode": DEMO_MODE,
         "kansei_version": e.kansei.version,
         "complete_look": _complete_look_status(),
         "warm_ms": STATE.get("warm_ms"),
@@ -224,9 +227,17 @@ def vocabulary() -> dict:
     return out
 
 
+DEMO_MODE = os.environ.get("ENGINE02_DEMO") == "1"
+
+
 @app.post("/rank", response_model=ServiceResponse)
 def rank(req: Engine02Request) -> ServiceResponse:
     """Composed critique (if reference_item_id + critique) → additive ranking → slate diversification."""
+    if DEMO_MODE and req.options.explain_with_llm:
+        # on stage the venue network is not guaranteed; templates are always available and the
+        # reason text is verified either way. The client cannot opt back in.
+        req = req.model_copy(deep=True)
+        req.options.explain_with_llm = False
     arm = req.options.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
