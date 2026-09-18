@@ -251,3 +251,50 @@ def test_english_keywords_match_on_word_boundaries():
 
     c, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["informal"]}, session_id="t")
     assert "formal_style" not in c.stated_design_steps, c.stated_design_steps
+
+
+def test_engine03_feedback_shape_is_accepted_and_enforced(monkeypatch):
+    """ENGINE 03 declares attribute scores + free text; we keep a ledger. Round 2 must not need
+    either side to rewrite its contract, and 「不要黑色」 typed into a feedback box must bite."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        intent = {"item_type": "襯衫", "occasion": "上班"}
+        client.post("/retrieve", json={"session_id": "loop", "round": 1, "intent": intent})
+        r2 = client.post("/retrieve", json={
+            "session_id": "loop", "round": 2, "intent": intent, "prev_intent": intent,
+            "feedback": {"session_id": "loop", "round": 1, "target": "recommended",
+                         "attribute_scores": [{"attribute": "正式感", "score": -1},
+                                              {"attribute": "香味", "score": 1}],
+                         "free_text": "太像上班族了，不要黑色"}}).json()
+        colors = [str(p["attributes"].get("color", "")).lower() for p in r2["products"]]
+        assert "black" not in colors, colors
+        assert r2["engine02"]["metrics"]["excluded_value_hits"] == 0
+        # an attribute we have no axis for is reported, not silently swallowed
+        assert any("香味" in u for u in r2["engine02"]["unresolved_from_intent"])
+        # the goalpost control is present once prev_intent is supplied
+        assert "vs_previous_intent" in r2["engine02"]["match_score_detail"]
+
+
+def test_our_own_feedback_shape_still_passes_through(monkeypatch):
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        first = client.post("/retrieve", json={"session_id": "p", "intent": {"item_type": "襯衫"}}).json()
+        shown = [p["product_id"] for p in first["products"]]
+        r = client.post("/retrieve", json={
+            "session_id": "p", "round": 2, "intent": {"item_type": "襯衫"},
+            "feedback": {"choice_history": [{"shown_item_ids": shown, "chosen_item_id": shown[0]}],
+                         "excluded_item_ids": [shown[1]]}}).json()
+        ids = [p["product_id"] for p in r["products"]]
+        assert shown[1] not in ids, "an excluded item came back"

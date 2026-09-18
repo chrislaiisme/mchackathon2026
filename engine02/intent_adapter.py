@@ -310,7 +310,13 @@ def intent_to_request(
             "公開商品庫沒有價格欄位（見 docs/engine02-design.md §7 限制）"
         )
 
-    fb = dict(feedback or {})
+    # ENGINE 03 may send its own FeedbackInput shape (attribute scores + free text) or ours;
+    # feedback_from_engine03 passes ours through untouched
+    fb, fb_unusable = feedback_from_engine03(feedback, items=catalog_items)
+    unresolved += fb_unusable
+    for attr, vals in (fb.pop("_excluded_values", None) or {}).items():
+        cur = c.excluded_values.setdefault(attr, [])
+        cur.extend(v for v in vals if v not in cur)
     # NOT feedback.design_adjust_steps: the user said these words in this request, and a card that
     # calls them "你上一輪的回饋" is attributing the user's own sentence to something else
 
@@ -466,3 +472,84 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
             "items": [it.model_dump() for it in resp.items],
         },
     }
+
+
+# ── ENGINE 03 → ENGINE 02 ─────────────────────────────────────────────────────────────────
+# Their declared feedback shape (backend/shared/schemas.py::FeedbackInput) is attribute scores
+# plus free text; ours is a ledger of what was shown, chosen and excluded. This converts one to
+# the other so round 2 does not need either side to rewrite its contract.
+
+# what the ENGINE 03 `attribute` strings are likely to be, in their words
+FEEDBACK_ATTRIBUTE_TO_ELEMENT: dict[str, str] = {
+    "顏色": "dark_tone", "色系": "dark_tone", "明度": "dark_tone",
+    "版型": "relaxed_fit", "剪裁": "relaxed_fit", "fit": "relaxed_fit",
+    "圖案": "bold_pattern", "花紋": "bold_pattern", "pattern": "bold_pattern",
+    "領子": "crisp_collar", "collar": "crisp_collar",
+    "材質": "soft_knit", "material": "soft_knit",
+    "正式感": "formal_style", "風格": "formal_style", "style": "formal_style",
+    "logo": "visible_logo", "品牌": "visible_logo",
+    "運動": "athletic_style", "機能": "athletic_style",
+}
+
+
+def feedback_from_engine03(payload: dict[str, Any] | None, *, items=None,
+                           elements=None, steps: int = 1) -> tuple[dict[str, Any], list[str]]:
+    """`FeedbackInput` (theirs) → `FeedbackState` (ours), plus what we could not use.
+
+    An attribute score becomes a step on the matching design axis — one step, not two: a slider
+    is a nudge, unlike a sentence the user typed (§3.35). Free text is scanned for negations with
+    the same parser the query path uses, so 「不要黑色」 in a feedback box is enforced rather than
+    logged. A payload that is already in our shape passes through untouched.
+    """
+    if not payload:
+        return {}, []
+    # already ours? (the ledger fields are unmistakable)
+    ours = {"choice_history", "chosen_item_ids", "rejected_item_ids", "excluded_item_ids",
+            "design_adjust_steps", "design_weight_delta", "anchor_item_ids", "critique",
+            "reference_item_id"}
+    if set(payload) & ours:
+        return dict(payload), []
+
+    out: dict[str, Any] = {}
+    unusable: list[str] = []
+    adjust: dict[str, int] = {}
+    for sc in payload.get("attribute_scores") or []:
+        attr = str(sc.get("attribute", "")).strip()
+        try:
+            score = float(sc.get("score", 0))
+        except (TypeError, ValueError):
+            score = 0.0
+        key = next((v for k, v in FEEDBACK_ATTRIBUTE_TO_ELEMENT.items() if k.lower() in attr.lower()),
+                   None)
+        if key is None or not score:
+            if attr:
+                unusable.append(f"attribute_scores 的「{attr}」對不到設計要素軸，本輪忽略")
+            continue
+        adjust[key] = adjust.get(key, 0) + (steps if score > 0 else -steps)
+    if adjust:
+        out["design_adjust_steps"] = adjust
+
+    chosen = payload.get("selected_option_id")
+    if chosen:
+        out["chosen_item_ids"] = [str(chosen)]
+
+    negations: list[tuple[str, str, str]] = []
+    free_text = str(payload.get("free_text") or "").strip()
+    if free_text and items is not None:
+        from .negation import catalog_vocabulary, expand_color_family, find_negated
+
+        vocab = catalog_vocabulary(items, elements)
+        excluded: dict[str, list[str]] = {}
+        for attr, value, said in find_negated(free_text, vocab):
+            negations.append((attr, value, said))
+            if attr == "design_element":
+                adjust[value] = adjust.get(value, 0) - steps * 2
+                out["design_adjust_steps"] = adjust
+            elif attr != "category_id":
+                vals = expand_color_family(value, items) if attr == "color" else [value]
+                excluded.setdefault(attr, []).extend(v for v in vals if v not in excluded.get(attr, []))
+        if excluded:
+            out["_excluded_values"] = excluded      # the caller puts this on constraints
+    if free_text and items is None:
+        unusable.append("free_text 需要商品庫才能解析否定詞（呼叫端未提供 items）")
+    return out, unusable
