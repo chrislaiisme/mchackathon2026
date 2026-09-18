@@ -225,7 +225,7 @@ CLAIMS: list[tuple[str, str, str | None]] = [
     ("§3.25 no-replay hard rule (implemented, measured, off)", "novelty up, delivered utility down p=0.0004", "freshness"),
     ("§3.26 KOL / social signals (rejected)", "HERMES: -1.1% MASE at 100 series", None),
     ("§3.27 query normalisation (null result)", "T17: no measurable effect on our data", "query_norm"),
-    ("§3.28 text cross-encoder rerank (rejected)", "T18: -0.064 / -0.045 on paraphrase, 582 / 3061 ms", "rerank_text"),
+    ("§3.28 text cross-encoder rerank (rejected)", "T18: -0.064 / -0.045 on paraphrase, 582 / 3061 ms", "ablation"),
     ("§3.29 BM25 gate (shipped)", "T19: paraphrase 0.111 -> 0.308, lexical -0.002", "bm25_gate"),
     ("§3.30 ground_query (measured, rejected)", "-0.095 lexical / -0.085 paraphrase", "ablation"),
     ("§3.31 named facets", "ranking bit-identical; 2.7 ms", None),
