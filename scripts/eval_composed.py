@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from engine02.catalog import Catalog  # noqa: E402
+from engine02.contracts import Critique as WireCritique  # noqa: E402
 from engine02.composed import (  # noqa: E402
     COLOR_FAMILY,
     ComposedEngine02,
@@ -277,6 +278,26 @@ def main() -> None:
             top = cat.positions([it.item_id for it in resp.items])
             prow.append(dict(tid=t["tid"], variant=t["variant"], split="test", n_targets=len(rel), config=name,
                              family=name.split("[")[0], pipeline_ms=sum(resp.timings_ms.values()),
+                             filter_relaxed=";".join(resp.constraint_report.relaxed),
+                             **metrics_row(top, cols, t, rel, grades, hard, sim_o)))
+        # --- §3.33 role split: the critique as three named terms instead of one fused vector.
+        # `roles` has no hard filter at all, so it is the honest test of whether the explainable
+        # form can find the target by itself; `critique_filter+roles` is the shipping candidate.
+        ref_id = str(cat.items.at[p, "item_id"])
+        for name, with_filter in (("roles", False), ("critique_filter+roles", True)):
+            r2 = req.model_copy(deep=True)
+            r2.feedback.reference_item_id = ref_id
+            r2.feedback.critique = WireCritique(attribute=t["attribute"], to_value=t["to_value"],
+                                                from_value=t["from_value"], direction=t["direction"])
+            r2.feedback.excluded_item_ids = [ref_id]
+            if with_filter and t["to_value"]:
+                setattr(r2.constraints, t["attribute"], _slot(t["to_value"]))
+            t0 = time.perf_counter()
+            resp = engine.run(r2, replace(ARMS["full_zclip3_roles"], counterfactual=False))
+            ms = (time.perf_counter() - t0) * 1000
+            top = cat.positions([it.item_id for it in resp.items])
+            prow.append(dict(tid=t["tid"], variant=t["variant"], split="test", n_targets=len(rel), config=name,
+                             family=name, pipeline_ms=ms,
                              filter_relaxed=";".join(resp.constraint_report.relaxed),
                              **metrics_row(top, cols, t, rel, grades, hard, sim_o)))
         if n % 100 == 0:

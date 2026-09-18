@@ -83,6 +83,12 @@ class ArmConfig:
     # words to the lexical query only) | "both" (also append them to the dense query). The mapping
     # is shown on the card, so a translated word is visible rather than magic.
     ground_query: str = "none"
+    # Critique roles (§3.33): instead of one fused "this but navy" vector, three named scores —
+    # what you want to appear, what you want kept, what you want gone. Default off until measured.
+    use_critique_roles: bool = False
+    w_role_desire: float = 1.0
+    w_role_preserve: float = 0.5
+    w_role_forbid: float = 0.5
     bm25_gate: str = "none"
     bm25_adaptive: bool = False  # kept for the arms that measured the old rule
     bm25_min_coverage: float = 0.5
@@ -112,6 +118,9 @@ ARMS: dict[str, ArmConfig] = {
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
                            use_freshness=True, bm25_gate="docs_touched"),
+    # the critique-role arm: same serving arm plus the three named roles (§3.33), default off
+    "full_zclip3_roles": replace(FULL, name="full_zclip3_roles", z_clip=3.0, concept_image_weight=0.2,
+                                 use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True),
     "full_zclip3_ground": replace(FULL, name="full_zclip3_ground", z_clip=3.0, concept_image_weight=0.2,
                                   use_freshness=True, bm25_gate="docs_touched", ground_query="bm25"),
     "full_zclip3_ground_both": replace(FULL, name="full_zclip3_ground_both", z_clip=3.0,

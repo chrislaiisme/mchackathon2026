@@ -572,6 +572,37 @@ class Engine02:
                     per_unit["profile_prior"] = float(profile[j])
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
+        if (arm.use_critique_roles and req.feedback.critique
+                and req.feedback.reference_item_id is not None):
+            # MulVec-style role split (arXiv:2608.25305, 2026): a critique is not one direction in
+            # embedding space, it is three statements — what should appear, what should stay, what
+            # should go. Fused into a single vector they are an opaque α; kept apart they are three
+            # named, signed contributions that add up to the same score the user is shown.
+            ref = self.catalog.pos(req.feedback.reference_item_id)
+            if ref is None:
+                bm25_gate_note = bm25_gate_note  # unknown reference: fall through, warned below
+            else:
+                # contracts.Critique is the wire format; composed.Critique is the resolver that
+                # fills in "from" from the reference row and turns a direction into a value
+                from .composed import Critique as _Crit
+                from .composed import direction_phrases
+
+                row = self.catalog.items.iloc[ref]
+                c_in = req.feedback.critique
+                crit = _Crit(attribute=c_in.attribute, to_value=c_in.to_value,
+                             from_value=c_in.from_value, direction=c_in.direction).resolved(row)
+                to_p, from_p = direction_phrases(row, crit)
+                img = np.asarray(self.image_emb, dtype=np.float32)
+                phr = self.encoder.encode_text([to_p, from_p])
+                want = img[cand] @ np.asarray(phr[0], dtype=np.float32)
+                avoid = img[cand] @ np.asarray(phr[1], dtype=np.float32)
+                keep = img[cand] @ img[ref]
+                if arm.w_role_desire:
+                    terms.append(Term(f"critique:want:{to_p}", "critique", want, arm.w_role_desire))
+                if arm.w_role_preserve:
+                    terms.append(Term("critique:keep:reference", "critique", keep, arm.w_role_preserve))
+                if arm.w_role_forbid:
+                    terms.append(Term(f"critique:avoid:{from_p}", "critique", avoid, -arm.w_role_forbid))
         if arm.use_compat and req.feedback.anchor_item_ids:
             anchors = self.catalog.positions(req.feedback.anchor_item_ids)
             if self.compat_model is not None and anchors:
