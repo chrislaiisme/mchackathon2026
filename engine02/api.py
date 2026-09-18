@@ -13,6 +13,7 @@ Environment variables:
   ENGINE02_ARM       default ablation arm when the request does not set one (default full_zclip3)
   ENGINE02_OT        1 = load OutfitTransformer for /complete-look (GPU recommended); else image similarity
   ENGINE02_TRENDS    1 or a file path = load trend keywords for display badges (never for ranking)
+  ENGINE02_WARMUP    0 disables the startup warm-up query (default: run it)
 """
 
 from __future__ import annotations
@@ -117,8 +118,40 @@ async def lifespan(app: FastAPI):
             STATE["trends"] = load_trends(None if tr == "1" else tr)
         except OSError as e:
             log.warning("could not load trend keywords: %s", e)
+    if os.environ.get("ENGINE02_WARMUP", "1") != "0":
+        STATE["warm_ms"] = _warmup()
     yield
     STATE.clear()
+
+
+def _warmup() -> float | None:
+    """Pay the first-request costs before the demo starts.
+
+    A cold process spends its first query on things that never repeat: the CUDA context and the
+    first kernel launch, the taxonomy JSON, the per-catalog attribute index, the design matrix, the
+    pydantic validators. On stage that lands on the judge's first question.
+    """
+    import time
+
+    from .contracts import Engine02Options, Engine02Request
+
+    t = time.perf_counter()
+    try:
+        svc = STATE["service"]
+        req = Engine02Request(session_id="__warmup__", retrieval_text="navy blue shirt",
+                              options=Engine02Options(top_k=5, explain_with_llm=False))
+        resp = svc.rank(req, os.environ.get("ENGINE02_ARM", "full_zclip3"))
+        if getattr(svc, "ctl", None) is not None and resp.items:
+            try:
+                svc.complete_look([resp.items[0].item_id], n_categories=1, k=3)
+            except Exception as e:  # a missing co-occurrence or checkpoint must not block startup
+                log.warning("complete-look warmup skipped: %s", e)
+        ms = (time.perf_counter() - t) * 1000
+        log.info("warmup finished in %.0f ms", ms)
+        return round(ms, 1)
+    except Exception as e:
+        log.warning("warmup failed (serving anyway): %s", e)
+        return None
 
 
 app = FastAPI(title="ENGINE 02 — retrieval, ranking, faithful explanation", version=CONTRACT_VERSION, lifespan=lifespan)
@@ -152,6 +185,7 @@ def health() -> dict:
         "llm": e.llm is not None,
         "kansei_version": e.kansei.version,
         "complete_look": _complete_look_status(),
+        "warm_ms": STATE.get("warm_ms"),
         "init_ms": round(e.init_ms, 1),
     }
 

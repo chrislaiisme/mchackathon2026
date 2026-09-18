@@ -398,3 +398,38 @@ def test_paraphrase_reply_parsing_accepts_both_formats(tmp_path):
     ]), encoding="utf-8")
     got = elp._parse_responses(f)
     assert got == {"q1-100": "這件的整體風格和你描述的相近", "q1-101": "版型俐落"}
+
+
+def test_fatigue_term_penalises_only_items_shown_but_not_chosen(engine):
+    """Round 2 must not silently replay round 1: shown-not-chosen is implicit negative feedback."""
+    from engine02.contracts import ChoiceRecord, FeedbackState
+
+    from engine02.config import ARMS
+
+    base = engine.run(request(), "full_zclip3")
+    shown = [it.item_id for it in base.items]
+    assert len(shown) >= 3
+
+    # the user picked the first card and ignored the rest (no explicit rejection)
+    fb = FeedbackState(choice_history=[ChoiceRecord(shown_item_ids=shown, chosen_item_id=shown[0])])
+    r2 = request(round=1, feedback=fb)
+    plain = {it.item_id: it for it in engine.run(r2, "full_zclip3").items}
+    tired = {it.item_id: it for it in engine.run(r2, "full_zclip3_fatigue").items}
+    w = ARMS["full_zclip3_fatigue"].w_fatigue
+
+    for iid, it in tired.items():
+        fat = [c.contribution for c in it.contributions if c.group == "fatigue"]
+        if iid == shown[0] or iid not in shown:
+            assert not fat or fat == [0.0] or fat == [-0.0], f"{iid} was chosen or unseen: {fat}"
+        else:
+            assert fat and fat[0] == pytest.approx(-w), f"{iid} was ignored last round: {fat}"
+        # the penalty is the only difference, and the parts still sum to the whole
+        assert abs(sum(c.contribution for c in it.contributions) - it.score) < 1e-6
+        if iid in plain:
+            expect = plain[iid].score - (w if (iid in shown and iid != shown[0]) else 0.0)
+            assert it.score == pytest.approx(expect, abs=1e-6)
+
+
+def test_fatigue_term_is_off_without_history(engine):
+    resp = engine.run(request(), "full_zclip3_fatigue")
+    assert not [c for it in resp.items for c in it.contributions if c.group == "fatigue"]

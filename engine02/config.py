@@ -38,7 +38,13 @@ class ArmConfig:
     # CLIP antonym scores (chosen by AUROC against blind visual labels, docs/engine02-design.md §3.3c)
     vlm_elements: tuple[str, ...] = ("matte_fabric", "glossy_fabric", "visible_logo", "minimal_design",
                                      "bold_pattern", "crisp_collar")
-    z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty terms to ±z_clip
+    # "shown in an earlier round but not chosen" is implicit negative feedback that the ranking
+    # ignored entirely (ChoiceRecord.shown_item_ids existed but was never read), so round 2 could
+    # replay round 1. Off by default until measured; see arm `full_zclip3_fatigue`.
+    use_fatigue: bool = False
+    w_fatigue: float = 0.3
+    fatigue_decay: float = 0.5  # weight of a round r rounds back: decay**(r-1)
+    z_clip: float | None = None  # clip normalised dense/bm25/trend/penalty/fatigue terms to ±z_clip
     need_scale: float = 1.0  # γ: multiplies β_d (needs + feedback) — trade-off studied in T6
     w_dense: float = 1.0
     w_bm25: float = 0.5
@@ -70,6 +76,8 @@ ARMS: dict[str, ArmConfig] = {
     # weight (a no-op unless ENGINE 01 sends feedback.concept_image_embedding). `full` stays frozen
     # as the reproducibility baseline for §3.1–3.13.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2),
+    "full_zclip3_fatigue": replace(FULL, name="full_zclip3_fatigue", z_clip=3.0, concept_image_weight=0.2,
+                                   use_fatigue=True),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),
     "full_no_counterfactual": replace(FULL, name="full_no_counterfactual", counterfactual=False),
     "full_mmr": replace(FULL, name="full_mmr", use_mmr=True),

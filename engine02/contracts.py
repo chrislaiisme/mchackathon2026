@@ -169,7 +169,7 @@ class Engine02Request(BaseModel):
 # Output to ENGINE 03 / frontend
 # ---------------------------------------------------------------------------
 
-TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank"]
+TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank", "fatigue"]
 
 
 class Contribution(BaseModel):

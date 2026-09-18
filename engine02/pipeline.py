@@ -427,6 +427,32 @@ class Engine02:
                     Term("penalty:rejected_similarity", "penalty", sim_all[top], -arm.w_penalty,
                          stats=_stats(sim_all) if pool_scope else None, clip=arm.z_clip)
                 )
+        if arm.use_fatigue and req.feedback.choice_history:
+            # implicit negative feedback: shown in an earlier round, not chosen, not rejected
+            # (rejections already have their own term). Older rounds count less.
+            weight_by_pos: dict[int, float] = {}
+            n_rounds = len(req.feedback.choice_history)
+            for r, rec in enumerate(req.feedback.choice_history):
+                w = arm.fatigue_decay ** (n_rounds - 1 - r)
+                ignored = set(rec.shown_item_ids) - {rec.chosen_item_id} - set(rec.rejected_item_ids)
+                for p_ in self.catalog.positions(sorted(i for i in ignored if i)):
+                    weight_by_pos[p_] = weight_by_pos.get(p_, 0.0) + w
+            if weight_by_pos:
+                seen_all = np.zeros(len(pool), dtype=np.float64)
+                pos_index = {int(p_): j for j, p_ in enumerate(pool)}
+                for p_, w in weight_by_pos.items():
+                    j = pos_index.get(int(p_))
+                    if j is not None:
+                        seen_all[j] = w
+                if seen_all.any():
+                    # deliberately NOT z-scored: the count is already on a fixed, interpretable
+                    # scale (1.0 = ignored in the latest round). Normalising it would hand every
+                    # never-shown item a positive "fatigue" contribution, which is nonsense on a
+                    # card — an item the user has not seen should get exactly 0 from this term.
+                    terms.append(
+                        Term("fatigue:shown_not_chosen", "fatigue", seen_all[top], -arm.w_fatigue,
+                             normalize=False)
+                    )
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])
             terms.append(Term(f"rerank:{self.cross_reranker.name}", "rerank", rs, arm.w_rerank))
