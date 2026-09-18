@@ -171,3 +171,19 @@ def test_the_control_arm_still_only_warns(client):
                                    "options": {"top_k": 5, "arm": "full_zclip3_noneg"}}).json()
     assert not b["constraint_report"]["honoured_negations"]
     assert any("否定" in w for w in b["constraint_report"]["input_warnings"])
+
+
+def test_an_exclusion_comes_with_something_instead(client):
+    """「不要黑色」 should also say what it cost and what stands in for it."""
+    b = client.post("/rank", json={"session_id": "s", "retrieval_text": "a shirt for work, 不要黑色",
+                                   "options": {"top_k": 5}}).json()
+    subs = b["constraint_report"]["substitutes"]
+    assert subs, b["constraint_report"]
+    shown = {i["item_id"] for i in b["items"]}
+    for s in subs:
+        assert s["substitute_item_id"] in shown, "a substitute must be an item we actually showed"
+        assert s["excluded_item_id"] not in shown, "the excluded item must not be on screen"
+
+    plain = client.post("/rank", json={"session_id": "s", "retrieval_text": "a shirt for work",
+                                       "options": {"top_k": 5}}).json()
+    assert not plain["constraint_report"]["substitutes"], "nothing excluded, nothing to substitute"

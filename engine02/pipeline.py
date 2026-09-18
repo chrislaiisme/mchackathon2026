@@ -505,6 +505,10 @@ class Engine02:
         lap("explain")
 
         shown_pos = [int(cand[p]) for p in shown]
+        # "and give me something instead": when an exclusion fired, name the item it cost the user
+        # and the shown item closest to it. One dot product over the excluded rows, no re-ranking.
+        substitutes = (self._substitutes(negations, req.constraints.excluded_values, q, shown_pos)
+                       if negations and shown_pos else [])
         return Engine02Response(
             session_id=req.session_id,
             round=req.round,
@@ -515,7 +519,7 @@ class Engine02:
                 exposure_excluded=n_exposure_excluded, exposure_cap_skipped=cap_skipped,
                 grounded_terms=([{"your_words": a, "catalog_words": b} for a, b in grounded_pairs]
                                 + [{"your_words": a, "catalog_words": b} for a, b in color_rewrites]),
-                honoured_negations=negations,
+                honoured_negations=negations, substitutes=substitutes,
                 input_warnings=input_warnings(
                     req, known_needs=self.kansei.need_ids,
                     known_elements=[e.id for e in self.kansei.elements]) + (
@@ -531,6 +535,52 @@ class Engine02:
         )
 
     # ------------------------------------------------------------------
+
+    def _substitutes(self, negations, excluded_values, q, shown_pos) -> list[dict]:
+        """What the exclusion cost, and what stands in for it.
+
+        The best item the user would have seen without the exclusion, and the shown item closest to
+        it in the encoder's space. A report, not a ranking decision: nothing here changes the order,
+        and it is skipped entirely when nothing was excluded.
+        """
+        items = self.catalog.items
+        img = np.asarray(self.image_emb, dtype=np.float32)
+        qv = np.asarray(q, dtype=np.float32)
+        shown = np.asarray(shown_pos, dtype=int)
+        out: list[dict] = []
+        for n in negations:
+            attr = n.get("applied_to", "")
+            # a design-axis aversion removes nothing from the pool, so it costs nothing to replace
+            if attr not in items.columns or attr == "category_id":
+                continue
+            vals = [str(v).lower() for v in (excluded_values.get(attr) or [])]
+            if not vals:
+                continue
+            col = items[attr].astype(str).str.lower().to_numpy()
+            hit = np.flatnonzero(np.isin(col, vals))
+            if not len(hit) or not len(shown):
+                continue
+            # compare like with like: the thing the exclusion cost should be the same kind of
+            # garment as what is on screen, otherwise "we removed a pair of sunglasses for you"
+            if "category" in items.columns:
+                cat_col = items["category"].astype(str).str.lower().to_numpy()
+                kinds = {cat_col[p] for p in shown}
+                same_kind = hit[np.isin(cat_col[hit], list(kinds))]
+                if len(same_kind):
+                    hit = same_kind
+            best = int(hit[int(np.argmax(img[hit] @ qv))])
+            sims = img[shown] @ img[best]
+            near = int(shown[int(np.argmax(sims))])
+            out.append({
+                "excluded_item_id": str(items.at[best, "item_id"]),
+                "excluded_title": str(items.at[best, "title"]),
+                "substitute_item_id": str(items.at[near, "item_id"]),
+                "substitute_title": str(items.at[near, "title"]),
+                "similarity": round(float(np.max(sims)), 4),
+                "note": f"你說{n.get('said', '')}，這件是最接近被拿掉那一件的替代",
+            })
+        return out
+
     def _terms(self, req, arm: ArmConfig, pool, cand, dense_all, bm25_all, top, text) -> list[Term]:
         dense, bm25 = dense_all[top], bm25_all[top]
         if not arm.additive_rerank:

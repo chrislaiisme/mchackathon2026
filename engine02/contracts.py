@@ -287,6 +287,8 @@ class ConstraintReport(BaseModel):
     # (CLIP-family encoders are near chance on negation — NegBench, ICML 2025)
     # negations we resolved out of retrieval_text and enforced this round (§3.35)
     honoured_negations: list[dict[str, str]] = Field(default_factory=list)
+    # what an exclusion cost the user, and the shown item nearest to it (§3.35)
+    substitutes: list[dict[str, object]] = Field(default_factory=list)
     input_warnings: list[str] = Field(default_factory=list)
 
 

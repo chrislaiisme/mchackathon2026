@@ -97,7 +97,29 @@ class Engine02Service:
             self.engine._override = None
         req2.options = req.options  # explanation settings of the caller for the final cards
         div = diversify_response(self.engine, req2, deep, cfg, k=o.top_k)
+        # the substitute must be an item the user can actually see, and diversification decides the
+        # final slate after the pipeline has ranked it — so re-point it here, not in the pipeline
+        if div.constraint_report.substitutes:
+            div.constraint_report.substitutes = self._repoint_substitutes(div)
         return ServiceResponse(**div.model_dump(), composed=composed, learned_preferences=learned)
+
+    def _repoint_substitutes(self, resp) -> list[dict]:
+        import numpy as np
+
+        cat = self.engine.catalog
+        img = np.asarray(self.engine.image_emb, dtype=np.float32)
+        shown = [p for p in (cat.pos(it.item_id) for it in resp.items) if p is not None]
+        out = []
+        for s in resp.constraint_report.substitutes:
+            src = cat.pos(str(s.get("excluded_item_id")))
+            if src is None or not shown:
+                continue
+            sims = img[np.asarray(shown, dtype=int)] @ img[src]
+            near = int(shown[int(np.argmax(sims))])
+            out.append({**s, "substitute_item_id": str(cat.items.at[near, "item_id"]),
+                        "substitute_title": str(cat.items.at[near, "title"]),
+                        "similarity": round(float(np.max(sims)), 4)})
+        return out
 
     # ------------------------------------------------------------------
     def complete_look_method(self) -> str:
