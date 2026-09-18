@@ -144,3 +144,30 @@ def test_context_never_shrinks_the_candidate_pool(client):
         "season": {"state": "inferred", "values": ["Winter"]}}}).json()["constraint_report"]
     assert with_ctx["n_after_filter"] == plain["n_after_filter"]
     assert not with_ctx["relaxed"]
+
+
+def test_a_stated_exclusion_is_enforced_in_the_same_round(client):
+    """「不要黑色」 must remove black now, not warn about it and show black anyway."""
+    body = {"session_id": "n", "retrieval_text": "a shirt for work, 不要黑色", "options": {"top_k": 5}}
+    b = client.post("/rank", json=body).json()
+    rep = b["constraint_report"]
+    assert rep["honoured_negations"], rep
+    assert rep["honoured_negations"][0]["applied_to"] == "color"
+    colors = [str(i.get("color") or "").lower() for i in b["items"]]
+    assert "black" not in colors, colors
+    assert b["items"], "excluding something must not leave the user with nothing"
+
+
+def test_wanting_something_is_not_mistaken_for_rejecting_it(client):
+    """The parser must not fire on 「我想要黑色」 / "a black shirt"."""
+    for text in ("a black shirt for work", "我想要黑色襯衫"):
+        b = client.post("/rank", json={"session_id": "n", "retrieval_text": text,
+                                       "options": {"top_k": 5}}).json()
+        assert not b["constraint_report"]["honoured_negations"], (text, b["constraint_report"])
+
+
+def test_the_control_arm_still_only_warns(client):
+    b = client.post("/rank", json={"session_id": "n", "retrieval_text": "a shirt for work, 不要黑色",
+                                   "options": {"top_k": 5, "arm": "full_zclip3_noneg"}}).json()
+    assert not b["constraint_report"]["honoured_negations"]
+    assert any("否定" in w for w in b["constraint_report"]["input_warnings"])

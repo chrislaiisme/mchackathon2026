@@ -85,6 +85,10 @@ class ArmConfig:
     ground_query: str = "none"
     # Critique roles (§3.33): instead of one fused "this but navy" vector, three named scores —
     # what you want to appear, what you want kept, what you want gone. Default off until measured.
+    # §3.35: a negation the caller left inside retrieval_text ("不要黑色") is resolved against the
+    # catalog vocabulary and enforced this round. "off" keeps the old warn-only behaviour.
+    parse_negations: bool = True
+    negation_element_steps: int = -2   # an explicit "I don't want X" is stronger than a thumbs-down
     use_critique_roles: bool = False
     w_role_desire: float = 1.0
     w_role_preserve: float = 0.5
@@ -118,6 +122,10 @@ ARMS: dict[str, ArmConfig] = {
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
                            use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True),
+    # control for §3.35: the serving arm that only warns about a negation instead of enforcing it
+    "full_zclip3_noneg": replace(FULL, name="full_zclip3_noneg", z_clip=3.0, concept_image_weight=0.2,
+                                 use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True,
+                                 parse_negations=False),
     # control for §3.33: the serving arm with the critique roles switched back off
     "full_zclip3_noroles": replace(FULL, name="full_zclip3_noroles", z_clip=3.0, concept_image_weight=0.2,
                                    use_freshness=True, bm25_gate="docs_touched"),

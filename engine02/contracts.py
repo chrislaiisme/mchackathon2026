@@ -285,6 +285,8 @@ class ConstraintReport(BaseModel):
     exposure_cap_skipped: bool = False
     # problems with the *input* that ENGINE 01 should fix, e.g. negation left in retrieval_text
     # (CLIP-family encoders are near chance on negation — NegBench, ICML 2025)
+    # negations we resolved out of retrieval_text and enforced this round (§3.35)
+    honoured_negations: list[dict[str, str]] = Field(default_factory=list)
     input_warnings: list[str] = Field(default_factory=list)
 
 

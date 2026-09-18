@@ -287,6 +287,39 @@ class Engine02:
         # empties, the relaxation ladder drops the slot and the round reports satisfaction 0.0 with
         # no error anywhere — while a Chinese *category* works, because the taxonomy resolves it.
         # Normalise it to the catalog's vocabulary and say so in the response.
+        # A stated exclusion has to bite in the SAME round. ENGINE 01 is supposed to move it into
+        # excluded_values; when it does not, resolve it here rather than only warning about it —
+        # a CLIP-family encoder is near chance on negation, so leaving it in the text means the
+        # user sees exactly what they just rejected (§3.35).
+        negations: list[dict[str, str]] = []
+        if arm.parse_negations and req.retrieval_text:
+            from .negation import catalog_vocabulary, expand_color_family, find_negated
+
+            vocab = getattr(self, "_neg_vocab", None)
+            if vocab is None:
+                vocab = self._neg_vocab = catalog_vocabulary(self.catalog.items, self.kansei.elements)
+            for attr, value, said in find_negated(req.retrieval_text, vocab):
+                if attr == "design_element":
+                    steps = req.feedback.design_adjust_steps
+                    if value not in steps:
+                        steps[value] = arm.negation_element_steps
+                        negations.append({"said": said, "applied_to": f"design:{value}",
+                                          "how": f"設計要素權重 {arm.negation_element_steps} 步"})
+                elif attr == "category_id":
+                    cur = req.constraints.excluded_values.setdefault("category", [])
+                    if value not in cur:
+                        cur.append(value)
+                        negations.append({"said": said, "applied_to": "category", "how": f"排除 {value}"})
+                else:
+                    cur = req.constraints.excluded_values.setdefault(attr, [])
+                    vals = (expand_color_family(value, self.catalog.items) if attr == "color"
+                            else [value])
+                    added = [v for v in vals if v not in cur]
+                    if added:
+                        cur.extend(added)
+                        how = f"排除 {value}" + (f"（含同色系 {len(added) - 1} 個值）" if len(added) > 1 else "")
+                        negations.append({"said": said, "applied_to": attr, "how": how})
+
         color_rewrites: list[tuple[str, str]] = []
         if req.constraints.color.values:
             from .attribute_fill import normalize_color_values
@@ -482,6 +515,7 @@ class Engine02:
                 exposure_excluded=n_exposure_excluded, exposure_cap_skipped=cap_skipped,
                 grounded_terms=([{"your_words": a, "catalog_words": b} for a, b in grounded_pairs]
                                 + [{"your_words": a, "catalog_words": b} for a, b in color_rewrites]),
+                honoured_negations=negations,
                 input_warnings=input_warnings(
                     req, known_needs=self.kansei.need_ids,
                     known_elements=[e.id for e in self.kansei.elements]) + (
