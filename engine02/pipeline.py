@@ -20,7 +20,7 @@ from .catalog import Catalog
 from .compat import CategoryCooccurrence, compat_scores
 from .concepts import design_scores
 from .config import ARMS, ArmConfig
-from .constraints import filter_with_relaxation, satisfies
+from .constraints import filter_with_relaxation, satisfies, satisfies_positions
 from .contracts import (
     ConstraintReport,
     Contribution,
@@ -445,18 +445,19 @@ class Engine02:
         tax = load_taxonomy()
         ids = resolve_category_values(c.category.values, tax) if (c.category.is_hard() and c.category.values) else []
         roots = [tax.l1(i) or i for i in ids if i in tax.nodes] or ids
+        pos = np.asarray(shown_pos, dtype=int)
         if ids and tax.category_mask(items, roots, self.catalog.name).any():
-            # category judged through the taxonomy (the original, un-relaxed request)
-            sub = items.iloc[shown_pos].reset_index(drop=True)
-            cat_ok = tax.category_mask(sub, ids, self.catalog.name)
+            # category judged through the taxonomy (the original, un-relaxed request); masks are
+            # computed once over the whole frame and indexed, not per shown row
+            cat_ok = tax.category_mask(items, ids, self.catalog.name)[pos]
             c_rest = c.model_copy(deep=True)
             c_rest.category.values = []
-            sat = np.mean([bool(cat_ok[j]) and satisfies(items, p, c_rest) for j, p in enumerate(shown_pos)])
+            sat = float(np.mean(cat_ok & satisfies_positions(items, pos, c_rest)))
         else:
             from .taxonomy import legacy_constraints
 
             c_eval = legacy_constraints(c, ids, tax) if ids else c
-            sat = np.mean([satisfies(items, p, c_eval) for p in shown_pos])
+            sat = float(np.mean(satisfies_positions(items, pos, c_eval)))
         hits = 0
         for attr, vals in req.constraints.excluded_values.items():
             if attr in items.columns:

@@ -187,11 +187,23 @@ class Taxonomy:
 
         idx = AttrIndex.get(items)
         default = self.sources_for(catalog)
-        scodes, slookup = idx.source_codes(_source_key, "taxonomy",
-                                           default=default[0] if len(default) == 1 else None)
+        if idx is not None:
+            scodes, slookup = idx.source_codes(_source_key, "taxonomy",
+                                               default=default[0] if len(default) == 1 else None)
 
-        def mask_for(pairs: set[tuple[str, str]]) -> np.ndarray:
-            return idx.pair_mask(pairs, "subcategory", scodes, slookup)
+            def mask_for(pairs: set[tuple[str, str]]) -> np.ndarray:
+                return idx.pair_mask(pairs, "subcategory", scodes, slookup)
+        else:  # a handful of rows: the row-by-row form is cheaper than building an index
+            subs = items["subcategory"].astype(object).to_numpy()
+            if "source" in items.columns:
+                srcs = [(_source_key(s) or "") for s in items["source"].to_numpy()]
+            else:
+                srcs = [default[0] if len(default) == 1 else ""] * len(items)
+
+            def mask_for(pairs: set[tuple[str, str]]) -> np.ndarray:
+                vals_any = {v for _, v in pairs}
+                return np.array([((s, v) in pairs) if s else (v in vals_any)
+                                 for s, v in zip(srcs, subs)], dtype=bool)
 
         mask = np.ones(len(items), dtype=bool)
         if garment:

@@ -51,7 +51,7 @@ def _slot_mask_indexed(items: pd.DataFrame, col: str, values: list[str], allow_u
     from .attrindex import AttrIndex
 
     idx = AttrIndex.get(items)
-    if not idx.has(col):
+    if idx is None or not idx.has(col):
         return None
     return idx.mask(col, values, allow_unknown, also if (also and idx.has(also)) else None)
 
@@ -156,3 +156,9 @@ def satisfies(items: pd.DataFrame, pos: int, c: HardConstraints) -> bool:
     row = items.iloc[[pos]]
     mask, _ = build_mask(row.reset_index(drop=True), c, state={})
     return bool(mask[0])
+
+
+def satisfies_positions(items: pd.DataFrame, positions, c: HardConstraints) -> np.ndarray:
+    """Same check for several rows at once — one full-frame mask beats a one-row frame per item."""
+    mask, _ = build_mask(items, c, state={})
+    return mask[np.asarray(list(positions), dtype=int)]

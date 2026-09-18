@@ -62,12 +62,23 @@ class AttrIndex:
             self.isna[col] = codes == 0
 
     # ------------------------------------------------------------------
+    # Below this many rows, building the index costs more than the loop it replaces — and callers
+    # that check a handful of rows (the rule-based metrics) would otherwise build one index per row.
+    MIN_ROWS = 64
+    MAX_CACHED = 8
+
     @classmethod
-    def get(cls, items: pd.DataFrame) -> "AttrIndex":
+    def get(cls, items: pd.DataFrame) -> "AttrIndex | None":
+        if len(items) < cls.MIN_ROWS:
+            return None
         key = (id(items), len(items))
         hit = _CACHE.get(key)
         if hit is None:
             hit = cls(items)
+            if len(_CACHE) >= cls.MAX_CACHED:  # catalogs are few and long-lived; drop the oldest
+                oldest = next(iter(_CACHE))
+                _CACHE.pop(oldest, None)
+                _KEEPALIVE.pop(oldest, None)
             _CACHE[key] = hit
             _KEEPALIVE[key] = items
         return hit
