@@ -336,7 +336,9 @@ def match_score(engine, req: Engine02Request, resp: Engine02Response, arm: str |
                      "kind": "hard" if slot.is_hard() else "soft",
                      "satisfied": round(float(np.mean(hits)), 4)})
 
-    steps = req.feedback.design_adjust_steps or {}
+    steps = dict(req.feedback.design_adjust_steps or {})
+    for d, v in (req.stated_design_steps or {}).items():   # what the user said in this sentence
+        steps[d] = steps.get(d, 0) + v
     if steps:
         cfg = ARMS[arm or req.options.arm]
         c_mat = np.asarray(engine.design_matrix(cfg), dtype=np.float64)
@@ -357,19 +359,32 @@ def match_score(engine, req: Engine02Request, resp: Engine02Response, arm: str |
                          "kind": "design", "satisfied": round(float(np.mean(hits)), 4)})
 
     score = float(np.mean([r["satisfied"] for r in reqs])) if reqs else 0.0
+    relaxed = list(resp.constraint_report.relaxed)
     return {"match_score": round(score, 4), "n_items": len(pos), "requirements": reqs,
+            # the rate is computed on what SURVIVED the filter, so a relaxed constraint makes a
+            # high number misleading unless the screen says what was relaxed
+            "relaxed": relaxed,
+            "caveat": ("本輪為了湊足結果放寬了條件，滿足率是對放寬後的條件算的：" + "、".join(relaxed))
+                      if relaxed else "",
             "definition": ("使用者說出口的要求（硬條件值＋指名的設計要素軸）在這批卡片上被滿足的比例；"
                            "它會下降——加了商品庫給不出來的要求就會掉。這不是「喜歡的機率」。")}
 
 
 def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Response,
-                                 *, image_base: str = "/images", arm: str | None = None) -> dict:
+                                 *, image_base: str | None = None, arm: str | None = None,
+                                 prev_req: Engine02Request | None = None) -> dict:
     """`Engine02Response` → the team's `RetrievalResult` shape, without throwing the evidence away.
 
     `ProductCard.reason` is a single string, so it gets the card's strongest reason; the full
     additive decomposition travels alongside in `engine02` so the panel that shows "why" still has
     everything, and `concept_image` is left to backend/generation/ (null is a valid answer here).
     """
+    import os
+
+    # The frontend runs on another origin (:5173 vs :8002), so a relative /images/<id> resolves
+    # against the frontend and 404s. ENGINE02_PUBLIC_BASE makes it absolute for deployment.
+    base = image_base if image_base is not None else (
+        os.environ.get("ENGINE02_PUBLIC_BASE", "").rstrip("/") + "/images")
     items = engine.catalog.items
     products = []
     for it in resp.items:
@@ -382,14 +397,28 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
                     attrs[key] = str(row[key])
         products.append({
             "product_id": it.item_id,
-            "image_url": f"{image_base}/{it.item_id}",
+            "image_url": f"{base}/{it.item_id}",
             "title": it.title,
             "attributes": attrs,
             "score": round(float(it.score), 4),
-            "reason": (it.reasons[0] if it.reasons else ""),
+            # the full fact-checked sentence, not just its first clause: `explanation` is the
+            # template sentence, or the LLM paraphrase that passed the fact check
+            "reason": (it.explanation or (it.reasons[0] if it.reasons else "")),
+            "reason_contributions": [
+                {"term": c.term, "group": c.group, "contribution": round(float(c.contribution), 4),
+                 "cited": bool(c.cited)} for c in it.contributions],
+            "explanation_source": getattr(it, "explanation_source", None),
         })
 
     ms = match_score(engine, req, resp, arm=arm)
+    if prev_req is not None:
+        # Moving goalposts: round N's intent has already been changed by round N-1's feedback, so
+        # "new intent vs new slate" can rise purely because the intent got easier. Scoring THIS
+        # slate against the PREVIOUS intent is the control, and if only the first number rises we
+        # have to say so rather than let the 62% → 89% story tell itself.
+        ms["vs_previous_intent"] = match_score(engine, prev_req, resp, arm=arm)["match_score"]
+        ms["goalpost_note"] = ("只有『用本輪意圖評』上升、『用上一輪意圖評』沒上升，"
+                               "代表分數上升來自意圖變寬鬆，不是結果變好")
     return {
         "session_id": resp.session_id,
         "round": resp.round,

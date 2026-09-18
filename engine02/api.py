@@ -414,6 +414,7 @@ class IntentRankRequest(BaseModel):
     message: str | None = None          # the user's original sentence, for the record
     intent: dict = {}
     feedback: dict | None = None        # ENGINE 03's ledger, unchanged
+    prev_intent: dict | None = None     # last round's intent, to score this slate against it too
     top_k: int = 5
     arm: str | None = None
 
@@ -441,8 +442,14 @@ def intent_rank(body: IntentRankRequest) -> dict:
     except ValidationError as exc:
         raise HTTPException(422, {"error": "intent could not be converted to an Engine02Request",
                                   "detail": exc.errors(include_url=False)})
+    prev_req = None
+    if body.prev_intent:
+        prev_req, _ = intent_to_request(body.prev_intent, session_id=body.session_id,
+                                        round=max(0, body.round - 1),
+                                        catalog_name=getattr(e.catalog, "name", None),
+                                        catalog_items=e.catalog.items, top_k=body.top_k, arm=arm)
     resp = rank(req)
-    out = response_to_retrieval_result(e, req, resp, arm=arm)
+    out = response_to_retrieval_result(e, req, resp, arm=arm, prev_req=prev_req)
     # what ENGINE 01 should fix, in ENGINE 01's own terms, next to what the pipeline itself found
     out["engine02"]["unresolved_from_intent"] = unresolved
     return out

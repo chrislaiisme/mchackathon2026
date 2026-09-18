@@ -178,3 +178,45 @@ def test_a_specific_colour_word_is_not_flattened_to_its_family():
                                 session_id="t", catalog_items=items)
     assert "Navy Blue" in req2.constraints.color.values, req2.constraints.color.values
     assert len(req2.constraints.color.values) > 1
+
+
+def test_the_framework_service_layer_runs(monkeypatch):
+    """`backend/engine02_retrieval` is the seam the team's framework actually depends on."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        h = client.get("/health").json()
+        assert h["service"] == "engine02_retrieval" and h["n_items"] > 0
+        r = client.post("/retrieve", json={"session_id": "fw", "round": 1,
+                                           "intent": {"item_type": "襯衫", "colors": ["白色"]}})
+        assert r.status_code == 200, r.text[:200]
+        body = r.json()
+        assert body["products"] and 0.0 <= body["match_score"] <= 1.0
+        assert body["concept_image"] is None          # backend/generation owns it
+        # the full ENGINE 02 API must still answer under the mount
+        assert client.get("/engine02/vocabulary").status_code == 200
+        assert client.post("/engine02/rank", json={"session_id": "fw",
+                                                   "retrieval_text": "shirt"}).status_code == 200
+
+
+def test_auth_is_optional_and_never_crashes_without_a_secret(monkeypatch):
+    """backend/shared/auth.py raises without SESSION_SECRET; importing it eagerly would take the
+    whole service down on a machine with no .env."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        r = client.post("/retrieve", json={"session_id": "anon", "intent": {"item_type": "襯衫"}},
+                        headers={"Authorization": "Bearer not-a-real-token"})
+        assert r.status_code == 200
+        assert r.json()["engine02"]["authenticated"] is False
