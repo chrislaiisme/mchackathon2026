@@ -51,6 +51,8 @@ BATCH_HEADER = """以下是 {n} 張推薦卡片的「事實 JSON」。請**逐�
 
 規則（很重要）：
 - 只能用該張 JSON 裡出現的屬性、需求、數字；**不得**加入 JSON 沒有的顏色、材質、場合、品牌或數字。
+- `"direction": "has"` 是「這件具備該要素」，`"direction": "avoids"` 是「這件**避開**該要素」。
+  把 avoids 寫成具備（例如把「避開運動機能風格」寫成「很有運動感」）是**最嚴重的錯**，意思完全相反。
 - 不確定的就不要寫，寧可短。
 - 每行輸出格式固定為：`<id> | <句子>`，不要加任何其他說明或標題。
 
@@ -176,9 +178,19 @@ def cmd_score(a: argparse.Namespace) -> None:
         bad_num = [n for n in num_re.findall(text)
                    if n not in allowed_nums and f"{float(n):.2f}" not in allowed_nums]
         bad_lab = [lab for lab in vocab if lab and lab in text and not any(lab in x for x in allowed_labels)]
+        # verify_paraphrase cannot catch a flipped direction: "避開運動機能風格" and "很有運動感" both
+        # use only labels that ARE in the facts. Heuristic audit — an `avoids` element mentioned with
+        # no negation just before it is probably reversed. Flagged, not auto-rejected; a human reads it.
+        flipped = []
+        for f in facts:
+            lab = f.get("label", "")
+            if f.get("direction") == "avoids" and lab and lab in text:
+                i = text.index(lab)
+                if not any(w in text[max(0, i - 6):i] for w in ("避開", "不", "沒有", "少", "非", "無")):
+                    flipped.append(lab)
         rows.append(dict(id=cid, status="accepted" if ok else "rejected", text=text,
-                         offending=", ".join(bad_num + bad_lab), n_chars=len(text),
-                         template=p["template"]))
+                         offending=", ".join(bad_num + bad_lab), possible_direction_flip=", ".join(flipped),
+                         n_chars=len(text), template=p["template"]))
 
     df = pd.DataFrame(rows)
     missing = sorted(set(prompts) - set(answers))
@@ -190,9 +202,11 @@ def cmd_score(a: argparse.Namespace) -> None:
     out = ROOT / a.out
     out.mkdir(parents=True, exist_ok=True)
     df.to_csv(out / "paraphrase_scored.csv", index=False, encoding="utf-8-sig")
+    flips = df[df.get("possible_direction_flip", pd.Series(dtype=str)).fillna("") != ""]
     summary = dict(n_cards=len(prompts), n_answered=n, n_missing=len(missing),
                    accepted=round(acc, 4), rejected=round(1 - acc, 4),
                    rejected_for_a_number=round(num_rej, 4),
+                   possible_direction_flips=int(len(flips)),
                    median_chars=float(np.median(df.n_chars.dropna())) if n else None,
                    over_60_chars=int((df.n_chars.fillna(0) > 60).sum()))
     (out / "paraphrase_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -202,6 +216,11 @@ def cmd_score(a: argparse.Namespace) -> None:
         print(f"\n{len(rej)} rejected — the fact-checker caught these (first 10):")
         for r in rej.head(10).itertuples():
             print(f"  [{r.offending}] {r.text[:70]}")
+    if len(flips):
+        print(f"\n{len(flips)} answers may have turned an `avoids` element into a `has` — the fact-checker\n"
+              "cannot see this (the label IS in the facts), so read these by hand:")
+        for r in flips.head(10).itertuples():
+            print(f"  [{r.possible_direction_flip}] {r.text[:70]}")
     if missing:
         print(f"\n{len(missing)} cards have no answer (first 5): {missing[:5]}")
     print("\nReminder: a rejected rewrite is not a failure of the system — the card falls back to the\n"
