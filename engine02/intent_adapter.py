@@ -19,6 +19,7 @@ Three rules this module follows:
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .contracts import (Engine02Options, Engine02Request, Engine02Response, HardConstraints, Slot,
@@ -79,6 +80,18 @@ DESIGN_PHRASES: tuple[tuple[str, str, int], ...] = (
     ("鮮豔", "bright_color", 1), ("亮色", "bright_color", 1), ("繽紛", "bright_color", 1),
     ("logo", "visible_logo", 1), ("大logo", "visible_logo", 1), ("品牌標", "visible_logo", 1),
     ("挺", "structured_shoulders", 1), ("有型", "structured_shoulders", 1),
+    # ENGINE 01 is prompted in Chinese, but a user may still type an English word and the LLM
+    # passes it through. ASCII phrases are matched on word boundaries so "informal" is not "formal".
+    ("slim", "tailored_fit", 1), ("fitted", "tailored_fit", 1), ("loose", "relaxed_fit", 1),
+    ("baggy", "relaxed_fit", 1), ("plain", "minimal_design", 1), ("minimal", "minimal_design", 1),
+    ("simple", "minimal_design", 1), ("pattern", "bold_pattern", 1), ("printed", "bold_pattern", 1),
+    ("striped", "bold_pattern", 1), ("collar", "crisp_collar", 1), ("collared", "crisp_collar", 1),
+    ("knit", "soft_knit", 1), ("cotton", "soft_knit", 1), ("wool", "soft_knit", 1),
+    ("glossy", "glossy_fabric", 1), ("satin", "glossy_fabric", 1), ("matte", "matte_fabric", 1),
+    ("formal", "formal_style", 1), ("business", "formal_style", 1), ("casual", "casual_style", 1),
+    ("sporty", "athletic_style", 1), ("athletic", "athletic_style", 1), ("dark", "dark_tone", 1),
+    ("bright", "bright_color", 1), ("colorful", "bright_color", 1), ("logo", "visible_logo", 1),
+    ("structured", "structured_shoulders", 1),
 )
 
 # English retrieval words for the axes above, so the caption we hand the encoder is English even
@@ -137,17 +150,34 @@ def design_steps_from_words(words: list[str], steps: int = 2) -> tuple[dict[str,
     explicit rejection in §3.35) rather than the single step of a thumbs-down, because the user said
     it out loud rather than nudging a control.
     """
+    from .negation import ZH_CUES
+
     out: dict[str, int] = {}
     caption: list[str] = []
     for w in words:
         low = str(w).strip().lower()
         if not low:
             continue
+        # ENGINE 01 puts whole phrases in style_keywords, negations included: 「不要太正式」 is a
+        # request for LESS formal. Scoring it as +formal is the worst kind of bug here — it moves
+        # the ranking the opposite way from what the user said, with a confident explanation.
+        negated = any(cue in low for cue in ZH_CUES) or any(
+            cue in low for cue in ("no ", "not ", "without", "avoid", "less"))
         for phrase, element, sign in DESIGN_PHRASES:
-            if phrase.lower() in low:
-                out[element] = out.get(element, 0) + sign * steps
-                if ELEMENT_EN.get(element) and ELEMENT_EN[element] not in caption:
-                    caption.append(ELEMENT_EN[element])
+            pl = phrase.lower()
+            # word boundaries for ASCII so "informal" is not "formal"; Chinese has no
+            # word boundaries, so those phrases match as substrings
+            boundary = chr(92) + "b"
+            hit = (bool(re.search(boundary + re.escape(pl) + boundary, low))
+                   if pl.isascii() else pl in low)
+            if hit:
+                direction = -sign if negated else sign
+                out[element] = out.get(element, 0) + direction * steps
+                en = ELEMENT_EN.get(element)
+                # a negated word must not go into the caption either: the encoder would retrieve
+                # exactly what the user rejected (NegBench, ICML 2025)
+                if en and not negated and en not in caption:
+                    caption.append(en)
                 break
     return out, caption
 

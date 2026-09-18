@@ -220,3 +220,34 @@ def test_auth_is_optional_and_never_crashes_without_a_secret(monkeypatch):
                         headers={"Authorization": "Bearer not-a-real-token"})
         assert r.status_code == 200
         assert r.json()["engine02"]["authenticated"] is False
+
+
+def test_a_negated_style_keyword_moves_the_ranking_the_right_way():
+    """ENGINE 01 puts whole phrases in style_keywords: 「不要太正式」 asks for LESS formal.
+
+    Scoring it as +formal would move the ranking the opposite way from what the user said, and
+    then explain that confidently — the worst failure mode this project has.
+    """
+    from engine02.intent_adapter import intent_to_request
+
+    neg, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["不要太正式"]}, session_id="t")
+    pos, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["正式"]}, session_id="t")
+    assert neg.stated_design_steps["formal_style"] < 0 < pos.stated_design_steps["formal_style"]
+    # and the rejected word must not reach the encoder either (NegBench: CLIP is near chance on it)
+    assert "formal" not in (neg.retrieval_text or "").lower().split()
+
+
+def test_english_keywords_match_on_word_boundaries():
+    from engine02.intent_adapter import intent_to_request
+
+    a, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["slim fit", "plain"]},
+                             session_id="t")
+    assert a.stated_design_steps.get("tailored_fit", 0) > 0
+    assert a.stated_design_steps.get("minimal_design", 0) > 0
+
+    b, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["avoid bold pattern"]},
+                             session_id="t")
+    assert b.stated_design_steps.get("bold_pattern", 0) < 0
+
+    c, _ = intent_to_request({"item_type": "襯衫", "style_keywords": ["informal"]}, session_id="t")
+    assert "formal_style" not in c.stated_design_steps, c.stated_design_steps
