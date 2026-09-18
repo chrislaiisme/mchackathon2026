@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
 
 from engine02.catalog import Catalog
 from engine02.compat import CategoryCooccurrence
@@ -374,3 +378,23 @@ def test_metrics_split_feedback_violations(engine):
     r2 = request(round=1, feedback=FeedbackState(rejected_item_ids=[shown[0]]))
     m2 = engine.run(r2, "full_no_penalty" if "full_no_penalty" in ARMS else "full").metrics
     assert m2.feedback_violations == m2.excluded_value_hits + m2.rejected_item_hits
+
+
+def test_paraphrase_reply_parsing_accepts_both_formats(tmp_path):
+    """Teammates paste chat-agent replies back as text; the parser must not need an API format."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("elp", ROOT_DIR / "scripts" / "eval_llm_paraphrase.py")
+    elp = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(elp)
+
+    f = tmp_path / "replies.txt"
+    f.write_text("\n".join([
+        "=========== 第 1 批 ===========",
+        "q1-100 | 這件的整體風格和你描述的相近",
+        '{"id": "q1-101", "text": "版型俐落"}',
+        "q1-102 | [{\"type\": \"dense\"}]",   # a prompt line echoed back, not an answer
+        "",
+    ]), encoding="utf-8")
+    got = elp._parse_responses(f)
+    assert got == {"q1-100": "這件的整體風格和你描述的相近", "q1-101": "版型俐落"}

@@ -439,6 +439,15 @@ K[n,d] 的每一格都是從文獻編碼出來的判斷，沒有人工校準。�
 
 這也是為什麼補值商品庫上的每一個評估都要問一句「標準答案是不是我自己填的」。`concept_labels(allow_predicted=True)` 可以還原舊行為，但預設不該用。
 
+### 3.19b LLM 改寫的幻覺率：不需要 API key 的量測方式
+組員能用的是 ChatGPT 介面裡的 agent，不是 API，所以原本「接上 key 就能測」的路走不通。改成貼上式流程，量到的東西完全一樣：
+
+1. `python scripts/eval_llm_paraphrase.py export --catalog ... --n-queries 20` → `prompts.jsonl`（機器可讀）＋ `paste_me.txt`（每批 10 張卡的事實 JSON，附固定輸出格式的指示）。送進 agent 的**就是** pipeline 會送的那份 JSON，沒有另外美化。
+2. 組員逐批貼上，把回覆原樣存成一個文字檔（`<id> | <句子>`；JSONL 也吃）。
+3. `... score --responses <檔案>` → 用**產品裡同一個** `verify_paraphrase()` 判斷，輸出通過率、被擋原因（捏造數字 vs 捏造設計要素標籤）、字數分布，以及每一句被擋的原文與冒出來的那個 token。
+
+合成測試（故意放一句寫「+9.99」、一句寫 JSON 裡沒有的「運動機能風格」）兩種都被擋下，沒回覆的卡片也會列出來。要記得在簡報上講清楚的是：**被擋不等於系統出錯**——卡片會退回模板，使用者永遠看不到那個捏造的事實；要報的數字是「退回率」。
+
 ### 3.20 外部公開基準：用各基準自己的指標（外部基準 sub-agent，`docs/research/external-benchmarks.md`）
 到目前為止所有數字都是我們自己定義的查詢與標準答案。這一節把 ENGINE 02 放到**別人公布的基準與別人公布的指標**上。
 
@@ -519,7 +528,7 @@ K[n,d] 的每一格都是從文獻編碼出來的判斷，沒有人工校準。�
 | Qwen3-VL-Reranker 2B／8B 延遲與 T1 | GPU | 2B 已測（變差，§0）；8B 官方路徑跑不通，**暫停** |
 | **真人盲標 140 題 → Cohen's κ 與人工標準答案 AUROC** | 組員 1–2 小時 | ⏳ 工具與題本都備好（`data/labels/human_tasks.csv`、`scripts/eval_human_agreement.py`），**只差人標** |
 | M3 感性對照表的人工校正 | 全組 1 小時 | ⏳ T13 指出該校的是**正負號與是否為零**，不是數值大小（§3.18） |
-| LLM 改寫的事實檢查實測 | OpenAI key | ⏳ 程式與單元測試已完成，缺真實幻覺率 |
+| LLM 改寫的幻覺率實測 | 組員的 ChatGPT agent（**不需要 API key**） | ⏳ 已改成貼上式流程：`scripts/eval_llm_paraphrase.py export` 產生 `paste_me.txt`（每批 10 張卡的事實 JSON），組員在他的 agent 裡跑完、把 `<id> \| <句子>` 存成一個檔，再跑 `score` 就得到通過率與被擋原因 |
 | 價格欄位 | 需要贊助商資料，或明確標示為合成 | ⏳ 目前一律 null，預算條件只有單元測試涵蓋 |
 | ENGINE 01／03 的斷網重播 | 兩位 owner | ⏳ ENGINE 02 這半已完成（`engine02/replay.py`） |
 
