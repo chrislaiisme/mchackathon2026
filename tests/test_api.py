@@ -232,3 +232,30 @@ def test_visual_search_marks_unreliable_elements(monkeypatch, tmp_path):
         assert prof["dark_tone"]["reliable"] is True
         assert all(p["stability_abs_delta_z"] is not None for p in d["profile"])
         assert "profile_caveat" in d and "正負反轉" in d["profile_caveat"]
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
+def test_gap_change_refuses_to_draw_a_line_through_noise(monkeypatch):
+    """In-session demand change is not a trend: with few requests it must decline to answer."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        need = next(iter(client.get("/kansei").json()["needs"]))
+        body = {"session_id": "g", "retrieval_text": "navy shirt",
+                "needs": [{"need_id": need, "prob": 0.6}],
+                "options": {"top_k": 3, "explain_with_llm": False}}
+        first = client.get("/gap/elements/change", params={"min_per_window": 30}).json()
+        assert first["status"] == "insufficient_data" and "不畫趨勢線" in first["note"]
+
+        for _ in range(8):
+            client.post("/rank", json=body)
+        ok = client.get("/gap/elements/change", params={"min_per_window": 3}).json()
+        assert ok["status"] == "ok"
+        assert ok["n_early"] >= 3 and ok["n_late"] >= 3
+        assert ok["window_seconds"] is not None, "requests must be timestamped"
+        assert "不是市場趨勢也不是預測" in ok["note"]
+        assert all({"element", "share_early", "share_late", "delta"} <= set(r) for r in ok["elements"])

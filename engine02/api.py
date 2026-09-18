@@ -207,6 +207,8 @@ def _record_demand(req: Engine02Request) -> None:
     """Keep what was asked for, so the gap panel has a real (and small, and stated) denominator."""
     from collections import deque
 
+    import time
+
     buf = STATE.get("demand")
     if buf is None:
         buf = STATE["demand"] = deque(maxlen=int(os.environ.get("ENGINE02_DEMAND_LOG", "500")))
@@ -216,6 +218,7 @@ def _record_demand(req: Engine02Request) -> None:
         dict(req.feedback.design_adjust_steps),
         ((c.category.values[0] if c.category.values else None),
          (c.color.values[0] if c.color.values else None)),
+        time.time(),  # so the panel can say "demand in this session changed", with a real window
     ))
 
 
@@ -232,8 +235,44 @@ def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     buf = list(STATE.get("demand", []))
     labels = {e.id: e.label for e in engine().kansei.elements}
-    rep = element_gap(engine(), [(p, s) for p, s, _ in buf], arm, threshold, labels)
+    rep = element_gap(engine(), [(p, s) for p, s, *_ in buf], arm, threshold, labels)
     return rep.model_dump()
+
+
+@app.get("/gap/elements/change")
+def gap_elements_change(arm: str = "full_zclip3", threshold: float = 0.5, min_per_window: int = 30) -> dict:
+    """How element demand moved **within this session**, earlier half vs later half.
+
+    This is deliberately *not* a trend or a forecast. The denominator is the requests this process
+    has served since it started (the log is in memory and resets on restart), so it describes the
+    room, not the market — and with few requests it refuses to answer instead of drawing a line
+    through noise. A hostile reading is correct: someone can move this by typing more queries.
+    """
+    from .panels import element_gap
+
+    if arm not in ARMS:
+        raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
+    buf = list(STATE.get("demand", []))
+    if len(buf) < 2 * min_per_window:
+        return {"status": "insufficient_data", "n_sessions": len(buf),
+                "needed": 2 * min_per_window,
+                "note": "本場請求數不足，不畫趨勢線（需求側＝本服務啟動後收到的查詢）"}
+    half = len(buf) // 2
+    labels = {e.id: e.label for e in engine().kansei.elements}
+    early = element_gap(engine(), [(p, s) for p, s, *_ in buf[:half]], arm, threshold, labels)
+    late = element_gap(engine(), [(p, s) for p, s, *_ in buf[half:]], arm, threshold, labels)
+    e_share = {e.element: e.demand_share for e in early.elements}
+    l_share = {e.element: e.demand_share for e in late.elements}
+    rows = []
+    for el in sorted(set(e_share) | set(l_share), key=lambda x: -abs(l_share.get(x, 0) - e_share.get(x, 0))):
+        rows.append({"element": el, "label": labels.get(el, el),
+                     "share_early": round(e_share.get(el, 0.0), 4),
+                     "share_late": round(l_share.get(el, 0.0), 4),
+                     "delta": round(l_share.get(el, 0.0) - e_share.get(el, 0.0), 4)})
+    return {"status": "ok", "n_early": half, "n_late": len(buf) - half,
+            "window_seconds": round(float(buf[-1][3] - buf[0][3]), 1) if len(buf[0]) > 3 else None,
+            "elements": rows,
+            "note": "本場需求變化，不是市場趨勢也不是預測；分母是本服務啟動後的請求數"}
 
 
 @app.get("/gap/cells")
@@ -242,7 +281,7 @@ def gap_cells(top: int = 20) -> dict:
     from .panels import category_color_gap
 
     buf = list(STATE.get("demand", []))
-    rows = category_color_gap(engine(), [cell for _, _, cell in buf], top)
+    rows = category_color_gap(engine(), [r[2] for r in buf], top)
     return {"n_sessions": len(buf), "cells": [r.model_dump() for r in rows],
             "note": "需求側 = 本服務實際收到的查詢，不是市場量測"}
 
