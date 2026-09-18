@@ -56,7 +56,10 @@ def test_chinese_values_become_catalog_values():
     assert req.constraints.category.values, "「洋裝」 must resolve through the taxonomy"
     assert req.constraints.color.values == ["Pink"]
     assert req.constraints.occasion.values == ["Smart Casual"]
-    assert req.feedback.design_adjust_steps.get("tailored_fit", 0) > 0
+    # it must land on the channel that is attributed to the user's own sentence, never on
+    # feedback (which the card calls 「你上一輪的回饋」)
+    assert req.stated_design_steps.get("tailored_fit", 0) > 0
+    assert not req.feedback.design_adjust_steps
     assert not unresolved
 
 
@@ -127,3 +130,22 @@ def test_match_score_can_go_down(monkeypatch):
             "item_type": "襯衫", "colors": ["紫色"], "occasion": "登山", "season": "冬天",
             "fit": "寬鬆", "pattern": "印花"}}).json()
         assert hard["match_score"] <= easy["match_score"], (easy["match_score"], hard["match_score"])
+
+
+def test_a_card_never_calls_this_round_words_last_round_feedback(monkeypatch):
+    """Attribution is the product here: getting the source of a weight wrong is a lie on the card."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        b = client.post("/rank", json={"session_id": "a",
+                                       "retrieval_text": "面試襯衫，不要有明顯 logo",
+                                       "options": {"top_k": 3}}).json()
+        text = " ".join(r for it in b["items"] for r in it["reasons"])
+        assert "你上一輪的回饋" not in text, text
+        shares = [c["need_shares"] for it in b["items"] for c in it["contributions"]]
+        assert any("stated_design" in s for s in shares), shares

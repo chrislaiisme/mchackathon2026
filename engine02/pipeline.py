@@ -99,7 +99,8 @@ def input_warnings(
             )
     if known_elements is not None:
         asked = (set(req.feedback.design_adjust_steps) | set(req.design_weight_prior or {})
-                 | set((req.profile.weights if req.profile else None) or {}))
+                 | set((req.profile.weights if req.profile else None) or {})
+                 | set(req.stated_design_steps or {}))
         unknown_el = sorted(asked - set(known_elements))
         if unknown_el:
             out.append(
@@ -300,8 +301,9 @@ class Engine02:
                 vocab = self._neg_vocab = catalog_vocabulary(self.catalog.items, self.kansei.elements)
             for attr, value, said in find_negated(req.retrieval_text, vocab):
                 if attr == "design_element":
-                    steps = req.feedback.design_adjust_steps
-                    if value not in steps:
+                    # this round's words, so it is attributed to the user, not to "last round"
+                    steps = req.stated_design_steps
+                    if value not in steps and value not in req.feedback.design_adjust_steps:
                         steps[value] = arm.negation_element_steps
                         negations.append({"said": said, "applied_to": f"design:{value}",
                                           "how": f"設計要素權重 {arm.negation_element_steps} 步"})
@@ -627,6 +629,15 @@ class Engine02:
             # is kappa0 / (kappa0 + rounds of real feedback), so by the time the user has actually
             # reacted kappa0 times it is outvoted by what they did — a bounded, checkable property
             # rather than a promise that "it won't hijack later rounds".
+            # what the user said in THIS request, on the same axes, attributed to them
+            stated = np.zeros(len(self.kansei.elements))
+            max_step = float(self.kansei.step_size) * float(self.kansei.max_steps)
+            for d, v in (req.stated_design_steps or {}).items():
+                canon = self.kansei.folded.get(d, d)
+                if canon in self.kansei.element_ids and v:
+                    j_ = self.kansei.element_ids.index(canon)
+                    signed = float(v) * self.kansei.step_size * (-1.0 if d in self.kansei.folded else 1.0)
+                    stated[j_] = float(np.clip(stated[j_] + signed, -max_step, max_step))
             profile = np.zeros(len(self.kansei.elements))
             profile_shrink = 0.0
             if req.profile and req.profile.weights:
@@ -639,7 +650,8 @@ class Engine02:
                         j_ = self.kansei.element_ids.index(canon)
                         profile[j_] = float(np.clip(profile[j_] + signed * cap * profile_shrink, -cap, cap))
             for j, el in enumerate(self.kansei.elements):
-                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j] + prior[j] + profile[j])
+                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j] + prior[j]
+                          + profile[j] + stated[j])
                 if abs(w) < 1e-9:
                     continue
                 per_unit = {}
@@ -654,6 +666,8 @@ class Engine02:
                     per_unit["external_prior"] = float(prior[j])
                 if abs(profile[j]) > 1e-9:
                     per_unit["profile_prior"] = float(profile[j])
+                if abs(stated[j]) > 1e-9:
+                    per_unit["stated_design"] = float(stated[j])
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if (arm.use_critique_roles and req.feedback.critique

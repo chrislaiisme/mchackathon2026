@@ -206,6 +206,11 @@ class Engine02Request(BaseModel):
     # them on the card, and separate from `feedback` because it is not evidence from a round.
     # It is a prior mean only: `ProfilePrior.kappa0` caps its equivalent sample size, so after
     # kappa0 rounds of real feedback it has been diluted below the user's actual behaviour.
+    # Design preferences the user stated IN THIS REQUEST ("版型要修身"), as opposed to a nudge from
+    # last round (feedback.design_adjust_steps) or an outside signal (design_weight_prior). Kept
+    # apart because the card must attribute it correctly: saying "你上一輪的回饋" about words the
+    # user just typed is the same class of error as calling a user's own choice an external trend.
+    stated_design_steps: dict[str, int] = Field(default_factory=dict)
     profile: "ProfilePrior | None" = None
     constraints: HardConstraints = Field(default_factory=HardConstraints)
     needs: list[NeedProbability] = Field(default_factory=list)

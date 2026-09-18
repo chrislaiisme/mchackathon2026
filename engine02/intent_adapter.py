@@ -234,11 +234,8 @@ def intent_to_request(
         )
 
     fb = dict(feedback or {})
-    if steps_map:
-        merged = dict(fb.get("design_adjust_steps") or {})
-        for k, v in steps_map.items():
-            merged[k] = merged.get(k, 0) + v
-        fb["design_adjust_steps"] = merged
+    # NOT feedback.design_adjust_steps: the user said these words in this request, and a card that
+    # calls them "你上一輪的回饋" is attributing the user's own sentence to something else
 
     text = " ".join(dict.fromkeys(w for w in caption if w)).strip()
     req = Engine02Request(
@@ -248,6 +245,7 @@ def intent_to_request(
         # the caption is built from catalog vocabulary except where we said it was not
         retrieval_text_normalized=not unresolved,
         constraints=c,
+        stated_design_steps=steps_map,
         feedback=fb,
         options=Engine02Options(top_k=top_k, **({"arm": arm} if arm else {})),
     )
