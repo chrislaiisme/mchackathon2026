@@ -171,7 +171,47 @@ BM25 改成 postings 計分（rank_bm25 是「每個查詢詞掃全庫」）、d
 
 ---
 
-## 8. 現場 demo 建議腳本（三段各約 30 秒）
+## 8. 現場啟動指令與上台前檢查清單
+
+### 8.1 啟動（一行）
+
+```bash
+# demo 機（有 GPU）。ENGINE02_DEMO=1 = 不論前端怎麼送都不打 LLM，理由一律走模板
+ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_TRENDS=1 ENGINE02_DEMO=1 python -m uvicorn engine02.api:app --host 0.0.0.0 --port 8002
+
+# 沒有 GPU 的備援機（CPU，約 1 秒/查詢，仍然完整可跑）
+ENGINE02_CATALOG=data/catalog/kagl ENGINE02_ENCODER=fashion-clip ENGINE02_DEMO=1 python -m uvicorn engine02.api:app --port 8002
+```
+
+啟動會自己跑一次暖機查詢（含一次 complete-look），所以第一題不必付 CUDA context 與索引建置的成本。
+
+### 8.2 上台前 60 秒檢查（看 `GET /health` 四個欄位）
+
+```bash
+curl -s localhost:8002/health | python -m json.tool
+```
+
+| 欄位 | 應該是什麼 | 不對的話 |
+|---|---|---|
+| `n_items` | 17783（合併補值庫） | 商品庫路徑錯了 |
+| `complete_look.method` | `"ot_cir"` | checkpoint 沒載到 → 會退回圖片相似度（能跑，但搭配品質差） |
+| `warm_ms` | 有數字（幾百 ms） | 暖機失敗 → 第一題會慢 |
+| `demo_mode` | `true` | 忘了 `ENGINE02_DEMO=1` → 斷網時每張卡會等 timeout |
+
+再跑一次完整端點驗收（15 項斷言，約 1 分鐘）：
+
+```bash
+python scripts/api_check.py --catalog data/catalog/kagl_polyvore_filled     --encoder marqo-fashionSigLIP --device cuda --ot --trends
+```
+
+### 8.3 兩件事不要在現場做
+
+- **不要換商品庫或換 encoder**：設計矩陣與圖片 embedding 的快取綁 encoder／kansei 版本，換了就要重算（17.8k 件約 2 分鐘，44k 更久）。要換就在上台前換完並跑過 §8.2。
+- **不要清 `data/catalog/*/index/`**：裡面有圖片 embedding、設計矩陣與 OutfitTransformer 的 embedding 快取（73 MB）。刪了會在評審面前重算。
+
+---
+
+## 9. 現場 demo 建議腳本（三段各約 30 秒）
 
 1. **理解＋解釋**：打一句「下週面試，不想太正式但要可靠」→ 五張卡，點開任一張：「這條分數分解就是理由，
    而且加起來剛好是總分」→ 指出「你沒說但在加分的需求」那一欄。
