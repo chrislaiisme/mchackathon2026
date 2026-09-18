@@ -86,6 +86,51 @@ def design_scores(
     return c
 
 
+def element_profile(encoder: Encoder, catalog_emb: np.ndarray, emb: np.ndarray, table: KanseiTable,
+                    mode: str = "antonym", temperature: float = 0.01,
+                    prompt_cache: dict | None = None) -> list[dict]:
+    """Where one image sits on each design-element axis, **relative to this catalog**.
+
+    Same prompts and same formula as :func:`design_scores`, but for a single embedding (an uploaded
+    photo, or a generated concept image). The raw score is meaningless on its own — "0.61 matte" is
+    not a unit anyone can read — so it is reported two ways against the catalog's own distribution:
+    a z-score and a percentile ("more matte than 87% of the catalog"). That is the same scale the
+    cards' design terms use, so a profile and a reason can be read side by side.
+    """
+    img = np.asarray(emb, dtype=np.float64).reshape(1, -1)
+    cat = np.asarray(catalog_emb, dtype=np.float64)
+    cache = prompt_cache if prompt_cache is not None else {}
+    neutral = cache.get("__neutral__")
+    if neutral is None:
+        neutral = cache["__neutral__"] = encoder.encode_text([NEUTRAL_PROMPT])[0].astype(np.float64)
+
+    out = []
+    for el in table.elements:
+        key = (el.id, mode)
+        vecs = cache.get(key)
+        if vecs is None:
+            pos = encoder.encode_text(el.descriptors).astype(np.float64)
+            neg = (encoder.encode_text(el.negative_descriptors).astype(np.float64)
+                   if el.negative_descriptors else None)
+            vecs = cache[key] = (pos, neg)
+        pos, neg = vecs
+
+        def raw(x: np.ndarray) -> np.ndarray:
+            if mode == "antonym" and neg is not None:
+                d = (x @ pos.T).mean(axis=1) - (x @ neg.T).mean(axis=1)
+                return 1.0 / (1.0 + np.exp(-d / temperature))
+            return (x @ pos.T).mean(axis=1) - x @ neutral
+
+        r_cat = raw(cat)
+        r_img = float(raw(img)[0])
+        sd = float(r_cat.std()) or 1e-9
+        out.append(dict(element=el.id, label=el.label,
+                        z=round((r_img - float(r_cat.mean())) / sd, 3),
+                        percentile=round(float((r_cat < r_img).mean()), 3)))
+    out.sort(key=lambda d: -abs(d["z"]))
+    return out
+
+
 def vlm_design_scores(item_ids: list[str], table: KanseiTable, vlm_file, na_threshold: float = 0.5,
                       return_mask: bool = False):
     """c(i,d) from offline VLM tagging (scripts/vlm_tag_attributes.py): P(pos) − P(neg),

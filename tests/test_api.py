@@ -125,3 +125,34 @@ def test_llm_budget_gives_up_after_one_failure():
     with pytest.raises(TimeoutError):
         b("second")
     assert len(calls) == 1, "the second card should not have called out again"
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
+def test_visual_search_profiles_and_retrieves(monkeypatch, tmp_path):
+    """A photo in, a design-element profile and ranked cards out — same encoder, no new model."""
+    import base64
+
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    from fastapi.testclient import TestClient
+    from PIL import Image
+
+    from engine02.api import app
+
+    img = tmp_path / "shot.png"
+    Image.new("RGB", (64, 64), (20, 30, 90)).save(img)
+    b64 = base64.b64encode(img.read_bytes()).decode()
+
+    with TestClient(app) as client:
+        r = client.post("/visual-search", json={"image_base64": b64, "top_k": 4})
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert len(d["response"]["items"]) == 4
+        assert d["profile"] and {"element", "label", "z", "percentile"} <= set(d["profile"][0])
+        assert all(0.0 <= p["percentile"] <= 1.0 for p in d["profile"])
+        assert abs(d["profile"][0]["z"]) >= abs(d["profile"][-1]["z"]), "sorted by how unusual it is"
+        # a data: URL prefix is tolerated, junk is a 400 rather than a 500
+        assert client.post("/visual-search", json={"image_base64": f"data:image/png;base64,{b64}"}
+                           ).status_code == 200
+        assert client.post("/visual-search", json={"image_base64": "not base64!!"}).status_code == 400
+        assert client.post("/visual-search", json={"image_base64": ""}).status_code == 400

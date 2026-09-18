@@ -33,7 +33,8 @@ from pydantic import BaseModel
 from .catalog import Catalog
 from .compat import CategoryCooccurrence
 from .config import ARMS
-from .contracts import CONTRACT_VERSION, Engine02Request, Engine02Response
+from .contracts import (CONTRACT_VERSION, Engine02Options, Engine02Request, Engine02Response,
+                        HardConstraints)
 from .encoders import HashEncoder
 from .kansei import KanseiTable
 from .llm import get_llm
@@ -325,6 +326,70 @@ def view(body: ViewRequest) -> dict:
         from .trends import trend_badges
 
         out["trend_badges"] = trend_badges(engine(), resp, STATE["trends"].keywords())
+    return out
+
+
+class VisualSearchRequest(BaseModel):
+    """A photo the customer or the brand hands over. base64 so no multipart dependency is needed."""
+
+    image_base64: str
+    top_k: int = 5
+    constraints: dict = {}
+    retrieval_text: str = ""
+    arm: str | None = None
+    profile: bool = True
+
+
+@app.post("/visual-search")
+def visual_search(body: VisualSearchRequest) -> dict:
+    """Search the catalog with an uploaded photo, and say what design elements the photo has.
+
+    Two answers from one embedding: the design-element profile (z and percentile against this
+    catalog, the same scale the cards' design terms use) and the ranked items, folding the photo
+    into the query at the measured weight (§3.16; `concept_image_weight`, a no-op without a photo).
+    Deliberately **not** a new model: the same encoder that indexed the catalog encodes the photo.
+    """
+    import base64
+    import binascii
+    import tempfile
+
+    e = engine()
+    arm = body.arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
+    if arm not in ARMS:
+        raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
+    raw = body.image_base64.split(",", 1)[-1]  # tolerate a data: URL prefix
+    try:
+        blob = base64.b64decode(raw, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise HTTPException(400, f"image_base64 is not valid base64: {exc}")
+    if not blob:
+        raise HTTPException(400, "image_base64 is empty")
+    with tempfile.NamedTemporaryFile(suffix=".img", delete=False) as fh:
+        fh.write(blob)
+        tmp = Path(fh.name)
+    try:
+        emb = e.encoder.encode_images([tmp])
+    except Exception as exc:
+        raise HTTPException(400, f"could not read the image: {type(exc).__name__}: {exc}")
+    finally:
+        tmp.unlink(missing_ok=True)
+    vec = emb[0]
+
+    out: dict = {"encoder": e.encoder.name, "arm": arm}
+    if body.profile:
+        from .concepts import element_profile
+
+        cache = STATE.setdefault("prompt_cache", {})
+        out["profile"] = element_profile(e.encoder, e.image_emb, vec, e.kansei,
+                                         mode=ARMS[arm].concept_mode, prompt_cache=cache)
+        out["profile_note"] = "z 與百分位都是相對於本商品庫，和卡片上的設計要素用同一把尺"
+    req = Engine02Request(session_id="visual", retrieval_text=body.retrieval_text,
+                          constraints=HardConstraints(**body.constraints) if body.constraints else HardConstraints(),
+                          options=Engine02Options(top_k=body.top_k, explain_with_llm=False))
+    req.feedback.concept_image_embedding = [float(x) for x in vec]
+    resp = rank(req)
+    out["response"] = resp.model_dump()
+    out["concept_image_weight"] = ARMS[arm].concept_image_weight
     return out
 
 
