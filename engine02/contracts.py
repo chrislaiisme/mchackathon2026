@@ -164,6 +164,21 @@ class Engine02Options(BaseModel):
     critique_alpha: float = 0.0
 
 
+class ProfilePrior(BaseModel):
+    """A handful of forced choices made before round 1, as a prior over the design axes.
+
+    `weights` is in user-feedback steps (the same ±1 units as `design_adjust_steps`), so the
+    existing clip to one `KanseiTable.step_size` applies unchanged. Zou et al. (SIGIR 2020) measure
+    that preference elicitation "reaches very good performance already within the first 10
+    questions"; three is a stage decision, not a literature result — see
+    docs/research/novelty-and-profile.md §B.
+    """
+
+    weights: dict[str, float] = Field(default_factory=dict)
+    n_answers: int = 0
+    kappa0: float = 3.0  # equivalent sample size: the profile is worth at most this many rounds
+
+
 class Engine02Request(BaseModel):
     contract_version: str = CONTRACT_VERSION
     session_id: str
@@ -186,6 +201,12 @@ class Engine02Request(BaseModel):
     # influencer signal buys ~1% MASE at 100 series and needs pooling across thousands
     # (arXiv:2202.03224); see docs/research/social-trend-signals.md.
     design_weight_prior: dict[str, float] = Field(default_factory=dict)
+    # What the user chose BEFORE typing anything (a few forced-choice pictures on the way in).
+    # Separate from `design_weight_prior` because it IS the user's voice and must be attributed to
+    # them on the card, and separate from `feedback` because it is not evidence from a round.
+    # It is a prior mean only: `ProfilePrior.kappa0` caps its equivalent sample size, so after
+    # kappa0 rounds of real feedback it has been diluted below the user's actual behaviour.
+    profile: "ProfilePrior | None" = None
     constraints: HardConstraints = Field(default_factory=HardConstraints)
     needs: list[NeedProbability] = Field(default_factory=list)
 

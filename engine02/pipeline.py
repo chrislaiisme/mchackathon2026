@@ -98,11 +98,12 @@ def input_warnings(
                 f"可用的 need_id：{sorted(known_needs)}"
             )
     if known_elements is not None:
-        asked = set(req.feedback.design_adjust_steps) | set(req.design_weight_prior or {})
+        asked = (set(req.feedback.design_adjust_steps) | set(req.design_weight_prior or {})
+                 | set((req.profile.weights if req.profile else None) or {}))
         unknown_el = sorted(asked - set(known_elements))
         if unknown_el:
             out.append(
-                f"design_adjust_steps／design_weight_prior 中有不存在的設計要素 {unknown_el}："
+                f"design_adjust_steps／design_weight_prior／profile.weights 中有不存在的設計要素 {unknown_el}："
                 f"這些調整被忽略。可用的要素：{sorted(known_elements)}"
             )
     text = (req.retrieval_text or "").lower()
@@ -538,8 +539,23 @@ class Engine02:
                     signed = -float(v) if d in self.kansei.folded else float(v)
                     j_ = self.kansei.element_ids.index(canon)
                     prior[j_] = float(np.clip(prior[j_] + signed, -cap, cap))
+            # The profile the user built before round 1 is a prior MEAN, not evidence. Its weight
+            # is kappa0 / (kappa0 + rounds of real feedback), so by the time the user has actually
+            # reacted kappa0 times it is outvoted by what they did — a bounded, checkable property
+            # rather than a promise that "it won't hijack later rounds".
+            profile = np.zeros(len(self.kansei.elements))
+            profile_shrink = 0.0
+            if req.profile and req.profile.weights:
+                k0 = max(0.0, float(req.profile.kappa0))
+                profile_shrink = k0 / (k0 + len(req.feedback.choice_history)) if k0 else 0.0
+                for d, v in req.profile.weights.items():
+                    canon = self.kansei.folded.get(d, d)
+                    if canon in self.kansei.element_ids:
+                        signed = -float(v) if d in self.kansei.folded else float(v)
+                        j_ = self.kansei.element_ids.index(canon)
+                        profile[j_] = float(np.clip(profile[j_] + signed * cap * profile_shrink, -cap, cap))
             for j, el in enumerate(self.kansei.elements):
-                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j] + prior[j])
+                w = float(arm.need_scale * (beta_needs[j] + beta_fb[j]) + learned[j] + prior[j] + profile[j])
                 if abs(w) < 1e-9:
                     continue
                 per_unit = {}
@@ -552,6 +568,8 @@ class Engine02:
                     per_unit["feedback_adjust"] = float(fb_part)
                 if abs(prior[j]) > 1e-9:
                     per_unit["external_prior"] = float(prior[j])
+                if abs(profile[j]) > 1e-9:
+                    per_unit["profile_prior"] = float(profile[j])
                 # c(i,d) is already z-scored over the whole catalog → no re-normalisation in pool scope
                 terms.append(Term(f"design:{el.id}", "design", c_mat[cand, j], w, per_unit, normalize=not pool_scope))
         if arm.use_compat and req.feedback.anchor_item_ids:

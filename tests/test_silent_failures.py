@@ -92,3 +92,38 @@ def test_facets_do_not_change_the_ranking(client):
     means = [g["mean_z"] for g in panel["groups"]]
     assert means == sorted(means)
     assert all(g["n"] >= 1 for g in panel["groups"])
+
+
+def test_profile_is_a_prior_that_real_feedback_outvotes(client):
+    """The pre-query profile must move round 1 and then get out of the way."""
+    qs = client.get("/profile/questions?n=3").json()["questions"]
+    assert len(qs) == 3 and all(len(q["options"]) == 2 for q in qs)
+    axes = {q["axis"] for q in qs}
+    assert len(axes) == 3, "three questions must ask about three different axes"
+    prof = client.post("/profile", json={"answers": [{"axis": q["axis"], "side": "high"} for q in qs]}).json()
+    assert prof["n_answers"] == 3
+
+    base = {"session_id": "p", "retrieval_text": "a shirt for an interview", "options": {"top_k": 5}}
+    plain = client.post("/rank", json=base).json()
+    with_profile = client.post("/rank", json={**base, "profile": prof}).json()
+    assert [i["item_id"] for i in plain["items"]] != [i["item_id"] for i in with_profile["items"]]
+
+    # the weight it carries is kappa0/(kappa0+rounds), so the same profile must weigh less
+    # once the user has actually reacted — and the card attributes it to the user, separately
+    def profile_weight(body):
+        r = client.post("/rank", json=body).json()
+        return max((abs(c["need_shares"].get("profile_prior", 0.0))
+                    for it in r["items"] for c in it["contributions"]), default=0.0)
+
+    shown = [i["item_id"] for i in with_profile["items"]]
+    rounds = {"choice_history": [{"shown_item_ids": shown, "chosen_item_id": shown[0]}] * 3}
+    w0 = profile_weight({**base, "profile": prof})
+    w3 = profile_weight({**base, "profile": prof, "round": 3, "feedback": rounds})
+    assert w0 > 0 and w3 < w0, (w0, w3)
+
+
+def test_unknown_profile_axis_is_reported(client):
+    r = client.post("/rank", json={"session_id": "t", "retrieval_text": "shirt",
+                                   "profile": {"weights": {"no_such_axis": 1.0}, "n_answers": 1}})
+    assert r.status_code == 200
+    assert any("no_such_axis" in w for w in r.json()["constraint_report"]["input_warnings"])

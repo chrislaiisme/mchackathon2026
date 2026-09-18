@@ -34,7 +34,8 @@ def template_reasons(
 ) -> tuple[list[str], list[dict]]:
     # the pipeline has already decided (and capped) which terms are displayed
     need_labels = {**need_labels, "feedback_adjust": "你上一輪的回饋",
-                   "external_prior": "外部趨勢／企劃偏好（非你本人的輸入）"}
+                   "external_prior": "外部趨勢／企劃偏好（非你本人的輸入）",
+                   "profile_prior": "你開場挑的偏好"}
     cited = [c for c in contribs if c.cited and c.contribution > 0]
     cited.sort(key=lambda c: -c.contribution)
     reasons, facts = [], []

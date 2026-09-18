@@ -406,6 +406,36 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+@app.get("/profile/questions")
+def profile_questions_endpoint(n: int = 3, arm: str | None = None) -> dict:
+    """n forced choices between two real photos, to build a prior before the user types anything.
+
+    Three is a stage decision (≈15 s inside a 30 s段 script), not a literature result: Zou et al.
+    (SIGIR 2020) measure that elicitation keeps improving up to ~10 questions. See §3.32.
+    """
+    from .panels import profile_questions
+
+    a = arm or os.environ.get("ENGINE02_ARM", "full_zclip3")
+    if a not in ARMS:
+        raise HTTPException(400, f"unknown arm {a!r}; see GET /arms")
+    qs = profile_questions(engine(), a, n=n)
+    return {"arm": a, "n": len(qs), "questions": qs,
+            "note": "答案請以 [{axis, side}] 送回 POST /profile；side 是 high 或 low。"}
+
+
+class ProfileAnswers(BaseModel):
+    answers: list[dict] = []
+    kappa0: float = 3.0
+
+
+@app.post("/profile")
+def profile_endpoint(body: ProfileAnswers) -> dict:
+    """Turn those choices into `Engine02Request.profile`, ready to send with every round."""
+    from .panels import profile_from_answers
+
+    return profile_from_answers(engine(), body.answers, kappa0=body.kappa0)
+
+
 class FacetRequest(BaseModel):
     """Read one ranking three ways. The ranking itself is untouched."""
 

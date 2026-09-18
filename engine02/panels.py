@@ -829,3 +829,91 @@ def facet_slices(engine, arm, item_ids: Sequence[str], scores: Sequence[float] |
               + (f"但它與品類的關聯度是 {v:.2f}，意思是這個切分有一部分其實是在分品類，請照這個數字打折看待。"
                  if v >= 0.5 else f"與品類的關聯度只有 {v:.2f}，所以它不是在分品類。")),
     )
+
+
+# ---------------------------------------------------------------------------
+# a profile built before the first query (§3.32)
+# ---------------------------------------------------------------------------
+
+
+def profile_questions(engine, arm, n: int = 3, max_corr: float = 0.5) -> list[dict[str, Any]]:
+    """n forced choices between two real photographs, one per design axis.
+
+    Axes are taken in order of how much the catalog actually varies along them, skipping any axis
+    that correlates above `max_corr` with one already chosen — three questions that all ask the
+    same thing measure one thing three times. Each option is a real catalog item at that axis'
+    extreme, so the user answers by pointing at a picture rather than by rating an adjective.
+    """
+    from .config import ARMS
+
+    arm_cfg = ARMS[arm] if isinstance(arm, str) else arm
+    c = np.asarray(engine.design_matrix(arm_cfg), dtype=np.float64)
+    items = engine.catalog.items
+    elements = engine.kansei.elements
+    folded = dict(getattr(engine.kansei, "folded", {}) or {})
+    partner = {v: k for k, v in folded.items()}
+    label_of = {e.id: e.label for e in elements}
+
+    # only clothes can answer a question about how clothes look
+    garments = ("top", "tops", "bottom", "bottoms", "dress", "dresses", "outerwear", "apparel")
+    if "category" in items.columns:
+        cat = items["category"].astype(str).str.lower().to_numpy()
+        eligible = np.flatnonzero(np.isin(cat, garments))
+    else:
+        eligible = np.arange(len(items))
+
+    cand = [j for j, e in enumerate(elements) if e.id not in folded]
+    sd = c[:, cand].std(axis=0)
+    order = [cand[i] for i in np.argsort(-sd)]
+    out: list[dict[str, Any]] = []
+    picked: list[int] = []
+    for j in order:
+        if len(out) >= n:
+            break
+        if any(abs(float(np.corrcoef(c[:, j], c[:, k])[0, 1])) > max_corr for k in picked):
+            continue
+        col = c[:, j]
+        # The single most extreme item on an axis is usually an artefact — the most "formal" row in
+        # a mixed catalog can be a lipstick. Ask with garments only, and use a high percentile
+        # rather than the maximum, so the two photos are representative of the poles.
+        elig = eligible if eligible.size else np.arange(len(col))
+        vals = col[elig]
+        lo = int(elig[int(np.argsort(vals)[max(0, int(0.02 * (len(vals) - 1)))])])
+        hi = int(elig[int(np.argsort(vals)[min(len(vals) - 1, int(0.98 * (len(vals) - 1)))])])
+        if hi == lo or col[hi] - col[lo] < 1e-6:
+            continue
+        e = elements[j]
+        high, low = label_of[e.id], label_of.get(partner.get(e.id, ""), f"不強調{e.label}")
+
+        def card(p: int, side: str, label: str) -> dict[str, Any]:
+            return {"side": side, "label": label, "item_id": str(items.at[p, "item_id"]),
+                    "title": str(items.at[p, "title"]), "image_path": str(items.at[p, "image_path"]),
+                    "axis_z": round(float((col[p] - col.mean()) / (col.std() or 1.0)), 2)}
+
+        out.append({"axis": e.id, "axis_label": e.label, "question": f"這兩件，你比較喜歡哪一件？",
+                    "options": [card(lo, "low", low), card(hi, "high", high)]})
+        picked.append(j)
+    return out
+
+
+def profile_from_answers(engine, answers: Sequence[dict[str, Any]], kappa0: float = 3.0) -> dict[str, Any]:
+    """Forced choices → a prior over design axes, in user-feedback steps.
+
+    One binary answer is at most one bit and there are 11 axes, so three answers cannot even fix
+    the sign of half of them. That is the point: this is a prior mean with a bounded equivalent
+    sample size (`kappa0`), never a conclusion about the person.
+    """
+    ids = set(engine.kansei.element_ids)
+    weights: dict[str, float] = {}
+    used = 0
+    for a in answers:
+        axis = str(a.get("axis", ""))
+        side = str(a.get("side", "")).lower()
+        if axis not in ids or side not in ("high", "low"):
+            continue
+        weights[axis] = weights.get(axis, 0.0) + (1.0 if side == "high" else -1.0)
+        used += 1
+    return {"weights": weights, "n_answers": used, "kappa0": float(kappa0),
+            "note": ("這是先驗平均，不是結論：等效樣本數上限 "
+                     f"{kappa0:.0f} 輪，第 {kappa0:.0f} 輪之後你的實際回饋一定壓過它。"
+                     "卡片上會標成「你開場挑的偏好」，與你本輪打的字分開列。")}
