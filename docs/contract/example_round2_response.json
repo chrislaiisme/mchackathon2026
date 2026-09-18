@@ -12,19 +12,19 @@
       "category": "top",
       "color": "Lavender",
       "price": null,
-      "score": 4.23185714778753,
+      "score": 4.231857098811331,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
-          "raw": 0.7208879239728567,
-          "normalized": 3.356786182836002,
+          "raw": 0.7208878993988037,
+          "normalized": 3.3567861338598033,
           "weight": 1.0,
-          "contribution": 3.356786182836002,
+          "contribution": 3.3567861338598033,
           "need_shares": {},
           "rank_without": 49,
           "necessary": true,
-          "diff_vs_cutoff": 1.1251179956130333,
+          "diff_vs_cutoff": 1.1251180576202162,
           "sufficient": true,
           "cited": true
         },
@@ -245,7 +245,7 @@
         "soft_knit": 1.9447184435115135,
         "athletic_style": 1.2689683090699038
       },
-      "margin_vs_cutoff": 0.7670556524563814,
+      "margin_vs_cutoff": 0.7670557144635639,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+3.36）",
@@ -263,19 +263,19 @@
       "category": "top",
       "color": "Lavender",
       "price": null,
-      "score": 4.23185714778753,
+      "score": 4.231857098811331,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
-          "raw": 0.7208879239728567,
-          "normalized": 3.356786182836002,
+          "raw": 0.7208878993988037,
+          "normalized": 3.3567861338598033,
           "weight": 1.0,
-          "contribution": 3.356786182836002,
+          "contribution": 3.3567861338598033,
           "need_shares": {},
           "rank_without": 49,
           "necessary": true,
-          "diff_vs_cutoff": 1.1251179956130333,
+          "diff_vs_cutoff": 1.1251180576202162,
           "sufficient": true,
           "cited": true
         },
@@ -496,7 +496,7 @@
         "soft_knit": 1.9447184435115135,
         "athletic_style": 1.2689683090699038
       },
-      "margin_vs_cutoff": 0.7670556524563814,
+      "margin_vs_cutoff": 0.7670557144635639,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+3.36）",
@@ -514,19 +514,19 @@
       "category": "top",
       "color": "Lavender",
       "price": null,
-      "score": 3.87089527064239,
+      "score": 3.8708952061643953,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
-          "raw": 0.6822348493120307,
-          "normalized": 3.0755066839327436,
+          "raw": 0.6822348237037659,
+          "normalized": 3.075506619454749,
           "weight": 1.0,
-          "contribution": 3.0755066839327436,
+          "contribution": 3.075506619454749,
           "need_shares": {},
           "rank_without": 49,
           "necessary": true,
-          "diff_vs_cutoff": 0.843838496709775,
+          "diff_vs_cutoff": 0.843838543215162,
           "sufficient": true,
           "cited": true
         },
@@ -747,7 +747,7 @@
         "soft_knit": 1.944677755797949,
         "athletic_style": 1.2687733930298595
       },
-      "margin_vs_cutoff": 0.4060937753112408,
+      "margin_vs_cutoff": 0.4060938218166279,
       "reason_mode": "sufficient",
       "reasons": [
         "整體風格和你描述的相近（+3.08）",
@@ -765,15 +765,15 @@
       "category": "top",
       "color": "Brown",
       "price": null,
-      "score": 3.7611816471522883,
+      "score": 3.7611815361689067,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
-          "raw": 0.5662756253295527,
-          "normalized": 2.2316681872229687,
+          "raw": 0.5662755966186523,
+          "normalized": 2.231668076239587,
           "weight": 1.0,
-          "contribution": 2.2316681872229687,
+          "contribution": 2.231668076239587,
           "need_shares": {},
           "rank_without": 49,
           "necessary": true,
@@ -1018,15 +1018,15 @@
       "category": "top",
       "color": "Grey",
       "price": null,
-      "score": 3.6308816576453977,
+      "score": 3.630881546662016,
       "contributions": [
         {
           "term": "dense",
           "group": "dense",
-          "raw": 0.5662756253295527,
-          "normalized": 2.2316681872229687,
+          "raw": 0.5662755966186523,
+          "normalized": 2.231668076239587,
           "weight": 1.0,
-          "contribution": 2.2316681872229687,
+          "contribution": 2.231668076239587,
           "need_shares": {},
           "rank_without": 49,
           "necessary": true,
@@ -1279,10 +1279,13 @@
     "relaxed": [],
     "n_catalog": 5000,
     "n_after_filter": 862,
+    "exposure_excluded": 0,
+    "exposure_cap_skipped": false,
     "input_warnings": []
   },
   "metrics": {
     "hard_constraint_satisfaction": 1.0,
+    "match_policy": "exact",
     "excluded_value_hits": 0,
     "rejected_item_hits": 0,
     "feedback_violations": 0
@@ -1297,11 +1300,11 @@
     "...truncated"
   ],
   "timings_ms": {
-    "filter": 14.28,
-    "retrieve": 5.37,
-    "fuse": 0.27,
-    "rerank": 1.12,
-    "counterfactual": 0.47,
-    "explain": 1.87
+    "filter": 0.8,
+    "retrieve": 0.47,
+    "fuse": 0.17,
+    "rerank": 0.82,
+    "counterfactual": 1.58,
+    "explain": 1.34
   }
 }

@@ -474,3 +474,39 @@ def test_freshness_term_is_off_without_history(engine):
     resp = engine.run(request(), "full_zclip3")
     assert not [c for it in resp.items for c in it.contributions if c.group == "freshness"]
     assert resp.constraint_report.exposure_excluded == 0
+
+
+def test_external_prior_is_capped_and_attributed_separately(engine):
+    """A trend platform or a merchandiser may nudge the weights, but never outvote the user."""
+    el = "formal_style"
+    step = engine.kansei.step_size
+
+    base = engine.run(request(), "full")
+    huge = engine.run(request(design_weight_prior={el: 99.0}), "full")
+    one_step = engine.run(request(design_weight_prior={el: step}), "full")
+
+    def weight_of(resp, item_id):
+        for it in resp.items:
+            if it.item_id == item_id:
+                for c in it.contributions:
+                    if c.term == f"design:{el}":
+                        return c.weight, c.need_shares
+        return None, {}
+
+    iid = base.items[0].item_id
+    w_none, _ = weight_of(base, iid)
+    w_huge, shares_huge = weight_of(huge, iid)
+    w_step, _ = weight_of(one_step, iid)
+    assert None not in (w_none, w_huge, w_step)
+    assert w_huge == pytest.approx(w_step), "a prior of 99 must be clipped to one feedback step"
+    assert w_huge - w_none == pytest.approx(step), "the clip is exactly one user feedback step"
+    # attributed apart from the user's own needs (need_shares are contribution shares, not weights)
+    assert shares_huge.get("external_prior", 0.0) != 0.0
+    assert "feedback_adjust" not in shares_huge
+    for it in huge.items:
+        for c in it.contributions:
+            if c.group == "design":
+                assert abs(sum(c.need_shares.values()) - c.contribution) < 1e-6
+    texts = " ".join(r for it in huge.items for r in it.reasons)
+    if "外部趨勢" in texts:
+        assert "非你本人的輸入" in texts

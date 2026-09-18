@@ -29,6 +29,16 @@
           "title": "N After Filter",
           "type": "integer"
         },
+        "exposure_excluded": {
+          "default": 0,
+          "title": "Exposure Excluded",
+          "type": "integer"
+        },
+        "exposure_cap_skipped": {
+          "default": false,
+          "title": "Exposure Cap Skipped",
+          "type": "boolean"
+        },
         "input_warnings": {
           "items": {
             "type": "string"
@@ -54,7 +64,8 @@
             "trend",
             "design",
             "penalty",
-            "rerank"
+            "rerank",
+            "freshness"
           ],
           "title": "Group",
           "type": "string"
@@ -297,6 +308,11 @@
           ],
           "default": null,
           "title": "Hard Constraint Satisfaction"
+        },
+        "match_policy": {
+          "default": "exact",
+          "title": "Match Policy",
+          "type": "string"
         },
         "excluded_value_hits": {
           "default": 0,

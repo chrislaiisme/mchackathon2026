@@ -7,6 +7,7 @@
   ],
   "retrieval_text": "men shirts for formal",
   "retrieval_text_normalized": null,
+  "design_weight_prior": {},
   "constraints": {
     "category": {
       "state": "value",

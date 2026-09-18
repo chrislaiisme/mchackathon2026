@@ -474,6 +474,13 @@
       "default": null,
       "title": "Retrieval Text Normalized"
     },
+    "design_weight_prior": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Design Weight Prior",
+      "type": "object"
+    },
     "constraints": {
       "$ref": "#/$defs/HardConstraints"
     },
