@@ -339,6 +339,44 @@ class Taxonomy:
         return " ".join([d["label_en"] if d else nid, *vals])
 
 
+def ground_query(text: str, catalog: str | None = None, tax: "Taxonomy | None" = None
+                 ) -> tuple[str, list[tuple[str, str]]]:
+    """Map a free-text query onto the words this catalog actually uses.
+
+    ENGINE 01 is supposed to normalise slot values to catalog vocabulary; when it does not, the
+    lexical side does not merely go quiet, it latches onto whichever rare word happens to exist
+    ("everyday" occurs in one product title and owns the ranking). The taxonomy already knows the
+    synonyms — tee → Tshirts, joggers → Track Pants — and `build_retrieval_text` skipped it
+    entirely whenever `retrieval_text` was supplied, i.e. on exactly the path that breaks.
+
+    Returns the catalog-vocabulary string to add to the lexical query, plus the (user word →
+    catalog words) pairs, so a card can say which of the user's words was translated and ENGINE 01
+    can see what it should have sent.
+    """
+    tax = tax or load_taxonomy()
+    # garment nodes only: a cross-cutting collection like "activewear" would inject every sporty
+    # category (sandals, shoes, tights) into a query about joggers, which is how a fix becomes the
+    # next bug
+    ids = [i for i in tax.normalize_category(text or "") if tax.is_node(i)][:2]
+    if not ids:
+        return "", []
+    terms = {i: tax.retrieval_terms(i, catalog) for i in ids}
+    # name the user's own word where we can, so the mapping is explainable rather than magic
+    words = [w for w in re.split(r"[^\w一-鿿]+", (text or "").lower()) if w]
+    spans = words + [" ".join(words[i:i + 2]) for i in range(len(words) - 1)]
+    pairs: list[tuple[str, str]] = []
+    claimed: set[str] = set()
+    for span in sorted(spans, key=len, reverse=True):
+        for nid in (n for n in tax.normalize_category(span) if tax.is_node(n)):
+            if nid in terms and nid not in claimed:
+                claimed.add(nid)
+                pairs.append((span, terms[nid]))
+    for nid, t in terms.items():  # nodes found only by the whole-string pass
+        if nid not in claimed:
+            pairs.append(("", t))
+    return " ".join(terms.values()), pairs
+
+
 @lru_cache(maxsize=4)
 def load_taxonomy(path: str | None = None) -> Taxonomy:
     return Taxonomy(Path(path) if path else DEFAULT_TAXONOMY)

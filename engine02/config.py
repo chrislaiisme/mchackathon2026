@@ -79,6 +79,10 @@ class ArmConfig:
     #                   so the signal has to be a count, not a score. Held-out test (§3.29):
     #                   fires on 94% of paraphrased and 2% of lexical queries, +0.157 NDCG@5 on the
     #                   former (p=0.0001) and −0.004 on the latter (p=1.00)
+    # Ground the query in catalog vocabulary before scoring it: "none" | "bm25" (add the catalog
+    # words to the lexical query only) | "both" (also append them to the dense query). The mapping
+    # is shown on the card, so a translated word is visible rather than magic.
+    ground_query: str = "none"
     bm25_gate: str = "none"
     bm25_adaptive: bool = False  # kept for the arms that measured the old rule
     bm25_min_coverage: float = 0.5
@@ -108,6 +112,11 @@ ARMS: dict[str, ArmConfig] = {
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
                            use_freshness=True, bm25_gate="docs_touched"),
+    "full_zclip3_ground": replace(FULL, name="full_zclip3_ground", z_clip=3.0, concept_image_weight=0.2,
+                                  use_freshness=True, bm25_gate="docs_touched", ground_query="bm25"),
+    "full_zclip3_ground_both": replace(FULL, name="full_zclip3_ground_both", z_clip=3.0,
+                                       concept_image_weight=0.2, use_freshness=True,
+                                       bm25_gate="docs_touched", ground_query="both"),
     "full_zclip3_nofresh": replace(FULL, name="full_zclip3_nofresh", z_clip=3.0,
                                    concept_image_weight=0.2),
     "full_no_design": replace(FULL, name="full_no_design", use_design=False),

@@ -229,6 +229,9 @@ class ConstraintReport(BaseModel):
     # items dropped because the user has already effectively seen them this session (the
     # position-weighted frequency cap), and whether the cap had to be skipped to keep enough
     # candidates — a demo that quietly shows the same cards should say so instead
+    # words we translated into catalog vocabulary before searching ("tee" → "Tshirts"), so the
+    # translation is visible on the card and ENGINE 01 can see what it should have sent
+    grounded_terms: list[dict[str, str]] = Field(default_factory=list)
     exposure_excluded: int = 0
     exposure_cap_skipped: bool = False
     # problems with the *input* that ENGINE 01 should fix, e.g. negation left in retrieval_text
