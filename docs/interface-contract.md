@@ -8,6 +8,27 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 
 依規劃文件的分工段落：五條線要真的能平行開發，前提是動工前把彼此之間的 JSON 長相談好，因為現場兩天沒有餘裕邊寫邊改介面。這份文件就是那個「先談好」的初版。
 
+## 0. 使用者身分（`UserProfile`）
+
+必須登入才能用 `/intent`（Google OAuth，見根目錄 `CLAUDE.md` 的「Google OAuth Client ID」與 [engine01-intent.md](engine01-intent.md) 的「登入」）。登入流程：前端拿到 Google 的 `credential`（ID token）→ `POST /auth/google`（`GoogleAuthRequest`）→ 後端回傳 `AuthResponse`（`session_token` ＋ `profile`）→ 之後每個 API 呼叫都帶 `Authorization: Bearer <session_token>`。
+
+```json
+{
+  "sub": "1234567890",
+  "email": "user@example.com",
+  "name": "王小明",
+  "picture": "https://...",
+  "age_range": "25-34",
+  "style_preferences": ["韓系", "簡約"],
+  "onboarding_completed": true,
+  "created_at": "2026-09-18T07:00:00+00:00"
+}
+```
+
+- `sub` 是 Google 帳號 ID，當這個使用者的主鍵，同時也是 `data/users/<sub>.json` 的檔名。
+- `age_range`／`style_preferences` 來自登入後可略過的偏好調查（`PUT /profile`，`ProfileUpdate`——三個欄位都選填，略過就整包留空、只把 `onboarding_completed` 設成 `true`）。目前只是存起來，還沒接進 ENGINE01 抽取 prompt 或 ENGINE02/03 的排序邏輯，是後續要討論的個人化加分項。
+- `Intent` 相關的呼叫（下面第 1–5 節）現在全部要掛在登入使用者底下：後端用 `(user_id, session_id)` 當 session 的 key，`user_id` 從驗證過的 token 解出來，不是前端自己傳的。
+
 ## 1. 結構化意圖（`Intent`）
 
 由 ENGINE01 產出，ENGINE02（用來組檢索條件）和 ENGINE03（用來知道要修正什麼）都會用到。

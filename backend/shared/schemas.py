@@ -13,6 +13,45 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+STYLE_PREFERENCE_OPTIONS = ["日系", "韓系", "美式", "歐美", "街頭", "簡約", "正式", "其他"]
+AGE_RANGE_OPTIONS = ["18-24", "25-34", "35-44", "45+"]
+
+
+class UserProfile(BaseModel):
+    """Persisted per-user record, created on first Google login. JSON
+    file-backed (backend/shared/user_store.py), not a database -- see
+    CLAUDE.md "資料庫"."""
+
+    sub: str
+    """Google account id (the ID token's `sub` claim) -- primary key."""
+    email: str
+    name: Optional[str] = None
+    picture: Optional[str] = None
+    age_range: Optional[str] = None
+    style_preferences: list[str] = Field(default_factory=list)
+    onboarding_completed: bool = False
+    created_at: str
+    """ISO 8601 timestamp."""
+
+
+class ProfileUpdate(BaseModel):
+    """Partial update for PUT /profile. Every field is optional so a user
+    clicking "skip" can just send onboarding_completed=True with nothing else."""
+
+    age_range: Optional[str] = None
+    style_preferences: Optional[list[str]] = None
+    onboarding_completed: Optional[bool] = None
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str
+    """The `credential` JWT returned by Google Identity Services on the frontend."""
+
+
+class AuthResponse(BaseModel):
+    session_token: str
+    profile: UserProfile
+
 
 class Intent(BaseModel):
     """Structured consumer intent extracted from a one-sentence request."""

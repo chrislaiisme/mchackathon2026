@@ -8,6 +8,12 @@ uvicorn[standard]
 pydantic>=2
 python-dotenv
 
+# Auth (ENGINE01) -- verifies Google Identity Services ID tokens; our own
+# session tokens are HMAC-signed with the stdlib, no JWT library needed.
+# requests is google-auth's HTTP transport, not pulled in automatically.
+google-auth
+requests
+
 # ENGINE02 / ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
 # backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
 openai>=1.40

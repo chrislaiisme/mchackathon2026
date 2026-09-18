@@ -25,7 +25,7 @@
 
 | 模組 | 負責 | 核心技術 | 資料夾 |
 |---|---|---|---|
-| ENGINE01 | 需求理解 | GPT structured output、FastAPI | `backend/engine01_intent/` |
+| ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `backend/engine01_intent/` |
 | ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `backend/engine02_retrieval/` |
 | ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
 | 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
@@ -78,7 +78,18 @@ scripts/                 開發輔助腳本（例如下載資料集）
 
 這些 token 花費是算在團隊**共用**的 ChatGPT 方案 Codex 額度上——跟現場兩天大家用 Claude Code／Codex 輔助寫程式是同一個額度池。ENGINE01 每輪對話都要呼叫一次，累積起來不是小數目，尤其接近 demo 時段要多留意。如果之後真的變成問題（額度用完，或現場每輪等 8–17 秒太慢），修法是把 `backend/engine01_intent/llm_client.py` 裡 `extract_intent()` 的實作換回直接呼叫 OpenAI API——函式簽名和呼叫它的地方都不用動。
 
-任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。不需要另外裝 Hermes Agent——`codex exec --output-schema` 本身就有原生的 JSON schema 限制輸出功能，這正是查證當下 Hermes 自己的 one-shot 模式還沒有的東西（上游有一個開放中的 feature request）。
+任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。不需要另外裝 Hermes Agent——`codex exec --output-schema` 本身就有原生的 JSON schema 限制輸出功能，這正是查證當下 Hermes 自己的 one-shot 模式還沒有的東西（上游有一個開放中的 feature request）。Hermes Agent 在這個專案裡的角色就停在這裡（ENGINE01 的模型呼叫備選方案），不是使用者面對的對話框架——`POST /intent` 本身透過 session 狀態重複呼叫，已經是完整的「使用者跟 AI 對話」迴圈了，不需要再疊一層 Hermes 上去當 webapp 的對話引擎。
+
+## Google OAuth Client ID（ENGINE01 登入用，免費，跟上面的 P0 花費問題無關）
+
+ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才能驗證登入。這是免費的帳號設定步驟，跟上面「P0 現況」那個要花錢／要有人加值的 API key 問題完全分開，不要混在一起判斷優先順序——沒有 Client ID 之前，開發用 `DEV_BYPASS_AUTH=true` 照樣能測 `/intent`／`/profile`，不擋開發，只有「demo 前」才是真正的截止線。
+
+還沒建的話，步驟：
+
+1. [console.cloud.google.com](https://console.cloud.google.com/) 建一個新專案。
+2. 「APIs & Services」→「OAuth consent screen」：User Type 選 External，填 App name／support email／developer contact email，Scopes 維持預設（`openid`／`email`／`profile`），Test users 先把隊友的 Google 帳號都加進去，或直接 Publish App（只用基本 scope，不會觸發 Google 審查）。
+3. 「APIs & Services」→「Credentials」→「Create Credentials」→「OAuth client ID」，Application type 選 Web application，「Authorized JavaScript origins」加 `http://localhost:5173`（Vite 預設 port，之後有部署網址也要加），「Authorized redirect URIs」留空（這個登入方式用不到）。
+4. 拿到的 Client ID 同時填進後端 `.env` 的 `GOOGLE_CLIENT_ID`，和前端初始化 Google Identity Services 按鈕用的同一組 ID——兩邊必須一致，因為後端會檢查 token 的 audience。旁邊那組 Client secret 這個流程用不到，不用管它，更不要 commit 進 git。
 
 ## 介面契約
 
