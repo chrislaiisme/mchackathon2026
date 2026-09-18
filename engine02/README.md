@@ -48,7 +48,9 @@ Optional: put `OPENAI_API_KEY=...` in `.env` to enable the fact-checked LLM para
 | POST | `/rank/plain` | the additive pipeline alone, for ablations |
 | POST | `/view` | rank + the §7 panels (said/unsaid, needs, Div@k, provenance, round diff) |
 | POST | `/complete-look` | complete the look: categories by NPMI, items by the OutfitTransformer complementary head |
+| POST | `/visual-search` | search with an uploaded photo (base64) and profile its design elements |
 | POST | `/concept-image/nearest` | items closest to a generated concept image (display only) |
+| GET | `/gap/elements`, `/gap/cells` | design-element and (category, colour) demand vs catalog supply |
 | GET | `/needs/supply` | Sup(n): share of the catalog expressing each hidden need |
 | GET | `/trends` | display-only trend badges (`ENGINE02_TRENDS=1`); never part of the score |
 | GET | `/vocabulary` | catalog values ENGINE 01 must normalise slot values to |
@@ -85,6 +87,9 @@ All ground truth in T1–T5 comes from catalog metadata or blind visual labels, 
 | Image reranker not worth it by default | Qwen3-VL-Reranker-2B: −0.043 NDCG@5 on lexical queries (p=0.001), +~1 s/query on RTX 4090 |
 | Trend keywords must stay out of the score | 28 configurations, all worse: −0.16 to −0.38 NDCG@5 (p≈1e-4) → badges only |
 | A concept image helps when the user cannot describe what they want | w=0.2: NDCG@5 0.078 → 0.278 on 44k (p≈1e-4) with a null random-image control (−0.004, p=0.71) |
+| A live round feels instant | /rank p50 12.8 ms (17.8k) / 15.7 ms (44k), /complete-look 33 ms: 23x and 17x faster, every step proved ranking-neutral (scripts/check_parity.py) |
+| Round 2 was replaying round 1 | without the shown-not-chosen term the 4th round's novelty is 0.007; at w=0.15 it is 0.213 (p<1e-4) and the best item in the slate improves (p=0.015) |
+| The gap panel responds to a real gap, not to catalog size | removing the items that express an element lifts it (MRR 0.381 → 0.509, p<1e-4); removing the same number of random items does not (p=1.00) |
 
 Limitations: public catalogs have no prices; KAGL lacks blazers/knitwear (Polyvore apparel merged as a
 workaround); simulated users are rule-based; visual labels were produced by an LLM annotator, not humans
