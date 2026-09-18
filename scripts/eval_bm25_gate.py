@@ -118,27 +118,45 @@ def main() -> None:
     print(df_rows.groupby("wording")[cols].mean().round(3).to_string())
 
     # Can any single signal separate "the lexical side helps" from "it hurts"?
-    print("\n=== which signal predicts that adding BM25 hurts?")
+    # A threshold chosen on the rows it is scored on is not a result, so split by QUERY — both
+    # wordings of a query go to the same side, otherwise the split leaks.
     helps = df_rows["hybrid_cost"] < 0  # dense worse than hybrid → BM25 helped
+    qids = sorted(df_rows["qid"].unique())
+    rng = np.random.default_rng(SEED)
+    rng.shuffle(qids)
+    dev_ids = set(qids[: len(qids) // 2])
+    dev = df_rows[df_rows["qid"].isin(dev_ids)]
+    test = df_rows[~df_rows["qid"].isin(dev_ids)]
+    print(f"\n=== which signal predicts that adding BM25 hurts?  (dev {dev['qid'].nunique()} queries, "
+          f"test {test['qid'].nunique()})")
+
+    def gated_mean(frame, sig, thr):
+        return float(np.where(frame[sig] >= thr, frame["ndcg5_full_zclip3"], frame["ndcg5_dense"]).mean())
+
     report = {}
     for sig in ("coverage", "content_cov", "bm25_max_z", "gold_in_bm25_top50"):
-        best = None
-        for thr in np.quantile(df_rows[sig], np.linspace(0.05, 0.95, 19)):
-            pred = df_rows[sig] >= thr  # predict "BM25 is usable"
-            # value of gating: use hybrid where predicted usable, dense otherwise
-            gated = np.where(pred, df_rows["ndcg5_full_zclip3"], df_rows["ndcg5_dense"])
-            score = float(gated.mean())
-            if best is None or score > best[1]:
-                best = (float(thr), score)
-        report[sig] = dict(best_threshold=round(best[0], 4), gated_ndcg5=round(best[1], 4),
-                           auc_like=round(float(np.corrcoef(df_rows[sig], (~helps).astype(float))[0, 1]), 3))
-        print(f"  {sig:<20} best threshold {best[0]:.3f} → gated NDCG@5 {best[1]:.4f} "
-              f"(corr with 'BM25 hurts' {report[sig]['auc_like']:+.2f})")
-    always = dict(always_hybrid=round(float(df_rows["ndcg5_full_zclip3"].mean()), 4),
-                  always_dense=round(float(df_rows["ndcg5_dense"].mean()), 4),
-                  oracle=round(float(np.maximum(df_rows["ndcg5_full_zclip3"], df_rows["ndcg5_dense"]).mean()), 4))
-    print(f"\n  always hybrid {always['always_hybrid']:.4f} | always dense {always['always_dense']:.4f} "
-          f"| oracle per query {always['oracle']:.4f}")
+        cands = list(np.quantile(dev[sig], np.linspace(0.05, 0.95, 19)))
+        if sig in ("coverage", "content_cov"):
+            cands.append(0.999)  # "every query token exists in the catalog" — the natural rule
+        best = max(cands, key=lambda t: gated_mean(dev, sig, t))
+        report[sig] = dict(threshold_from_dev=round(float(best), 4),
+                           dev_ndcg5=round(gated_mean(dev, sig, best), 4),
+                           test_ndcg5=round(gated_mean(test, sig, best), 4),
+                           corr_with_hurt=round(float(np.corrcoef(df_rows[sig], (~helps).astype(float))[0, 1]), 3))
+        print(f"  {sig:<20} thr {best:.3f} (dev) → dev {report[sig]['dev_ndcg5']:.4f} "
+              f"test {report[sig]['test_ndcg5']:.4f}  (corr with 'BM25 hurts' {report[sig]['corr_with_hurt']:+.2f})")
+
+    def baselines(frame, label):
+        return dict(split=label,
+                    always_hybrid=round(float(frame["ndcg5_full_zclip3"].mean()), 4),
+                    always_dense=round(float(frame["ndcg5_dense"].mean()), 4),
+                    shipped_gate=round(float(frame["ndcg5_full_adaptive_bm25"].mean()), 4),
+                    oracle=round(float(np.maximum(frame["ndcg5_full_zclip3"], frame["ndcg5_dense"]).mean()), 4))
+
+    always = [baselines(df_rows, "all"), baselines(dev, "dev"), baselines(test, "test")]
+    for b in always:
+        print(f"  [{b['split']:>4}] always hybrid {b['always_hybrid']:.4f} | always dense {b['always_dense']:.4f} "
+              f"| shipped adaptive gate {b['shipped_gate']:.4f} | oracle {b['oracle']:.4f}")
     (out / f"{tag}.json").write_text(json.dumps(
         {"setup": dict(catalog=a.catalog, encoder=enc.name, queries=len(queries), common=a.common),
          "per_wording": df_rows.groupby("wording")[cols].mean().round(4).to_dict(),
