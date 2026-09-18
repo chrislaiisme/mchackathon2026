@@ -12,7 +12,7 @@ import os
 import time
 from dataclasses import replace
 from pathlib import Path
-from typing import Callable, Protocol
+from typing import Callable, Collection, Protocol
 
 import numpy as np
 
@@ -76,9 +76,35 @@ NEGATION_WORDS = (
 )
 
 
-def input_warnings(req: "Engine02Request") -> list[str]:
-    """Input problems ENGINE 01 should fix. Warn, never silently rewrite the caller's text."""
+def input_warnings(
+    req: "Engine02Request",
+    known_needs: "Collection[str] | None" = None,
+    known_elements: "Collection[str] | None" = None,
+) -> list[str]:
+    """Input problems ENGINE 01 should fix. Warn, never silently rewrite the caller's text.
+
+    `known_needs` / `known_elements` close the worst silent failure in the whole integration: a
+    need_id or a design element that is not in the kansei table contributes **nothing**, and
+    without a warning the response still looks perfect — HTTP 200, a faithful score decomposition,
+    cards with reasons — except that half of what this engine is for (the implicit-need side) was
+    switched off and nothing on the screen says so.
+    """
     out: list[str] = []
+    if known_needs is not None:
+        unknown = sorted({n.need_id for n in req.needs} - set(known_needs))
+        if unknown:
+            out.append(
+                f"needs 中有本引擎不認得的 need_id {unknown}：這些需求**完全沒有進入排序**（權重視為 0）。"
+                f"可用的 need_id：{sorted(known_needs)}"
+            )
+    if known_elements is not None:
+        asked = set(req.feedback.design_adjust_steps) | set(req.design_weight_prior or {})
+        unknown_el = sorted(asked - set(known_elements))
+        if unknown_el:
+            out.append(
+                f"design_adjust_steps／design_weight_prior 中有不存在的設計要素 {unknown_el}："
+                f"這些調整被忽略。可用的要素：{sorted(known_elements)}"
+            )
     text = (req.retrieval_text or "").lower()
     found = [w for w in NEGATION_WORDS if w in text]
     if found:
@@ -256,6 +282,17 @@ class Engine02:
         items = self.catalog.items
         k = req.options.top_k
         excluded = self.catalog.positions(req.feedback.excluded_item_ids)
+        # A Chinese colour word ("藏青") matches nothing in an English catalog, so the hard filter
+        # empties, the relaxation ladder drops the slot and the round reports satisfaction 0.0 with
+        # no error anywhere — while a Chinese *category* works, because the taxonomy resolves it.
+        # Normalise it to the catalog's vocabulary and say so in the response.
+        color_rewrites: list[tuple[str, str]] = []
+        if req.constraints.color.values:
+            from .attribute_fill import normalize_color_values
+
+            new_vals, color_rewrites = normalize_color_values(req.constraints.color.values)
+            if color_rewrites:
+                req.constraints.color.values = new_vals
         # hierarchical category relaxation (L2 → L1) via the unified taxonomy; unresolvable category
         # values fall back to the legacy exact-match ladder (docs/research/taxonomy.md §5.2)
         fr = filter_with_category_relaxation(items, req.constraints, max(arm.min_results, k), excluded,
@@ -442,8 +479,11 @@ class Engine02:
             constraint_report=ConstraintReport(
                 applied=fr.applied, relaxed=fr.relaxed, n_catalog=len(items), n_after_filter=int(len(pool)),
                 exposure_excluded=n_exposure_excluded, exposure_cap_skipped=cap_skipped,
-                grounded_terms=[{"your_words": a, "catalog_words": b} for a, b in grounded_pairs],
-                input_warnings=input_warnings(req) + (
+                grounded_terms=([{"your_words": a, "catalog_words": b} for a, b in grounded_pairs]
+                                + [{"your_words": a, "catalog_words": b} for a, b in color_rewrites]),
+                input_warnings=input_warnings(
+                    req, known_needs=self.kansei.need_ids,
+                    known_elements=[e.id for e in self.kansei.elements]) + (
                     [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
                      f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
                     if bm25_gate_note else []),

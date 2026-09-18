@@ -30,7 +30,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .catalog import Catalog
 from .compat import CategoryCooccurrence
@@ -460,8 +460,15 @@ def visual_search(body: VisualSearchRequest) -> dict:
             out["profile_caveat"] = (
                 "下列要素在『同一件衣服、不同拍攝方式』下不穩定（T16 實測平均 |Δz| > 0.4，"
                 f"整體有 9.7% 的要素會正負反轉），只當參考不要當事實：{'、'.join(shaky)}")
-    req = Engine02Request(session_id="visual", retrieval_text=body.retrieval_text,
-                          constraints=HardConstraints(**body.constraints) if body.constraints else HardConstraints(),
+    # `constraints` is a free-form dict on this endpoint (the photo is the point, not the JSON), so
+    # a malformed one has to come back as a 422 naming the field — the same answer /rank gives —
+    # instead of an uncaught ValidationError and a 500.
+    try:
+        hard = HardConstraints(**body.constraints) if body.constraints else HardConstraints()
+    except ValidationError as exc:
+        raise HTTPException(422, {"error": "constraints is not a valid HardConstraints object",
+                                  "detail": exc.errors(include_url=False)})
+    req = Engine02Request(session_id="visual", retrieval_text=body.retrieval_text, constraints=hard,
                           options=Engine02Options(top_k=body.top_k, explain_with_llm=False))
     req.feedback.concept_image_embedding = [float(x) for x in vec]
     resp = rank(req)

@@ -72,13 +72,60 @@ COLOR_TO_FAMILY = {c.lower(): fam for fam, cols in COLOR_FAMILIES.items() for c 
 FAMILY_CANONICAL = {f: COLOR_FAMILIES[f][0] for f in FAMILY}
 
 
+# Chinese colour words → family. The taxonomy already accepts Chinese for `category`
+# (resolve_category_values), so a request written in Chinese has one slot that works and one that
+# silently falls through the relaxation ladder and reports satisfaction 0.0. On a Chinese-language
+# demo that is the more likely half to be hit, so the same courtesy is extended here.
+COLOR_ZH: dict[str, str] = {
+    "黑": "black", "黑色": "black", "純黑": "black",
+    "白": "white", "白色": "white", "米白": "white", "象牙白": "white", "乳白": "white",
+    "灰": "grey", "灰色": "grey", "淺灰": "grey", "深灰": "grey", "炭灰": "grey", "銀": "grey", "銀色": "grey",
+    "藍": "blue", "藍色": "blue", "深藍": "blue", "淺藍": "blue", "海軍藍": "blue", "藏青": "blue",
+    "寶藍": "blue", "天藍": "blue", "靛藍": "blue", "丹寧藍": "blue", "湖水綠": "blue",
+    "紅": "red", "紅色": "red", "酒紅": "red", "暗紅": "red", "磚紅": "red", "正紅": "red",
+    "粉": "pink", "粉色": "pink", "粉紅": "pink", "桃紅": "pink", "玫瑰": "pink", "裸粉": "pink",
+    "紫": "purple", "紫色": "purple", "薰衣草": "purple", "深紫": "purple",
+    "綠": "green", "綠色": "green", "墨綠": "green", "軍綠": "green", "橄欖綠": "green", "草綠": "green",
+    "黃": "yellow", "黃色": "yellow", "芥末黃": "yellow", "鵝黃": "yellow", "金": "yellow", "金色": "yellow",
+    "橘": "orange", "橘色": "orange", "橙": "orange", "橙色": "orange",
+    "棕": "brown", "棕色": "brown", "咖啡": "brown", "咖啡色": "brown", "深棕": "brown", "駝色": "brown",
+    "米": "beige", "米色": "beige", "卡其": "beige", "卡其色": "beige", "膚色": "beige", "裸色": "beige",
+}
+
+
 def color_family(color) -> str | None:
     if color is None or (isinstance(color, float) and np.isnan(color)):
         return None
     c = str(color).strip().lower()
     if c in COLOR_TO_FAMILY:
         return COLOR_TO_FAMILY[c]
+    if c in COLOR_ZH:
+        return COLOR_ZH[c]
     return c if c in COLOR_FAMILIES else None
+
+
+def normalize_color_values(values) -> tuple[list[str], list[tuple[str, str]]]:
+    """Chinese (or family) colour words → the catalog's own vocabulary.
+
+    Returns the rewritten values and the (original, rewritten) pairs, so the response can say what
+    it did instead of quietly matching something the caller did not write.
+    """
+    out: list[str] = []
+    changed: list[tuple[str, str]] = []
+    for v in values:
+        raw = str(v).strip()
+        if raw.lower() in COLOR_TO_FAMILY:  # already a catalog colour, e.g. "Navy Blue"
+            out.append(raw)
+            continue
+        fam = COLOR_ZH.get(raw.lower()) or (raw.lower() if raw.lower() in COLOR_FAMILIES else None)
+        if fam is None:
+            out.append(raw)
+            continue
+        canon = FAMILY_CANONICAL[fam]
+        out.append(canon)
+        if canon.lower() != raw.lower():
+            changed.append((raw, canon))
+    return out, changed
 
 
 # natural-language phrases used by zero-shot prompts and the VLM options
