@@ -57,6 +57,36 @@ def cohens_kappa(a: pd.Series, b: pd.Series) -> tuple[float, int]:
     return (float("nan") if abs(1 - pe) < 1e-12 else (po - pe) / (1 - pe)), n
 
 
+def krippendorff_alpha(rows) -> tuple[float, int]:
+    """Nominal α over ALL three answers (1 / 0 / na), which κ on the 1/0 subset cannot see.
+
+    The disagreement that matters most here is "one rater says the element is present, the other
+    says the photo cannot show it". A κ computed on the subset where both raters chose 1/0 drops
+    exactly those pairs, i.e. the hardest cases, and reports a higher number for it. Krippendorff
+    (2004); computational form as in Hayes & Krippendorff (2007).
+    """
+    units = [[v for v in r if v and str(v) != "nan"] for r in rows]
+    units = [u for u in units if len(u) >= 2]
+    if not units:
+        return float("nan"), 0
+    cats = sorted({v for u in units for v in u})
+    idx = {c: i for i, c in enumerate(cats)}
+    coincidence = np.zeros((len(cats), len(cats)))
+    for u in units:
+        m_ = len(u)
+        for i, x in enumerate(u):
+            for j, y_ in enumerate(u):
+                if i != j:
+                    coincidence[idx[x], idx[y_]] += 1.0 / (m_ - 1)
+    n = coincidence.sum()
+    if n <= 1:
+        return float("nan"), len(units)
+    marg = coincidence.sum(axis=1)
+    do = 1.0 - float(np.trace(coincidence)) / n
+    de = 1.0 - float((marg * (marg - 1)).sum()) / (n * (n - 1))
+    return (float("nan") if abs(de) < 1e-12 else 1.0 - do / de), len(units)
+
+
 def auroc(scores: np.ndarray, y: np.ndarray) -> float:
     pos, neg = scores[y == 1], scores[y == 0]
     if not len(pos) or not len(neg):
@@ -99,17 +129,26 @@ def cmd_score(a: argparse.Namespace) -> None:
     for el, g in m.groupby("element"):
         both = g[(g["label_h"].isin(["0", "1"])) & (g["label_llm"].isin(["0", "1"]))]
         k, n = cohens_kappa(both["label_h"], both["label_llm"])
-        rows.append(dict(element=el, n=len(g), n_both_decided=n, kappa=round(k, 3),
+        # α sees all three answers; κ_na asks only "can this photo answer the question at all",
+        # which is a separate skill and the one the applicability mask ships (§3.13)
+        alpha, n_units = krippendorff_alpha(list(zip(g["label_h"], g["label_llm"])))
+        k_na, _ = cohens_kappa((g["label_h"] == "na").astype(int), (g["label_llm"] == "na").astype(int))
+        rows.append(dict(element=el, n=len(g), alpha_all3=round(alpha, 3),
+                         kappa_10_only=round(k, 3), n_both_decided=n, kappa_na=round(k_na, 3),
                          pos_rate_h=round(float((both["label_h"] == "1").mean()) if n else float("nan"), 3),
                          na_human=round(float((g["label_h"] == "na").mean()), 3),
                          na_llm=round(float((g["label_llm"] == "na").mean()), 3),
                          agree=round(float((both["label_h"] == both["label_llm"]).mean()) if n else float("nan"), 3)))
     both_all = m[(m["label_h"].isin(["0", "1"])) & (m["label_llm"].isin(["0", "1"]))]
     k_all, n_all = cohens_kappa(both_all["label_h"], both_all["label_llm"])
+    alpha_all, n_units_all = krippendorff_alpha(list(zip(m["label_h"], m["label_llm"])))
     tab = pd.DataFrame(rows).sort_values("element")
     print(tab.to_string(index=False))
-    print(f"\npooled Cohen's kappa = {k_all:.3f} on {n_all} tasks where both raters decided "
-          f"(<0.4 poor, 0.4-0.6 moderate, 0.6-0.8 substantial)")
+    print(f"\npooled Krippendorff alpha = {alpha_all:.3f} over all three answers on {n_units_all} "
+          f"tasks — this is the headline number")
+    print(f"pooled Cohen's kappa = {k_all:.3f} on the {n_all} tasks where BOTH raters chose 1/0; it is "
+          f"higher than alpha by construction, because it drops every na-vs-decided pair — which are "
+          f"exactly the hard cases")
     print("kappa = nan means one rater never used both classes on that element (undefined, not "
           "perfect agreement); read it together with pos_rate_h.")
 
