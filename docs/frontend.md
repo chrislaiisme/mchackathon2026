@@ -1,20 +1,20 @@
-# Frontend
+# 前端
 
-**Owner: not yet assigned.** This is a scaffold summary pulled from [hackathon-brief.md](hackathon-brief.md) — the assigned owner should expand this into a real spec (component breakdown, state management, exact wireframe) rather than treating this file as final.
+**負責人：待確認。** 這份是從 [hackathon-brief.md](hackathon-brief.md) 抄出來的骨架摘要——正式負責人接手後應該把這裡展開成真正的規格（元件拆解、狀態管理方式、實際線框圖），不要直接把這份當成定案。
 
-## Stack
+## 技術棧
 
-React + Vite. No Next.js/SSR — the surface area is an input box, result cards, an intent panel, and feedback controls, not a full app framework's worth of complexity. Tailwind or a component library is fine for speed on cards/layout.
+React + Vite。不用 Next.js／SSR——整個介面就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。卡片／排版可以用 Tailwind 或現成元件庫加快速度。
 
-## Screens / components (from the brief)
+## 畫面／元件（依簡報內容）
 
-- **Input**: text box (voice input is an optional stretch — needs a recorder component + a backend speech-to-text step; drop it without affecting the rest of the flow if there's no time). Optional reference-image upload.
-- **Intent panel**: renders the current structured `Intent`, with `inferred_fields` visibly distinguished from user-stated fields (e.g. an "system inferred" badge) — this *is* the explainability requirement made visible, don't just log it to console.
-- **Clarifying questions**: multiple-choice options + a free-text fallback, reused every round, not just round 1.
-- **Result cards**: recommended products (`ProductCard[]`, each with its GPT-written reason) side by side with the generated concept image (`ConceptImage`), plus the current `match_score`.
-- **Feedback controls**: per-attribute scoring (color/fit/pattern/collar), scored separately for the recommended item vs. the concept image.
-- **Round comparison**: round N vs. round N-1 shown side by side or otherwise clearly contrasted, with the `match_score` change highlighted (e.g. "62% → 89%") — this is the on-stage payoff of the whole feedback loop, make sure it's not buried.
+- **輸入**：文字輸入框（語音輸入是選配的加分項——需要一個錄音元件＋後端一段語音轉文字，沒時間就拿掉，不影響其他流程）。選填的參考圖上傳。
+- **意圖面板**：呈現目前的結構化 `Intent`，`inferred_fields` 要用視覺上明顯不同的樣式呈現（例如加一個「系統推斷」標籤）——這就是可解釋性要求的具體畫面呈現，不能只是印在 console 裡。
+- **澄清問題**：選擇題加一個自由輸入的備援欄位，每一輪都重用，不只是第一輪。
+- **結果卡片**：推薦商品（`ProductCard[]`，每張附上 GPT 寫的理由）跟生成概念圖（`ConceptImage`）並排呈現，加上目前的 `match_score`。
+- **回饋控制項**：分項評分（顏色／版型／圖案／領子），推薦商品和概念圖分開打分。
+- **輪次對比**：第 N 輪跟第 N-1 輪並排或明顯對比呈現，`match_score` 的變化要凸顯出來（例如「62% → 89%」）——這是整個回饋迴圈在台上的最終呈現，不要把它埋起來。
 
-## Talks to
+## 溝通對象
 
-FastAPI backend over REST (WebSocket only if a module actually needs streaming). See [interface-contract.md](interface-contract.md) for the exact JSON shapes (`IntentRequest`/`IntentResponse`, `RetrievalResult`, `FeedbackInput`).
+FastAPI 後端，走 REST（只有真的需要串流才用 WebSocket）。確切的 JSON 格式見 [interface-contract.md](interface-contract.md)（`IntentRequest`/`IntentResponse`、`RetrievalResult`、`FeedbackInput`）。

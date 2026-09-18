@@ -1,28 +1,28 @@
-# Quantified Validation
+# 量化驗證
 
-The brief explicitly scores whether the feedback loop is "量化可驗證" (quantifiably verifiable), so "feels more accurate" isn't enough — this doc lays out the three layers of actual numbers, per [hackathon-brief.md](hackathon-brief.md) "量化驗證" section.
+簡報明確把「回饋是否量化可驗證」列為評分重點，所以「感覺有變準」不夠——這份文件整理三層真正算得出來的數字，依 [hackathon-brief.md](hackathon-brief.md) 的「量化驗證」段落。
 
-## 1. Offline (computed before the event, goes in the deck/README)
+## 1. 離線（賽前算好，放進簡報／README）
 
-- **ENGINE01 slot-filling accuracy**: hand-label 30–50 consumer-sentence test cases with the expected structured intent, run them, report % of slots filled correctly. Starter implementation: [`backend/engine01_intent/tests/`](../backend/engine01_intent/tests/) (currently a 10-sentence seed set — expand before quoting the number).
-- **ENGINE02 ablation**: same test queries run through keyword-only search, embedding-only search, and hybrid+rerank; compare Precision@5 / NDCG@5 across the three, chart it. Owner: ENGINE02.
+- **ENGINE01 意圖抽取準確率**：手動標註 30–50 句消費者情境測試句，配上期望的結構化意圖，跑完算填對的欄位比例。起始實作在 [`backend/engine01_intent/tests/`](../backend/engine01_intent/tests/)（目前是 10 句的起始集——正式引用這個數字前要擴充）。
+- **ENGINE02 ablation 實驗**：同一批測試 query，分別跑純關鍵字搜尋、純 embedding 搜尋、hybrid+rerank 三種，比較 Precision@5／NDCG@5，畫成圖表。負責人：ENGINE02。
 
-## 2. Live / on-stage (shown during the actual demo)
+## 2. Live／現場即時（demo 當場秀出來）
 
-A "match score" — how well the current results satisfy the current structured intent (e.g. fraction of requested color/occasion/budget conditions actually met). Shown once before feedback, once after ENGINE03 reprocesses it — e.g. "符合度：62% → 89%" on screen. This is the field `RetrievalResult.match_score` in [interface-contract.md](interface-contract.md). Owner: ENGINE02/03 + frontend, jointly.
+一個「符合度分數」——目前結果跟目前結構化意圖的符合程度（例如意圖要求的顏色／場合／預算條件，實際符合的比例）。回饋前顯示一次，ENGINE03 處理完回饋後再顯示一次——例如畫面上直接秀「符合度：62% → 89%」。這就是 [interface-contract.md](interface-contract.md) 裡的 `RetrievalResult.match_score` 欄位。負責人：ENGINE02/03 加前端，一起負責。
 
-## 3. Development-time simulated-user loop (never shown live)
+## 3. 開發階段的模擬使用者迴圈（不會出現在正式 demo）
 
-Validates both the retrieval branch and the generation branch against real target images, using FashionCLIP similarity as the score, per [validation-flow.svg](validation-flow.svg):
+用 FashionCLIP 相似度當分數，同時驗證檢索分支和生成分支，依 [validation-flow.svg](validation-flow.svg)：
 
-1. Pick a hidden target image from the team's curated Pinterest board.
-2. GPT-4o describes it in a few keywords — this description is the simulated user's hidden persona (never revealed to the system under test).
-3. A simulated LLM user opens with one deliberately vague sentence (can't leak the hidden keywords), runs 2–4 rounds against the *same* ENGINE01–03 code as the live demo, adjusting its feedback each round based on the gap to its hidden target.
-4. Each round, score the system's output (both the recommended product image and the generated concept image) against the target via FashionCLIP cosine similarity.
-5. Repeat across 30–50 target images, average, and plot similarity-over-rounds — this convergence chart is the headline quantified result for the deck.
+1. 從團隊策展的 Pinterest 板子挑一張隱藏的目標圖。
+2. GPT-4o 把這張圖描述成幾個關鍵字——這段描述就是模擬使用者的隱藏人設（絕不讓受測系統看到）。
+3. 模擬 LLM 使用者開場先講一句故意模糊的話（不能洩漏隱藏關鍵字），丟進跟 live demo *完全相同*的 ENGINE01–03 程式碼，跑 2–4 輪，每輪都根據跟隱藏目標的落差調整回饋。
+4. 每一輪都把系統輸出（推薦商品圖跟生成概念圖）拿去跟目標圖算 FashionCLIP cosine similarity。
+5. 重複跑 30–50 張目標圖，取平均，畫成相似度隨輪數收斂的折線圖——這張圖是簡報裡最有說服力的量化主證據。
 
-**Two things to keep honest**: this is an automated simulation, not a real-user study — label it that way in the deck. And Pinterest source images used as hidden targets are for internal scoring only, never shown in the demo or slides.
+**兩件事要講清楚**：這是自動化模擬，不是真人使用者研究——簡報裡要這樣標註，不要包裝成真人測試。當隱藏目標用的 Pinterest 來源圖只能內部算分用，絕對不要出現在 demo 或簡報畫面上。
 
-**Image-generation budget**: 30–50 targets × 2–4 rounds × 2 branches (recommended + generated) ≈ 60–200 image-generation calls. Run this on day 1 of the two on-site days, not day 2, so it doesn't eat into the quota needed for the live demo. See root `CLAUDE.md` "P0 status" for the underlying API-key/budget dependency this whole loop needs.
+**生圖額度**：30–50 張目標圖 × 2–4 輪 × 2 個分支（推薦＋生成）≈ 60–200 次生圖呼叫。排在現場兩天的第一天跑完，不要留到第二天，才不會擠掉 demo 當天要用的額度。這整條迴圈背後的 API key／預算依賴，見根目錄 `CLAUDE.md` 的「P0 現況」。
 
-Owner: combined with the generation/Pinterest line, per the team's 5-people-for-6-lines split. Code: [`validation/`](../validation/).
+負責人：跟生成模組／Pinterest 那條線合併，依團隊「5 人對 6 條線」的分法。程式碼：[`validation/`](../validation/)。

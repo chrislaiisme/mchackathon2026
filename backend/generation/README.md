@@ -1,9 +1,9 @@
-# Generation — Concept Image
+# 生成模組 — 概念圖
 
-**Owner: not yet assigned (proposed to be combined with `pinterest/`, see docs/pinterest-and-generation.md).** Placeholder folder created as part of the repo scaffold so this line can start immediately.
+**負責人：待確認（提議跟 `pinterest/` 合併，見 docs/pinterest-and-generation.md）。** 這是建 repo 骨架時順便建立的佔位資料夾，讓這條線可以馬上開始動工。
 
-Produces one original concept image per round from the current `Intent`, using OpenAI's Responses API `image_generation` tool (`action: "auto"`, chained across rounds via `previous_response_id` so the model can see the prior image plus this round's feedback instead of starting over). Prompts must stay abstract (color/cut/occasion/material) and avoid naming real brands or designers. How many rounds run is driven entirely by user feedback in the live demo (not the model deciding to stop); the offline validation loop instead fixes 2–4 rounds per target image, using FashionCLIP similarity as the quantified stopping signal.
+用 OpenAI Responses API 的 `image_generation` tool，從目前的 `Intent` 每一輪產出一張原創概念圖（`action: "auto"`，用 `previous_response_id` 跨輪銜接，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生成）。Prompt 要維持抽象（顏色／剪裁／場合／材質），避免點名真實品牌或設計師。現場 demo 跑幾輪完全由使用者回饋決定（不是模型自己決定要不要停）；離線驗證迴圈則固定跑 2–4 輪，用 FashionCLIP 相似度當量化停止依據。
 
-Full spec: [../../docs/pinterest-and-generation.md](../../docs/pinterest-and-generation.md). Output JSON: `ConceptImage` inside `RetrievalResult` in [../../docs/interface-contract.md](../../docs/interface-contract.md).
+完整規格：[../../docs/pinterest-and-generation.md](../../docs/pinterest-and-generation.md)。輸出 JSON：`RetrievalResult` 裡的 `ConceptImage`，見 [../../docs/interface-contract.md](../../docs/interface-contract.md)。
 
-Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 status"). Sample code is in [../../docs/hackathon-brief.md](../../docs/hackathon-brief.md) under "評分怎麼具體變成下一次生成的修正".
+需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。範例程式碼在 [../../docs/hackathon-brief.md](../../docs/hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。

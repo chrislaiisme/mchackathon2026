@@ -1,106 +1,111 @@
 # CLAUDE.md
 
-Project instructions for AI coding agents (Claude Code, Codex, etc.) working in this repo. Read this first; it links out to `docs/` for full detail instead of duplicating it.
+給 AI coding agent（Claude Code、Codex 等）在這個 repo 工作時看的專案指示。先讀這份，細節都連到 `docs/`，不在這裡重複。
 
-## What this is
+## 文件語言規則
 
-**Consumer Intent Agent** — prototype for **MCHackathon 2026 x Makalot Industrial (聚陽實業)**, team **勢在必得**. Theme: *"一句話讀懂消費者" (understand the consumer from one sentence)*. Competition day: **2026-09-19**. Full background: [docs/hackathon-brief.md](docs/hackathon-brief.md).
+**所有 `.md` 文件一律用中文寫，包括這份檔案，以後新增的 md 文件也一樣。** 唯一例外是根目錄的 `README.md`——競賽交付項目明確要求「GitHub 原始碼＋英文 README」（見下方交付項目），所以它必須維持英文；對應的中文版放在 [README_TW.md](README_TW.md)，兩份互相連結，內容改動時兩邊都要同步更新。程式碼裡的變數名、函式名、commit message、PR 標題維持英文是正常慣例，不受這條規則影響——這條規則只管 `.md` 文件的內文語言。專有名詞、API 名稱、套件名、程式碼、檔案路徑、URL（例如 FastAPI、React、Vite、Pydantic、OpenAI、Codex、GPT、Pinterest、FashionCLIP、Polyvore、BM25、ENGINE01/02/03）維持原文，不用硬翻。
 
-Deliverables: (1) working interactive prototype, (2) this repo + English README, (3) a 2–3 min demo video, (4) live Q&A / on-the-spot adjustment.
+## 這是什麼
 
-Scoring (100%): problem understanding & fit 35% · technical approach & data use 35% · demo completeness & feasibility 20% · presentation & improvisation 10%. The judges explicitly said they weigh the **first two** items most — insight into consumer behavior and technical soundness matter more than production polish. Judges run a live loop: give a prompt → look at the result → give feedback → give a second prompt → check whether the system actually improved. That loop is what ENGINE 03 exists to make verifiable, not just claimed.
+**Consumer Intent Agent（一句話讀懂消費者）** — 為 **2026 梅竹黑客松 x 聚陽實業（Makalot Industrial）** 打造的 prototype，團隊名 **勢在必得**。題目：*「一句話讀懂消費者」*。比賽日：**2026-09-19**。完整背景見 [docs/hackathon-brief.md](docs/hackathon-brief.md)。
 
-## System architecture
+交付項目：(1) 可實際運作、可互動展示的 prototype，(2) 這個 repo ＋英文 README，(3) 一支 2–3 分鐘的 demo 影片，(4) 現場問答與臨場調整。
 
-Two loops share the same ENGINE 01–03 code:
+評分標準（總分 100%）：問題理解與契合度 35%．技術方案與資料應用 35%．呈現完整度與可行性 20%．表達與應變 10%。評審明確表示前兩項比重最重——對消費者行為的洞察和技術紮實度，比展示得多完整更重要。評審現場的評測方式是一個迴圈：出題目 → 看結果 → 給回饋 → 出第二題 → 檢查系統是否真的變準。ENGINE 03 存在的目的，就是要讓這個迴圈可以被驗證，不是嘴上說說。
 
-- **Live loop** (real user/judge, in the browser): [docs/system-architecture.svg](docs/system-architecture.svg). User sentence → ENGINE 01 (structured intent) → ENGINE 02 (retrieval) and the generation module run **in parallel**, both fed by the same intent → results shown side by side → user feedback → ENGINE 03 → next round. Runs until the user is satisfied; not fixed at 2 rounds.
-- **Validation loop** (dev-time only, never shown in the live demo): [docs/validation-flow.svg](docs/validation-flow.svg). A simulated LLM user with a hidden target-image persona drives 2–4 rounds against the same ENGINE 01–03 code; FashionCLIP cosine similarity to the target image is the quantified convergence metric. Produces the numbers that back up "the feedback loop is verifiable" in the pitch.
+## 系統架構
 
-Three engines, one generation module, one trend-signal ingestion:
+兩條迴圈共用同一套 ENGINE 01–03 程式碼：
 
-| Module | Owns | Core tech | Folder |
+- **Live 流程**（真人使用者／評審，在瀏覽器上操作）：[docs/system-architecture.svg](docs/system-architecture.svg)。使用者一句話 → ENGINE 01（結構化意圖）→ ENGINE 02（檢索）和生成模組**同時並行**執行，兩者吃同一組意圖 → 結果並排呈現 → 使用者回饋 → ENGINE 03 → 下一輪。跑到使用者滿意為止，不是固定兩輪。
+- **驗證流程**（只在開發階段用，不會出現在正式 demo 畫面）：[docs/validation-flow.svg](docs/validation-flow.svg)。一個帶著隱藏目標圖片人設的模擬 LLM 使用者，跑 2–4 輪對付同一套 ENGINE 01–03 程式碼；FashionCLIP 對目標圖片的 cosine similarity 就是量化的收斂指標，用來在簡報裡佐證「回饋迴圈真的有效」。
+
+三個引擎、一個生成模組、一條趨勢訊號串接：
+
+| 模組 | 負責 | 核心技術 | 資料夾 |
 |---|---|---|---|
-| ENGINE01 | Intent understanding | GPT structured output, FastAPI | `backend/engine01_intent/` |
-| ENGINE02 | Retrieval & ranking | FashionCLIP + BM25 hybrid search, reranker, Polyvore Outfits Dataset | `backend/engine02_retrieval/` |
-| ENGINE03 | Feedback → weight/intent updates | GPT structured output | `backend/engine03_feedback/` |
-| Generation | Concept image per round | OpenAI Responses API `image_generation` tool | `backend/generation/` |
-| Pinterest | Trend signal into ENGINE02/03 | Curated board, Pinterest API v5 Trial access | `backend/pinterest/` |
-| Frontend | UI | React + Vite | `frontend/` |
-| Validation | Offline quantified metrics | Simulated user + FashionCLIP similarity | `validation/` |
+| ENGINE01 | 需求理解 | GPT structured output、FastAPI | `backend/engine01_intent/` |
+| ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `backend/engine02_retrieval/` |
+| ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
+| 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
+| Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
+| 前端 | UI | React + Vite | `frontend/` |
+| 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `validation/` |
 
-No LangChain / LlamaIndex anywhere — every module calls the GPT API directly (chat completions structured output, or Responses API for image generation). This was a deliberate decision in the planning doc, not an oversight.
+整個專案不用 LangChain／LlamaIndex——每個模組都直接呼叫 GPT API（chat completions structured output，或 Responses API 做圖片生成）。這是規劃文件裡的刻意決定，不是漏掉沒做。
 
-## Repo layout
+## Repo 結構
 
 ```
-index.html, privacy.html, styles.css, assets/, .nojekyll   # existing GitHub Pages site — DO NOT touch, see below
-README.md              English, top-level (competition deliverable #2)
-CLAUDE.md              this file
-docs/                  ALL markdown docs + architecture diagrams live here
+index.html, privacy.html, styles.css, assets/, .nojekyll   # 既有 GitHub Pages 網站 — 不要動，理由見下面
+README.md               英文，根目錄（交付項目 #2 要求）
+README_TW.md            README.md 的中文版
+CLAUDE.md               這份檔案
+docs/                    所有 markdown 文件＋架構圖都放這裡
 backend/
-  shared/              cross-engine Pydantic schemas — the interface contract, code form
-  engine01_intent/      \
-  engine02_retrieval/    | one folder per engine/module, see table above
-  engine03_feedback/    /
+  shared/                跨引擎共用的 Pydantic schema — 介面契約的程式碼版本
+  engine01_intent/        \
+  engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格
+  engine03_feedback/      /
   generation/
   pinterest/
-  requirements.txt      one shared requirements file for all of backend/
-frontend/               React + Vite
-validation/             simulated-user validation loop scripts
-scripts/                dev helper scripts (e.g. dataset download)
+  requirements.txt        整個 backend/ 共用一份依賴檔
+frontend/                React + Vite
+validation/              模擬使用者驗證迴圈腳本
+scripts/                 開發輔助腳本（例如下載資料集）
 ```
 
-**Do not restructure or remove the root-level `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`.** They're the Pinterest-app-review privacy policy site. GitHub Pages actually serves from the separate `gh-pages` branch (`chrislaiisme.github.io/mchackathon2026/`), so these files on `main` are currently just historical — but don't delete them without checking with the team first, and never push to `gh-pages` without confirming.
+**不要重新調整或刪除根目錄的 `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`。** 這些是給 Pinterest App 審核用的隱私權政策網站。GitHub Pages 實際上是從獨立的 `gh-pages` 分支發布的（`chrislaiisme.github.io/mchackathon2026/`），所以這些檔案留在 `main` 上目前只是歷史遺留——但沒跟團隊確認前不要刪，也絕對不要沒確認就 push 到 `gh-pages`。
 
-## P0 status — GPT access for each module
+## P0 現況 — 各模組的 GPT 存取方式
 
-**The team currently only has ChatGPT Plus/Pro subscriptions. Nobody has a platform.openai.com API key yet.** This still matters for ENGINE02 (reason generation), ENGINE03, and the generation module (`image_generation` tool via the Responses API), which do need `OPENAI_API_KEY`. If/when the team decides to get one: create an account at platform.openai.com, generate a key, add a small prepaid balance (whole-hackathon usage is estimated well under US$2, so US$5–10 is generous headroom), and share it out of band — never in a commit or plaintext chat log. Copy `.env.example` to `.env` locally and fill it in; `.env` is gitignored.
+**團隊目前只有 ChatGPT Plus/Pro 訂閱，還沒有人申請 platform.openai.com 的 API key。** 這件事對 ENGINE02（推薦理由生成）、ENGINE03、生成模組（透過 Responses API 呼叫 `image_generation` tool）仍然重要，這幾個都需要 `OPENAI_API_KEY`。如果之後團隊決定要申請：去 platform.openai.com 建帳號、生一把 key、加一筆小額預付款（整場黑客松預估花費遠低於 US$2，抓 US$5–10 就很夠），並且透過線下管道分享——絕對不要寫進 commit 或明碼貼在聊天紀錄裡。把 `.env.example` 複製成 `.env`、本機填好；`.env` 已經被 gitignore。
 
-**ENGINE01 specifically no longer needs this.** It runs on `codex exec` instead — see below. Don't assume the same is true for the other engines until someone actually wires them up; that decision is theirs to make.
+**ENGINE01 已經不需要這個了。** 它改用 `codex exec`，細節見下面。不要假設其他引擎也一樣不需要 API key，那是各自負責人要做的決定。
 
-## ENGINE01 runtime: `codex exec`, not an API key
+## ENGINE01 執行方式：`codex exec`，不用 API key
 
-Deliberate choice, made after actually testing both paths: the team wants to avoid spending money, so ENGINE01 shells out to the OpenAI Codex CLI (`codex exec --output-schema`), which rides the developer's ChatGPT Plus/Pro subscription (`codex login`, already authenticated on this dev machine) instead of a billed API key. Zero marginal cost per call, confirmed by testing.
+這是實際測過兩條路之後的刻意選擇：團隊希望不要花錢，所以 ENGINE01 改成呼叫 OpenAI 的 Codex CLI（`codex exec --output-schema`），吃開發者自己的 ChatGPT Plus/Pro 訂閱額度（`codex login`，這台開發機已經登入好了），不用另外付費的 API key。每次呼叫零邊際成本，這點已經實測確認。
 
-The trade-off, also confirmed by testing, not assumed:
+代價（同樣是實測出來的，不是憑空假設）：
 
-| | `codex exec` (this project's choice) | Direct OpenAI API key |
+| | `codex exec`（本專案採用） | 直接用 OpenAI API key |
 |---|---|---|
-| Cost | $0 | ~$0.001/call |
-| Latency | ~8–17 sec/call | ~1–3 sec |
-| Tokens per call | ~14,000–20,000 | ~1,500 |
+| 花費 | $0 | 約 $0.001／次呼叫 |
+| 延遲 | 每次約 8–17 秒 | 約 1–3 秒 |
+| 每次呼叫的 token 數 | 約 14,000–20,000 | 約 1,500 |
 
-The token cost lands on the team's **shared** Codex usage allowance — the same pool used for AI-assisted coding (Claude Code/Codex) during the two on-site days. ENGINE01 calling this every conversational turn adds up; keep an eye on it, especially close to demo time. If it ever becomes a real problem (quota exhaustion, or 8–17s per turn is too slow for the live demo), the fix is swapping the implementation inside `extract_intent()` in `backend/engine01_intent/llm_client.py` back to a direct OpenAI API call — the function signature and everything calling it stays the same.
+這些 token 花費是算在團隊**共用**的 ChatGPT 方案 Codex 額度上——跟現場兩天大家用 Claude Code／Codex 輔助寫程式是同一個額度池。ENGINE01 每輪對話都要呼叫一次，累積起來不是小數目，尤其接近 demo 時段要多留意。如果之後真的變成問題（額度用完，或現場每輪等 8–17 秒太慢），修法是把 `backend/engine01_intent/llm_client.py` 裡 `extract_intent()` 的實作換回直接呼叫 OpenAI API——函式簽名和呼叫它的地方都不用動。
 
-Prerequisite on any machine running ENGINE01: `codex` CLI installed and authenticated once via `codex login` (no `OPENAI_API_KEY` involved). No separate Hermes Agent install needed — `codex exec --output-schema` already does native JSON-schema-constrained structured output, which was the thing Hermes's own one-shot mode didn't yet have when checked (open feature request upstream).
+任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。不需要另外裝 Hermes Agent——`codex exec --output-schema` 本身就有原生的 JSON schema 限制輸出功能，這正是查證當下 Hermes 自己的 one-shot 模式還沒有的東西（上游有一個開放中的 feature request）。
 
-## Interface contract
+## 介面契約
 
-`backend/shared/schemas.py` is the code-level source of truth for the JSON that flows between engines (structured intent, feedback delta, product card, etc.) — defined so all lines can build in parallel without waiting on each other. See [docs/interface-contract.md](docs/interface-contract.md) for the written spec. Anyone changing a field name/type there should flag it to the other engine owners before merging, since ENGINE02/03/frontend all depend on it.
+`backend/shared/schemas.py` 是引擎之間流動的 JSON（結構化意圖、回饋 delta、商品卡片等）的程式碼版真相來源——這樣訂出來是為了讓各條線能平行開發、不用互相等待。書面規格見 [docs/interface-contract.md](docs/interface-contract.md)。要改這裡的欄位名稱／型別之前，先知會其他引擎的負責人再 merge，因為 ENGINE02/03／前端都依賴它。
 
-## Git workflow
+## Git 工作流程
 
-- `main` is the shared branch; everyone else's work up to now is the GitHub Pages site content — treat it as-is.
-- One branch per line, proposed convention (not yet confirmed by the whole team): `engine01-intent`, `engine02-retrieval`, `engine03-feedback`, `frontend`, `pinterest-generation`.
-- `git worktree` is an optional local technique (check out multiple branches into sibling folders on one machine) mentioned in the planning doc — useful if you want to run multiple agents on different branches at once, not required for normal single-branch work.
-- Pushing to the shared remote or opening a PR always gets confirmed with the user first — it's visible to the other four teammates.
+- `main` 是共用分支；目前其他組員的既有內容是 GitHub Pages 網站，維持原樣。
+- 每條線一個分支，目前提議的命名慣例（還沒經過全隊確認）：`engine01-intent`、`engine02-retrieval`、`engine03-feedback`、`frontend`、`pinterest-generation`。
+- `git worktree` 是規劃文件裡提到的選用技巧（在同一台機器上把多個分支各自簽出到不同資料夾），如果想同時跑多個 agent 在不同分支上會用得到，一般單分支開發不需要。
+- 推到共用遠端或開 PR 一律先跟使用者確認——這會讓其他四位組員都看得到。
 
-## Owner map
+## 負責人對照
 
-- ENGINE01 (intent understanding): this working directory's owner.
-- Pinterest board curation: 品諭 (per planning doc).
-- ENGINE02, ENGINE03, frontend, generation module: not yet assigned in the docs — fill in as confirmed.
+- ENGINE01（需求理解）：這個工作目錄的擁有者。
+- Pinterest 板子策展：品諭（依規劃文件）。
+- ENGINE02、ENGINE03、前端、生成模組：文件裡還沒指定，確定後再補上。
 
-## Environment notes
+## 環境備註
 
-- This repo lives under OneDrive (`...\OneDrive\桌面\Hackathon`). OneDrive's sync client can lock files mid-write or delay a freshly-written file's availability (observed directly while scaffolding this repo: right after `pip install`, importing the openai SDK's `jiter` dependency threw a `DLL load failed` error once, then imported fine on the very next attempt — classic file-not-fully-hydrated-yet symptom). If `pip install` / `npm install` / `git` operations act flaky right after writing a lot of files (e.g. `frontend/node_modules`), retry once before assuming it's a real bug. If it keeps happening, exclude this folder from OneDrive sync rather than moving the repo.
-- Backend: Python 3.11+, one shared `backend/requirements.txt` — don't create a separate venv/requirements per engine, the two-day hackathon timeline doesn't leave room for reconciling five environments.
-- Frontend: React + Vite, no Next.js/SSR — the UI is an input box, result cards, an intent panel, and feedback controls, not a full app framework's worth of complexity.
+- 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
+- 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。
+- 前端：React + Vite，不用 Next.js／SSR——UI 就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。
 
-## Where to look for more detail
+## 想找更多細節的話
 
-- Full competition brief, scoring, and design-rationale history: [docs/hackathon-brief.md](docs/hackathon-brief.md)
-- PRD skeleton: [docs/prd.md](docs/prd.md)
-- Per-module specs: `docs/engine01-intent.md`, `docs/engine02-retrieval.md`, `docs/engine03-feedback.md`, `docs/frontend.md`, `docs/pinterest-and-generation.md`
-- Quantified validation design: [docs/validation-plan.md](docs/validation-plan.md)
+- 完整競賽簡報、評分標準、設計討論歷程：[docs/hackathon-brief.md](docs/hackathon-brief.md)
+- PRD 骨架：[docs/prd.md](docs/prd.md)
+- 各模組規格：`docs/engine01-intent.md`、`docs/engine02-retrieval.md`、`docs/engine03-feedback.md`、`docs/frontend.md`、`docs/pinterest-and-generation.md`
+- 量化驗證設計：[docs/validation-plan.md](docs/validation-plan.md)

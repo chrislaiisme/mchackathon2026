@@ -1,31 +1,31 @@
-# ENGINE03 — Preference Feedback Loop
+# ENGINE03 — 偏好回饋迴圈
 
-**Owner: not yet assigned.** This is a scaffold summary pulled from [hackathon-brief.md](hackathon-brief.md) — the assigned owner should expand this into a real spec rather than treating this file as final.
+**負責人：待確認。** 這份是從 [hackathon-brief.md](hackathon-brief.md) 抄出來的骨架摘要——正式負責人接手後應該把這裡展開成真正的規格，不要直接把這份當成定案。
 
-## Goal
+## 目標
 
-Turn a round's feedback into a structured correction that measurably improves the next round — this is the engine the competition's live evaluation is built around (judge gives a prompt → sees a result → gives feedback → gives a second prompt → checks whether the system actually got closer). "量化可驗證" (quantifiably verifiable) is explicitly called out in the brief as a scoring factor for this engine specifically.
+把一輪的回饋轉成能讓下一輪真的、可量化地變準的修正——這是整個比賽現場評測方式的核心引擎（評審出題 → 看結果 → 給回饋 → 出第二題 → 檢查系統是否真的變準）。簡報明確把「量化可驗證」列成這個引擎的評分重點之一。
 
-## Input
+## 輸入
 
-Free-text feedback plus per-attribute scores (color / fit / pattern / collar), scored **separately** for the recommended product and the generated concept image — not one combined score. Finer-grained feedback lets ENGINE03 adjust more precisely and lets the frontend show exactly which attribute the user was unhappy with (reinforces "可解釋").
+自由文字回饋，加上分項評分（顏色／版型／圖案／領子），推薦商品跟生成概念圖**分開**打分，不是打一個總分。粒度更細，ENGINE03 才能調得更精準，前端也才能明確秀出使用者到底是對哪個屬性不滿意（強化「可解釋」）。
 
-## Processing
+## 處理方式
 
-GPT structured output (chat completions, no LangChain) turns the free-text + per-attribute scores into structured weight adjustments / intent corrections.
+GPT structured output（chat completions，不用 LangChain）把自由文字＋分項評分轉成結構化的權重調整／意圖修正。
 
-## Output
+## 輸出
 
-Updated `Intent` and a list of `WeightAdjustment`s that re-trigger ENGINE01/02/generation for the next round. The loop keeps running until the user is satisfied — not a fixed two rounds — but the live demo should show at least round 1 vs. round 2 side by side.
+更新後的 `Intent`，加上一份會觸發 ENGINE01／02／生成模組重跑下一輪的 `WeightAdjustment` 清單。這個迴圈會一直跑到使用者滿意為止——不是固定兩輪就停——但現場 demo 至少要把第一輪跟第二輪並排展示出來。
 
-## Interface
+## 介面
 
-In: `FeedbackInput`. Out: `FeedbackResult` (`updated_intent`, `weight_adjustments`) — see [interface-contract.md](interface-contract.md).
+輸入：`FeedbackInput`。輸出：`FeedbackResult`（`updated_intent`、`weight_adjustments`）——見 [interface-contract.md](interface-contract.md)。
 
-## Making the loop verifiable on stage
+## 怎麼讓這個迴圈在台上看得出來有效
 
-Define a "match score" (`RetrievalResult.match_score`): how well the current results match the current structured intent (e.g. fraction of the requested color/occasion/budget conditions actually met by the recommended list). Show it before feedback and again after ENGINE03 reprocesses — e.g. "符合度：62% → 89%" displayed directly on screen. This turns "the feedback loop works" from a claim into a number the judges watch change in real time.
+定義一個「符合度分數」（`RetrievalResult.match_score`）：目前結果跟目前結構化意圖的符合程度（例如意圖要求的顏色／場合／預算條件，推薦清單裡實際符合的比例）。回饋前顯示一次，ENGINE03 處理完回饋、重新產出結果後再顯示一次——例如畫面上直接秀「符合度：62% → 89%」。這樣「回饋迴圈有效」就不是一句空話，而是評審眼前真實發生的數字變化。
 
-## Dependencies
+## 依賴
 
-`OPENAI_API_KEY`.
+`OPENAI_API_KEY`。

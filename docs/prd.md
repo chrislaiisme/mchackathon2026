@@ -1,55 +1,55 @@
 # PRD — Consumer Intent Agent
 
-Skeleton following the brief's own "PRD 撰寫指南" (hackathon-brief.md), which says to copy from that document's sections rather than rewrite from scratch. Sections marked **TBD** need the team's input before this is final.
+骨架依照簡報自己的「PRD 撰寫指南」（hackathon-brief.md）寫成，那份文件說直接抄裡面的段落就好，不用重新想。標成 **待確認** 的段落還需要團隊補齊才算定案。
 
-## 1. Product goal & scope
+## 1. 產品目標與範圍
 
-MCHackathon 2026 x Makalot Industrial (聚陽實業), theme "一句話讀懂消費者." Makalot manufactures for brand clients and already collects post-purchase feedback (VOC) but has no signal on pre-purchase consumer intent — the gap this project fills. Goal: turn a shopper's one sentence into structured, explainable intent that can flow back through the design pipeline (trend → designer → material/production → brand store). See [hackathon-brief.md](hackathon-brief.md) "基本資訊" / "交付項目" / "企業背景與痛點" / "題目核心要求".
+2026 梅竹黑客松 x 聚陽實業（Makalot Industrial），題目「一句話讀懂消費者」。聚陽替品牌客戶代工生產，已經有收集消費後回饋（VOC）的能力，但缺的是消費者購買前的意圖訊號——這正是這個專案要補上的缺口。目標：把消費者的一句話轉成結構化、可解釋的意圖，讓這個訊號能回流設計流程（趨勢 → 設計師 → 材料／生產 → 品牌商店）。詳見 [hackathon-brief.md](hackathon-brief.md) 的「基本資訊」／「交付項目」／「企業背景與痛點」／「題目核心要求」。
 
-## 2. System architecture
+## 2. 系統架構
 
-![Live flow](system-architecture.svg)
-![Validation flow](validation-flow.svg)
+![Live 流程](system-architecture.svg)
+![驗證流程](validation-flow.svg)
 
-Two loops share the same ENGINE01–03 code — live (real user/judge) and offline validation (simulated user, dev-time only). Full description: [hackathon-brief.md](hackathon-brief.md) "整體怎麼運作：兩條迴圈，共用一套引擎", condensed in root `CLAUDE.md`.
+兩條迴圈共用同一套 ENGINE01–03 程式碼——live（真人使用者／評審）和離線驗證（模擬使用者，只在開發階段用）。完整說明見 [hackathon-brief.md](hackathon-brief.md) 的「整體怎麼運作：兩條迴圈，共用一套引擎」，CLAUDE.md 裡有濃縮版。
 
-## 3. Module specs
+## 3. 模組規格
 
-- [ENGINE01 — Intent Understanding](engine01-intent.md)
-- [ENGINE02 — Retrieval & Ranking](engine02-retrieval.md)
-- [ENGINE03 — Preference Feedback Loop](engine03-feedback.md)
-- [Frontend](frontend.md)
-- [Pinterest & Generation](pinterest-and-generation.md)
+- [ENGINE01 — 需求理解](engine01-intent.md)
+- [ENGINE02 — 檢索與排序](engine02-retrieval.md)
+- [ENGINE03 — 偏好回饋迴圈](engine03-feedback.md)
+- [前端](frontend.md)
+- [Pinterest ＋ 生成模組](pinterest-and-generation.md)
 
-## 4. Interface contract
+## 4. 介面契約
 
-[interface-contract.md](interface-contract.md) — **draft v1, needs sign-off from all engine owners.** This is the actual precondition for the 5 lines being able to build in parallel; don't start ENGINE02/03/frontend against it without confirming the fields first.
+[interface-contract.md](interface-contract.md) — **draft v1，需要所有引擎負責人簽核確認。** 這是六條線能真的平行開發的前提，ENGINE02/03／前端動工前務必先確認欄位，不要照著這份草稿直接開始寫。
 
-## 5. Validation & quantified metrics
+## 5. 驗證與量化指標
 
-[validation-plan.md](validation-plan.md) — offline (ENGINE01 accuracy, ENGINE02 ablation), live on-stage match score, and the dev-time simulated-user convergence study.
+[validation-plan.md](validation-plan.md) — 離線（ENGINE01 準確率、ENGINE02 ablation）、現場即時符合度分數、開發階段模擬使用者收斂研究。
 
-## 6. Timeline & ownership — TBD
+## 6. 時程與分工 — 待確認
 
-5 people, 6 lines (ENGINE01/02/03, frontend, Pinterest+generation combined). Per the brief's suggested split: one person each on ENGINE01/02/03/frontend, Pinterest+generation combined for the fifth. Confirmed so far:
+5 人、6 條線（ENGINE01/02/03、前端、Pinterest＋生成模組合併）。依簡報建議的分法：ENGINE01/02/03／前端各配一人，Pinterest＋生成模組合併給第五人。目前確認的部分：
 
-| Line | Owner |
+| 線 | 負責人 |
 |---|---|
-| ENGINE01 | this repo's scaffold owner |
-| Pinterest board curation | 品諭 |
-| ENGINE02 | TBD |
-| ENGINE03 | TBD |
-| Frontend | TBD |
-| Generation module | TBD |
+| ENGINE01 | 這個 repo 骨架的建立者 |
+| Pinterest 板子策展 | 品諭 |
+| ENGINE02 | 待確認 |
+| ENGINE03 | 待確認 |
+| 前端 | 待確認 |
+| 生成模組 | 待確認 |
 
-Coding happens on-site over the two competition days (2026-09-19 +); pre-event time goes to locking architecture, ownership, and the interface contract above — not writing feature code.
+實際動手寫 code 集中在比賽現場兩天（2026-09-19 起）；賽前時間拿來把架構、分工、介面契約定案，不是拿來寫功能。
 
-## 7. Open items to close before this PRD is final
+## 7. 這份 PRD 定案前還要關掉的項目
 
-Copied from [hackathon-brief.md](hackathon-brief.md) "寫 PRD 前還要定案的事項", plus what was actually found while scaffolding this repo:
+抄自 [hackathon-brief.md](hackathon-brief.md) 的「寫 PRD 前還要定案的事項」，加上建這個 repo 骨架時實際發現的狀況：
 
-- **Resolved for ENGINE01:** the team wants to avoid spending money, so ENGINE01 was switched to `codex exec` (rides ChatGPT Plus/Pro, $0/call, but ~8–17s and ~14-20K shared-quota tokens per call, measured — see root `CLAUDE.md` "ENGINE01 runtime: codex exec"). **Still open for ENGINE02/03/generation:** nobody on the team has a platform.openai.com API key; each of those owners needs to decide whether to get one or find their own zero-cost path.
-- Product catalog dataset: **confirmed**, Polyvore Outfits Dataset.
-- Which specific target images go on the curated Pinterest board (品諭).
-- Demo script: what exactly gets asked/fed back in round 1 vs. round 2.
-- Validation-loop image generation: the brief's original plan (Hermes Agent + Codex-auth for batch image gen) hasn't been tested in this repo yet — whoever owns the generation/validation line should verify it the same way ENGINE01's `codex exec` path was verified (actually run it, measure latency/quota) rather than assume the brief's description still holds.
+- **ENGINE01 已解決：** 團隊希望不要花錢，所以 ENGINE01 改用 `codex exec`（吃 ChatGPT Plus/Pro，每次呼叫 $0，但實測約 8–17 秒、吃掉團隊共用 Codex 額度約 14–20K token——見根目錄 `CLAUDE.md` 的「ENGINE01 執行方式：codex exec」）。**ENGINE02/03／生成模組仍待確認：** 團隊還沒有人申請 platform.openai.com 的 API key，這幾個模組的負責人要自己決定是要申請一把，還是找其他不花錢的路。
+- 商品庫資料集：**已定案**，Polyvore Outfits Dataset。
+- Pinterest 板子要存哪些具體的目標圖（品諭負責）。
+- Demo 腳本：第一輪、第二輪具體要示範的題目和回饋內容。
+- 驗證迴圈的圖片生成：簡報原本的計畫（Hermes Agent ＋ Codex auth 跑批次生圖）在這個 repo 裡還沒實測過——負責生成／驗證線的人應該比照 ENGINE01 的 `codex exec` 那樣，自己實際跑一次、量出真實的延遲和額度消耗，不要直接假設簡報裡寫的還成立。

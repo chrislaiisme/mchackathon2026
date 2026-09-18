@@ -1,31 +1,31 @@
-# ENGINE01 — Intent Understanding
+# ENGINE01 — 需求理解
 
-One sentence → structured intent JSON (item type, color, occasion, budget, style keywords, ...), with system-inferred fields labeled separately from what the user actually said, plus clarifying multiple-choice questions when the intent is still too sparse to search on.
+一句話 → 結構化意圖 JSON（品項、顏色、場合、預算、風格關鍵字...），系統推斷的欄位跟使用者原話分開標示，意圖還太模糊、搜不出結果時會出澄清選擇題。
 
-Full spec and design rationale: [../../docs/engine01-intent.md](../../docs/engine01-intent.md). Cross-engine JSON contract: [../../docs/interface-contract.md](../../docs/interface-contract.md).
+完整規格與設計理由：[../../docs/engine01-intent.md](../../docs/engine01-intent.md)。跨引擎 JSON 契約：[../../docs/interface-contract.md](../../docs/interface-contract.md)。
 
-## Runtime: `codex exec`, not an OpenAI API key
+## 執行方式：`codex exec`，不用 API key
 
-This module calls the model via the OpenAI Codex CLI (`codex exec --output-schema`) instead of the `openai` Python SDK, so it costs nothing beyond your existing ChatGPT Plus/Pro subscription. See root [CLAUDE.md](../../CLAUDE.md) "ENGINE01 runtime: codex exec" for why and the measured trade-off (~8-17s per call, ~14-20K tokens of the team's shared Codex quota per call).
+這個模組透過 OpenAI 的 Codex CLI（`codex exec --output-schema`）呼叫模型，不是用 `openai` Python SDK，所以除了你原本就有的 ChatGPT Plus/Pro 訂閱之外不會產生額外花費。為什麼這樣選、實測出來的代價（每次呼叫約 8–17 秒、吃掉團隊共用 Codex 額度約 14–20K token），見根目錄 [CLAUDE.md](../../CLAUDE.md) 的「ENGINE01 執行方式：codex exec」。
 
-**One-time setup**, before this will work at all:
+**一次性設定**，沒做這步整個模組都跑不動：
 
 ```bash
 codex login
 ```
 
-(No `OPENAI_API_KEY` needed for this module. Other engines may still need one — see CLAUDE.md.)
+（這個模組不需要 `OPENAI_API_KEY`。其他引擎可能還是需要——見 CLAUDE.md。）
 
-## Run locally
+## 本機執行
 
-From the repo root:
+從 repo 根目錄：
 
 ```bash
 pip install -r backend/requirements.txt
 uvicorn backend.engine01_intent.main:app --reload
 ```
 
-Try it (the first call will take several seconds — see the latency note above):
+試打一次（第一次呼叫會等好幾秒，見上面的延遲說明）：
 
 ```bash
 curl -X POST http://127.0.0.1:8000/intent \
@@ -33,18 +33,18 @@ curl -X POST http://127.0.0.1:8000/intent \
   -d "{\"message\": \"我想要件簡約風格的黑色外套\"}"
 ```
 
-## Files
+## 檔案說明
 
-- `main.py` — FastAPI app, `POST /intent`.
-- `llm_client.py` — `codex exec` structured-output call (`extract_intent`).
-- `session_store.py` — in-memory per-session state (no DB).
-- `prompts.py` — the system prompt driving extraction / inference / clarifying questions.
-- `tests/test_cases.json` + `tests/test_accuracy.py` — offline slot-filling accuracy check (starter set of 10 sentences; expand to 30-50 before quoting the number in the deck). Runs 10 real `codex exec` calls (~2-3 min, some shared-quota usage) -- don't run this repeatedly without reason.
+- `main.py` — FastAPI app，`POST /intent`。
+- `llm_client.py` — `codex exec` 結構化輸出呼叫（`extract_intent`）。
+- `session_store.py` — 記憶體內的 per-session 狀態（沒有資料庫）。
+- `prompts.py` — 驅動抽取／推斷／澄清問題的 system prompt。
+- `tests/test_cases.json` ＋ `tests/test_accuracy.py` — 離線 slot-filling 準確率檢查（目前 10 句起始集，正式在簡報引用這個數字前要擴充到 30–50 句）。跑一次會真的打 10 次 `codex exec`（約 2–3 分鐘，會消耗一些共用額度）——沒事不要重複跑。
 
-## Offline accuracy check
+## 離線準確率檢查
 
 ```bash
 python -m backend.engine01_intent.tests.test_accuracy
 ```
 
-Requires `codex login` to have been run once (see above).
+需要先跑過一次 `codex login`（見上面）。

@@ -1,9 +1,9 @@
-# ENGINE03 — Preference Feedback Loop
+# ENGINE03 — 偏好回饋迴圈
 
-**Owner: not yet assigned.** Placeholder folder created as part of the repo scaffold so this line can start immediately.
+**負責人：待確認。** 這是建 repo 骨架時順便建立的佔位資料夾，讓這條線可以馬上開始動工。
 
-Takes free-text feedback plus per-attribute scores (color/fit/pattern/collar — recommended products and the generated concept image scored separately) and turns them into structured weight adjustments / intent corrections via GPT structured output (no LangChain). The result re-triggers ENGINE01/02/generation for the next round. This loop is what needs to be demonstrably quantified on stage — see the `match_score` field in `RetrievalResult` (before → after feedback, e.g. "62% → 89%").
+把自由文字回饋加上分項評分（顏色／版型／圖案／領子——推薦商品跟生成概念圖分開打分）透過 GPT structured output（不用 LangChain）轉成結構化的權重調整／意圖修正。結果會觸發 ENGINE01／02／生成模組跑下一輪。這個迴圈就是要在台上明確被量化證明有效的那一塊——看 `RetrievalResult` 裡的 `match_score` 欄位（回饋前 → 回饋後）。
 
-Full spec: [../../docs/engine03-feedback.md](../../docs/engine03-feedback.md). Input/output JSON: [../../docs/interface-contract.md](../../docs/interface-contract.md) (`FeedbackInput` in, `FeedbackResult` out).
+完整規格：[../../docs/engine03-feedback.md](../../docs/engine03-feedback.md)。輸入輸出 JSON：[../../docs/interface-contract.md](../../docs/interface-contract.md)（`FeedbackInput` 進、`FeedbackResult` 出）。
 
-Depends on `OPENAI_API_KEY` (see root `CLAUDE.md` "P0 status").
+需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。

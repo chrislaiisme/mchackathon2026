@@ -1,3 +1,3 @@
 # Scripts
 
-Dev-setup and data-prep helpers that don't belong to a single engine — e.g. downloading/caching the Polyvore Outfits Dataset, or a one-off script to seed the curated Pinterest target-image set locally. Add scripts here as the team needs them; nothing here yet.
+不屬於單一引擎、但開發／資料準備會用到的輔助腳本——例如下載／快取 Polyvore Outfits Dataset，或是把 Pinterest 目標圖庫存到本機的一次性腳本。有需要的時候再往這裡加，目前還沒有東西。

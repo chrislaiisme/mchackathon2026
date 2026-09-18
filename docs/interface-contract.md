@@ -1,16 +1,16 @@
-# Interface Contract — ENGINE01 ↔ ENGINE02 ↔ ENGINE03 ↔ Frontend
+# 介面契約 — ENGINE01 ↔ ENGINE02 ↔ ENGINE03 ↔ 前端
 
-**Status: draft v1, written by the ENGINE01 owner to unblock parallel development. Needs sign-off from whoever owns ENGINE02/03/frontend before it's final — flag any field you need renamed or added.**
+**狀態：draft v1，由 ENGINE01 負責人先寫，目的是讓其他線可以馬上平行開發。ENGINE02/03／前端的負責人確認過、簽核過才算定案——有想改欄位名稱或想加欄位，請直接提出。**
 
-The Python source of truth is [`backend/shared/schemas.py`](../backend/shared/schemas.py) (Pydantic models). This doc explains *why* the fields exist and gives example JSON; if the two ever disagree, the code wins.
+Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/schemas.py)（Pydantic models）。這份文件是講「為什麼」有這些欄位、附上範例 JSON；如果兩邊有出入，一律以程式碼為準。
 
-## Why this exists
+## 為什麼要有這份文件
 
-Per the planning doc's dev-split section: the 5 lines can only actually work in parallel if the JSON shape between them is agreed before coding starts, because the 2 on-site days don't leave room to renegotiate field names mid-build. This is that agreement, in its first draft form.
+依規劃文件的分工段落：五條線要真的能平行開發，前提是動工前把彼此之間的 JSON 長相談好，因為現場兩天沒有餘裕邊寫邊改介面。這份文件就是那個「先談好」的初版。
 
-## 1. Structured intent (`Intent`)
+## 1. 結構化意圖（`Intent`）
 
-Produced by ENGINE01, consumed by ENGINE02 (to build the search query) and ENGINE03 (to know what to correct).
+由 ENGINE01 產出，ENGINE02（用來組檢索條件）和 ENGINE03（用來知道要修正什麼）都會用到。
 
 ```json
 {
@@ -30,13 +30,13 @@ Produced by ENGINE01, consumed by ENGINE02 (to build the search query) and ENGIN
 }
 ```
 
-- Every field is optional except the container itself — an empty/unclear sentence just yields a mostly-null intent plus clarifying questions.
-- `inferred_fields` lists which of the above field names were filled in by GPT's contextual guess (weather, season, etc.) rather than stated by the user. Frontend must render these visibly different (e.g. "system inferred: 秋冬") — this is the concrete implementation of the "可解釋" requirement: nothing in the intent panel is unlabeled.
-- `colors` / `style_keywords` are lists because a sentence can name more than one.
+- 除了容器本身，每個欄位都是選填——一句模糊或講不清楚的話，就只會產出大部分是 null 的意圖，再搭配澄清問題。
+- `inferred_fields` 列出上面哪些欄位是 GPT 用情境合理推斷出來的（天氣、季節等），不是使用者親口說的。前端一定要用不同的視覺樣式呈現這些欄位（例如標上「系統推斷」）——這就是「可解釋」要求的具體實作，意圖面板裡沒有任何一個欄位是不標明來源的。
+- `colors` ／ `style_keywords` 用陣列，因為一句話裡可能不只講一個。
 
-## 2. Clarifying question (`ClarifyingQuestion`)
+## 2. 澄清問題（`ClarifyingQuestion`）
 
-Produced by ENGINE01 whenever the current `Intent` is too sparse/ambiguous to search well. Same shape is reused every round (not just round 1).
+只要目前的 `Intent` 太模糊、不夠拿去搜尋，ENGINE01 就會產出這個。同一個格式每一輪都會重用，不只是第一輪才有。
 
 ```json
 {
@@ -51,11 +51,11 @@ Produced by ENGINE01 whenever the current `Intent` is too sparse/ambiguous to se
 }
 ```
 
-Frontend always renders a free-text box alongside the options (`allow_free_text` is expected to stay `true` in practice, but the field exists in case a question is options-only).
+前端每次都要在選項旁邊附一個自由輸入欄（`allow_free_text` 實務上應該一直是 `true`，但這個欄位還是保留，以防哪一題設計成純選項）。
 
-## 3. Feedback input (`FeedbackInput`)
+## 3. 回饋輸入（`FeedbackInput`）
 
-Produced by the frontend (user/judge), consumed by ENGINE03. Recommended products and the generated concept image are scored **separately** — this is deliberate per the brief, so ENGINE03 can tell which branch (retrieval vs. generation) to adjust.
+由前端（使用者／評審）產出，ENGINE03 消費。推薦商品和生成概念圖**分開**打分——這是刻意設計，這樣 ENGINE03 才能知道要調整的是檢索分支還是生成分支。
 
 ```json
 {
@@ -71,26 +71,26 @@ Produced by the frontend (user/judge), consumed by ENGINE03. Recommended product
 }
 ```
 
-`target` is `"recommended"` or `"generated"` — the frontend sends one `FeedbackInput` per branch when the user rates both.
+`target` 是 `"recommended"` 或 `"generated"`——使用者兩邊都打分時，前端就送兩個各自的 `FeedbackInput`。
 
-## 4. Feedback result (`FeedbackResult`)
+## 4. 回饋結果（`FeedbackResult`）
 
-Produced by ENGINE03, consumed by ENGINE01 (updated intent) and ENGINE02/generation (weight adjustments) to drive the next round.
+由 ENGINE03 產出，ENGINE01（更新後的意圖）和 ENGINE02／生成模組（權重調整）拿去跑下一輪。
 
 ```json
 {
   "session_id": "abc123",
   "round": 2,
-  "updated_intent": { "...": "same shape as Intent, with corrections applied" },
+  "updated_intent": { "...": "跟 Intent 同樣的格式，套用修正後" },
   "weight_adjustments": [
     {"field": "fit", "delta": -0.4, "reason": "使用者覺得太正式，降低正式風格權重"}
   ]
 }
 ```
 
-## 5. Retrieval result (`RetrievalResult`)
+## 5. 檢索結果（`RetrievalResult`）
 
-Produced by ENGINE02 + the generation module together (they run in parallel and their outputs are combined into one response for the frontend).
+由 ENGINE02 和生成模組一起產出（兩者同一輪並行執行，結果合併成一個回應給前端）。
 
 ```json
 {
@@ -115,11 +115,11 @@ Produced by ENGINE02 + the generation module together (they run in parallel and 
 }
 ```
 
-- `match_score` is the "符合度分數" shown before/after feedback in the live demo (e.g. "62% → 89%") — it's the concrete, on-stage proof that the feedback loop works, so don't drop this field.
-- `concept_image.response_id` is the OpenAI Responses API id, kept so the generation module can pass it as `previous_response_id` on the next round instead of starting the image from scratch.
+- `match_score` 就是現場 demo 上、回饋前後都會顯示的「符合度分數」（例如「62% → 89%」）——這是舞台上真實可見、證明回饋迴圈有效的關鍵欄位，不要拿掉。
+- `concept_image.response_id` 是 OpenAI Responses API 的 id，留著讓生成模組下一輪可以當 `previous_response_id` 接續，不用每次從頭生成。
 
-## Open questions for the other engine owners
+## 給其他引擎負責人的待確認事項
 
-- Exact `attributes` keys on `ProductCard` — depends on what fields the Polyvore dataset actually exposes cleanly; ENGINE02 owner should confirm/extend.
-- Whether `weight_adjustments` needs a fixed enum of `field` values or stays free-form text keyed by whatever `Intent`/ranking-signal name applies — currently free-form, tighten if ENGINE02/03 need stricter matching.
-- Units/scale for `AttributeScore.score` and `RetrievalResult.match_score` — currently both 0–1 floats; confirm this works for however ENGINE03's weight math is implemented.
+- `ProductCard` 的 `attributes` 具體要放哪些 key——要看 Polyvore 資料集實際能乾淨拿到哪些欄位，ENGINE02 負責人請確認／擴充。
+- `weight_adjustments` 的 `field` 要不要固定成一個 enum，還是維持自由文字、對應 `Intent`／排序訊號的名稱——目前是自由格式，如果 ENGINE02/03 需要更嚴格的比對再收緊。
+- `AttributeScore.score` 和 `RetrievalResult.match_score` 的單位／範圍——目前都是 0–1 的浮點數，請確認這樣是否適合 ENGINE03 實際的權重運算方式。

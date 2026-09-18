@@ -3,7 +3,7 @@
 Shells out to `codex exec --output-schema`, which rides the caller's
 ChatGPT Plus/Pro subscription (via `codex login`, already set up on a
 dev machine) instead of a separate, billed platform.openai.com API key --
-so this has zero marginal cost per call. See CLAUDE.md "ENGINE01 runtime:
+so this has zero marginal cost per call. See CLAUDE.md "ENGINE01 執行方式：
 codex exec" for the trade-off that came with choosing this deliberately:
 each call takes roughly 8-17 seconds and burns ~14,000-20,000 tokens of the
 team's *shared* Codex usage allowance (the same pool used for AI-assisted
