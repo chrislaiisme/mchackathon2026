@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.engine01_intent import gating, llm_client, session_store
+from backend.engine01_intent import gating, llm_client, recommend, session_store
 from backend.pinterest import client as pinterest_client
 from backend.shared import user_store
 from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
@@ -31,7 +31,9 @@ from backend.shared.schemas import (
     IntentRequest,
     IntentResponse,
     ProfileUpdate,
+    RecommendRequest,
     UserProfile,
+    ZonedRecommendationResult,
 )
 
 app = FastAPI(title="ENGINE01 - Intent Understanding")
@@ -192,6 +194,27 @@ def post_intent(
         round=state.round,
         intent=state.intent,
         clarifying_questions=clarifying_questions,
+    )
+
+
+@app.post("/recommend", response_model=ZonedRecommendationResult)
+def post_recommend(
+    request: RecommendRequest, user: UserProfile = Depends(get_current_user)
+) -> ZonedRecommendationResult:
+    # 前端預期在 IntentResponse.clarifying_questions 變空之後才呼叫這支
+    # （核心欄位都問完，或已經問滿 5 題預算），但這裡不強制擋——跟 /intent
+    # 的澄清問題邏輯一樣，是前端流程上的約定，不是後端的硬性關卡。
+    state = session_store.get(user.sub, request.session_id)
+    if state is None:
+        raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
+
+    return recommend.build_zoned_recommendation(
+        state.intent,
+        state.session_id,
+        state.round,
+        state.message_history,
+        state.reference_image_url,
+        user,
     )
 
 
