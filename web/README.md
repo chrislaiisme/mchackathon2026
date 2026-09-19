@@ -50,7 +50,7 @@ npm run dev
 
 ---
 
-（以下併自搬移前的 `frontend/README.md`）
+（以下併自 `frontend/README.md`；在 `main` 上那個檔案仍然存在，兩套前端並存）
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
