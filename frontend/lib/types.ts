@@ -106,6 +106,10 @@ export interface Conversation {
   messages: ChatMessage[];
   recommendationFeedback: Record<string, "like" | "dislike">;
   preferenceSignals: PreferenceSignal[];
+  // 2026-09-19 新增：ENGINE01 的 /intent session_id，讓同一個對話的多輪訊息延續同一個
+  // session（沿用 ENGINE01 的澄清問題把關與五題上限邏輯），而不是每則訊息都開新 session。
+  // 選填是因為舊對話（合併 main 之前建立的、或還沒送出過第一句真訊息的）不會有這個欄位。
+  engineSessionId?: string;
 }
 
 export interface VirtualYouMeasurements {

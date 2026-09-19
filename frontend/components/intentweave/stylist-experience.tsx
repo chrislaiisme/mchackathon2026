@@ -30,6 +30,12 @@ import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
 import {
+  adaptToChatRecommendation,
+  adaptToClarifyingMessage,
+  fetchIntentTurn,
+  fetchRecommendation,
+} from "@/lib/services/stylist";
+import {
   defaultVirtualYouImage,
   virtualYouService,
 } from "@/lib/services/virtual-you";
@@ -1714,7 +1720,7 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
-  function sendPrompt(prompt: string) {
+  async function sendPrompt(prompt: string) {
     const trimmed = prompt.trim();
 
     if (!trimmed || !activeConversation || isGenerating) {
@@ -1733,14 +1739,64 @@ export function StylistExperience() {
     setInput("");
     setIsGenerating(true);
 
-    window.setTimeout(() => {
+    // 2026-09-19：這裡原本是 window.setTimeout 假裝在想，換成真的呼叫 ENGINE01
+    // /intent（→有澄清問題就組選擇題；沒有就接著 /recommend 組 Top Pick＋Try More）。
+    // token 理論上一定有（createNewSession 已經檔過未登入導去 /login），沒有就退回
+    // 舊的 mock 回覆，不讓對話卡死。
+    const token = authService.getSessionToken();
+
+    if (!token) {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
       nextConversation = conversationService.appendMessage(latest, createStylistReply(trimmed, locale));
       persistConversation(nextConversation);
       setIsGenerating(false);
-    }, 420);
+      return;
+    }
+
+    try {
+      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, trimmed, token);
+
+      const assistantMessage: ChatMessage =
+        intentResult.clarifying_questions.length > 0
+          ? adaptToClarifyingMessage(intentResult.clarifying_questions)
+          : {
+              id: `ai-${Date.now()}`,
+              role: "assistant",
+              text:
+                locale === "zh-TW"
+                  ? "我有一套很適合你的方向，這是幫你搭好的一套。"
+                  : "I have a direction in mind — here's the outfit I'd start with.",
+              recommendation: await adaptToChatRecommendation(
+                await fetchRecommendation(intentResult.session_id, token),
+                token,
+              ),
+            };
+
+      const latest =
+        conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
+        nextConversation;
+      nextConversation = conversationService.update({ ...latest, engineSessionId: intentResult.session_id });
+      nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
+      persistConversation(nextConversation);
+    } catch (error) {
+      console.error("[stylist] 呼叫 ENGINE01／ENGINE02 失敗：", error);
+      const latest =
+        conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
+        nextConversation;
+      nextConversation = conversationService.appendMessage(latest, {
+        id: `ai-${Date.now()}`,
+        role: "assistant",
+        text:
+          locale === "zh-TW"
+            ? "後端目前連不上，稍後再試一次，或確認 ENGINE01／ENGINE02 服務都已經啟動。"
+            : "Couldn't reach the backend just now — please try again, or check that ENGINE01/ENGINE02 are running.",
+      });
+      persistConversation(nextConversation);
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
