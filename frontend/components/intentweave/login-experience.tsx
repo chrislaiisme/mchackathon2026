@@ -5,7 +5,7 @@ import Script from "next/script";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
-import { authService } from "@/lib/services/auth";
+import { authService, DEV_BYPASS_AUTH } from "@/lib/services/auth";
 import { onboardingService } from "@/lib/services/onboarding";
 
 // 必須跟後端 .env 的 GOOGLE_CLIENT_ID 是同一組值（後端驗證 ID token 的
@@ -153,6 +153,21 @@ export function LoginExperience() {
                 填入跟後端 .env 一致的 GOOGLE_CLIENT_ID（見 CLAUDE.md「Google
                 OAuth Client ID」）。
               </p>
+            )}
+            {/* 還沒建 Google OAuth Client ID 之前，本機要進得去。後端 .env 的
+                DEV_BYPASS_AUTH 跟這裡的 NEXT_PUBLIC_DEV_BYPASS_AUTH 要一起開，
+                正式 demo 兩個都要關掉，這顆按鈕就會消失。 */}
+            {DEV_BYPASS_AUTH && (
+              <button
+                type="button"
+                onClick={() => {
+                  authService.signInAsDevUser();
+                  router.replace(onboardingService.isCompleted() ? "/stylist" : "/onboarding");
+                }}
+                className="max-w-sm rounded-md border border-dashed border-primary/50 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10"
+              >
+                以本機測試帳號進入（DEV_BYPASS_AUTH）
+              </button>
             )}
             {isSigningIn && (
               <p className="text-xs text-muted-foreground">登入中，請稍候...</p>

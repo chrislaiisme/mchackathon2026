@@ -11,6 +11,23 @@ const SESSION_KEY = "intentweave.session";
 // 部署到別的網址時要在 frontend/.env.local 設 NEXT_PUBLIC_API_BASE_URL 覆蓋。
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+// 本機開發用的登入旁路，對齊後端 .env 的 DEV_BYPASS_AUTH。後端開著這個開關時，
+// 所有端點都當成一個固定的測試使用者，根本不檢查 token——但前端的 app-shell
+// 仍然會因為 localStorage 沒有 session 就把人踢回 /login，變成「後端不用登入，
+// 前端卻進不去」。這個旗標讓登入頁多一顆按鈕直接建立本機 session。
+// 兩邊要一起開：後端 .env 的 DEV_BYPASS_AUTH=true，前端 frontend/.env.local 的
+// NEXT_PUBLIC_DEV_BYPASS_AUTH=true。正式 demo 兩個都要關掉。
+export const DEV_BYPASS_AUTH = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+
+// 跟後端 backend/shared/auth.py 裡那個固定測試帳號對應。sessionToken 填什麼都
+// 不重要——後端開著 DEV_BYPASS_AUTH 時不會驗它。
+const DEV_USER: User = {
+  id: "dev-local",
+  name: "Dev User",
+  email: "dev@localhost",
+  avatarUrl: "",
+};
+
 // 後端 backend/shared/schemas.py 的 UserProfile／AuthResponse 形狀，
 // 只列出這裡實際會用到的欄位。
 interface BackendUserProfile {
@@ -95,6 +112,18 @@ export const authService = {
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     window.dispatchEvent(new Event("intentweave-auth-change"));
     return user;
+  },
+
+  // 只在 NEXT_PUBLIC_DEV_BYPASS_AUTH=true 時可用，見檔案上方的說明。
+  signInAsDevUser(): User {
+    if (!DEV_BYPASS_AUTH) {
+      throw new Error("NEXT_PUBLIC_DEV_BYPASS_AUTH 沒有開，不能用本機測試帳號登入");
+    }
+
+    const session: StoredSession = { user: DEV_USER, sessionToken: "dev-bypass" };
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    window.dispatchEvent(new Event("intentweave-auth-change"));
+    return DEV_USER;
   },
 
   signOut() {
