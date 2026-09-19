@@ -15,7 +15,7 @@ import time
 from typing import Any, Literal, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -44,19 +44,25 @@ class Session(BaseModel):
 _SESSIONS: dict[str, Session] = {}
 
 
-def _post(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _post(url: str, payload: dict[str, Any], headers: Optional[dict[str, str]] = None) -> dict[str, Any]:
     """對下游 POST。測試會替換這個函式。"""
     with httpx.Client(timeout=TIMEOUT) as client:
-        r = client.post(url, json=payload)
+        r = client.post(url, json=payload, headers=headers or {})
         r.raise_for_status()
         return r.json()
 
 
-def _step(activity: list[dict[str, Any]], name: str, url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _auth_headers(authorization: Optional[str]) -> dict[str, str]:
+    """把前端的登入憑證原樣往下傳。ENGINE 01 的 /intent 要求登入，ENGINE 02 用它分隔 session。"""
+    return {"Authorization": authorization} if authorization else {}
+
+
+def _step(activity: list[dict[str, Any]], name: str, url: str, payload: dict[str, Any],
+          headers: Optional[dict[str, str]] = None) -> dict[str, Any]:
     """呼叫一個下游並記帳；失敗時明確指出是哪一步斷的。"""
     t0 = time.time()
     try:
-        out = _post(url, payload)
+        out = _post(url, payload, headers)
     except Exception as exc:
         activity.append({"step": name, "url": url, "ms": int((time.time() - t0) * 1000),
                          "ok": False, "error": f"{type(exc).__name__}: {exc}"[:200]})
@@ -65,11 +71,12 @@ def _step(activity: list[dict[str, Any]], name: str, url: str, payload: dict[str
     return out
 
 
-def _retrieve(s: Session, activity: list[dict[str, Any]], message: Optional[str], top_k: int) -> dict[str, Any]:
+def _retrieve(s: Session, activity: list[dict[str, Any]], message: Optional[str], top_k: int,
+              headers: Optional[dict[str, str]] = None) -> dict[str, Any]:
     return _step(activity, "engine02.retrieve", f"{ENGINE02_URL}/retrieve", {
         "session_id": s.session_id, "round": s.round, "message": message,
         "intent": s.intent, "prev_intent": s.prev_intent,
-        "feedback": s.feedback, "top_k": top_k})
+        "feedback": s.feedback, "top_k": top_k}, headers)
 
 
 class RoundRequest(BaseModel):
@@ -80,13 +87,14 @@ class RoundRequest(BaseModel):
 
 
 @app.post("/round")
-def run_round(body: RoundRequest) -> dict[str, Any]:
+def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
     """一句話 → 意圖 → 推薦。第一輪和後續輪次走同一條路。"""
     activity: list[dict[str, Any]] = []
+    headers = _auth_headers(authorization)
 
     intent_out = _step(activity, "engine01.intent", f"{ENGINE01_URL}/intent", {
         "session_id": body.session_id, "message": body.message,
-        "reference_image_url": body.reference_image_url})
+        "reference_image_url": body.reference_image_url}, headers)
 
     sid = intent_out.get("session_id") or body.session_id or "anonymous"
     s = _SESSIONS.get(sid) or Session(session_id=sid)
@@ -94,7 +102,7 @@ def run_round(body: RoundRequest) -> dict[str, Any]:
     s.intent = intent_out.get("intent") or {}
     s.round = int(intent_out.get("round") or s.round + 1)
 
-    retrieval = _retrieve(s, activity, body.message, body.top_k)
+    retrieval = _retrieve(s, activity, body.message, body.top_k, headers)
 
     result = {
         "session_id": sid, "round": s.round,
@@ -123,7 +131,7 @@ class FeedbackRequest(BaseModel):
 
 
 @app.post("/feedback")
-def feedback(body: FeedbackRequest) -> dict[str, Any]:
+def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
     """回饋 → ENGINE 03 → 帶著回饋重跑 ENGINE 02，直接回傳下一輪結果。
 
     這就是評審要看的「出題 → 回饋 → 再出題」：同一個意圖、多了一輪回饋，排序就該不同。
@@ -133,12 +141,13 @@ def feedback(body: FeedbackRequest) -> dict[str, Any]:
         raise HTTPException(404, f"session {body.session_id!r} 不存在，請先呼叫 /round")
 
     activity: list[dict[str, Any]] = []
+    headers = _auth_headers(authorization)
     fb_out = _step(activity, "engine03.feedback", f"{ENGINE03_URL}/feedback",
-                   body.model_dump(exclude={"top_k"}))
+                   body.model_dump(exclude={"top_k"}), headers)
     s.feedback = fb_out.get("feedback")
     s.round = int(fb_out.get("next_round") or s.round + 1)
 
-    retrieval = _retrieve(s, activity, None, body.top_k)
+    retrieval = _retrieve(s, activity, None, body.top_k, headers)
 
     result = {
         "session_id": s.session_id, "round": s.round,

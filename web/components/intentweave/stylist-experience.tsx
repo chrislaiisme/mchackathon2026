@@ -7,6 +7,7 @@ import { Heart, RefreshCw, Send, SlidersHorizontal, ThumbsDown } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
 import { createStylistReply } from "@/lib/mock/stylist";
+import { runRound, sendCardFeedback } from "@/lib/services/api";
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import type { ChatMessage, Conversation, FashionRecommendation, PreferenceSignal, VisualChoice } from "@/lib/types";
@@ -292,14 +293,16 @@ export function StylistExperience() {
     setInput("");
     setIsGenerating(true);
 
-    window.setTimeout(() => {
+    void (async () => {
+      // 真的打串接層（ENGINE 01 → ENGINE 02）；連不上時 runRound 回 null，退回 mock，畫面不卡住。
+      const reply = await runRound(nextConversation.id, trimmed, t.assistant.recommendations);
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      nextConversation = conversationService.appendMessage(latest, createStylistReply(trimmed, locale));
+      nextConversation = conversationService.appendMessage(latest, reply ?? createStylistReply(trimmed, locale));
       persistConversation(nextConversation);
       setIsGenerating(false);
-    }, 420);
+    })();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -339,6 +342,20 @@ export function StylistExperience() {
       ],
     });
     persistConversation(nextConversation);
+
+    // 回饋進 ENGINE 03，帶著回饋重跑 ENGINE 02，下一輪直接回來。
+    const conversationId = nextConversation.id;
+    const userId = nextConversation.userId;
+    setIsGenerating(true);
+    void (async () => {
+      const reply = await sendCardFeedback(conversationId, id, value, t.assistant.recommendations);
+      if (reply) {
+        const latest =
+          conversationService.list(userId).find((conversation) => conversation.id === conversationId) || nextConversation;
+        persistConversation(conversationService.appendMessage(latest, reply));
+      }
+      setIsGenerating(false);
+    })();
   }
 
   const feedback = activeConversation?.recommendationFeedback || {};
