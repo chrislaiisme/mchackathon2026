@@ -275,8 +275,24 @@ def _generate(prompt_path: Path, model: str, aspect: str) -> dict[str, Any]:
     # 因為系統預設編碼本來就是 UTF-8，不會踩到這個坑，只有 Windows 這條新路徑
     # 會炸。errors="replace" 防止即使真的出現解不出來的位元組，也不要整個
     # subprocess 呼叫直接報例外。
+    #
+    # 2026-09-19 真人測試發現並修正：光是 encoding="utf-8" 還不夠——問題不是
+    # Python 這端解碼失敗（那樣會看到乾淨的 U+FFFD replacement 字元），而是
+    # wsl.exe 自己在「輸出被重新導向／不是互動式終端」時，預設不會照原樣吐出
+    # WSL2 內部程式（hermes_image.py）印出的 UTF-8 位元組，而是先套用 Windows
+    # 主控台的地區編碼（這台機器是 cp950）做一次轉換，把原本正確的 UTF-8
+    # 多位元組序列在轉換過程中就已經轉壞——bytes 到 Python 手上時已經是錯的，
+    # errors="replace" 救不回已經被 wsl.exe 轉壞的位元組，只能救「Python 自己
+    # 解不動」的情況。現場實測直接執行 `wsl.exe --version`（不帶 WSL_UTF8）
+    # 印出來的中文是亂碼，帶 `WSL_UTF8=1` 之後就完全正常——這是 wsl.exe 官方
+    # 就有支援、只是預設關閉的環境變數，讓它在非互動模式下也一律吐原始 UTF-8，
+    # 不要套用主控台編碼轉換。只在 Windows／wsl.exe 這條路徑加這個環境變數，
+    # 原生 Linux／WSL2 內部執行的那個 branch 用不到，加了也無害。
+    env = os.environ.copy()
+    if platform.system() == "Windows":
+        env["WSL_UTF8"] = "1"
     proc = subprocess.run(
-        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300, env=env
     )
     line = (proc.stdout or "").strip().splitlines()
     if not line:
