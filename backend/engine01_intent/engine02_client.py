@@ -23,6 +23,7 @@ from typing import Optional
 import requests
 from pydantic import ValidationError
 
+from backend.engine01_intent import zones
 from backend.shared.schemas import Intent, ProductCard, RetrievalResult
 
 # 混合檢索＋可解釋性分數拆解比單純查資料庫慢，給比 Pinterest 那邊更寬的逾時。
@@ -132,5 +133,54 @@ def visual_search(
                 )
             )
         return cards
+    except (requests.RequestException, ValidationError, ValueError, TypeError, KeyError):
+        return None
+
+
+def complete_look(anchor_item_id: str, target_zone: zones.Zone, k: int = 5) -> Optional[list[ProductCard]]:
+    """呼叫 ENGINE02 的 `POST /complete-look`，回傳依相容性排序過、落在
+    `target_zone` 那個分區的互補商品，每一件都帶 ENGINE02 自己算出來的
+    真實 `reason`（`engine02/service.py::complete_look()` 的 `_slate_reason()`，
+    根據 contributions／category_score／price 組字，不是隨機湊的）。
+
+    HTTP 層的 `n_categories` 只能控制「回傳幾個依統計共現排出來的互補分類」，
+    不能直接指定要哪一個分類——這裡固定要 8 個（等於 ENGINE02 目前粗分類的
+    數量），確保 `target_zone` 對應的分類幾乎一定會出現在回傳的 slates 裡，
+    再用 `zones.zone_of()` 從裡面挑出來。
+
+    錨點不在商品庫（例如其實是生圖，ENGINE02 完全沒有這張圖的相容性資料，
+    會回 400）、目標分區沒有出現在任何 slate 裡、連線失敗，一律回傳 `None`
+    ——呼叫端（`style_me.py`）要有備援，不能假設這支一定有結果。
+    """
+    try:
+        resp = requests.post(
+            f"{_base_url()}/engine02/complete-look",
+            json={"anchor_item_ids": [anchor_item_id], "n_categories": 8, "k": k},
+            timeout=_TIMEOUT_SECONDS,
+        )
+        resp.raise_for_status()
+        slates = resp.json().get("slates", [])
+        base = _base_url()
+        for slate in slates:
+            if zones.zone_of(slate.get("category")) != target_zone:
+                continue
+            cards: list[ProductCard] = []
+            for item in slate.get("items", []):
+                item_id = item.get("item_id")
+                if not item_id:
+                    continue
+                cards.append(
+                    ProductCard(
+                        product_id=item_id,
+                        image_url=f"{base}/engine02/images/{item_id}",
+                        title=item.get("title") or "",
+                        attributes={"category": slate.get("category")} if slate.get("category") else {},
+                        score=float(item.get("score", 0.0)),
+                        reason=item.get("reason") or "跟你選的這件很搭",
+                        explanation_source="complete_look",
+                    )
+                )
+            return cards if cards else None
+        return None  # target_zone 對應的分類沒有出現在任何 slate 裡
     except (requests.RequestException, ValidationError, ValueError, TypeError, KeyError):
         return None
