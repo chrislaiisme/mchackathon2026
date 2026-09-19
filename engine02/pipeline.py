@@ -502,6 +502,7 @@ class Engine02:
                     margin_vs_cutoff=ce.margin if ce.cutoff_position is not None else None,
                     reason_mode=arm.reason_mode,
                     reasons=reasons,
+                    reason_facts=facts,
                     attribute_notes=notes,
                     explanation=text_expl,
                     explanation_source=src,

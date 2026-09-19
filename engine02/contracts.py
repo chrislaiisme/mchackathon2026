@@ -309,6 +309,9 @@ class RankedItem(BaseModel):
     margin_vs_cutoff: float | None = None  # score gap to the rank k+1 item
     reason_mode: str = "sufficient"
     reasons: list[str] = Field(default_factory=list)  # template sentences, verified
+    # the facts those sentences state (label, contribution, direction ...): what a rewrite may use
+    # and what engine02.explain.verify_paraphrase checks it against (POST /explain/rewrite)
+    reason_facts: list[dict] = Field(default_factory=list)
     # hard-constrained attributes of this item that were filled by a model, e.g. ["顏色為模型判讀"]
     attribute_notes: list[str] = Field(default_factory=list)
     explanation: str = ""
