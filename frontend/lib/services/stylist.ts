@@ -70,15 +70,27 @@ interface BackendConceptCell {
   image_url?: string | null;
 }
 
+interface BackendConceptZoneResult {
+  dry_run?: boolean;
+  grid_image?: string | null;
+  prompt_used: string;
+  cells: BackendConceptCell[];
+}
+
+// 2026-09-19：後端 /concept-image 現在有兩種回傳形狀，看這輪的意圖是不是「整套」
+// （outfit_requested=True 且沒有單一 item_type）——單一品項回 `concepts`（一組六格），
+// 整套回 `zones.top`／`zones.bottom`（各一組六格）＋一句 Top Pick 理由，比照資料庫
+// 推薦「上衣／下身各 6 件」的展示邏輯，見 backend/engine01_intent/main.py 的
+// post_concept_image() 說明。兩個欄位都是選填，呼叫端要檢查是哪一種形狀回來的。
 interface BackendConceptImageResult {
   session_id: string;
   round: number;
-  concepts: {
-    dry_run?: boolean;
-    grid_image?: string | null;
-    prompt_used: string;
-    cells: BackendConceptCell[];
+  concepts?: BackendConceptZoneResult;
+  zones?: {
+    top: BackendConceptZoneResult;
+    bottom: BackendConceptZoneResult;
   };
+  top_pick_reason?: string | null;
 }
 
 export async function fetchConceptImage(
@@ -113,20 +125,70 @@ function toAbsoluteMediaUrl(path: string): string {
 // ChatMessage.recommendations 本來就有一個會渲染讚／倒讚的元件在等這個資料
 // （RecommendationCard，見 stylist-experience.tsx），只是目前完全沒有人填值，
 // 這裡重用它，不用另外做一套生圖專屬的卡片元件。
+//
+// `zone` 有給的話會設 itemType——Try On 判斷要把某件單品放進上衣還是下身槽位
+// 是看 `item.itemType === "bottom"` 或 id 前綴（stylist-experience.tsx 的
+// getItemSlot()），兩分區（整套請求）生效後如果沒設，全部生成品會被誤判成
+// 上衣，兩邊都放到同一槽位——單一品項模式（沒有 zone 概念）維持不設，
+// 讓既有的「沒設就當上衣」預設值處理。
 export function conceptCellsToRecommendations(
-  concepts: BackendConceptImageResult["concepts"],
+  concepts: BackendConceptZoneResult,
+  zone?: "top" | "bottom",
 ): FashionRecommendation[] {
+  const prefix = zone ? `${zone}-concept` : "concept";
   return concepts.cells
     .filter((cell) => Boolean(cell.image_url))
     .map((cell) => ({
-      id: `concept-${cell.index}`,
+      id: `${prefix}-${cell.index}`,
       name: cell.varied_label || `Option ${cell.index}`,
       imageUrl: toAbsoluteMediaUrl(cell.image_url as string),
       explanation: cell.prompt_fragment || concepts.prompt_used,
       attributes: Object.values(cell.keywords),
       priceBand: "",
       confidence: 0,
+      ...(zone ? { itemType: zone } : {}),
     }));
+}
+
+// 整套請求（outfit_requested）生圖的組裝：跟 adaptToChatRecommendation() 處理
+// 資料庫結果同一種 ChatRecommendation 形狀，重用既有的 Top Pick／Try More UI 殼
+// （CompleteOutfitCard／ConversationRecommendation），不新做 UI。Top Pick 是
+// 上衣格、下身格各自第一格（位置性配對，見 backend 那邊 post_concept_image()
+// 的說明，不是真相容性計算），理由用後端已經批次改寫過的 top_pick_reason。
+export function adaptConceptZonesToChatRecommendation(
+  result: BackendConceptImageResult,
+): ChatRecommendation | null {
+  if (!result.zones) {
+    return null;
+  }
+
+  const topCandidates = conceptCellsToRecommendations(result.zones.top, "top");
+  const bottomCandidates = conceptCellsToRecommendations(result.zones.bottom, "bottom");
+  const topPickCard = topCandidates[0];
+
+  if (!topPickCard) {
+    return null;
+  }
+
+  const bottomPickCard = bottomCandidates[0] ?? null;
+
+  return {
+    view: "top-pick",
+    topPick: {
+      id: `concept-outfit-${topPickCard.id}-${bottomPickCard?.id ?? "none"}`,
+      name: topPickCard.name,
+      items: { topOrDress: topPickCard, bottom: bottomPickCard },
+      matchScore: 0,
+      explanation: result.top_pick_reason || topPickCard.explanation,
+      tags: topPickCard.attributes,
+    },
+    alternatives: {
+      topOrDressCandidates: topCandidates,
+      bottomCandidates: bottomCandidates,
+      selectedTopOrDressIndex: 0,
+      selectedBottomIndex: 0,
+    },
+  };
 }
 
 export class StylistApiError extends Error {}

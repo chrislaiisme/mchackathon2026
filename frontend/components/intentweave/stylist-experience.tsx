@@ -30,6 +30,7 @@ import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
 import {
+  adaptConceptZonesToChatRecommendation,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
   conceptCellsToRecommendations,
@@ -2127,33 +2128,54 @@ export function StylistExperience() {
     try {
       // 2026-09-19：Hermes Agent 已經確認裝在這台機器的 WSL2 裡、橋接測過真的能生圖
       // （agent/scripts/generate_grid.py 的 _generate() 在 Windows 上會跨進 WSL2 呼叫），
-      // 這裡改成 dryRun: false，真的花額度生六件單品。
+      // 這裡改成 dryRun: false，真的花額度生單品。
       const result = await fetchConceptImage(activeConversation.engineSessionId, token, { dryRun: false });
-      const { concepts } = result;
-      const varietyLines = concepts.cells
-        .map((cell) => cell.varied_label)
-        .filter((label): label is string => Boolean(label))
-        .join("、");
-
-      const summary =
-        locale === "zh-TW"
-          ? concepts.dry_run
-            ? `（測試模式，還沒真的生圖）已經組好六格的生成 prompt，這六格會分別呈現：${varietyLines || "（尚未指定差異）"}。`
-            : "生成完成，六件新單品在下面，點一件試穿看看。"
-          : concepts.dry_run
-            ? `(Dry run — no image generated yet.) The six-cell prompt is ready. Cells will vary: ${varietyLines || "(not yet specified)"}.`
-            : "Done — six new pieces below, tap one to try it on.";
 
       const latest =
         conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
         activeConversation;
-      const nextConversation = conversationService.appendMessage(latest, {
-        id: `assistant-design-${Date.now()}`,
-        role: "assistant",
-        text: summary,
-        recommendations: concepts.dry_run ? undefined : conceptCellsToRecommendations(concepts),
-      });
-      persistConversation(nextConversation);
+
+      if (result.zones) {
+        // 整套請求：上衣／下身各一組六格，跟資料庫推薦一樣先秀 Top Pick，
+        // 按 Try More 展開兩區各 6 張——重用既有的 ChatRecommendation 顯示殼，
+        // 不是 recommendations 那個平鋪清單。
+        const recommendation = adaptConceptZonesToChatRecommendation(result);
+        const summary =
+          locale === "zh-TW"
+            ? "生成完成，先幫你配了一套，按「Try More」看上衣／下身各 6 件候選。"
+            : "Done — here's a first pairing. Tap Try More for 6 options in each zone.";
+        const nextConversation = conversationService.appendMessage(latest, {
+          id: `assistant-design-${Date.now()}`,
+          role: "assistant",
+          text: summary,
+          recommendation: recommendation ?? undefined,
+        });
+        persistConversation(nextConversation);
+      } else if (result.concepts) {
+        // 單一品項：維持原本的扁平清單顯示。
+        const concepts = result.concepts;
+        const varietyLines = concepts.cells
+          .map((cell) => cell.varied_label)
+          .filter((label): label is string => Boolean(label))
+          .join("、");
+
+        const summary =
+          locale === "zh-TW"
+            ? concepts.dry_run
+              ? `（測試模式，還沒真的生圖）已經組好六格的生成 prompt，這六格會分別呈現：${varietyLines || "（尚未指定差異）"}。`
+              : "生成完成，六件新單品在下面，點一件試穿看看。"
+            : concepts.dry_run
+              ? `(Dry run — no image generated yet.) The six-cell prompt is ready. Cells will vary: ${varietyLines || "(not yet specified)"}.`
+              : "Done — six new pieces below, tap one to try it on.";
+
+        const nextConversation = conversationService.appendMessage(latest, {
+          id: `assistant-design-${Date.now()}`,
+          role: "assistant",
+          text: summary,
+          recommendations: concepts.dry_run ? undefined : conceptCellsToRecommendations(concepts),
+        });
+        persistConversation(nextConversation);
+      }
     } catch (error) {
       console.error("[stylist] 呼叫 ENGINE01 /concept-image 失敗：", error);
       const latest =
