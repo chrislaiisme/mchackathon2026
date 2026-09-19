@@ -1,0 +1,250 @@
+{
+ "setup": {
+  "source": "wikimedia_pageviews",
+  "granularity": "weekly (summed from daily)",
+  "h_weeks": 8,
+  "m_weeks": 52,
+  "windows": 10,
+  "n_series": 19,
+  "start": "20190101",
+  "end": "20260919"
+ },
+ "models": {
+  "naive": {
+   "mean_mase": 0.6934128226295139,
+   "median_mase": 0.6496706145869571,
+   "wins_vs_seasonal_naive": 15,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 0.004749762511874406
+  },
+  "seasonal_naive": {
+   "mean_mase": 0.8788403313389659,
+   "median_mase": 0.8281716203050549,
+   "wins_vs_seasonal_naive": 0,
+   "n_series": 19,
+   "p_vs_seasonal_naive": null
+  },
+  "drift": {
+   "mean_mase": 0.7021314411325296,
+   "median_mase": 0.6721480954574275,
+   "wins_vs_seasonal_naive": 15,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 0.007249637518124094
+  },
+  "ses": {
+   "mean_mase": 0.6512744538573941,
+   "median_mase": 0.6315295178444424,
+   "wins_vs_seasonal_naive": 15,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 0.0007999600019999
+  },
+  "theta": {
+   "mean_mase": 0.650597046169577,
+   "median_mase": 0.6263544728507469,
+   "wins_vs_seasonal_naive": 15,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 0.0007499625018749063
+  },
+  "seasonal_theta": {
+   "mean_mase": 0.6969996173785816,
+   "median_mase": 0.6241853931877911,
+   "wins_vs_seasonal_naive": 16,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 0.0008499575021248938
+  },
+  "combination": {
+   "mean_mase": 0.5829651370736795,
+   "median_mase": 0.5176938087639753,
+   "wins_vs_seasonal_naive": 18,
+   "n_series": 19,
+   "p_vs_seasonal_naive": 9.99950002499875e-05
+  },
+  "_strongest_baseline": {
+   "name": "naive",
+   "mean_mase": 0.6934128226295139,
+   "best_model": "combination",
+   "delta": -0.1104476855558344,
+   "ci": [
+    -0.17188401673739834,
+    -0.0548010790760879
+   ],
+   "wins": 16,
+   "n_series": 19,
+   "p": 0.0014999250037498126
+  }
+ },
+ "per_series": {
+  "trench coat": {
+   "naive": 0.7803456968693446,
+   "seasonal_naive": 0.7940255382046053,
+   "drift": 0.7823876541052424,
+   "ses": 0.8883938172118722,
+   "theta": 0.8890443105419605,
+   "seasonal_theta": 0.7710994794391607,
+   "combination": 0.7275182413021738
+  },
+  "blazer": {
+   "naive": 0.4003427090309376,
+   "seasonal_naive": 0.6054948853932388,
+   "drift": 0.4390004103708967,
+   "ses": 0.3796656016921009,
+   "theta": 0.393653193850317,
+   "seasonal_theta": 0.541263493315695,
+   "combination": 0.373759154282968
+  },
+  "cardigan": {
+   "naive": 1.0345845429620355,
+   "seasonal_naive": 0.8002787887605377,
+   "drift": 1.0573390888687801,
+   "ses": 0.9605097467774393,
+   "theta": 0.9638646356625123,
+   "seasonal_theta": 0.7993025405085412,
+   "combination": 0.7995044105817946
+  },
+  "hoodie": {
+   "naive": 1.4211597018529083,
+   "seasonal_naive": 1.4194685513791472,
+   "drift": 1.417954323397716,
+   "ses": 1.3772367083738437,
+   "theta": 1.369868271526283,
+   "seasonal_theta": 1.3564399917472614,
+   "combination": 1.272528958640581
+  },
+  "jeans": {
+   "naive": 0.9111183578550385,
+   "seasonal_naive": 0.9122561079606262,
+   "drift": 0.9300628682550242,
+   "ses": 0.9406258137888024,
+   "theta": 0.9424619514584082,
+   "seasonal_theta": 0.9780015207498863,
+   "combination": 0.8280678217024194
+  },
+  "sneakers": {
+   "naive": 0.3330295213984928,
+   "seasonal_naive": 0.5543735924129403,
+   "drift": 0.3027789586017863,
+   "ses": 0.2514529938218767,
+   "theta": 0.23342806090854137,
+   "seasonal_theta": 0.28758105640909337,
+   "combination": 0.22240471577859267
+  },
+  "loafers": {
+   "naive": 0.497037499628627,
+   "seasonal_naive": 1.1473159628020748,
+   "drift": 0.5075396399731533,
+   "ses": 0.44456626059460425,
+   "theta": 0.44538875228275987,
+   "seasonal_theta": 0.6246021711542201,
+   "combination": 0.4407356869490653
+  },
+  "miniskirt": {
+   "naive": 0.8311988609168793,
+   "seasonal_naive": 0.678779196937809,
+   "drift": 0.8508891736506676,
+   "ses": 0.49798844213554183,
+   "theta": 0.4847948383132626,
+   "seasonal_theta": 0.5872376021692803,
+   "combination": 0.392575022398044
+  },
+  "crop top": {
+   "naive": 0.6158085808779027,
+   "seasonal_naive": 0.9736130655815085,
+   "drift": 0.6103926191408672,
+   "ses": 0.6231377469648278,
+   "theta": 0.6232263255888915,
+   "seasonal_theta": 0.9642718808255614,
+   "combination": 0.6927192065967323
+  },
+  "turtleneck": {
+   "naive": 0.6396247168651388,
+   "seasonal_naive": 0.8281716203050549,
+   "drift": 0.6401359945021305,
+   "ses": 0.6315295178444424,
+   "theta": 0.6263544728507469,
+   "seasonal_theta": 0.5297305494028292,
+   "combination": 0.4978264619257867
+  },
+  "linen": {
+   "naive": 0.2773872047511278,
+   "seasonal_naive": 0.5178104034902804,
+   "drift": 0.27650535307353613,
+   "ses": 0.422619171068651,
+   "theta": 0.41966739847836837,
+   "seasonal_theta": 0.5482327402708066,
+   "combination": 0.3989720734519138
+  },
+  "corduroy": {
+   "naive": 1.0081584229253024,
+   "seasonal_naive": 1.078759633321657,
+   "drift": 1.023920254723591,
+   "ses": 0.9017790282422654,
+   "theta": 0.9011150618984415,
+   "seasonal_theta": 0.5035502806683951,
+   "combination": 0.6647907203497254
+  },
+  "satin": {
+   "naive": 0.5402707618843136,
+   "seasonal_naive": 1.0579969511660632,
+   "drift": 0.5662073798364675,
+   "ses": 0.528885844670235,
+   "theta": 0.5352408091187679,
+   "seasonal_theta": 0.7131034743891068,
+   "combination": 0.5176938087639753
+  },
+  "athleisure": {
+   "naive": 0.5207658131866884,
+   "seasonal_naive": 0.7970313310858242,
+   "drift": 0.5145508845415321,
+   "ses": 0.445140295699476,
+   "theta": 0.4370038007499861,
+   "seasonal_theta": 0.6064601776394951,
+   "combination": 0.426067401467716
+  },
+  "quiet luxury": {
+   "naive": 0.6496706145869571,
+   "seasonal_naive": 0.46827558897308297,
+   "drift": 0.6721480954574275,
+   "ses": 0.6318800193323331,
+   "theta": 0.6350865253484185,
+   "seasonal_theta": 0.5857869097712564,
+   "combination": 0.4929572875452498
+  },
+  "tailoring": {
+   "naive": 0.7334549957836668,
+   "seasonal_naive": 1.3338118237480123,
+   "drift": 0.7517700776261911,
+   "ses": 0.7311469806176801,
+   "theta": 0.736598813469794,
+   "seasonal_theta": 0.9545153466622658,
+   "combination": 0.7337108855978646
+  },
+  "knitwear": {
+   "naive": 0.7829462866723699,
+   "seasonal_naive": 1.0521718988473454,
+   "drift": 0.797376493898688,
+   "ses": 0.6993989185422755,
+   "theta": 0.6995718222279977,
+   "seasonal_theta": 0.6241853931877911,
+   "combination": 0.5752443266590561
+  },
+  "cargo pants": {
+   "naive": 0.3938038472088188,
+   "seasonal_naive": 0.7566832700579733,
+   "drift": 0.3983270787422773,
+   "ses": 0.37231349597851776,
+   "theta": 0.37636794639437177,
+   "seasonal_theta": 0.4654554008134955,
+   "combination": 0.3633781019285867
+  },
+  "pleated skirt": {
+   "naive": 0.8041354947042144,
+   "seasonal_naive": 0.9216480850125717,
+   "drift": 0.8012110327520865,
+   "ses": 0.6459442199337041,
+   "theta": 0.6486068865521364,
+   "seasonal_theta": 0.802172721068912,
+   "combination": 0.6558833184776651
+  }
+ },
+ "verdict": "combination 平均 MASE 0.583 < 最強基準 naive 0.693（差 -0.110，CI [-0.172,-0.055]，16/19 條，p=0.0015）"
+}

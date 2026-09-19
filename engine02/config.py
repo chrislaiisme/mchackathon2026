@@ -89,6 +89,9 @@ class ArmConfig:
     # catalog vocabulary and enforced this round. "off" keeps the old warn-only behaviour.
     parse_negations: bool = True
     negation_element_steps: int = -2   # an explicit "I don't want X" is stronger than a thumbs-down
+    # How many steps one explicit ENGINE 03 `adjust` op is worth (§3.38). Measured on 60
+    # simulated shoppers: at 1 the median slate moves -0.019 z, at 2 it moves -0.167 z.
+    adjust_gain: int = 2
     use_critique_roles: bool = False
     w_role_desire: float = 1.0
     w_role_preserve: float = 0.5
@@ -122,6 +125,11 @@ ARMS: dict[str, ArmConfig] = {
     # §3.1–3.13; `full_zclip3_nofresh` is the control for rerunning the round-2 experiments.
     "full_zclip3": replace(FULL, name="full_zclip3", z_clip=3.0, concept_image_weight=0.2,
                            use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True),
+    # control for §3.38: one complaint counts as one step, the pre-measurement behaviour
+    "full_zclip3_gain1": replace(FULL, name="full_zclip3_gain1", z_clip=3.0,
+                                 concept_image_weight=0.2, use_freshness=True,
+                                 bm25_gate="docs_touched", use_critique_roles=True,
+                                 adjust_gain=1),
     # control for §3.35: the serving arm that only warns about a negation instead of enforcing it
     "full_zclip3_noneg": replace(FULL, name="full_zclip3_noneg", z_clip=3.0, concept_image_weight=0.2,
                                  use_freshness=True, bm25_gate="docs_touched", use_critique_roles=True,
