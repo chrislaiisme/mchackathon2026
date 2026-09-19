@@ -13,6 +13,7 @@ Existing files are skipped, so it can be re-run after an interruption. No accoun
 from __future__ import annotations
 
 import argparse
+import http.client
 import io
 import sys
 import time
@@ -47,7 +48,7 @@ def fetch(url: str, dst: Path) -> bool:
             if e.code in (401, 403, 404, 410, 451):     # missing or refused: retrying will not help
                 return False
             time.sleep(2 * (attempt + 1))
-        except (urllib.error.URLError, OSError):
+        except (urllib.error.URLError, OSError, http.client.HTTPException):   # IncompleteRead: a dropped transfer
             time.sleep(2 * (attempt + 1))
     return False
 
