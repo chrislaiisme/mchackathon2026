@@ -11,11 +11,12 @@ import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { preferenceService } from "@/lib/services/preferences";
 import { defaultVirtualYouImage, virtualYouService } from "@/lib/services/virtual-you";
-import type { OutfitSlot, User, VirtualYouProfile, WardrobeCategory, WardrobeItem } from "@/lib/types";
+import type { FashionRecommendation, OutfitSlot, User, VirtualYouProfile, WardrobeCategory, WardrobeItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type WardrobeFilter = "all" | WardrobeCategory;
 type OutfitState = Partial<Record<OutfitSlot, WardrobeItem>>;
+const currentLookSlots: OutfitSlot[] = ["top", "bottom", "dress"];
 
 function applyWardrobeItem(outfit: OutfitState, item: WardrobeItem): OutfitState {
   const slot = getOutfitSlot(item.category);
@@ -100,9 +101,16 @@ function WardrobeItemCard({
   const { t } = useI18n();
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(item)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(item);
+        }
+      }}
       aria-pressed={selected}
       className={cn(
         "group overflow-hidden border bg-card text-left transition focus-visible:border-primary focus-visible:outline-none",
@@ -138,7 +146,7 @@ function WardrobeItemCard({
           {item.brand || t.dressingRoom.filters[item.category]}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -198,13 +206,21 @@ function CurrentLook({
   outfit,
   onRemove,
   onClear,
+  onTryOn,
+  canTryOn,
+  isTryingOn,
+  tryOnError,
 }: {
   outfit: OutfitState;
   onRemove: (slot: OutfitSlot) => void;
   onClear: () => void;
+  onTryOn: () => void;
+  canTryOn: boolean;
+  isTryingOn: boolean;
+  tryOnError: string;
 }) {
   const { t } = useI18n();
-  const hasItems = outfitSlots.some((slot) => outfit[slot]);
+  const hasItems = currentLookSlots.some((slot) => outfit[slot]);
 
   return (
     <section className="border-t border-border pt-5">
@@ -222,7 +238,7 @@ function CurrentLook({
         )}
       </div>
       <div className="mt-4 space-y-2">
-        {outfitSlots.map((slot) => {
+        {currentLookSlots.map((slot) => {
           const item = outfit[slot];
 
           return (
@@ -245,8 +261,9 @@ function CurrentLook({
           );
         })}
       </div>
-      <Button variant="outline" className="mt-4 w-full" disabled={!hasItems}>
-        {t.dressingRoom.saveLook}
+      {tryOnError && <p className="mt-3 text-sm text-destructive">{tryOnError}</p>}
+      <Button type="button" variant="outline" className="mt-4 w-full" disabled={!hasItems || !canTryOn || isTryingOn} onClick={onTryOn}>
+        {isTryingOn ? "TRYING ON..." : "TRY ON"}
       </Button>
     </section>
   );
@@ -260,6 +277,11 @@ function OutfitPreview({
   onUpload,
   onRemove,
   onClear,
+  onTryOn,
+  canTryOn,
+  isTryingOn,
+  tryOnError,
+  activeTryOnImage,
 }: {
   virtualYou: VirtualYouProfile | null;
   outfit: OutfitState;
@@ -268,12 +290,17 @@ function OutfitPreview({
   onUpload: (file: File) => void;
   onRemove: (slot: OutfitSlot) => void;
   onClear: () => void;
+  onTryOn: () => void;
+  canTryOn: boolean;
+  isTryingOn: boolean;
+  tryOnError: string;
+  activeTryOnImage: string | null;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
-  const selectedPieces = outfitSlots.map((slot) => outfit[slot]).filter(Boolean) as WardrobeItem[];
+  const selectedPieces = currentLookSlots.map((slot) => outfit[slot]).filter(Boolean) as WardrobeItem[];
   const hasVirtualYou = Boolean(virtualYou);
-  const displayImage = virtualYou?.modelImageUrl || defaultVirtualYouImage;
+  const displayImage = activeTryOnImage ?? virtualYou?.modelImageUrl ?? defaultVirtualYouImage;
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -298,12 +325,19 @@ function OutfitPreview({
       <div className="relative flex min-h-[520px] items-end justify-center overflow-hidden border border-border bg-card px-6 pt-10">
         <div className="absolute bottom-16 left-1/2 h-72 w-52 -translate-x-1/2 rounded-[50%] bg-primary/10 blur-3xl" />
         {hasVirtualYou ? (
-          <div
-            role="img"
-            aria-label={t.dressingRoom.virtualYou}
-            className="relative z-10 h-[470px] w-[86%] bg-contain bg-bottom bg-no-repeat"
-            style={{ backgroundImage: `url(${displayImage})` }}
-          />
+          <>
+            <div
+              role="img"
+              aria-label={t.dressingRoom.virtualYou}
+              className="relative z-10 h-[470px] w-[86%] bg-contain bg-bottom bg-no-repeat"
+              style={{ backgroundImage: `url(${displayImage})` }}
+            />
+            {isTryingOn && (
+              <div className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center text-sm leading-6 text-muted-foreground">
+                {t.virtualYou.tryingItOn}
+              </div>
+            )}
+          </>
         ) : (
           <div className="relative z-10 mb-14 max-w-xs text-center">
             <p className="font-serif text-3xl leading-tight">{t.dressingRoom.createVirtualYouTitle}</p>
@@ -320,9 +354,36 @@ function OutfitPreview({
       )}
       {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 
-      <CurrentLook outfit={outfit} onRemove={onRemove} onClear={onClear} />
+      <CurrentLook
+        outfit={outfit}
+        onRemove={onRemove}
+        onClear={onClear}
+        onTryOn={onTryOn}
+        canTryOn={canTryOn}
+        isTryingOn={isTryingOn}
+        tryOnError={tryOnError}
+      />
     </aside>
   );
+}
+
+function toTryOnRecommendation(item: WardrobeItem): FashionRecommendation {
+  const itemType = item.category === "bottoms" ? "bottom" : item.category === "dresses" ? "dress" : "top";
+
+  return {
+    id: item.id,
+    name: item.name,
+    imageUrl: item.imageUrl,
+    explanation: "",
+    attributes: item.attributes,
+    priceBand: "",
+    confidence: 0,
+    itemType,
+  };
+}
+
+function isWardrobeItem(item: WardrobeItem | undefined): item is WardrobeItem {
+  return Boolean(item);
 }
 
 export function DressingRoomExperience() {
@@ -334,8 +395,12 @@ export function DressingRoomExperience() {
   const [activeFilter, setActiveFilter] = useState<WardrobeFilter>("all");
   const [outfit, setOutfit] = useState<OutfitState>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isTryingOn, setIsTryingOn] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [tryOnError, setTryOnError] = useState("");
   const virtualYouObjectUrlRef = useRef<string | null>(null);
+  const tryOnObjectUrlRef = useRef<string | null>(null);
+  const [activeTryOnImage, setActiveTryOnImage] = useState<string | null>(null);
 
   const replaceVirtualYou = useCallback((nextProfile: VirtualYouProfile | null) => {
     const previousObjectUrl = virtualYouObjectUrlRef.current;
@@ -363,6 +428,18 @@ export function DressingRoomExperience() {
     replaceVirtualYou(await virtualYouService.get(session.id));
   }, [replaceVirtualYou, router]);
 
+  const replaceActiveTryOnImage = useCallback((nextImageUrl: string | null) => {
+    const previousObjectUrl = tryOnObjectUrlRef.current;
+    const nextObjectUrl = nextImageUrl?.startsWith("blob:") ? nextImageUrl : null;
+
+    if (previousObjectUrl && previousObjectUrl !== nextObjectUrl) {
+      URL.revokeObjectURL(previousObjectUrl);
+    }
+
+    tryOnObjectUrlRef.current = nextObjectUrl;
+    setActiveTryOnImage(nextImageUrl);
+  }, []);
+
   useEffect(() => {
     queueMicrotask(() => {
       void refresh();
@@ -380,6 +457,10 @@ export function DressingRoomExperience() {
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
       }
+
+      if (tryOnObjectUrlRef.current) {
+        URL.revokeObjectURL(tryOnObjectUrlRef.current);
+      }
     };
   }, [refresh]);
 
@@ -396,6 +477,7 @@ export function DressingRoomExperience() {
 
     try {
       const { extractedPersonImage } = await virtualYouService.extractPerson(file);
+      replaceActiveTryOnImage(null);
       replaceVirtualYou(
         await virtualYouService.saveExtractedPerson({
           userId: user.id,
@@ -409,6 +491,46 @@ export function DressingRoomExperience() {
       setUploadError(t.dressingRoom.uploadError);
     } finally {
       setIsUploading(false);
+    }
+  }
+
+  async function handleTryOn() {
+    if (!user || !virtualYou || isTryingOn) {
+      return;
+    }
+
+    const selectedItems = outfit.dress ? [outfit.dress] : [outfit.top, outfit.bottom].filter(isWardrobeItem);
+
+    if (selectedItems.length === 0) {
+      setTryOnError("Select a top, bottom, or dress first.");
+      return;
+    }
+
+    setIsTryingOn(true);
+    setTryOnError("");
+
+    try {
+      const preview = await virtualYouService.runVirtualTryOn(virtualYou, selectedItems.map(toTryOnRecommendation));
+      replaceActiveTryOnImage(preview.generatedImageUrl);
+      setIsTryingOn(false);
+      void virtualYouService
+        .saveCurrentTryOn({
+          userId: user.id,
+          currentTryOnImage: preview.generatedImage,
+          personBoundingBox: await getImageBounds(preview.generatedImage),
+        })
+        .then((nextProfile) => {
+          if (nextProfile) {
+            replaceVirtualYou(nextProfile);
+          }
+        })
+        .catch((error) => {
+          console.error("[DressingRoom] Try-on persistence failed", error);
+        });
+    } catch (error) {
+      console.error("[DressingRoom] Try-on failed", error);
+      setTryOnError(t.virtualYou.tryOnError);
+      setIsTryingOn(false);
     }
   }
 
@@ -460,15 +582,20 @@ export function DressingRoomExperience() {
           />
         </div>
         <div className="order-1 lg:order-2">
-          <OutfitPreview
-            virtualYou={virtualYou}
-            outfit={outfit}
-            uploadError={uploadError}
-            isUploading={isUploading}
-            onUpload={handleUpload}
-            onRemove={removeSlot}
-            onClear={() => setOutfit({})}
-          />
+	          <OutfitPreview
+	            virtualYou={virtualYou}
+	            outfit={outfit}
+	            uploadError={uploadError}
+	            isUploading={isUploading}
+	            onUpload={handleUpload}
+	            onRemove={removeSlot}
+	            onClear={() => setOutfit({})}
+	            onTryOn={handleTryOn}
+	            canTryOn={Boolean(virtualYou)}
+	            isTryingOn={isTryingOn}
+	            tryOnError={tryOnError}
+	            activeTryOnImage={activeTryOnImage}
+	          />
         </div>
       </div>
     </div>
