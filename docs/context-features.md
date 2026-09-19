@@ -4,6 +4,23 @@ Creative layer on top of ENGINE 02. **Nothing here is measured yet** -- every si
 `evidence: "intuition v0 (not yet measured)"` (or "entertainment" for the lucky colour), and a card
 shows exactly how much each situation added.
 
+## ENGINE 02 fills the situation in itself
+
+ENGINE 01 sends an intent, not a situation. So when a request has no `context` (or only part of
+one), ENGINE 02 fills the empty fields itself (`engine02/context/auto.py`): **today's date and the
+current hour in Taiwan** (the hour only between 06:00 and 22:00 -- overnight shoppers are dressing
+for the day) and **新竹市** (`ENGINE02_DEFAULT_CITY` / `_LAT` / `_LON`), then fetches that weather.
+Whatever the caller sends always wins. Every response says what was used and what was assumed:
+
+```json
+"context_used": {"auto_filled": {"event_date": "2026-09-20", "city": "新竹市", "lat": 24.8138, "lon": 120.9675},
+                 "signals": [{"source": "weather", "label": "今天新竹市體感 30°C → 短袖、透氣輕薄最實在", "affects_ranking": true}, ...],
+                 "problems": []}
+```
+
+(on the ENGINE 01 path it is `engine02.context_used`). The day's forecast is fetched in the
+background at startup and cached. `ENGINE02_AUTO_CONTEXT=0` turns this off.
+
 ## In the ranking: `Engine02Request.context`
 
 ```json

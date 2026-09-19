@@ -500,6 +500,8 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
             "encoder": resp.encoder,
             "timings_ms": resp.timings_ms,
             "items": [it.model_dump() for it in resp.items],
+            # the situation used (weather, festival ...), incl. what ENGINE 02 filled in by itself
+            "context_used": getattr(resp, "context_used", {}) or {},
             # the stylist-voiced reasons arrive later: POST {this service}/explain/rewrite
             # (under /engine02 on the /retrieve services) with this session id
             "rewrite": {"session_id": resp.session_id, "endpoint": "/explain/rewrite"},

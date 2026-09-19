@@ -17,6 +17,8 @@ Environment variables:
   ENGINE02_DEMO      1 = never call the LLM for reasons, whatever the request asks
   ENGINE02_MAX_UPLOAD_MB  /visual-search upload cap (default 12)
   ENGINE02_LLM_TIMEOUT / ENGINE02_LLM_BUDGET_S  per-call and per-request paraphrase budgets
+  ENGINE02_AUTO_CONTEXT  1 (default) = no/partial context -> today, the current hour and ENGINE02_DEFAULT_CITY
+                     (default 新竹市) are filled in and that weather fetched; 0 = off (engine02/context/auto.py)
   ENGINE02_REWRITER  codex = POST /explain/rewrite re-voices the cards through the team's ChatGPT
                      account (Codex CLI, `codex login`); /rank never waits for it (docs/explain-rewrite.md)
 """
@@ -127,8 +129,30 @@ async def lifespan(app: FastAPI):
             log.warning("could not load trend keywords: %s", e)
     if os.environ.get("ENGINE02_WARMUP", "1") != "0":
         STATE["warm_ms"] = _warmup()
+    _prefetch_situation()
     yield
     STATE.clear()
+
+
+def _prefetch_situation() -> None:
+    """Fetch today's weather for the default city in the background at startup, so the first
+    shopper's /rank reads it from the cache instead of waiting ~1.5 s for Open-Meteo."""
+    from .context.auto import auto_context, enabled
+
+    if not enabled() or DEMO_MODE:
+        return
+
+    def run() -> None:
+        try:
+            from .context.engine import build_signals
+
+            build_signals(auto_context(None)[0])
+        except Exception as e:  # noqa: BLE001 -- a failed prefetch only means the first request fetches
+            log.warning("situation prefetch failed: %s", e)
+
+    import threading
+
+    threading.Thread(target=run, name="engine02-situation-prefetch", daemon=True).start()
 
 
 def _warmup() -> float | None:
@@ -411,7 +435,16 @@ def rank(req: Engine02Request) -> ServiceResponse:
     if ARMS[arm].use_cross_reranker and engine().cross_reranker is None:
         raise HTTPException(400, "this arm needs ENGINE02_RERANKER to be set on the server")
     _record_demand(req)
+    # no situation from the caller -> ENGINE 02 uses today's date, the current hour and the default
+    # city itself, and fetches that weather (engine02/context/auto.py); caller's fields always win
+    from .context.auto import auto_context
+
+    ctx, auto_filled = auto_context(req.context)
+    if auto_filled:
+        req = req.model_copy(update={"context": ctx})
     out = STATE["service"].rank(req, arm)
+    if auto_filled:
+        out.context_used = {**(out.context_used or {}), "auto_filled": auto_filled}
     from .rewrite import remember
 
     # for POST /explain/rewrite (the ChatGPT-voiced reasons): the cards, their catalogue facts and

@@ -373,3 +373,6 @@ class Engine02Response(BaseModel):
     # proposed: query vector used this round, so ENGINE 03 can apply Rocchio next round
     query_embedding: list[float] | None = None
     timings_ms: dict[str, float] = Field(default_factory=dict)
+    # the situation this ranking used: signals (with their card labels), problems (e.g. no forecast),
+    # and -- when ENGINE 02 filled it in itself -- auto_filled {field: value} (engine02/context/auto.py)
+    context_used: dict = Field(default_factory=dict)
