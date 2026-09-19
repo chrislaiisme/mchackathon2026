@@ -1,0 +1,12 @@
+method,compose_ms,filter_rank_ms,total_ms
+image_plus_text,0.67,0.73,1.41
+image_plus_text_filter,0.61,0.71,1.44
+ref_plus_filter,0.53,0.76,1.23
+text_rewrite,0.58,0.77,1.38
+vector_arithmetic,0.66,0.75,1.34
+critique_filter(pipeline full),,,4.9399999999999995
+text_rewrite+bm25_rrf(pipeline),,,3.83
+image_plus_text+bm25_rrf[a=0.0](pipeline),,,3.715
+image_plus_text_filter+bm25_rrf[a=0.0](pipeline),,,4.115
+roles(pipeline),,,6.986250024056062
+critique_filter+roles(pipeline),,,7.517300022300333

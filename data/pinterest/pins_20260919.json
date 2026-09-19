@@ -1,0 +1,1601 @@
+{
+ "source": "pinterest_api_v5",
+ "fetched_at": "2026-09-19T08:31:50+00:00",
+ "account_type": "BUSINESS",
+ "scope": "the account's OWN boards and Pins; public search (pin_search) is partner-only and returned 401, so this is not a sample of Pinterest at large",
+ "license": "Pinterest API terms; images belong to their creators -- internal use only, do not redistribute the images",
+ "boards": [
+  {
+   "board_id": "1096767384194767576",
+   "name": "IntentWeave References",
+   "description": null,
+   "pin_count": 4,
+   "fetched": 4
+  },
+  {
+   "board_id": "1096767384194767577",
+   "name": "快速儲存",
+   "description": null,
+   "pin_count": 71,
+   "fetched": 71
+  }
+ ],
+ "n_pins": 75,
+ "pins": [
+  {
+   "pin_id": "1096767315540305098",
+   "board_id": "1096767384194767576",
+   "board": "IntentWeave References",
+   "title": "Black V-Neck Sweater Outfit | Old Money Men’s Fashion & Vintage Style",
+   "description": "Timeless men’s fashion featuring a black V-neck sweater layered over a white collared shirt, relaxed beige trousers and clean white sneakers. A perfect mix of old money style, vintage menswear, preppy fashion and effortless street style with a cinematic retro aesthetic. Save for men’s outfit inspiration, fall fashion, classy casual looks and timeless wardrobe ideas.",
+   "alt_text": null,
+   "dominant_color": "#655447",
+   "link": "https://link.amazon/B0j0S1FxQ",
+   "created_at": "2026-09-19T02:33:46",
+   "is_product": true,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/25/c7/e3/25c7e36e8ae525aa9d50fcb04bba8780.jpg",
+    "400x300": "https://i.pinimg.com/400x300/25/c7/e3/25c7e36e8ae525aa9d50fcb04bba8780.jpg",
+    "600x": "https://i.pinimg.com/564x/25/c7/e3/25c7e36e8ae525aa9d50fcb04bba8780.jpg",
+    "1200x": "https://i.pinimg.com/1200x/25/c7/e3/25c7e36e8ae525aa9d50fcb04bba8780.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540124283",
+   "board_id": "1096767384194767576",
+   "board": "IntentWeave References",
+   "title": "🤎Chocolate Brown & Khaki Poetcore Outfit | Fall Outfit Ideas 2026",
+   "description": "A timeless chocolate brown and khaki outfit featuring a cream button-down shirt, brown V-neck sweater, pleated trousers, brown loafers, and a structured shoulder bag. Perfect for a cozy poetcore, preppy, and sophisticated fall look. Save this outfit for your next everyday, college, or casual fall outfit inspiration. 🤎📚#ad",
+   "alt_text": null,
+   "dominant_color": "#6c563d",
+   "link": null,
+   "created_at": "2026-09-16T19:54:51",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/be/e5/9c/bee59c537687efe35694aebdd07d1563.jpg",
+    "400x300": "https://i.pinimg.com/400x300/be/e5/9c/bee59c537687efe35694aebdd07d1563.jpg",
+    "600x": "https://i.pinimg.com/564x/be/e5/9c/bee59c537687efe35694aebdd07d1563.jpg",
+    "1200x": "https://i.pinimg.com/1200x/be/e5/9c/bee59c537687efe35694aebdd07d1563.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540124273",
+   "board_id": "1096767384194767576",
+   "board": "IntentWeave References",
+   "title": "Effortless Street Style with Minimalist Aesthetic",
+   "description": "Minimalist street style outfit featuring a relaxed fit black sweater layered over a crisp shirt with wide-leg denim. Clean, effortless, and perfect for everyday aesthetic fashion. Save for outfit inspiration",
+   "alt_text": null,
+   "dominant_color": "#2d2624",
+   "link": null,
+   "created_at": "2026-09-16T19:54:37",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/f3/20/a2/f320a228f4e28a19702003a2a505ca6e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/f3/20/a2/f320a228f4e28a19702003a2a505ca6e.jpg",
+    "600x": "https://i.pinimg.com/564x/f3/20/a2/f320a228f4e28a19702003a2a505ca6e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/f3/20/a2/f320a228f4e28a19702003a2a505ca6e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540124263",
+   "board_id": "1096767384194767576",
+   "board": "IntentWeave References",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#5d4d3d",
+   "link": "https://www.sewmamasew.com/25-indie-girl-outfit-ideas-2026/",
+   "created_at": "2026-09-16T19:54:22",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/bf/2f/65/bf2f657f2c3c801c95008c10ef405d9e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/bf/2f/65/bf2f657f2c3c801c95008c10ef405d9e.jpg",
+    "600x": "https://i.pinimg.com/564x/bf/2f/65/bf2f657f2c3c801c95008c10ef405d9e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/bf/2f/65/bf2f657f2c3c801c95008c10ef405d9e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540323567",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#e5e5e5",
+   "link": null,
+   "created_at": "2026-09-19T08:23:49",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/52/74/02/527402775f7e89a507a63a903f92343d.jpg",
+    "400x300": "https://i.pinimg.com/400x300/52/74/02/527402775f7e89a507a63a903f92343d.jpg",
+    "600x": "https://i.pinimg.com/564x/52/74/02/527402775f7e89a507a63a903f92343d.jpg",
+    "1200x": "https://i.pinimg.com/1200x/52/74/02/527402775f7e89a507a63a903f92343d.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540323563",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Fits You’ll Wear on Repeat",
+   "description": "Your everyday fit rotation just got easier 🤝 Clean tees, oversized layers, hoodies, knits, relaxed pants & easy neutrals for effortless men’s outfits. Save this for your next wardrobe refresh. #mensfashion #mensstyle #outfitinspo #genzfashion #streetwear #mensoutfits #casualstyle #wardrobeessentials #fitinspo #streetstyle",
+   "alt_text": "Collage of 15 men’s casual outfit ideas featuring oversized T-shirts, hoodies, knit sweaters, jackets, button-up shirts, relaxed jeans, wide-leg trousers and neutral colors for everyday Gen Z streetwear style.",
+   "dominant_color": "#ddd1be",
+   "link": null,
+   "created_at": "2026-09-19T08:23:42",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/d9/42/42/d94242092218d5c99c4dfb33a5ba75ff.jpg",
+    "400x300": "https://i.pinimg.com/400x300/d9/42/42/d94242092218d5c99c4dfb33a5ba75ff.jpg",
+    "600x": "https://i.pinimg.com/564x/d9/42/42/d94242092218d5c99c4dfb33a5ba75ff.jpg",
+    "1200x": "https://i.pinimg.com/1200x/d9/42/42/d94242092218d5c99c4dfb33a5ba75ff.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540323300",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "outfit ideas 💡✨",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#bda995",
+   "link": null,
+   "created_at": "2026-09-19T08:17:48",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/87/76/6b/87766bada0e318d01f970c48a58aae89.jpg",
+    "400x300": "https://i.pinimg.com/400x300/87/76/6b/87766bada0e318d01f970c48a58aae89.jpg",
+    "600x": "https://i.pinimg.com/564x/87/76/6b/87766bada0e318d01f970c48a58aae89.jpg",
+    "1200x": "https://i.pinimg.com/1200x/87/76/6b/87766bada0e318d01f970c48a58aae89.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322525",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "POV: You wanted a cute outfit but still wanted to stay comfy ✨🤍",
+   "description": "#OOTD​ #CasualChic​ #StreetStyle​ #WideLegJeans​ #PastelOutfit​ #FashionInspo​ #SummerStyle​ #MinimalFashion​ #CuteFits​ #InstaFashion​ #EverydayStyle​ #DenimLove​ #KoreanStyle​ #AestheticOutfit​ #StyleInspo​ #FashionReels​ #TrendyLooks​ #SoftGirlStyle​ #PinkOutfit​ #ViralFashionootd​ #fashionreels​ #outfitinspo​ #styleinspo​ #instafashion​ #streetstyle​ #lookbookstyle​ #trendyoutfit​ #explorefashion​ #reelsinstagram​ #reelsfashion​ #reelstrending​ #viralreels​ #explorepage​ #fashionstyle​ #fashioninspo​ #fashionblogger​ #styleblogger​ #outfitideas​ #outfitoftheday​ #dailyoutfit​ #casualoutfit​ #aestheticoutfit​ #minimalstyle​ #effortlessstyle​ #trendyoutfits​ #dailyfashion​ #styleoftheday​ #fashiongram​ #fashionlook​ #summerfashion​ #summerstyle​ #summeroutfits​ #summerootd​ #summerlook​",
+   "alt_text": null,
+   "dominant_color": "#74654c",
+   "link": null,
+   "created_at": "2026-09-19T08:04:10",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/d9/53/5f/d9535f64eaa15a32bf25e92f6a013b09.jpg",
+    "400x300": "https://i.pinimg.com/400x300/d9/53/5f/d9535f64eaa15a32bf25e92f6a013b09.jpg",
+    "600x": "https://i.pinimg.com/564x/d9/53/5f/d9535f64eaa15a32bf25e92f6a013b09.jpg",
+    "1200x": "https://i.pinimg.com/1200x/d9/53/5f/d9535f64eaa15a32bf25e92f6a013b09.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322523",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Midnight black streetwear",
+   "description": "A sleek monochrome street-style outfit featuring a fitted black top paired with oversized faded charcoal wide-leg jeans for the ultimate cool-girl aesthetic. Styled with a black cap, soft waves, minimal accessories, and a casual shoulder bag, this look blends edgy fashion with effortless everyday comfort.\nPerfect for casual outings, city walks, café dates, or Pinterest-inspired streetwear moments, this outfit captures modern urban fashion with a bold yet minimal vibe. Clean, confident, and effortlessly stylish. 🌙🖤",
+   "alt_text": null,
+   "dominant_color": "#5f5a55",
+   "link": null,
+   "created_at": "2026-09-19T08:04:08",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/cd/b8/2d/cdb82d49bf58a6a27e8f4a832ca3b8e7.jpg",
+    "400x300": "https://i.pinimg.com/400x300/cd/b8/2d/cdb82d49bf58a6a27e8f4a832ca3b8e7.jpg",
+    "600x": "https://i.pinimg.com/564x/cd/b8/2d/cdb82d49bf58a6a27e8f4a832ca3b8e7.jpg",
+    "1200x": "https://i.pinimg.com/1200x/cd/b8/2d/cdb82d49bf58a6a27e8f4a832ca3b8e7.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322521",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#a19484",
+   "link": null,
+   "created_at": "2026-09-19T08:04:06",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/ac/b6/3a/acb63a15ae4bbca6a5ac590bf1b74b91.jpg",
+    "400x300": "https://i.pinimg.com/400x300/ac/b6/3a/acb63a15ae4bbca6a5ac590bf1b74b91.jpg",
+    "600x": "https://i.pinimg.com/564x/ac/b6/3a/acb63a15ae4bbca6a5ac590bf1b74b91.jpg",
+    "1200x": "https://i.pinimg.com/1200x/ac/b6/3a/acb63a15ae4bbca6a5ac590bf1b74b91.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322519",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#8c7967",
+   "link": null,
+   "created_at": "2026-09-19T08:04:04",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/83/d7/59/83d759255d80d4ff4dbea19cb1adb07c.jpg",
+    "400x300": "https://i.pinimg.com/400x300/83/d7/59/83d759255d80d4ff4dbea19cb1adb07c.jpg",
+    "600x": "https://i.pinimg.com/564x/83/d7/59/83d759255d80d4ff4dbea19cb1adb07c.jpg",
+    "1200x": "https://i.pinimg.com/1200x/83/d7/59/83d759255d80d4ff4dbea19cb1adb07c.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322517",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#928e88",
+   "link": null,
+   "created_at": "2026-09-19T08:04:03",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/12/6b/fe/126bfe578e83fb496f35834ef44a4d36.jpg",
+    "400x300": "https://i.pinimg.com/400x300/12/6b/fe/126bfe578e83fb496f35834ef44a4d36.jpg",
+    "600x": "https://i.pinimg.com/564x/12/6b/fe/126bfe578e83fb496f35834ef44a4d36.jpg",
+    "1200x": "https://i.pinimg.com/1200x/12/6b/fe/126bfe578e83fb496f35834ef44a4d36.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322513",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Chic Casual Tops: Everyday Style Guide",
+   "description": "Discover trendy tops and effortless outfits for women. Modern, casual looks you’ll love for work or weekend. Shop-inspired outfit inspo for a polished, comfortable vibe",
+   "alt_text": null,
+   "dominant_color": "#473124",
+   "link": null,
+   "created_at": "2026-09-19T08:04:00",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/f3/fb/26/f3fb2633da26e30ef7be58301fd0c395.jpg",
+    "400x300": "https://i.pinimg.com/400x300/f3/fb/26/f3fb2633da26e30ef7be58301fd0c395.jpg",
+    "600x": "https://i.pinimg.com/564x/f3/fb/26/f3fb2633da26e30ef7be58301fd0c395.jpg",
+    "1200x": "https://i.pinimg.com/1200x/f3/fb/26/f3fb2633da26e30ef7be58301fd0c395.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322501",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#9a9795",
+   "link": null,
+   "created_at": "2026-09-19T08:03:37",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/38/bb/cc/38bbccc59d006af6d6513c41fad80d6f.jpg",
+    "400x300": "https://i.pinimg.com/400x300/38/bb/cc/38bbccc59d006af6d6513c41fad80d6f.jpg",
+    "600x": "https://i.pinimg.com/564x/38/bb/cc/38bbccc59d006af6d6513c41fad80d6f.jpg",
+    "1200x": "https://i.pinimg.com/1200x/38/bb/cc/38bbccc59d006af6d6513c41fad80d6f.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322499",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#3a312a",
+   "link": null,
+   "created_at": "2026-09-19T08:03:36",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/91/ed/6f/91ed6ff19901e44c6a8b4eaeaeeee560.jpg",
+    "400x300": "https://i.pinimg.com/400x300/91/ed/6f/91ed6ff19901e44c6a8b4eaeaeeee560.jpg",
+    "600x": "https://i.pinimg.com/564x/91/ed/6f/91ed6ff19901e44c6a8b4eaeaeeee560.jpg",
+    "1200x": "https://i.pinimg.com/1200x/91/ed/6f/91ed6ff19901e44c6a8b4eaeaeeee560.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322498",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Green Knit Street",
+   "description": "Olive crop top layered with a cream crochet knit and wide-leg star denim.\r\nFinished with platform sneakers, a green shoulder bag, and a cute flower hair clip",
+   "alt_text": null,
+   "dominant_color": "#5e594f",
+   "link": null,
+   "created_at": "2026-09-19T08:03:35",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/34/fb/84/34fb84f0a8d28c95204e872cb80ea00f.jpg",
+    "400x300": "https://i.pinimg.com/400x300/34/fb/84/34fb84f0a8d28c95204e872cb80ea00f.jpg",
+    "600x": "https://i.pinimg.com/564x/34/fb/84/34fb84f0a8d28c95204e872cb80ea00f.jpg",
+    "1200x": "https://i.pinimg.com/1200x/34/fb/84/34fb84f0a8d28c95204e872cb80ea00f.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322495",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Cozy Beige Ribbed Knit Cardigan | Trendy Fall & Winter Outfits For Women",
+   "description": "Get ready for the cozy season with this stunning beige ribbed knit cropped cardigan! Featuring a classic V-neck, long drop-sleeve design, and chunky button details, this chunky sweater is the ultimate staple for your fall outfits and winter clothing wardrobe. Whether you are layering it for a casual day out or styling a trendy aesthetic look, this outerwear piece adds the perfect touch of warmth and style. Pin this for your next outfit inspiration! \n#FallOutfits #WinterClothing #KnitCardigan #ChunkySweater #BeigeAesthetic #CozyFashion #StreetStyle #WomensOutfits",
+   "alt_text": null,
+   "dominant_color": "#b4a99f",
+   "link": "https://link.amazon/B0cacUEii",
+   "created_at": "2026-09-19T08:03:31",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/e3/f4/ac/e3f4ac9f68ed8bfa08b21e637fbf18b3.jpg",
+    "400x300": "https://i.pinimg.com/400x300/e3/f4/ac/e3f4ac9f68ed8bfa08b21e637fbf18b3.jpg",
+    "600x": "https://i.pinimg.com/564x/e3/f4/ac/e3f4ac9f68ed8bfa08b21e637fbf18b3.jpg",
+    "1200x": "https://i.pinimg.com/1200x/e3/f4/ac/e3f4ac9f68ed8bfa08b21e637fbf18b3.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322494",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Stunning Spring Hydrangea Garden Makeover",
+   "description": "Transform your yard with vibrant hydrangeas, bold color combos, and easy care tips. Discover budget-friendly planting ideas, seasonal blooms, and design inspo for a picture-perfect garden",
+   "alt_text": null,
+   "dominant_color": "#706053",
+   "link": null,
+   "created_at": "2026-09-19T08:03:30",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/91/2c/07/912c0720a00a9147c750ea48b02d346a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/91/2c/07/912c0720a00a9147c750ea48b02d346a.jpg",
+    "600x": "https://i.pinimg.com/564x/91/2c/07/912c0720a00a9147c750ea48b02d346a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/91/2c/07/912c0720a00a9147c750ea48b02d346a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322492",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#918676",
+   "link": null,
+   "created_at": "2026-09-19T08:03:29",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/a2/8e/49/a28e4934b1571ef0f16e9e6b857ccb1d.jpg",
+    "400x300": "https://i.pinimg.com/400x300/a2/8e/49/a28e4934b1571ef0f16e9e6b857ccb1d.jpg",
+    "600x": "https://i.pinimg.com/564x/a2/8e/49/a28e4934b1571ef0f16e9e6b857ccb1d.jpg",
+    "1200x": "https://i.pinimg.com/1200x/a2/8e/49/a28e4934b1571ef0f16e9e6b857ccb1d.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322449",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "casual street wear 🖤",
+   "description": "#URBANSTITCH",
+   "alt_text": null,
+   "dominant_color": "#c1b2a8",
+   "link": null,
+   "created_at": "2026-09-19T08:02:42",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "400x300": "https://i.pinimg.com/400x300/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "600x": "https://i.pinimg.com/564x/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "1200x": "https://i.pinimg.com/1200x/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322277",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "yo.osei",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#3a678a",
+   "link": "https://www.instagram.com/p/DP08NCpkkqQ/?igsh=eTF3ZzM4OWRkcTIy",
+   "created_at": "2026-09-19T08:00:00",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/de/e2/e7/dee2e759bf662749377fc3f9206cf7a2.jpg",
+    "400x300": "https://i.pinimg.com/400x300/de/e2/e7/dee2e759bf662749377fc3f9206cf7a2.jpg",
+    "600x": "https://i.pinimg.com/564x/de/e2/e7/dee2e759bf662749377fc3f9206cf7a2.jpg",
+    "1200x": "https://i.pinimg.com/1200x/de/e2/e7/dee2e759bf662749377fc3f9206cf7a2.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322071",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": "Instagram",
+   "alt_text": null,
+   "dominant_color": "#827768",
+   "link": "https://www.instagram.com/",
+   "created_at": "2026-09-19T07:57:36",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/6d/9b/70/6d9b70bab108c19ba382d51349a7a119.jpg",
+    "400x300": "https://i.pinimg.com/400x300/6d/9b/70/6d9b70bab108c19ba382d51349a7a119.jpg",
+    "600x": "https://i.pinimg.com/564x/6d/9b/70/6d9b70bab108c19ba382d51349a7a119.jpg",
+    "1200x": "https://i.pinimg.com/1200x/6d/9b/70/6d9b70bab108c19ba382d51349a7a119.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322068",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#4d423a",
+   "link": null,
+   "created_at": "2026-09-19T07:57:31",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/a9/69/04/a9690456e540c6104161a6dd499077b9.jpg",
+    "400x300": "https://i.pinimg.com/400x300/a9/69/04/a9690456e540c6104161a6dd499077b9.jpg",
+    "600x": "https://i.pinimg.com/564x/a9/69/04/a9690456e540c6104161a6dd499077b9.jpg",
+    "1200x": "https://i.pinimg.com/1200x/a9/69/04/a9690456e540c6104161a6dd499077b9.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322064",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#dadcdd",
+   "link": null,
+   "created_at": "2026-09-19T07:57:27",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/91/ad/18/91ad18956a7899158663c40e77b4a084.jpg",
+    "400x300": "https://i.pinimg.com/400x300/91/ad/18/91ad18956a7899158663c40e77b4a084.jpg",
+    "600x": "https://i.pinimg.com/564x/91/ad/18/91ad18956a7899158663c40e77b4a084.jpg",
+    "1200x": "https://i.pinimg.com/1200x/91/ad/18/91ad18956a7899158663c40e77b4a084.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322062",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "ㅤׂㅤㅤ♡̲    ㅤ𓈒ㅤ",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#747067",
+   "link": null,
+   "created_at": "2026-09-19T07:57:25",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/7a/ac/78/7aac78be6639a709d439e32dabef210b.jpg",
+    "400x300": "https://i.pinimg.com/400x300/7a/ac/78/7aac78be6639a709d439e32dabef210b.jpg",
+    "600x": "https://i.pinimg.com/564x/7a/ac/78/7aac78be6639a709d439e32dabef210b.jpg",
+    "1200x": "https://i.pinimg.com/1200x/7a/ac/78/7aac78be6639a709d439e32dabef210b.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322061",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#6c655d",
+   "link": null,
+   "created_at": "2026-09-19T07:57:23",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/4b/32/b3/4b32b39c48c4eb7e718259d65410e554.jpg",
+    "400x300": "https://i.pinimg.com/400x300/4b/32/b3/4b32b39c48c4eb7e718259d65410e554.jpg",
+    "600x": "https://i.pinimg.com/564x/4b/32/b3/4b32b39c48c4eb7e718259d65410e554.jpg",
+    "1200x": "https://i.pinimg.com/1200x/4b/32/b3/4b32b39c48c4eb7e718259d65410e554.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322058",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#616e60",
+   "link": null,
+   "created_at": "2026-09-19T07:57:22",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/b5/08/1d/b5081dd72ef6a1449f153afc8c24f9b4.jpg",
+    "400x300": "https://i.pinimg.com/400x300/b5/08/1d/b5081dd72ef6a1449f153afc8c24f9b4.jpg",
+    "600x": "https://i.pinimg.com/564x/b5/08/1d/b5081dd72ef6a1449f153afc8c24f9b4.jpg",
+    "1200x": "https://i.pinimg.com/1200x/b5/08/1d/b5081dd72ef6a1449f153afc8c24f9b4.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540322050",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#545552",
+   "link": null,
+   "created_at": "2026-09-19T07:57:15",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/51/4b/0b/514b0b4476a9f07885046623031e3b6a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/51/4b/0b/514b0b4476a9f07885046623031e3b6a.jpg",
+    "600x": "https://i.pinimg.com/564x/51/4b/0b/514b0b4476a9f07885046623031e3b6a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/51/4b/0b/514b0b4476a9f07885046623031e3b6a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321842",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#d0cfce",
+   "link": null,
+   "created_at": "2026-09-19T07:53:16",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/93/dd/9f/93dd9f77d5f184cca4ab9c43816ba26c.jpg",
+    "400x300": "https://i.pinimg.com/400x300/93/dd/9f/93dd9f77d5f184cca4ab9c43816ba26c.jpg",
+    "600x": "https://i.pinimg.com/564x/93/dd/9f/93dd9f77d5f184cca4ab9c43816ba26c.jpg",
+    "1200x": "https://i.pinimg.com/1200x/93/dd/9f/93dd9f77d5f184cca4ab9c43816ba26c.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321831",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#b4927c",
+   "link": null,
+   "created_at": "2026-09-19T07:53:12",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/99/fd/ba/99fdba444f8021c291478775546b350a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/99/fd/ba/99fdba444f8021c291478775546b350a.jpg",
+    "600x": "https://i.pinimg.com/564x/99/fd/ba/99fdba444f8021c291478775546b350a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/99/fd/ba/99fdba444f8021c291478775546b350a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321826",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "a girl running in street",
+   "description": "A young stylish,holding a coffee cup and structured shoulder bag  on shoulder, wearing a moss-green wool knit sweater over a cream cotton shirt, paired with a dark brown pleated skirt, ribbed socks, brown leather loafers,",
+   "alt_text": null,
+   "dominant_color": "#7f8b96",
+   "link": null,
+   "created_at": "2026-09-19T07:53:07",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/94/a3/a0/94a3a06a01006c6c1dbad3e738028189.jpg",
+    "400x300": "https://i.pinimg.com/400x300/94/a3/a0/94a3a06a01006c6c1dbad3e738028189.jpg",
+    "600x": "https://i.pinimg.com/564x/94/a3/a0/94a3a06a01006c6c1dbad3e738028189.jpg",
+    "1200x": "https://i.pinimg.com/1200x/94/a3/a0/94a3a06a01006c6c1dbad3e738028189.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321819",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": "Japanese fashion inspo",
+   "alt_text": null,
+   "dominant_color": "#edede7",
+   "link": null,
+   "created_at": "2026-09-19T07:53:02",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/18/65/0e/18650e63a091f25e752ff7797093b18e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/18/65/0e/18650e63a091f25e752ff7797093b18e.jpg",
+    "600x": "https://i.pinimg.com/564x/18/65/0e/18650e63a091f25e752ff7797093b18e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/18/65/0e/18650e63a091f25e752ff7797093b18e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321791",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#97979b",
+   "link": null,
+   "created_at": "2026-09-19T07:52:34",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/38/a1/38/38a1388bfe3e3a108b0335cc2898c703.jpg",
+    "400x300": "https://i.pinimg.com/400x300/38/a1/38/38a1388bfe3e3a108b0335cc2898c703.jpg",
+    "600x": "https://i.pinimg.com/564x/38/a1/38/38a1388bfe3e3a108b0335cc2898c703.jpg",
+    "1200x": "https://i.pinimg.com/1200x/38/a1/38/38a1388bfe3e3a108b0335cc2898c703.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321789",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "AESTHETIC OUTFITS FOR BOYS✨",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#e0dcd8",
+   "link": null,
+   "created_at": "2026-09-19T07:52:31",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/40/fe/26/40fe26a115ea15f23fdc7f5fe21e277f.jpg",
+    "400x300": "https://i.pinimg.com/400x300/40/fe/26/40fe26a115ea15f23fdc7f5fe21e277f.jpg",
+    "600x": "https://i.pinimg.com/564x/40/fe/26/40fe26a115ea15f23fdc7f5fe21e277f.jpg",
+    "1200x": "https://i.pinimg.com/1200x/40/fe/26/40fe26a115ea15f23fdc7f5fe21e277f.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321786",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "10 Korean Men's Fashion Outfits",
+   "description": "Discover 10 stylish korean  men's fashion outfits with clean, modern and effortless looks. From neutral shirts and wide- leg trousers to casual denim and minimalist layers, these korean -Inspired outfits are perfect for everyday style , college looks and smart casual fashion. Save these Korean Boy's outfit ideas for your next look !",
+   "alt_text": null,
+   "dominant_color": "#b9b2ab",
+   "link": null,
+   "created_at": "2026-09-19T07:52:28",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/9e/cc/fa/9eccfa2409df7a4ff37571f73e612314.jpg",
+    "400x300": "https://i.pinimg.com/400x300/9e/cc/fa/9eccfa2409df7a4ff37571f73e612314.jpg",
+    "600x": "https://i.pinimg.com/564x/9e/cc/fa/9eccfa2409df7a4ff37571f73e612314.jpg",
+    "1200x": "https://i.pinimg.com/1200x/9e/cc/fa/9eccfa2409df7a4ff37571f73e612314.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321784",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "14 Korean Men’s Outfit Ideas for a Minimal Aesthetic",
+   "description": "Discover Korean men’s fashion through 14 refined looks blending comfort, clean silhouettes, and effortless appeal. Find minimalist men’s outfits with wide-leg trousers, neutral layers, knitwear, denim, and polished basics. These Korean outfit ideas offer versatile inspiration for daily wear, while modern streetwear adds a fresh edge to your seasonal wardrobe",
+   "alt_text": null,
+   "dominant_color": "#b7b0ab",
+   "link": null,
+   "created_at": "2026-09-19T07:52:27",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/da/4a/cf/da4acf77112fa2acf53c01a3e36cbca8.jpg",
+    "400x300": "https://i.pinimg.com/400x300/da/4a/cf/da4acf77112fa2acf53c01a3e36cbca8.jpg",
+    "600x": "https://i.pinimg.com/564x/da/4a/cf/da4acf77112fa2acf53c01a3e36cbca8.jpg",
+    "1200x": "https://i.pinimg.com/1200x/da/4a/cf/da4acf77112fa2acf53c01a3e36cbca8.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321782",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "classic formal dress",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#d8cec6",
+   "link": null,
+   "created_at": "2026-09-19T07:52:26",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/cf/0f/58/cf0f58ff600cdb9eec7c23a154e497b3.jpg",
+    "400x300": "https://i.pinimg.com/400x300/cf/0f/58/cf0f58ff600cdb9eec7c23a154e497b3.jpg",
+    "600x": "https://i.pinimg.com/564x/cf/0f/58/cf0f58ff600cdb9eec7c23a154e497b3.jpg",
+    "1200x": "https://i.pinimg.com/1200x/cf/0f/58/cf0f58ff600cdb9eec7c23a154e497b3.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540321601",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "12 Minimalist Men’s Outfit Ideas | Casual Style Guide",
+   "description": "Minimalist men’s fashion, casual outfit ideas, neutral color outfits, streetwear style, smart casual looks, everyday men’s fashion, trendy outfit inspiration, capsule wardrobe ideas. #MensFashion #OutfitIdeas #MinimalStyle #Streetwear #FashionInspo",
+   "alt_text": null,
+   "dominant_color": "#d5c4b1",
+   "link": null,
+   "created_at": "2026-09-19T07:50:00",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/ab/85/aa/ab85aa54f65db60f8874b6ba2ea48cc5.jpg",
+    "400x300": "https://i.pinimg.com/400x300/ab/85/aa/ab85aa54f65db60f8874b6ba2ea48cc5.jpg",
+    "600x": "https://i.pinimg.com/564x/ab/85/aa/ab85aa54f65db60f8874b6ba2ea48cc5.jpg",
+    "1200x": "https://i.pinimg.com/1200x/ab/85/aa/ab85aa54f65db60f8874b6ba2ea48cc5.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540318163",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Title: Men’s Aesthetic Streetwear Outfit Ideas 2026",
+   "description": "Minimal and stylish men’s outfit inspiration for a clean streetwear look. Perfect combinations of oversized shirts, relaxed trousers, cargo pants, neutral tones, sneakers, and casual layering. Save these outfit ideas for your next everyday fashion look. 🤎🖤",
+   "alt_text": null,
+   "dominant_color": "#e1e0dc",
+   "link": null,
+   "created_at": "2026-09-19T06:47:55",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/fc/dd/35/fcdd35f500623ec03582634458893b1e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/fc/dd/35/fcdd35f500623ec03582634458893b1e.jpg",
+    "600x": "https://i.pinimg.com/564x/fc/dd/35/fcdd35f500623ec03582634458893b1e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/fc/dd/35/fcdd35f500623ec03582634458893b1e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317957",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Classy Minimalist Men’s Outfit Ideas 🤎 | Old Money Aesthetic",
+   "description": "Minimalist men’s fashion with a classy, clean & effortless vibe. 🤎\nNeutral tones, oversized shirts, relaxed trousers, knit sweaters & timeless combinations — perfect for an old money / quiet luxury aesthetic.",
+   "alt_text": null,
+   "dominant_color": "#ddd7d0",
+   "link": null,
+   "created_at": "2026-09-19T06:43:12",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/a1/58/cc/a158cc3e7302645b508407cad28ee2b7.jpg",
+    "400x300": "https://i.pinimg.com/400x300/a1/58/cc/a158cc3e7302645b508407cad28ee2b7.jpg",
+    "600x": "https://i.pinimg.com/564x/a1/58/cc/a158cc3e7302645b508407cad28ee2b7.jpg",
+    "1200x": "https://i.pinimg.com/1200x/a1/58/cc/a158cc3e7302645b508407cad28ee2b7.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317727",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "looking for the outfits",
+   "description": "outfits you need ✨",
+   "alt_text": null,
+   "dominant_color": "#a39795",
+   "link": null,
+   "created_at": "2026-09-19T06:38:03",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/ac/db/7a/acdb7a6877a6bfd9c65f9c87b00c8575.jpg",
+    "400x300": "https://i.pinimg.com/400x300/ac/db/7a/acdb7a6877a6bfd9c65f9c87b00c8575.jpg",
+    "600x": "https://i.pinimg.com/564x/ac/db/7a/acdb7a6877a6bfd9c65f9c87b00c8575.jpg",
+    "1200x": "https://i.pinimg.com/1200x/ac/db/7a/acdb7a6877a6bfd9c65f9c87b00c8575.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317262",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#d7d5d1",
+   "link": null,
+   "created_at": "2026-09-19T06:27:55",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/45/3b/96/453b9657a538b82a52a5a573e6aac50a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/45/3b/96/453b9657a538b82a52a5a573e6aac50a.jpg",
+    "600x": "https://i.pinimg.com/564x/45/3b/96/453b9657a538b82a52a5a573e6aac50a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/45/3b/96/453b9657a538b82a52a5a573e6aac50a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317209",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Men's Casual Look",
+   "description": "this fashion sense isn't just give you good looks and confidence to conqure every problems. #koreanfashion",
+   "alt_text": null,
+   "dominant_color": "#454444",
+   "link": "https://bitli.in/9hPydjW",
+   "created_at": "2026-09-19T06:26:22",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "400x300": "https://i.pinimg.com/400x300/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "600x": "https://i.pinimg.com/564x/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "1200x": "https://i.pinimg.com/1200x/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317195",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "white tack rent and old t-shirt.",
+   "description": "this dress make you classy .",
+   "alt_text": null,
+   "dominant_color": "#aca9ac",
+   "link": null,
+   "created_at": "2026-09-19T06:26:11",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/6d/50/43/6d504385c37b207c91e8f68146b0345a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/6d/50/43/6d504385c37b207c91e8f68146b0345a.jpg",
+    "600x": "https://i.pinimg.com/564x/6d/50/43/6d504385c37b207c91e8f68146b0345a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/6d/50/43/6d504385c37b207c91e8f68146b0345a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317167",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "casual street wear 🖤",
+   "description": "#URBANSTITCH",
+   "alt_text": null,
+   "dominant_color": "#c1b2a8",
+   "link": null,
+   "created_at": "2026-09-19T06:25:21",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "400x300": "https://i.pinimg.com/400x300/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "600x": "https://i.pinimg.com/564x/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg",
+    "1200x": "https://i.pinimg.com/1200x/37/74/b3/3774b376b24e5519a7ca45e7eee0949b.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317149",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korean Boy Outfit Ideas 2026 | Minimal Streetwear Fashion Inspiration",
+   "description": "Upgrade your wardrobe with this clean and stylish Korean-inspired men's outfit. Featuring an oversized black shirt, a classic white tee, wide-leg cream pants, and white sneakers, this minimal streetwear look is perfect for college, casual outings, travel, or everyday fashion. Save this pin for modern Korean men's style inspiration and effortless outfit ideas.\nKeywords: Korean boy outfit, Korean fashion, men's streetwear, oversized outfit, minimalist style, casual outfit, wide-leg pants, college outfit, aesthetic fashion, Pinterest outfit inspiration.",
+   "alt_text": null,
+   "dominant_color": "#b6b2ac",
+   "link": null,
+   "created_at": "2026-09-19T06:25:03",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/93/58/6e/93586ec91da272fb10d7373dd7e7104e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/93/58/6e/93586ec91da272fb10d7373dd7e7104e.jpg",
+    "600x": "https://i.pinimg.com/564x/93/58/6e/93586ec91da272fb10d7373dd7e7104e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/93/58/6e/93586ec91da272fb10d7373dd7e7104e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317143",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Ciel Choi #ootd #fashion #menswear",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#cbcacd",
+   "link": null,
+   "created_at": "2026-09-19T06:24:59",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/80/15/f1/8015f10cb0c2b2b40b1d68f7612e0e83.jpg",
+    "400x300": "https://i.pinimg.com/400x300/80/15/f1/8015f10cb0c2b2b40b1d68f7612e0e83.jpg",
+    "600x": "https://i.pinimg.com/564x/80/15/f1/8015f10cb0c2b2b40b1d68f7612e0e83.jpg",
+    "1200x": "https://i.pinimg.com/1200x/80/15/f1/8015f10cb0c2b2b40b1d68f7612e0e83.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540317137",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#4b4a43",
+   "link": null,
+   "created_at": "2026-09-19T06:24:50",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/36/ee/e6/36eee694e9d757500241f066633aa6e7.jpg",
+    "400x300": "https://i.pinimg.com/400x300/36/ee/e6/36eee694e9d757500241f066633aa6e7.jpg",
+    "600x": "https://i.pinimg.com/564x/36/ee/e6/36eee694e9d757500241f066633aa6e7.jpg",
+    "1200x": "https://i.pinimg.com/1200x/36/ee/e6/36eee694e9d757500241f066633aa6e7.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540315202",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#797675",
+   "link": null,
+   "created_at": "2026-09-19T05:46:04",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/0d/42/87/0d4287b90608544193bb78938d896ce8.jpg",
+    "400x300": "https://i.pinimg.com/400x300/0d/42/87/0d4287b90608544193bb78938d896ce8.jpg",
+    "600x": "https://i.pinimg.com/564x/0d/42/87/0d4287b90608544193bb78938d896ce8.jpg",
+    "1200x": "https://i.pinimg.com/1200x/0d/42/87/0d4287b90608544193bb78938d896ce8.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540315201",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#514c44",
+   "link": null,
+   "created_at": "2026-09-19T05:46:01",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/d7/51/af/d751afa1645455628fec09566c10f214.jpg",
+    "400x300": "https://i.pinimg.com/400x300/d7/51/af/d751afa1645455628fec09566c10f214.jpg",
+    "600x": "https://i.pinimg.com/564x/d7/51/af/d751afa1645455628fec09566c10f214.jpg",
+    "1200x": "https://i.pinimg.com/1200x/d7/51/af/d751afa1645455628fec09566c10f214.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540315197",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#989690",
+   "link": null,
+   "created_at": "2026-09-19T05:45:57",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/98/43/29/984329c321bcce84c1df8d9cb7fc9b56.jpg",
+    "400x300": "https://i.pinimg.com/400x300/98/43/29/984329c321bcce84c1df8d9cb7fc9b56.jpg",
+    "600x": "https://i.pinimg.com/564x/98/43/29/984329c321bcce84c1df8d9cb7fc9b56.jpg",
+    "1200x": "https://i.pinimg.com/1200x/98/43/29/984329c321bcce84c1df8d9cb7fc9b56.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308987",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korean Winter Layering Look | Puffer Jacket Winter Outfit",
+   "description": "Stay cozy with this Korean winter layering look featuring a cream puffer jacket, gray hoodie, white turtleneck, wide-leg jeans, white sneakers, and a black shoulder bag. This Korean winter outfit is perfect for casual days, college, travel, and everyday street style. Save this pin for winter fashion inspiration!",
+   "alt_text": "A woman wearing a Korean winter layering look with a cream puffer jacket, gray hoodie, white turtleneck, wide-leg jeans, white sneakers, and a black shoulder bag for a cozy casual winter outfit.",
+   "dominant_color": "#c5b7ac",
+   "link": null,
+   "created_at": "2026-09-19T03:39:04",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/cf/95/49/cf95492fe0f723c41b58e2b5d48f55da.jpg",
+    "400x300": "https://i.pinimg.com/400x300/cf/95/49/cf95492fe0f723c41b58e2b5d48f55da.jpg",
+    "600x": "https://i.pinimg.com/564x/cf/95/49/cf95492fe0f723c41b58e2b5d48f55da.jpg",
+    "1200x": "https://i.pinimg.com/1200x/cf/95/49/cf95492fe0f723c41b58e2b5d48f55da.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308651",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#8c795b",
+   "link": null,
+   "created_at": "2026-09-19T03:31:51",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/d0/ab/2a/d0ab2a94b34b75c54717010d07daf7b6.jpg",
+    "400x300": "https://i.pinimg.com/400x300/d0/ab/2a/d0ab2a94b34b75c54717010d07daf7b6.jpg",
+    "600x": "https://i.pinimg.com/564x/d0/ab/2a/d0ab2a94b34b75c54717010d07daf7b6.jpg",
+    "1200x": "https://i.pinimg.com/1200x/d0/ab/2a/d0ab2a94b34b75c54717010d07daf7b6.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308527",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korean-Inspired Black & White Sweater Outfit with Pink Backpack 🎀",
+   "description": "A cute and effortless Korean-inspired casual outfit featuring a cozy black and white color-block knit sweater, relaxed black wide-leg pants, clean white sneakers, and an adorable dusty pink backpack. The soft pink bag adds a feminine touch to the classic black-and-white outfit, making this look perfect for everyday wear, college outfits, casual outings, winter fashion, and Korean street-style inspiration. 🤍🖤🎀 #KoreanFashion #KoreanOutfit #KoreanStyle #BlackAndWhiteOutfit #SweaterOutfit #WideLegPants #BlackPantsOutfit #CasualOutfit #WinterOutfit #CozyOutfit #CuteOutfit #PinkBackpack #StreetStyle #KStyle #EverydayOutfit #FashionInspiration #MinimalStyle #CasualFashion #AestheticOutfit #GirlsFashion",
+   "alt_text": null,
+   "dominant_color": "#8c8175",
+   "link": null,
+   "created_at": "2026-09-19T03:29:09",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/84/f9/85/84f98534c30c3ac6df5bd5ca162aa9af.jpg",
+    "400x300": "https://i.pinimg.com/400x300/84/f9/85/84f98534c30c3ac6df5bd5ca162aa9af.jpg",
+    "600x": "https://i.pinimg.com/564x/84/f9/85/84f98534c30c3ac6df5bd5ca162aa9af.jpg",
+    "1200x": "https://i.pinimg.com/1200x/84/f9/85/84f98534c30c3ac6df5bd5ca162aa9af.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308517",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#897f6e",
+   "link": null,
+   "created_at": "2026-09-19T03:28:55",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/cf/d4/5c/cfd45cc42502b044b6219f3b4b357674.jpg",
+    "400x300": "https://i.pinimg.com/400x300/cf/d4/5c/cfd45cc42502b044b6219f3b4b357674.jpg",
+    "600x": "https://i.pinimg.com/564x/cf/d4/5c/cfd45cc42502b044b6219f3b4b357674.jpg",
+    "1200x": "https://i.pinimg.com/1200x/cf/d4/5c/cfd45cc42502b044b6219f3b4b357674.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308514",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Winter outfit🤎",
+   "description": "Stay warm in effortless Korean winter style with this cozy neutral outfit. 🤎 A soft brown teddy fleece jacket layered over a cream turtleneck sweater, paired with high-waisted wide-leg cream jeans and cozy platform boots, creates the perfect chic winter look. Finished with a classic brown shoulder bag, this outfit is ideal for café dates, city walks, and everyday cold-weather fashion. ❄️✨",
+   "alt_text": null,
+   "dominant_color": "#675949",
+   "link": null,
+   "created_at": "2026-09-19T03:28:54",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/35/f3/3a/35f33a9dc9d1ae058db9895770d226df.jpg",
+    "400x300": "https://i.pinimg.com/400x300/35/f3/3a/35f33a9dc9d1ae058db9895770d226df.jpg",
+    "600x": "https://i.pinimg.com/564x/35/f3/3a/35f33a9dc9d1ae058db9895770d226df.jpg",
+    "1200x": "https://i.pinimg.com/1200x/35/f3/3a/35f33a9dc9d1ae058db9895770d226df.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308507",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "outfit style for girls| Outdoor Version",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#abada5",
+   "link": null,
+   "created_at": "2026-09-19T03:28:44",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/9c/d7/46/9cd7461912c2f0aca29be4cf72c1b573.jpg",
+    "400x300": "https://i.pinimg.com/400x300/9c/d7/46/9cd7461912c2f0aca29be4cf72c1b573.jpg",
+    "600x": "https://i.pinimg.com/564x/9c/d7/46/9cd7461912c2f0aca29be4cf72c1b573.jpg",
+    "1200x": "https://i.pinimg.com/1200x/9c/d7/46/9cd7461912c2f0aca29be4cf72c1b573.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308505",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#978670",
+   "link": null,
+   "created_at": "2026-09-19T03:28:43",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/15/66/d8/1566d8595ddfc58763aa2351033ac62a.jpg",
+    "400x300": "https://i.pinimg.com/400x300/15/66/d8/1566d8595ddfc58763aa2351033ac62a.jpg",
+    "600x": "https://i.pinimg.com/564x/15/66/d8/1566d8595ddfc58763aa2351033ac62a.jpg",
+    "1200x": "https://i.pinimg.com/1200x/15/66/d8/1566d8595ddfc58763aa2351033ac62a.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308501",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#898885",
+   "link": null,
+   "created_at": "2026-09-19T03:28:39",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/10/81/75/1081754c47b9a668deedb509fe137066.jpg",
+    "400x300": "https://i.pinimg.com/400x300/10/81/75/1081754c47b9a668deedb509fe137066.jpg",
+    "600x": "https://i.pinimg.com/564x/10/81/75/1081754c47b9a668deedb509fe137066.jpg",
+    "1200x": "https://i.pinimg.com/1200x/10/81/75/1081754c47b9a668deedb509fe137066.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308491",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#776c60",
+   "link": null,
+   "created_at": "2026-09-19T03:28:29",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/9f/85/0c/9f850c8f8de0b7a61a3f2c0a1317251e.jpg",
+    "400x300": "https://i.pinimg.com/400x300/9f/85/0c/9f850c8f8de0b7a61a3f2c0a1317251e.jpg",
+    "600x": "https://i.pinimg.com/564x/9f/85/0c/9f850c8f8de0b7a61a3f2c0a1317251e.jpg",
+    "1200x": "https://i.pinimg.com/1200x/9f/85/0c/9f850c8f8de0b7a61a3f2c0a1317251e.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308490",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Trendy Girls Fashion – Cute & Stylish Outfits",
+   "description": "Step into style with looks that are fun, fresh, and totally on-trend. From adorable everyday outfits to eye-catching party wear, discover fashion that lets her express her personality with confidence. Comfortable fits, trending designs, and effortless charm — style made just for her.",
+   "alt_text": null,
+   "dominant_color": "#c3b6af",
+   "link": null,
+   "created_at": "2026-09-19T03:28:28",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/f7/2e/e6/f72ee63716361a4e1fe34c507d9c20fa.jpg",
+    "400x300": "https://i.pinimg.com/400x300/f7/2e/e6/f72ee63716361a4e1fe34c507d9c20fa.jpg",
+    "600x": "https://i.pinimg.com/564x/f7/2e/e6/f72ee63716361a4e1fe34c507d9c20fa.jpg",
+    "1200x": "https://i.pinimg.com/1200x/f7/2e/e6/f72ee63716361a4e1fe34c507d9c20fa.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308486",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#b6b2a4",
+   "link": null,
+   "created_at": "2026-09-19T03:28:23",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/ff/c4/e3/ffc4e3ad2f737774f60ebf81761ea195.jpg",
+    "400x300": "https://i.pinimg.com/400x300/ff/c4/e3/ffc4e3ad2f737774f60ebf81761ea195.jpg",
+    "600x": "https://i.pinimg.com/564x/ff/c4/e3/ffc4e3ad2f737774f60ebf81761ea195.jpg",
+    "1200x": "https://i.pinimg.com/1200x/ff/c4/e3/ffc4e3ad2f737774f60ebf81761ea195.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308484",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#645f5a",
+   "link": null,
+   "created_at": "2026-09-19T03:28:20",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/39/bd/c5/39bdc583de8d76173ce25a3300fd7963.jpg",
+    "400x300": "https://i.pinimg.com/400x300/39/bd/c5/39bdc583de8d76173ce25a3300fd7963.jpg",
+    "600x": "https://i.pinimg.com/564x/39/bd/c5/39bdc583de8d76173ce25a3300fd7963.jpg",
+    "1200x": "https://i.pinimg.com/1200x/39/bd/c5/39bdc583de8d76173ce25a3300fd7963.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308483",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "🫠🤌",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#8c7868",
+   "link": null,
+   "created_at": "2026-09-19T03:28:19",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/da/ff/55/daff55b4646f65ba96f8939e7079392b.jpg",
+    "400x300": "https://i.pinimg.com/400x300/da/ff/55/daff55b4646f65ba96f8939e7079392b.jpg",
+    "600x": "https://i.pinimg.com/564x/da/ff/55/daff55b4646f65ba96f8939e7079392b.jpg",
+    "1200x": "https://i.pinimg.com/1200x/da/ff/55/daff55b4646f65ba96f8939e7079392b.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308481",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Preppy Café Outfit Inspiration ☕🤍 | Cute Navy Sweater & White Skirt Look",
+   "description": "☕ Classic preppy style with a navy sweater, white mini skirt, sneakers, and a cozy café vibe. Perfect everyday Pinterest outfit inspiration. 💙✨\n#PreppyStyle #CafeOutfit #OutfitInspo #MinimalFashion #KoreanFashion #StreetStyle #PinterestStyle #CasualChic #AestheticOutfit #OOTD",
+   "alt_text": "A girl wearing a navy sweater over a blue striped shirt with a white mini skirt, white sneakers, and a tote bag, posing outside a cozy café in a soft aesthetic street setting.",
+   "dominant_color": "#75695b",
+   "link": null,
+   "created_at": "2026-09-19T03:28:19",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/a9/9e/1d/a99e1dde097680624c7540902f5fe53f.jpg",
+    "400x300": "https://i.pinimg.com/400x300/a9/9e/1d/a99e1dde097680624c7540902f5fe53f.jpg",
+    "600x": "https://i.pinimg.com/564x/a9/9e/1d/a99e1dde097680624c7540902f5fe53f.jpg",
+    "1200x": "https://i.pinimg.com/1200x/a9/9e/1d/a99e1dde097680624c7540902f5fe53f.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308478",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "☕🤍 Cozy Café Chic | Korean-Inspired Minimal Fashion Look",
+   "description": "A perfect blend of elegance and comfort! This outfit features a soft off-shoulder cream knit top paired with ultra-wide leg washed denim jeans, creating a trendy Korean-inspired aesthetic. The neutral color palette, cozy café setting, and effortless styling make this look ideal for casual outings, coffee dates, city walks, and everyday fashion inspiration.\nHashtags\n#KoreanFashion #CafeStyle #MinimalFashion #WideLegJeans #OffShoulderTop #SoftGirlAesthetic #FashionInspo #OOTD #CasualChic #NeutralOutfit #StreetStyle #AestheticFashion #CozyVibes #DenimStyle #KFashion #CoffeeDateOutfit #WinterFashion #EverydayStyle #FashionTrends",
+   "alt_text": "A person standing in a modern café wearing a cream off-shoulder ribbed knit top and oversized light-wash wide-leg jeans with white platform shoes. The outfit has a minimalist Korean fashion aesthetic, styled with a casual updo hairstyle and a coffee drink in hand, creating a cozy and elegant café-inspired look.",
+   "dominant_color": "#685f55",
+   "link": null,
+   "created_at": "2026-09-19T03:28:18",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/29/37/d7/2937d742da173978604354fb5c3b42e5.jpg",
+    "400x300": "https://i.pinimg.com/400x300/29/37/d7/2937d742da173978604354fb5c3b42e5.jpg",
+    "600x": "https://i.pinimg.com/564x/29/37/d7/2937d742da173978604354fb5c3b42e5.jpg",
+    "1200x": "https://i.pinimg.com/1200x/29/37/d7/2937d742da173978604354fb5c3b42e5.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308476",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korean Street Style: Girlie Black & Silver Glow",
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#907c6e",
+   "link": null,
+   "created_at": "2026-09-19T03:28:16",
+   "is_product": false,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/a3/6e/ef/a36eef34a1ac56fecd7600182f12bbaf.jpg",
+    "400x300": "https://i.pinimg.com/400x300/a3/6e/ef/a36eef34a1ac56fecd7600182f12bbaf.jpg",
+    "600x": "https://i.pinimg.com/564x/a3/6e/ef/a36eef34a1ac56fecd7600182f12bbaf.jpg",
+    "1200x": "https://i.pinimg.com/1200x/a3/6e/ef/a36eef34a1ac56fecd7600182f12bbaf.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308470",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#a29d98",
+   "link": null,
+   "created_at": "2026-09-19T03:28:10",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/2d/4a/12/2d4a123c8cd6a1935d6fb4775c705dca.jpg",
+    "400x300": "https://i.pinimg.com/400x300/2d/4a/12/2d4a123c8cd6a1935d6fb4775c705dca.jpg",
+    "600x": "https://i.pinimg.com/564x/2d/4a/12/2d4a123c8cd6a1935d6fb4775c705dca.jpg",
+    "1200x": "https://i.pinimg.com/1200x/2d/4a/12/2d4a123c8cd6a1935d6fb4775c705dca.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308468",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#bab7b2",
+   "link": null,
+   "created_at": "2026-09-19T03:28:07",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/eb/34/63/eb3463958acb08e86ddad313e86fcd58.jpg",
+    "400x300": "https://i.pinimg.com/400x300/eb/34/63/eb3463958acb08e86ddad313e86fcd58.jpg",
+    "600x": "https://i.pinimg.com/564x/eb/34/63/eb3463958acb08e86ddad313e86fcd58.jpg",
+    "1200x": "https://i.pinimg.com/1200x/eb/34/63/eb3463958acb08e86ddad313e86fcd58.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308467",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korean Fashion Outfit for Women 2026 | Minimalist K-Fashion Wide Leg Pants Aesthetic | Casual Clean",
+   "description": "Elevate your wardrobe with this trendy Korean fashion outfit featuring a fitted ribbed off-shoulder top paired with elegant wide leg trousers and chunky sneakers. This aesthetic K-fashion look blends clean girl style, minimalist streetwear, and soft neutral tones for the perfect Pinterest-inspired outfit. Ideal for casual outings, college fashion, airport looks, coffee dates, and everyday chic styling. Save this Korean street style inspiration for modern feminine fashion ideas, Y2K aesthetic outfits, and effortless Seoul-inspired looks.\n#KoreanFashion #KFashion #CleanGirlAesthetic #WideLegPants #StreetwearWomen #MinimalistFashion #KoreanStyle #AestheticOutfit #CasualChic #Y2KFashion #PinterestFashion #NeutralStyle #SoftGirlStyle #SeoulFashion #FashionInspo",
+   "alt_text": "Young woman wearing a trendy Korean fashion outfit with a fitted white ribbed off-shoulder top, gray wide leg trousers, chunky sneakers, and minimalist accessories in a modern aesthetic room.",
+   "dominant_color": "#a79c8f",
+   "link": null,
+   "created_at": "2026-09-19T03:28:06",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/f5/2b/38/f52b389f8c6cbd7221b7a36c8cf94cc2.jpg",
+    "400x300": "https://i.pinimg.com/400x300/f5/2b/38/f52b389f8c6cbd7221b7a36c8cf94cc2.jpg",
+    "600x": "https://i.pinimg.com/564x/f5/2b/38/f52b389f8c6cbd7221b7a36c8cf94cc2.jpg",
+    "1200x": "https://i.pinimg.com/1200x/f5/2b/38/f52b389f8c6cbd7221b7a36c8cf94cc2.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308466",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#5f584f",
+   "link": null,
+   "created_at": "2026-09-19T03:28:04",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/83/2b/f0/832bf0cb5158871279375f10eb218699.jpg",
+    "400x300": "https://i.pinimg.com/400x300/83/2b/f0/832bf0cb5158871279375f10eb218699.jpg",
+    "600x": "https://i.pinimg.com/564x/83/2b/f0/832bf0cb5158871279375f10eb218699.jpg",
+    "1200x": "https://i.pinimg.com/1200x/83/2b/f0/832bf0cb5158871279375f10eb218699.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308465",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Korea fashion outfit",
+   "description": "Simple and comfortable Korean-inspired outfit.",
+   "alt_text": null,
+   "dominant_color": "#958d86",
+   "link": null,
+   "created_at": "2026-09-19T03:28:03",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/49/e9/e3/49e9e397dc2d195615c7a5859ee72378.jpg",
+    "400x300": "https://i.pinimg.com/400x300/49/e9/e3/49e9e397dc2d195615c7a5859ee72378.jpg",
+    "600x": "https://i.pinimg.com/564x/49/e9/e3/49e9e397dc2d195615c7a5859ee72378.jpg",
+    "1200x": "https://i.pinimg.com/1200x/49/e9/e3/49e9e397dc2d195615c7a5859ee72378.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540308464",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": null,
+   "description": null,
+   "alt_text": null,
+   "dominant_color": "#655e56",
+   "link": null,
+   "created_at": "2026-09-19T03:28:02",
+   "is_product": false,
+   "creative_type": "COLLAGE",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/21/4a/e7/214ae70f4352e9b18bb75fe988442000.jpg",
+    "400x300": "https://i.pinimg.com/400x300/21/4a/e7/214ae70f4352e9b18bb75fe988442000.jpg",
+    "600x": "https://i.pinimg.com/564x/21/4a/e7/214ae70f4352e9b18bb75fe988442000.jpg",
+    "1200x": "https://i.pinimg.com/1200x/21/4a/e7/214ae70f4352e9b18bb75fe988442000.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540247204",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "Men's Casual Look",
+   "description": "this fashion sense isn't just give you good looks and confidence to conqure every problems. #koreanfashion",
+   "alt_text": null,
+   "dominant_color": "#454444",
+   "link": "https://bitli.in/9hPydjW",
+   "created_at": "2026-09-18T12:18:46",
+   "is_product": false,
+   "creative_type": "IDEA",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "400x300": "https://i.pinimg.com/400x300/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "600x": "https://i.pinimg.com/564x/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg",
+    "1200x": "https://i.pinimg.com/1200x/83/9b/ba/839bbaa73d5f07122c9665c9bd09b4d5.jpg"
+   }
+  },
+  {
+   "pin_id": "1096767315540124197",
+   "board_id": "1096767384194767577",
+   "board": "快速儲存",
+   "title": "🌿 Stylish & Comfortable – Men's Casual Streetwear",
+   "description": "Effortlessly stylish & comfy! Perfect for casual outings. Get yours now! 👇 #MensFashion #StreetStyle",
+   "alt_text": null,
+   "dominant_color": "#a38064",
+   "link": "http://www.amazon.com/gp/product/B0DDTL68F8,http:/www.amazon.com/gp/product/B0DDTL68F8",
+   "created_at": "2026-09-16T19:53:04",
+   "is_product": true,
+   "creative_type": "REGULAR",
+   "media_type": "image",
+   "images": {
+    "150x150": "https://i.pinimg.com/150x150/fe/7d/96/fe7d96eb92f5ed4a3d1717092682d755.jpg",
+    "400x300": "https://i.pinimg.com/400x300/fe/7d/96/fe7d96eb92f5ed4a3d1717092682d755.jpg",
+    "600x": "https://i.pinimg.com/564x/fe/7d/96/fe7d96eb92f5ed4a3d1717092682d755.jpg",
+    "1200x": "https://i.pinimg.com/1200x/fe/7d/96/fe7d96eb92f5ed4a3d1717092682d755.jpg"
+   }
+  }
+ ],
+ "related_terms": {
+  "outfit ideas": [],
+  "work outfit": [],
+  "interview outfit": [],
+  "date night outfit": [],
+  "wedding guest outfit": [
+   "wedding"
+  ],
+  "casual outfit": [],
+  "smart casual": [],
+  "business casual": [
+   "business casual women",
+   "business casual fall"
+  ],
+  "formal outfit": [],
+  "streetwear": [],
+  "minimalist outfit": [],
+  "capsule wardrobe": [],
+  "fall outfit": [
+   "fall",
+   "fall outfits"
+  ],
+  "winter outfit": [
+   "winter"
+  ],
+  "spring outfit": [],
+  "summer outfit": [
+   "summer"
+  ],
+  "layering outfit": [
+   "party outfit",
+   "outfit",
+   "concert outfit",
+   "boots outfit",
+   "travel outfit",
+   "office outfit",
+   "thanksgiving outfit",
+   "date outfit",
+   "leggings outfit",
+   "converse outfit"
+  ],
+  "athleisure": [],
+  "old money outfit": [
+   "concert outfit",
+   "interview outfit",
+   "boots outfit",
+   "save money",
+   "outfit ideas",
+   "office outfit",
+   "thanksgiving outfit",
+   "converse outfit"
+  ],
+  "office outfit women": [
+   "concert outfit",
+   "home office",
+   "boots outfit",
+   "outfit ideas",
+   "office outfit",
+   "thanksgiving outfit",
+   "office ideas",
+   "converse outfit"
+  ],
+  "office outfit men": [
+   "concert outfit",
+   "interview outfit",
+   "outfit ideas",
+   "office outfit",
+   "new years outfit",
+   "office ideas"
+  ],
+  "blazer outfit": [],
+  "trench coat outfit": [],
+  "knit sweater outfit": []
+ },
+ "api_calls": 30
+}

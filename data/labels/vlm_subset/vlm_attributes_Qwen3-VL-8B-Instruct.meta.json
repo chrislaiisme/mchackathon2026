@@ -1,0 +1,158 @@
+{
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "n_items": 397,
+  "valid_rate": 1.0,
+  "load_s": 8.1,
+  "sec_per_item_mean": 0.57,
+  "device": "cuda:0",
+  "questions": [
+    [
+      "shoulder",
+      "Shoulder construction of the garment?",
+      [
+        "structured or padded",
+        "soft or dropped",
+        "not applicable"
+      ]
+    ],
+    [
+      "surface",
+      "Fabric surface?",
+      [
+        "matte",
+        "glossy or shiny",
+        "not applicable"
+      ]
+    ],
+    [
+      "logo",
+      "Is there a large visible logo or brand lettering?",
+      [
+        "yes",
+        "no",
+        "not applicable"
+      ]
+    ],
+    [
+      "pattern",
+      "Pattern?",
+      [
+        "plain or solid",
+        "bold pattern or graphic print",
+        "not applicable"
+      ]
+    ],
+    [
+      "fit",
+      "Fit or silhouette?",
+      [
+        "slim or tailored",
+        "loose or oversized",
+        "not applicable"
+      ]
+    ],
+    [
+      "formality",
+      "Formality?",
+      [
+        "formal or business",
+        "casual",
+        "not applicable"
+      ]
+    ],
+    [
+      "collar",
+      "Collar?",
+      [
+        "crisp structured collar",
+        "no collar or soft collar",
+        "not applicable"
+      ]
+    ],
+    [
+      "knit",
+      "Is the fabric a knit?",
+      [
+        "knit",
+        "woven or other",
+        "not applicable"
+      ]
+    ],
+    [
+      "tone",
+      "Overall color lightness?",
+      [
+        "dark",
+        "light",
+        "not applicable"
+      ]
+    ],
+    [
+      "saturation",
+      "Color saturation?",
+      [
+        "vivid or bright",
+        "muted or neutral",
+        "not applicable"
+      ]
+    ]
+  ],
+  "element_map": {
+    "structured_shoulders": [
+      "shoulder",
+      1
+    ],
+    "matte_fabric": [
+      "surface",
+      1
+    ],
+    "glossy_fabric": [
+      "surface",
+      -1
+    ],
+    "visible_logo": [
+      "logo",
+      1
+    ],
+    "minimal_design": [
+      "pattern",
+      1
+    ],
+    "bold_pattern": [
+      "pattern",
+      -1
+    ],
+    "tailored_fit": [
+      "fit",
+      1
+    ],
+    "relaxed_fit": [
+      "fit",
+      -1
+    ],
+    "formal_style": [
+      "formality",
+      1
+    ],
+    "casual_style": [
+      "formality",
+      -1
+    ],
+    "crisp_collar": [
+      "collar",
+      1
+    ],
+    "soft_knit": [
+      "knit",
+      1
+    ],
+    "dark_tone": [
+      "tone",
+      1
+    ],
+    "bright_color": [
+      "saturation",
+      1
+    ]
+  }
+}

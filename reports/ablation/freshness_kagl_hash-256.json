@@ -1,0 +1,33 @@
+{
+ "setup": {
+  "catalog": "data/catalog/kagl",
+  "encoder": "hash-256",
+  "arm": "full_zclip3",
+  "users": 10,
+  "rounds": 3,
+  "k": 5,
+  "decay": 0.5,
+  "tau": 0.3,
+  "strength": 1.0
+ },
+ "rows": [
+  {
+   "w_freshness": 0.0,
+   "novelty_last": 0.0,
+   "novelty_all_rounds": 0.3733,
+   "utility_last": 2.8013,
+   "found_target_last": 1.0,
+   "p_novelty_vs_off": 1.0,
+   "p_utility_vs_off": 1.0
+  },
+  {
+   "w_freshness": 0.5,
+   "novelty_last": 0.48,
+   "novelty_all_rounds": 0.6267,
+   "utility_last": 2.3819,
+   "found_target_last": 1.0,
+   "p_novelty_vs_off": 0.004,
+   "p_utility_vs_off": 0.0636
+  }
+ ]
+}

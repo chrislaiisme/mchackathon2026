@@ -1,0 +1,65 @@
+{
+ "accessory": {
+  "accessory": 2887,
+  "bag": 5301,
+  "bottom": 4870,
+  "dress": 1860,
+  "jewelry": 5511,
+  "other": 5847,
+  "outerwear": 2583,
+  "shoes": 6304,
+  "top": 5757
+ },
+ "bag": {
+  "bag": 508,
+  "bottom": 4997,
+  "dress": 2668,
+  "jewelry": 6863,
+  "other": 6245,
+  "outerwear": 3180,
+  "shoes": 7329,
+  "top": 5866
+ },
+ "bottom": {
+  "bottom": 285,
+  "dress": 171,
+  "jewelry": 5069,
+  "other": 5016,
+  "outerwear": 2617,
+  "shoes": 5968,
+  "top": 6851
+ },
+ "dress": {
+  "dress": 185,
+  "jewelry": 3600,
+  "other": 3089,
+  "outerwear": 1031,
+  "shoes": 2914,
+  "top": 363
+ },
+ "jewelry": {
+  "jewelry": 5071,
+  "other": 6425,
+  "outerwear": 2778,
+  "shoes": 7888,
+  "top": 5839
+ },
+ "other": {
+  "other": 16368,
+  "outerwear": 2483,
+  "shoes": 7532,
+  "top": 5698
+ },
+ "outerwear": {
+  "outerwear": 143,
+  "shoes": 3579,
+  "top": 2808
+ },
+ "shoes": {
+  "shoes": 425,
+  "top": 6949
+ },
+ "top": {
+  "top": 949
+ }
+}
