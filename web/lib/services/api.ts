@@ -40,6 +40,9 @@ function absoluteImage(url: string): string {
 /** ENGINE 02 的 products → 前端的推薦卡。attributes 可能是陣列或字典，兩種都吃。 */
 function toRecommendations(retrieval: any): FashionRecommendation[] {
   const products = retrieval?.products ?? [];
+  // ENGINE 02 的 score 是無界的相關性分數（例如 2.954），UI 的欄位是 0–100 的百分比。
+  // 以這批裡最高分為 100% 做相對換算 —— 卡片上真正的理由是分數分解那段文字，這個數字只是排序強弱。
+  const top = Math.max(...products.map((p: any) => Number(p.score) || 0), 1e-9);
   return products.map((p: any) => {
     const attrs = Array.isArray(p.attributes)
       ? p.attributes.map(String)
@@ -51,7 +54,7 @@ function toRecommendations(retrieval: any): FashionRecommendation[] {
       explanation: String(p.reason ?? ""),
       attributes: attrs,
       priceBand: String(p.price_band ?? p.price ?? "—"),
-      confidence: typeof p.score === "number" ? p.score : 0,
+      confidence: Math.round(((Number(p.score) || 0) / top) * 100),
     };
   });
 }

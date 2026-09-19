@@ -88,3 +88,27 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## 本機跑起來
+
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
+
+需要後端一起跑（見 `bff/README.md`）。環境變數複製 `.env.example` 成 `.env.local`：
+
+| 變數 | 預設 | 用途 |
+|---|---|---|
+| `NEXT_PUBLIC_BFF_URL` | `http://127.0.0.1:8100` | 前端唯一要打的服務 |
+| `NEXT_PUBLIC_ENGINE02_URL` | `http://127.0.0.1:8004` | 商品圖片來源 |
+
+**商品圖片要指向 ENGINE 02 的原生 app**（`uvicorn engine02.api:app --port 8004`）。
+`mcp_servers/catalog` 的包裝層只有 `/retrieve` 與 `/health`，沒有 `/images/<id>`，指錯會整排圖空白。
+
+`next.config.ts` 釘死了 `turbopack.root`。家目錄若有 `package-lock.json`，Next.js 會把工作區根目錄
+推斷到那裡而不讀 `web/.env.local`，症狀是 `NEXT_PUBLIC_*` 全部 undefined。
+
+後端沒起來時，畫面會自動退回 `lib/mock/` 的假資料，不會空白或報錯。
