@@ -206,18 +206,10 @@ function CurrentLook({
   outfit,
   onRemove,
   onClear,
-  onTryOn,
-  canTryOn,
-  isTryingOn,
-  tryOnError,
 }: {
   outfit: OutfitState;
   onRemove: (slot: OutfitSlot) => void;
   onClear: () => void;
-  onTryOn: () => void;
-  canTryOn: boolean;
-  isTryingOn: boolean;
-  tryOnError: string;
 }) {
   const { t } = useI18n();
   const hasItems = currentLookSlots.some((slot) => outfit[slot]);
@@ -261,10 +253,6 @@ function CurrentLook({
           );
         })}
       </div>
-      {tryOnError && <p className="mt-3 text-sm text-destructive">{tryOnError}</p>}
-      <Button type="button" variant="outline" className="mt-4 w-full" disabled={!hasItems || !canTryOn || isTryingOn} onClick={onTryOn}>
-        {isTryingOn ? "TRYING ON..." : "TRY ON"}
-      </Button>
     </section>
   );
 }
@@ -300,6 +288,7 @@ function OutfitPreview({
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedPieces = currentLookSlots.map((slot) => outfit[slot]).filter(Boolean) as WardrobeItem[];
   const hasVirtualYou = Boolean(virtualYou);
+  const hasSelectedPieces = selectedPieces.length > 0;
   const displayImage = activeTryOnImage ?? virtualYou?.modelImageUrl ?? defaultVirtualYouImage;
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -316,10 +305,21 @@ function OutfitPreview({
       <div className="flex items-center justify-between gap-4">
         <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{t.dressingRoom.virtualYou}</p>
         <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-        <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={isUploading}>
-          {isUploading ? <RefreshCw className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          {isUploading ? t.dressingRoom.uploading : t.dressingRoom.uploadPhoto}
-        </Button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={isUploading}>
+            {isUploading ? <RefreshCw className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            {isUploading ? t.dressingRoom.uploading : t.dressingRoom.uploadPhoto}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!hasSelectedPieces || !canTryOn || isTryingOn}
+            onClick={onTryOn}
+          >
+            {isTryingOn ? "TRYING ON..." : "TRY ON"}
+          </Button>
+        </div>
       </div>
 
       <div className="relative flex min-h-[520px] items-end justify-center overflow-hidden border border-border bg-card px-6 pt-10">
@@ -353,15 +353,12 @@ function OutfitPreview({
         <p className="border-l border-primary pl-4 text-sm leading-6 text-muted-foreground">{t.dressingRoom.simulatedPreview}</p>
       )}
       {uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
+      {tryOnError && <p className="text-sm text-destructive">{tryOnError}</p>}
 
       <CurrentLook
         outfit={outfit}
         onRemove={onRemove}
         onClear={onClear}
-        onTryOn={onTryOn}
-        canTryOn={canTryOn}
-        isTryingOn={isTryingOn}
-        tryOnError={tryOnError}
       />
     </aside>
   );
