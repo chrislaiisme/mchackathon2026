@@ -107,7 +107,7 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 ## Git 工作流程
 
 - `main` 是共用分支；目前其他組員的既有內容是 GitHub Pages 網站，維持原樣。
-- 每條線一個分支，目前提議的命名慣例（還沒經過全隊確認）：`engine01-intent`、`engine02-retrieval`、`engine03-feedback`、`frontend`、`pinterest-generation`。
+- 每條線一個分支。實際使用的分支名稱：`engine01-intent`、`engine02-research`（原本提議的命名是 `engine02-retrieval`，ENGINE02 負責人自己開的分支叫這個名字，兩者混用時注意別搞混）；`engine03-feedback`、`frontend`（實際分支 `feature/frontend-user-ui`）、`pinterest-generation` 這幾條命名慣例還沒跟全隊對過。
 - `git worktree` 是規劃文件裡提到的選用技巧（在同一台機器上把多個分支各自簽出到不同資料夾），如果想同時跑多個 agent 在不同分支上會用得到，一般單分支開發不需要。
 - 推到共用遠端或開 PR 一律先跟使用者確認——這會讓其他四位組員都看得到。
 
