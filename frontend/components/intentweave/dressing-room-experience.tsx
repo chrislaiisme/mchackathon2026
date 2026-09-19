@@ -41,6 +41,19 @@ function applyWardrobeItem(outfit: OutfitState, item: WardrobeItem): OutfitState
   return { ...outfit, [slot]: item };
 }
 
+async function getImageBounds(image: Blob) {
+  const imageBitmap = await createImageBitmap(image);
+  const bounds = {
+    x: 0,
+    y: 0,
+    width: imageBitmap.width,
+    height: imageBitmap.height,
+  };
+
+  imageBitmap.close();
+  return bounds;
+}
+
 function WardrobeFilters({
   activeFilter,
   onChange,
@@ -358,7 +371,15 @@ export function DressingRoomExperience() {
     setUploadError("");
 
     try {
-      replaceVirtualYou(await virtualYouService.save(user.id, file, virtualYou?.measurements || {}));
+      const { extractedPersonImage } = await virtualYouService.extractPerson(file);
+      replaceVirtualYou(
+        await virtualYouService.saveExtractedPerson({
+          userId: user.id,
+          originalUserImage: file,
+          extractedPersonImage,
+          personBoundingBox: await getImageBounds(extractedPersonImage),
+        }),
+      );
     } catch (error) {
       console.error("[DressingRoom] Virtual You upload failed", error);
       setUploadError(t.dressingRoom.uploadError);

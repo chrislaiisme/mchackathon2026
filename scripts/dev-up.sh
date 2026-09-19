@@ -48,6 +48,7 @@ ENGINE01_PORT="${ENGINE01_PORT:-8000}"
 ENGINE02_PORT="${ENGINE02_PORT:-8002}"
 ENGINE03_PORT="${ENGINE03_PORT:-8003}"
 BFF_PORT="${BFF_PORT:-8100}"
+VIRTUAL_YOU_PORT="${VIRTUAL_YOU_PORT:-8081}"
 WEB_PORT="${WEB_PORT:-3000}"
 
 start() {  # start <名稱> <port> <health 路徑> <指令...>
@@ -124,6 +125,21 @@ start bff "$BFF_PORT" /health \
       ENGINE02_URL="http://localhost:$ENGINE02_PORT" \
       ENGINE03_URL="http://localhost:$ENGINE03_PORT" \
       "$PY" -m uvicorn bff.main:app --host 127.0.0.1 --port "$BFF_PORT"
+
+# Virtual You（去背／試穿，main 在 2026-09-19 併進來的）。它要 rembg，那包很大，
+# 沒裝就跳過——核心的 意圖→推薦→生成 這條線不需要它，不該被它擋住。前端打的是
+# Next.js 的 /api/virtual-you/*，那層再轉給這支；沒起的話只有試穿功能不能用。
+if "$PY" -c "import rembg" >/dev/null 2>&1; then
+  start virtualyou "$VIRTUAL_YOU_PORT" /healthz \
+    env PERSON_EXTRACTION_MODEL="${PERSON_EXTRACTION_MODEL:-birefnet-portrait}" \
+        VIRTUAL_TRY_ON_PROVIDER="${VIRTUAL_TRY_ON_PROVIDER:-mock}" \
+        VIRTUAL_TRY_ON_WORKER_URL="${VIRTUAL_TRY_ON_WORKER_URL:-}" \
+        VIRTUAL_TRY_ON_TIMEOUT_SECONDS="${VIRTUAL_TRY_ON_TIMEOUT_SECONDS:-180}" \
+        CODEX_BIN="${CODEX_BIN:-codex}" \
+        "$PY" -m uvicorn backend.virtual_you.main:app --host 127.0.0.1 --port "$VIRTUAL_YOU_PORT"
+else
+  echo "  virtualyou 跳過（沒裝 rembg：$PY -m pip install rembg pillow）"
+fi
 
 if [[ "${1:-}" == "--web" ]]; then
   start web "$WEB_PORT" / \
