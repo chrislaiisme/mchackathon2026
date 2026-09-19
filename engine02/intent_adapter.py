@@ -457,6 +457,10 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
                     attrs["price"] = f"{float(v):.0f}" if float(v) >= 100 else f"{float(v):.2f}"
                     if cur and cur.lower() not in ("nan", "none"):
                         attrs["currency"] = cur
+                    if "price_estimated" in items.columns and bool(row.get("price_estimated")):
+                        attrs["price_estimated"] = "true"      # show 「估計價」, not a price tag
+                        if str(row.get("price_basis") or "").strip():
+                            attrs["price_basis"] = str(row["price_basis"])
         products.append({
             "product_id": it.item_id,
             "image_url": f"{base}/{it.item_id}",

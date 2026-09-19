@@ -23,7 +23,17 @@ GROUP_LABEL = {
     "rerank": "重排模型判定和需求高度相關",
     "penalty": "和你否決過的商品不同",
     "freshness": "這件你這輪還沒看過",
+    "context": "符合你現在的情境",
 }
+
+
+def _context_label(term: str) -> str:
+    """The situation behind a context term ("明天新竹體感 14°C → 防潑水外套"), for this request."""
+    try:
+        from .context.engine import CONTEXT_LABELS
+        return CONTEXT_LABELS.get().get(term) or GROUP_LABEL["context"]
+    except Exception:                        # noqa: BLE001
+        return GROUP_LABEL["context"]
 
 
 def template_reasons(
@@ -39,6 +49,17 @@ def template_reasons(
                    "stated_design": "你這句話裡說的"}
     cited = [c for c in contribs if c.cited and c.contribution > 0]
     cited.sort(key=lambda c: -c.contribution)
+    # context can stack five situations on one card; the two strongest carry the story, the rest
+    # are still in `contributions` (and still sum into the score) for anyone who opens the detail
+    ctx_seen = 0
+    kept = []
+    for c in cited:
+        if c.group == "context":
+            ctx_seen += 1
+            if ctx_seen > 2:
+                continue
+        kept.append(c)
+    cited = kept
     reasons, facts = [], []
     for c in cited:
         if c.group == "design":
@@ -66,6 +87,11 @@ def template_reasons(
             facts.append({"type": "design", "label": label, "direction": "avoids" if avoids else "has",
                           "contribution": round(c.contribution, 2),
                           "serves_needs": [need_labels.get(n, n) for n, v in top_needs if v > 0]})
+        elif c.group == "context":
+            label = _context_label(c.term)
+            text = f"{label}（+{c.contribution:.2f}）"
+            facts.append({"type": "context", "label": label, "source": c.term.split(":")[1],
+                          "contribution": round(c.contribution, 2)})
         else:
             text = f"{GROUP_LABEL.get(c.group, c.term)}（+{c.contribution:.2f}）"
             facts.append({"type": c.group, "label": GROUP_LABEL.get(c.group, c.term),

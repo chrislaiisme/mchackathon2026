@@ -1,0 +1,49 @@
+{
+ "source": "einrafh/hnm-fashion-recommendations-data (H&M, 2018-2020)",
+ "license": "H&M Kaggle competition: Non-Commercial Purposes & Academic Research",
+ "built_from": "data/catalog/hm (stats of that build: n_items 10000, seed 0)",
+ "vlm": "Qwen/Qwen3-VL-8B-Instruct (see vlm_fill_report.json)",
+ "n_items": 9870,
+ "dropped_by_vlm": 130,
+ "attr_coverage": {
+  "color": 1.0,
+  "season": 1.0,
+  "occasion": 1.0,
+  "gender": 1.0,
+  "price": 1.0,
+  "boldness": 1.0,
+  "fit": 0.8973,
+  "style": 1.0
+ },
+ "category": {
+  "top": 4317,
+  "bottom": 1917,
+  "shoes": 1248,
+  "dress": 1117,
+  "outerwear": 946,
+  "bag": 325
+ },
+ "gender": {
+  "Women": 7781,
+  "Men": 2089
+ },
+ "boldness": {
+  "0": 3720,
+  "1": 5787,
+  "2": 354,
+  "3": 9
+ },
+ "price": {
+  "estimator": "price-estimate-v1",
+  "estimated_total": 9870,
+  "listed": 0,
+  "median_twd_by_category": {
+   "bag": 990.0,
+   "bottom": 890.0,
+   "dress": 1290.0,
+   "outerwear": 2190.0,
+   "shoes": 1590.0,
+   "top": 790.0
+  }
+ }
+}

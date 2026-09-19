@@ -177,6 +177,7 @@ def select(cfg: DiversityConfig, rel: np.ndarray, emb: np.ndarray, k: int,
 class DiversifiedRankedItem(RankedItem):
     relevance_rank: int  # rank under the additive relevance score alone (1-based)
     promoted_by_diversity: bool = False  # relevance_rank > k: on the slate only because of diversification
+    promoted_by_surprise: bool = False  # the 驚喜款 slot: swapped in for its boldness (req.context.surprise)
     max_similarity_to_higher: float | None = None  # max image cosine to the cards shown above it
     new_aspects: list[str] = []  # xQuAD: need aspects this card newly covers (P(i|n) ≥ 0.5)
 
@@ -202,6 +203,66 @@ def _cosine_matrix(engine, items: list[RankedItem]) -> np.ndarray:
     return E @ E.T
 
 
+SURPRISE_MIN_BOLDNESS = 2.0  # catalog `boldness`: 0 basic .. 3 avant-garde
+SURPRISE_LABEL = "驚喜款"
+
+
+def _fmt_bold(b: float) -> str:
+    return f"{b:g}"
+
+
+def apply_surprise(engine, cands: list[RankedItem], sel: list[int]) -> tuple[list[int], int | None, dict[str, Any]]:
+    """驚喜款: swap the LAST selected card for the boldest unselected relevance candidate.
+
+    Eligible: a candidate in `cands` not already in `sel`, with boldness ≥ 2 and strictly bolder
+    than every card that stays on the slate (sel[:-1]). Among eligible: highest boldness, ties →
+    higher relevance (lower index). The first card is never replaced. Returns (new_sel, idx, info);
+    idx is None (and sel unchanged) when nothing qualifies, with the reason recorded in info.
+    """
+    info: dict[str, Any] = {"requested": True, "applied": False, "item_id": None, "boldness": None,
+                            "relevance_rank": None, "replaced_item_id": None, "reason_if_not_applied": None}
+    items = engine.catalog.items
+    if "boldness" not in items.columns:
+        info["reason_if_not_applied"] = "商品目錄沒有「設計大膽度」(boldness) 欄位"
+        return sel, None, info
+    if len(sel) < 2:
+        info["reason_if_not_applied"] = "推薦少於 2 張卡片，第一張不替換，沒有位置放驚喜款"
+        return sel, None, info
+
+    col = items["boldness"]
+
+    def bold(i: int) -> float | None:
+        p = engine.catalog.pos(cands[i].item_id)
+        if p is None:
+            return None
+        try:
+            v = float(col.iloc[p])
+        except (TypeError, ValueError):
+            return None
+        return None if np.isnan(v) else v
+
+    keep = sel[:-1]
+    kept_b = [bold(i) for i in keep]
+    if any(b is None for b in kept_b):
+        info["reason_if_not_applied"] = "保留的卡片中有商品缺少大膽度資料，無法確認驚喜款比它們更大膽"
+        return sel, None, info
+    m = max(kept_b)
+    chosen = set(sel)
+    pool = [(b, i) for i in range(len(cands)) if i not in chosen and (b := bold(i)) is not None]
+    eligible = [(b, i) for b, i in pool if b >= SURPRISE_MIN_BOLDNESS and b > m]
+    if not eligible:
+        best = max((b for b, _ in pool), default=None)
+        info["reason_if_not_applied"] = (
+            f"候選中沒有設計大膽度 ≥ {_fmt_bold(SURPRISE_MIN_BOLDNESS)}/3 且高於其他卡片最高 {_fmt_bold(m)}/3 的商品"
+            + (f"（未入選候選最高 {_fmt_bold(best)}/3）" if best is not None else "（沒有其他候選）"))
+        return sel, None, info
+    b, idx = max(eligible, key=lambda t: (t[0], -t[1]))
+    new_sel = keep + [idx]
+    info.update(applied=True, item_id=cands[idx].item_id, boldness=b, relevance_rank=idx + 1,
+                replaced_item_id=cands[sel[-1]].item_id, max_other_boldness=m)
+    return new_sel, idx, info
+
+
 def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg: DiversityConfig,
                        k: int | None = None) -> DiversifiedResponse:
     """Select k cards out of the relevance-ranked `deep` response (see ``deep_request``)."""
@@ -219,6 +280,10 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
     aspects, P, w = need_aspects(probs, share, need_ids, cfg.n_aspects)
 
     sel = select(cfg, rel, emb, k, P, w) if n else []
+    surprise_idx: int | None = None
+    surprise_info: dict[str, Any] | None = None
+    if getattr(getattr(req, "context", None), "surprise", False):
+        sel, surprise_idx, surprise_info = apply_surprise(engine, cands, sel)
     # relevance cut-off = full score of the relevance rank-(k+1) item (deep list is score-sorted)
     cut_idx = k if len(deep.items) > k else None
     all_items = list(deep.items)
@@ -235,12 +300,14 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
     covered = np.zeros(P.shape[1])
     for rank, i in enumerate(sel, start=1):
         it = cands[i]
-        promoted = i >= k
+        surprise = i == surprise_idx
+        beyond = i >= k  # outside the relevance top-k: no relevance-only sufficient set exists
+        promoted = beyond and not surprise
         contribs = [c.model_copy(deep=True) for c in it.contributions]
         if cut_idx is not None:
             ce = cutoff_explanations(sc, np.array([i, cut_idx]), 1)[i]
             margin = ce.margin
-            suff = set(ce.sufficient) if not promoted else set()
+            suff = set(ce.sufficient) if not beyond else set()
         else:
             margin, suff = None, set(range(len(contribs)))
         for j, cb in enumerate(contribs):
@@ -249,7 +316,7 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
             cb.necessary = None
             cb.diff_vs_cutoff = float(contrib[i, j] - contrib[cut_idx, j]) if cut_idx is not None else None
             cb.cited = bool(cb.sufficient and cb.contribution > 0)
-        if promoted:  # show strengths, explicitly not claimed sufficient
+        if beyond:  # show strengths, explicitly not claimed sufficient
             for j in sorted(range(len(contribs)), key=lambda j: -contribs[j].contribution)[:3]:
                 contribs[j].cited = contribs[j].contribution > 0
         prev = [sel[r] for r in range(rank - 1)]
@@ -269,11 +336,21 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
             reasons = [note] + reasons
             facts = [{"type": "diversity", "label": "為了多樣性而納入", "relevance_rank": i + 1,
                       "max_similarity": round(max_sim, 2) if max_sim is not None else None}] + facts
+        if surprise:
+            b, m = surprise_info["boldness"], surprise_info["max_other_boldness"]
+            relaxed = deep.constraint_report.relaxed
+            fits = "仍符合你所有的條件" if not relaxed else "仍符合目前套用的所有條件（部分條件已放寬）"
+            reasons = [f"{SURPRISE_LABEL}：設計大膽度 {_fmt_bold(b)}/3（其他卡片最高 {_fmt_bold(m)}/3），"
+                       f"{fits}（純相關度排第 {i + 1} 名）"] + reasons
+            facts = [{"type": "surprise", "label": SURPRISE_LABEL, "boldness": b, "max_other_boldness": m,
+                      "relevance_rank": i + 1, "replaced_item_id": surprise_info["replaced_item_id"]}] + facts
         text, src = explain(reasons, facts, engine.vocabulary, use_llm)
         data = it.model_dump()
         data.update(rank=rank, contributions=contribs, margin_vs_cutoff=margin, reasons=reasons,
                     explanation=text, explanation_source=src, relevance_rank=i + 1,
                     promoted_by_diversity=promoted, max_similarity_to_higher=max_sim, new_aspects=new_aspects)
+        if surprise:
+            data["promoted_by_surprise"] = True
         out.append(DiversifiedRankedItem(**data))
 
     displaced = []
@@ -284,12 +361,12 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
                               "most_similar_shown": cands[sel[j]].item_id if j is not None else None,
                               "cosine": round(float(sims[i, sel[j]]), 4) if j is not None else None})
     base = deep.model_dump(exclude={"items"})
-    return DiversifiedResponse(
-        **base,
-        items=out,
-        diversification={"method": cfg.method, "param": cfg.param, "depth": cfg.depth, "aspects": aspects,
-                         "promoted": [cands[i].item_id for i in sel if i >= k], "displaced": displaced},
-    )
+    diversification = {"method": cfg.method, "param": cfg.param, "depth": cfg.depth, "aspects": aspects,
+                       "promoted": [cands[i].item_id for i in sel if i >= k and i != surprise_idx],
+                       "displaced": displaced}
+    if surprise_info is not None:
+        diversification["surprise"] = surprise_info
+    return DiversifiedResponse(**base, items=out, diversification=diversification)
 
 
 def run_diversified(engine, req: Engine02Request, arm=None, cfg: DiversityConfig = DiversityConfig()) -> DiversifiedResponse:

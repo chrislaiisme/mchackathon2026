@@ -1,0 +1,51 @@
+{
+  "_meta": {
+    "description": "Taiwan-relevant dated occasions 2026-09 .. 2027-12 (+ 尾牙 2028-01 because its window opens in 2027-12). An occasion influences recommendations from (start - window_days_before) through end, inclusive.",
+    "lunar_source": "Hong Kong Observatory Gregorian-Lunar Calendar Conversion Tables T2026e.txt / T2027e.txt / T2028e.txt, parsed 2026-09-19: https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt",
+    "lunar_dates_verified": {
+      "中秋 2026 (8/15)": "2026-09-25",
+      "尾牙 2027 (12/16)": "2027-01-23",
+      "除夕 2027": "2027-02-05",
+      "初一 2027 (1/1)": "2027-02-06",
+      "元宵 2027 (1/15)": "2027-02-20",
+      "清明 2027 (solar term)": "2027-04-05",
+      "端午 2027 (5/5)": "2027-06-09",
+      "七夕 2027 (7/7)": "2027-08-08",
+      "中元 2027 (7/15)": "2027-08-16",
+      "中秋 2027 (8/15)": "2027-09-15",
+      "尾牙 2028 (12/16)": "2028-01-12"
+    },
+    "computed": "感恩節 = 4th Thursday of November (2026-11-26, 2027-11-25); 母親節 = 2nd Sunday of May (2027-05-09)"
+  },
+  "occasions": [
+    {"key": "mid_autumn", "name_zh": "中秋節", "name_en": "Mid-Autumn Festival", "date": "2026-09-25", "window_days_before": 10, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2026e.txt"},
+    {"key": "national_day", "name_zh": "雙十國慶", "name_en": "National Day (Double Ten)", "date": "2026-10-10", "window_days_before": 5, "kind": "festival", "source_url": "https://www.dgpa.gov.tw/"},
+    {"key": "halloween", "name_zh": "萬聖節", "name_en": "Halloween", "date": "2026-10-31", "window_days_before": 14, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Halloween"},
+    {"key": "double11", "name_zh": "雙11", "name_en": "Singles' Day sale", "date": "2026-11-11", "window_days_before": 10, "kind": "commercial", "source_url": "https://en.wikipedia.org/wiki/Singles%27_Day"},
+    {"key": "black_friday", "name_zh": "感恩節／黑色星期五", "name_en": "Thanksgiving / Black Friday", "start": "2026-11-26", "end": "2026-11-30", "window_days_before": 7, "kind": "commercial", "source_url": "https://en.wikipedia.org/wiki/Black_Friday_(shopping)"},
+    {"key": "christmas", "name_zh": "聖誕節", "name_en": "Christmas", "date": "2026-12-25", "window_days_before": 21, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Christmas"},
+    {"key": "new_year_eve", "name_zh": "跨年", "name_en": "New Year's Eve", "start": "2026-12-31", "end": "2027-01-01", "window_days_before": 7, "kind": "festival", "source_url": "https://www.dgpa.gov.tw/"},
+    {"key": "weiya", "name_zh": "尾牙季", "name_en": "Year-end company banquet season", "start": "2027-01-04", "end": "2027-01-23", "window_days_before": 14, "kind": "season", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "lunar_new_year", "name_zh": "農曆春節（除夕／初一）", "name_en": "Lunar New Year", "start": "2027-02-05", "end": "2027-02-10", "eve": "2027-02-05", "day1": "2027-02-06", "window_days_before": 21, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "valentine", "name_zh": "西洋情人節", "name_en": "Valentine's Day", "date": "2027-02-14", "window_days_before": 7, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Valentine%27s_Day"},
+    {"key": "lantern", "name_zh": "元宵節", "name_en": "Lantern Festival", "date": "2027-02-20", "window_days_before": 5, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "peace_memorial", "name_zh": "228 和平紀念日連假", "name_en": "Peace Memorial Day long weekend", "date": "2027-02-28", "window_days_before": 5, "kind": "festival", "source_url": "https://www.dgpa.gov.tw/"},
+    {"key": "qingming", "name_zh": "兒童節／清明連假", "name_en": "Children's Day / Tomb Sweeping Day", "start": "2027-04-04", "end": "2027-04-05", "window_days_before": 7, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "mothers_day", "name_zh": "母親節", "name_en": "Mother's Day", "date": "2027-05-09", "window_days_before": 10, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Mother%27s_Day"},
+    {"key": "520", "name_zh": "520 告白日", "name_en": "520 'I love you' day", "date": "2027-05-20", "window_days_before": 5, "kind": "commercial", "source_url": "https://en.wikipedia.org/wiki/Internet_slang_in_China"},
+    {"key": "dragon_boat", "name_zh": "端午節", "name_en": "Dragon Boat Festival", "date": "2027-06-09", "window_days_before": 7, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "graduation", "name_zh": "畢業季", "name_en": "Graduation season", "start": "2027-06-01", "end": "2027-06-30", "window_days_before": 14, "kind": "school", "source_url": "https://www.edu.tw/"},
+    {"key": "qixi", "name_zh": "七夕情人節", "name_en": "Qixi (Chinese Valentine's Day)", "date": "2027-08-08", "window_days_before": 10, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "fathers_day", "name_zh": "父親節（八八節）", "name_en": "Father's Day (8/8)", "date": "2027-08-08", "window_days_before": 10, "kind": "festival", "source_url": "https://zh.wikipedia.org/wiki/%E7%88%B6%E8%A6%AA%E7%AF%80"},
+    {"key": "ghost_festival", "name_zh": "中元普渡", "name_en": "Ghost Festival", "date": "2027-08-16", "window_days_before": 5, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "back_to_school", "name_zh": "開學季", "name_en": "Back-to-school season", "start": "2027-08-23", "end": "2027-09-06", "window_days_before": 14, "kind": "school", "source_url": "https://www.edu.tw/"},
+    {"key": "mid_autumn", "name_zh": "中秋節", "name_en": "Mid-Autumn Festival", "date": "2027-09-15", "window_days_before": 10, "kind": "festival", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2027e.txt"},
+    {"key": "national_day", "name_zh": "雙十國慶", "name_en": "National Day (Double Ten)", "date": "2027-10-10", "window_days_before": 5, "kind": "festival", "source_url": "https://www.dgpa.gov.tw/"},
+    {"key": "halloween", "name_zh": "萬聖節", "name_en": "Halloween", "date": "2027-10-31", "window_days_before": 14, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Halloween"},
+    {"key": "double11", "name_zh": "雙11", "name_en": "Singles' Day sale", "date": "2027-11-11", "window_days_before": 10, "kind": "commercial", "source_url": "https://en.wikipedia.org/wiki/Singles%27_Day"},
+    {"key": "black_friday", "name_zh": "感恩節／黑色星期五", "name_en": "Thanksgiving / Black Friday", "start": "2027-11-25", "end": "2027-11-29", "window_days_before": 7, "kind": "commercial", "source_url": "https://en.wikipedia.org/wiki/Black_Friday_(shopping)"},
+    {"key": "christmas", "name_zh": "聖誕節", "name_en": "Christmas", "date": "2027-12-25", "window_days_before": 21, "kind": "festival", "source_url": "https://en.wikipedia.org/wiki/Christmas"},
+    {"key": "new_year_eve", "name_zh": "跨年", "name_en": "New Year's Eve", "start": "2027-12-31", "end": "2028-01-01", "window_days_before": 7, "kind": "festival", "source_url": "https://www.dgpa.gov.tw/"},
+    {"key": "weiya", "name_zh": "尾牙季", "name_en": "Year-end company banquet season", "start": "2027-12-20", "end": "2028-01-12", "window_days_before": 14, "kind": "season", "source_url": "https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2028e.txt"}
+  ]
+}
