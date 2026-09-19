@@ -26,7 +26,7 @@
 
 ## 登入後的偏好調查（可略過）
 
-登入後可以做一次身家調查：`age_range`（區間，例如 `18-24`／`25-34`／`35-44`／`45+`）、`style_preferences`（複選，例如日系／韓系／美式／歐美／街頭／簡約／正式／其他）。走 `GET /profile`、`PUT /profile`（partial update，見 `UserProfile`／`ProfileUpdate`，[interface-contract.md](interface-contract.md)）。
+登入後可以做一次身家調查：`age_range`（區間，例如 `18-24`／`25-34`／`35-44`／`45+`）、`style_preferences`（複選，例如日系／韓系／美式／歐美／街頭／簡約／正式／其他）、`gender`／`contexts`（2026-09-19 新增，對齊實際蓋出來的前端 onboarding 畫面多出的兩題）。走 `GET /profile`、`PUT /profile`（partial update，見 `UserProfile`／`ProfileUpdate`，[interface-contract.md](interface-contract.md)）。**這條路徑 2026-09-19 起前端已經真的接上**（不再是 localStorage mock），見 [frontend.md](frontend.md)。
 
 完全不擋主流程——登入完就能直接開始對話，填不填、什麼時候填都不影響能不能用 `/intent`。畫面上可以放一個小小的「略過」按鈕（例如卡片右下角），按下去直接呼叫 `PUT /profile` 帶空的 `age_range`／`style_preferences`、標記 `onboarding_completed: true`，不用真的填完表單——這是前端負責人的實作細節，後端這邊只要保證空值也能正常存就好。
 
@@ -36,7 +36,7 @@
 
 - 使用者的一句話，文字或語音。
   - **語音輸入用瀏覽器原生的 Web Speech API（`SpeechRecognition`），不用 Whisper API。** 完全在前端把語音轉成文字，不用後端、不用 API key、免費——跟團隊「不想花錢」的方向一致，也比另外接一個 Whisper 依賴單純。`/intent` 端點完全不用管輸入是打字還是講話轉出來的，反正打進來的都是同一個 `message` 欄位。這是前端負責人的工作範圍，不動 `backend/engine01_intent/`。
-- 選填的參考圖（`IntentRequest.reference_image_url`）。沒附圖時，理論上可以退而求其次去團隊策展的 Pinterest 板子拉一張相近的圖當輔助情境，但那條線（`backend/pinterest/`，品諭負責board策展，目前進度未知）還沒做出查詢介面，這次先不等它——沒收到 `reference_image_url` 就直接不用參考圖繼續跑，等 Pinterest 那邊有介面了再接。
+- 選填的參考圖（`IntentRequest.reference_image_url`）。**2026-09-19 起已實作完整的 fallback 邏輯**：使用者這輪有上傳（`POST /uploads/image` 拿到的網址）就用使用者的；沒上傳就呼叫 `backend/pinterest/client.py` 去比對團隊策展的 Pinterest 板子，比對到就用；兩者都沒有就不帶參考圖繼續跑，不擋主流程。解析出來的參考圖只存在 ENGINE01 內部的 session 狀態（`session_store.SessionState.reference_image_url`），刻意不透過 `IntentResponse` 回傳給前端——細節跟版權規則見 [pinterest-and-generation.md](pinterest-and-generation.md)。
 - 這個 session 目前累積的 `Intent`（來自 `session_store.py`）——每次呼叫都是「併入」，不是每次從零抽取。
 
 ## 輸出
@@ -67,7 +67,8 @@
 
 - `codex` CLI 要先裝好，並且用 `codex login` 登入過一次——`/intent` 的模型呼叫不需要 `OPENAI_API_KEY`。見根目錄 `CLAUDE.md` 的「ENGINE01 執行方式：codex exec」。
 - `GOOGLE_CLIENT_ID`、`SESSION_SECRET`——登入需要，見根目錄 `CLAUDE.md` 的「Google OAuth Client ID」。開發階段可以先用 `DEV_BYPASS_AUTH=true` 跳過。
-- `CORS_ALLOWED_ORIGINS`——瀏覽器前端（不管是正式前端還是測試頁）要能呼叫這幾個端點，來源網址必須在這個清單裡，預設只開 `http://localhost:5173`；有其他 port 或部署網址要另外加，見 `.env.example`。
+- `CORS_ALLOWED_ORIGINS`——瀏覽器前端（不管是正式前端還是測試頁）要能呼叫這幾個端點，來源網址必須在這個清單裡，預設同時開 `http://localhost:5173`（`scripts/engine01-test-page/`）跟 `http://localhost:3000`（實際前端 IntentWeave 是 Next.js，預設 port 是 3000，不是原規劃的 Vite）；有其他 port 或部署網址要另外加，見 `.env.example`。
+- `PINTEREST_ACCESS_TOKEN`／`PINTEREST_BOARD_NAME`——參考圖 fallback 用（見上面「輸入」一節），沒設定時 `backend/pinterest/client.py` 會直接回傳沒有參考圖，不影響 `/intent` 主流程。
 - `backend/shared/schemas.py`——這個模組產出跟消費的 `Intent`、`ClarifyingQuestion`、`IntentRequest`、`IntentResponse`、`UserProfile`、`ProfileUpdate`、`GoogleAuthRequest`、`AuthResponse` 都定義在這裡。
 
 ## 目前進度與待辦事項
@@ -78,11 +79,14 @@
 - `.env` 自動載入、CORS 設定（原本這兩個是漏掉的，靠 VS Code 提示才抓到，見 git log）。
 - 離線測試骨架，目前 10 句起始集。
 - [`scripts/engine01-test-page/`](../scripts/engine01-test-page/)——已經正式收進 repo 的測試頁，任何人 clone 下來都能用它驗證 ENGINE01（含真實 Google 登入）。
+- **圖片上傳＋Pinterest 參考圖 fallback**（2026-09-19）：`POST /uploads/image`、`backend/pinterest/client.py`，接進 `/intent` 的解析邏輯，見上面「輸入」一節。單元測試見 `backend/pinterest/tests/test_client.py`（mock，未涉及真實網路）。
+- **前端登入／onboarding 真的接上**（2026-09-19）：main 上新合併的前端（IntentWeave，Next.js）原本這兩塊完全是 localStorage mock，這次改成真的呼叫 `POST /auth/google`／`PUT /profile`；`UserProfile`／`ProfileUpdate` 也補了 `gender`／`contexts` 兩個欄位對齊前端實際蒐集的題目。已用假 session（跳過真實 Google 登入）端到端驗證過 onboarding 這段確實會把資料寫進 `data/users/<sub>.json`；**真正點擊 Google 按鈕、用真實帳號登入這一步還沒有人做過**（見下面待辦 1）。
 
 **還沒做，依優先度大致排序**：
-1. **測試句擴充到 30–50 句**，實際跑一次 `test_accuracy.py` 拿到真正的準確率數字，放進簡報／README。
-2. **介面契約要跟 ENGINE02/03/前端的負責人對過**——`backend/shared/schemas.py` 目前是 ENGINE01 單方面先寫的 draft v1，欄位名稱／型別都可能要改。
-3. **圖片上傳功能**：讓使用者能傳一張參考圖，不是只能塞網址進 `reference_image_url`。已經決定存放方式——存本機 `data/uploads/`（跟 `data/users/` 一樣，不進資料庫、已被 `.gitignore` 排除），回傳一個本機可讀的網址；還沒設計實際的上傳端點（檔案大小限制、接受的格式等）跟實作。
-4. 偏好調查資料（年齡／風格）還沒接進意圖抽取的 prompt，要跟 ENGINE02/03 討論個人化訊號怎麼用。
-5. 語音輸入（前端的 Web Speech API）、Pinterest 參考圖 fallback（等 `backend/pinterest/` 查詢介面）——這兩塊 ENGINE01 這邊已經留好介面，不擋自己的進度，只是還沒有別人接上。
-6. 分支 `engine01-intent` 還沒讓其他組員 checkout 確認過整體架構，也還沒開 PR 併回 `main`（見根目錄 `CLAUDE.md` 的「Git 工作流程」）。
+1. **用真實 Google 帳號完整跑一次新前端的登入流程**：需要先把 `http://localhost:3000` 加進 Google Cloud Console 的 Authorized JavaScript origins（`.env` 的 `GOOGLE_CLIENT_ID` 不用換，跟 `frontend/.env.local` 的 `NEXT_PUBLIC_GOOGLE_CLIENT_ID` 已經對齊），這步是使用者帳號層級的操作，agent 沒辦法代為完成，也不會代為輸入 Google 帳密。
+2. **測試句擴充到 30–50 句**，實際跑一次 `test_accuracy.py` 拿到真正的準確率數字，放進簡報／README。
+3. **介面契約要跟 ENGINE02/03/前端的負責人對過**——`backend/shared/schemas.py` 目前是 ENGINE01 單方面先寫的 draft v1，欄位名稱／型別都可能要改，2026-09-19 新增的三項規格草案（生圖獨立觸發、每張卡片回饋、收藏小屋）也都還沒定案，見 [interface-contract.md](interface-contract.md) 第 6 節。
+4. 偏好調查資料（年齡／風格／性別／情境）還沒接進意圖抽取的 prompt，要跟 ENGINE02/03 討論個人化訊號怎麼用。
+5. 語音輸入（前端的 Web Speech API）——這塊 ENGINE01 這邊不擋，還沒有人接上。
+6. **ENGINE01 目前還沒有程式碼呼叫 ENGINE02 的 `POST /retrieve`**——`/intent` 只做抽取，下游串接（誰來呼叫 ENGINE02／生成模組、參考圖欄位怎麼命名）還沒定案，見 [interface-contract.md](interface-contract.md) 待確認事項。
+7. 分支 `engine01-intent` 還沒讓其他組員 checkout 確認過整體架構，也還沒開 PR 併回 `main`（見根目錄 `CLAUDE.md` 的「Git 工作流程」）。

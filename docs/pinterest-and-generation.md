@@ -8,6 +8,16 @@ Pinterest API v5 的 Trial access 只能讀寫／搜尋連結帳號自己的 pin
 
 這是餵給 ENGINE02 排序權重（跟 ENGINE03 偏好模型）的補充訊號——「近期趨勢」的加分，不是取代 Polyvore 商品庫。使用者看到的產品畫面上不會直接出現「Pinterest」這個名字。Pinterest 原圖只在內部算相似度用，絕對不要放進現場 demo 或簡報畫面（版權疑慮）。
 
+## 單輪參考圖解析（代辦事項 2，2026-09-19 新增，ENGINE01 已實作）
+
+除了上面「趨勢訊號」這個離線／整體排序用途之外，2026-09-19 起 Pinterest 板子多了第二個用途：**每一輪 `POST /intent` 的參考圖 fallback**。解析順序：
+
+1. **使用者這一輪有上傳參考圖** → 直接用使用者上傳的圖（見 [engine01-intent.md](engine01-intent.md) 的圖片上傳端點）。
+2. **使用者沒上傳** → 用這一輪更新後的 `Intent`（顏色／品項／風格關鍵字／場合……）去比對團隊策展的板子（`https://www.pinterest.com/pinyucs15/intentweave-references/`，板子名稱透過 `PINTEREST_BOARD_NAME` 環境變數設定，預設就是 `intentweave-references`），比對邏輯是簡單的關鍵字子字串比對（見 [`backend/pinterest/client.py`](../backend/pinterest/client.py)），命中就用比對到的那張 pin 的圖。
+3. **兩者都沒有** → 不帶任何參考圖，繼續往下跑，不擋 `/intent` 的主流程。
+
+**這張圖依照上面已經定案的規則，只能給 ENGINE02 內部當參考特徵／生成 prompt 素材，不會顯示在使用者畫面上**——這條規則這次新用途也一樣適用，2026-09-19 有跟使用者確認過維持不顯示。目前這個解析結果只存在 ENGINE01 內部的 session 狀態（`backend/engine01_intent/session_store.py` 的 `reference_image_url`／`reference_image_source`），還沒有正式接進 ENGINE02 的 `POST /retrieve`——ENGINE01 目前根本還沒有程式碼在呼叫 ENGINE02，這條串接、以及要不要把這個欄位放進共用的 `Intent` model，都還要跟 ENGINE02 負責人確認命名（見 [interface-contract.md](interface-contract.md) 待確認事項）。
+
 ## 概念圖生成
 
 OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的 `Intent` 轉成一段抽象的 prompt（顏色／剪裁／場合／材質——避免點名真實品牌或設計師，畢竟是在出題企業的評審面前 demo）。多輪銜接用 `previous_response_id`，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生。範例程式碼在 [hackathon-brief.md](hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
@@ -22,7 +32,7 @@ OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的
 
 - **預設虛擬形象**：每個使用者一開始就有一個固定的預設虛擬形象可以用，不需要額外設定，零門檻就能看到試穿效果。
 - **客製化虛擬形象**：使用者願意的話，可以上傳一張全身照＋填身高體重，系統就用這些資料客製化出屬於這個使用者自己的虛擬形象（比預設形象更貼近本人）。全身照上傳這塊可以直接沿用 [engine01-intent.md](engine01-intent.md) 待辦事項裡「圖片上傳功能」同一套機制（本機 `data/uploads/`，不進資料庫）。
-- **回饋機制待定**：使用者對試穿結果的回饋，可能是細項打分（例如版型合身度、顏色是否適合本人），也可能是單純喜歡／不喜歡——這兩種都在考慮中，還沒定案，正式負責人要跟團隊拍板一個方向。如果最後走細項打分，設計上可以直接沿用 [interface-contract.md](interface-contract.md) 裡 `FeedbackInput`／`AttributeScore` 同一套結構（`target` 欄位目前只有 `"recommended"`／`"generated"` 兩種，屆時可能要加第三種，例如 `"tryon"`），不用另外發明一套回饋格式。
+- **回饋機制：2026-09-19 已定案**——試穿結果的回饋走簡單的 **LIKE IT／NOT FOR ME** 二選一，不是細項打分（細項打分是留給推薦商品／概念圖本身的，見 [frontend.md](frontend.md) 代辦事項 4）。互動流程：圖片下方按 Try On → 右側虛擬形象穿上／再按一次脫掉 → 虛擬形象區塊下方出現 LIKE IT／NOT FOR ME 讓使用者表態。這個訊號跟「對圖片本身」的收藏／不喜歡是分開的兩種訊號，且一樣是選填——使用者沒按就不算進 ENGINE03 的權重（見 [engine03-feedback.md](engine03-feedback.md)）。介面上要新增什麼欄位還沒定案，草案見 [interface-contract.md](interface-contract.md)。
 
 跟 ENGINE01／ENGINE02 的關係：虛擬形象是「per-user」的持久資料（不是單一對話 session 裡的東西），性質上跟 `UserProfile` 裡已有的 `age_range`／`style_preferences` 類似，正式設計時可以考慮要不要併進 `UserProfile`，或另外開一個模型——這個決定留給正式負責人跟 ENGINE01 owner 一起談，這裡不先幫忙決定。
 
@@ -30,4 +40,4 @@ OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的
 
 ## 依賴
 
-`OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用）——兩個都在 `.env.example` 裡。
+`OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用，2026-09-19 起也被 ENGINE01 的單輪參考圖解析使用）、`PINTEREST_BOARD_NAME`（要比對的板子名稱，預設 `intentweave-references`）——都在 `.env.example` 裡。

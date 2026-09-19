@@ -22,7 +22,7 @@
 
 兩條迴圈共用同一套 ENGINE 01–03 程式碼：
 
-- **Live 流程**（真人使用者／評審，在瀏覽器上操作）：[docs/system-architecture.svg](docs/system-architecture.svg)。使用者一句話 → ENGINE 01（結構化意圖）→ ENGINE 02（檢索）和生成模組**同時並行**執行，兩者吃同一組意圖 → 結果並排呈現 → 使用者回饋 → ENGINE 03 → 下一輪。跑到使用者滿意為止，不是固定兩輪。
+- **Live 流程**（真人使用者／評審，在瀏覽器上操作）：[docs/system-architecture.svg](docs/system-architecture.svg)。使用者一句話 → ENGINE 01（結構化意圖）→ ENGINE 02（檢索）和生成模組**同時並行**執行，兩者吃同一組意圖 → 結果並排呈現 → 使用者回饋 → ENGINE 03 → 下一輪。跑到使用者滿意為止，不是固定兩輪。**2026-09-19 更新：這個「同時並行」的假設被前端代辦事項修正過**——預設每輪只用 ENGINE02 的資料集推薦，生圖改成使用者按一個獨立按鈕才觸發（觸發期間對話框鎖定），不是每輪自動夾帶，細節見 [docs/frontend.md](docs/frontend.md) 代辦事項 3、[docs/interface-contract.md](docs/interface-contract.md) 第 6 節。
 - **驗證流程**（只在開發階段用，不會出現在正式 demo 畫面）：[docs/validation-flow.svg](docs/validation-flow.svg)。一個帶著隱藏目標圖片人設的模擬 LLM 使用者，跑 2–4 輪對付同一套 ENGINE 01–03 程式碼；FashionCLIP 對目標圖片的 cosine similarity 就是量化的收斂指標，用來在簡報裡佐證「回饋迴圈真的有效」。
 
 三個引擎、一個生成模組、一條趨勢訊號串接：
@@ -33,8 +33,8 @@
 | ENGINE02 | 檢索與排序（**已實作**） | KAGL 商品庫、自寫 BM25 ＋ dense hybrid search、逐項加總的可解釋排序 | `engine02/`（實作）＋ `backend/engine02_retrieval/`（介接層） |
 | ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
 | 生成模組 | 每輪一張概念圖＋虛擬形象試穿 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
-| Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
-| 前端 | UI | React + Vite | `frontend/` |
+| Pinterest | 趨勢訊號＋單輪參考圖 fallback 餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
+| 前端 | UI（**已有可跑的原型，Next.js，不是原規劃的 Vite**） | Next.js 16 + React 19 | `frontend/` |
 | 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `validation/` |
 
 整個專案不用 LangChain／LlamaIndex——每個模組都直接呼叫 GPT API（chat completions structured output，或 Responses API 做圖片生成）。這是規劃文件裡的刻意決定，不是漏掉沒做。
@@ -60,7 +60,8 @@ engine02/                ENGINE02 的實作套件，刻意放在 repo 根目錄�
                          套件內部互相 import、14 個測試檔、40+ 支腳本全部假設它在這個位置，
                          搬進 backend/ 要重寫所有 import 路徑並重新驗證全部測試，
                          已評估過不值得為了目錄好看冒這個風險（2026-09-19 決定）
-frontend/                React + Vite
+frontend/                Next.js 16 + React 19（IntentWeave；原規劃是 React + Vite，
+                         實際蓋出來換了技術棧，見「環境備註」跟 docs/frontend.md）
 validation/              模擬使用者驗證迴圈腳本
 scripts/                 開發輔助腳本（例如下載資料集），也有 ENGINE02 的評測／工具腳本
 ```
@@ -97,7 +98,7 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 1. [console.cloud.google.com](https://console.cloud.google.com/) 建一個新專案。
 2. 「APIs & Services」→「OAuth consent screen」：User Type 選 External，填 App name／support email／developer contact email，Scopes 維持預設（`openid`／`email`／`profile`），Test users 先把隊友的 Google 帳號都加進去，或直接 Publish App（只用基本 scope，不會觸發 Google 審查）。
-3. 「APIs & Services」→「Credentials」→「Create Credentials」→「OAuth client ID」，Application type 選 Web application，「Authorized JavaScript origins」加 `http://localhost:5173`（Vite 預設 port，之後有部署網址也要加），「Authorized redirect URIs」留空（這個登入方式用不到）。
+3. 「APIs & Services」→「Credentials」→「Create Credentials」→「OAuth client ID」，Application type 選 Web application，「Authorized JavaScript origins」加 `http://localhost:5173`（`scripts/engine01-test-page/` 用的 Vite port）跟 `http://localhost:3000`（實際前端 IntentWeave 是 Next.js，預設 port 是 3000——之後有部署網址也要加），「Authorized redirect URIs」留空（這個登入方式用不到）。
 4. 拿到的 Client ID 同時填進後端 `.env` 的 `GOOGLE_CLIENT_ID`，和前端初始化 Google Identity Services 按鈕用的同一組 ID——兩邊必須一致，因為後端會檢查 token 的 audience。旁邊那組 Client secret 這個流程用不到，不用管它，更不要 commit 進 git。
 
 ## 介面契約
@@ -122,8 +123,9 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 - 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
 - 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。**ENGINE02 是這條規則明文的例外**（2026-09-19 整合進 main 時定案）：它有自己的 `pyproject.toml`（`numpy>=2` 等），用 `uv` 裝、跑自己的獨立服務，不吃 `backend/requirements.txt`。原因：它的依賴（`numpy>=2`、選用的 `models` extra 裡有 torch/transformers 這類重量級 ML 套件）跟原本占位猜測、後來確認用不到而移除的 `faiss-cpu` 會拉 `numpy<2` 產生版本衝突；而且它有 258 項測試是對著這個獨立環境驗證過的，硬塞進同一份 `requirements.txt` 只會製造沒有實質好處的風險。跑法見 [`backend/engine02_retrieval/README.md`](backend/engine02_retrieval/README.md)。
-- 前端：React + Vite，不用 Next.js／SSR——UI 就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。
-- 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設 `http://localhost:5173`），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
+- **前端：實際是 Next.js 16 + React 19（原規劃是 React + Vite，不用 Next.js／SSR——2026-09-19 前端負責人實際蓋出來的技術棧不一樣，這裡改成如實記錄，不是規劃有誤）。** 2026-09-19 現況：登入／onboarding 已經真的接上 ENGINE01 後端；試穿／收藏／生圖等其餘畫面還是前端本地 mock，尚未接上任何後端 API，細節與落差清單見 [docs/frontend.md](docs/frontend.md)。
+- 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設同時開 `http://localhost:5173`跟`http://localhost:3000`，因為實際前端 port 是 Next.js 的 3000），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
+- `backend/pinterest/client.py`（2026-09-19 新增）：`PINTEREST_ACCESS_TOKEN`／`PINTEREST_BOARD_NAME` 兩個環境變數，給 ENGINE01 的單輪參考圖 fallback 用，沒設定就直接跳過、不影響 `/intent`。使用者上傳的參考圖存在本機 `data/uploads/<sub>/`（掛在 `/files/...`，不是 `/uploads/...`——避免跟上傳端點本身的路徑 `/uploads/image` 衝突，見 `backend/engine01_intent/main.py` 的註解），已被 `.gitignore` 的 `data/` 規則排除。
 
 ## 想找更多細節的話
 

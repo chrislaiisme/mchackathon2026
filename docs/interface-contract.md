@@ -20,13 +20,16 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
   "picture": "https://...",
   "age_range": "25-34",
   "style_preferences": ["韓系", "簡約"],
+  "gender": "女",
+  "contexts": ["日常", "上班"],
   "onboarding_completed": true,
   "created_at": "2026-09-18T07:00:00+00:00"
 }
 ```
 
 - `sub` 是 Google 帳號 ID，當這個使用者的主鍵，同時也是 `data/users/<sub>.json` 的檔名。
-- `age_range`／`style_preferences` 來自登入後可略過的偏好調查（`PUT /profile`，`ProfileUpdate`——三個欄位都選填，略過就整包留空、只把 `onboarding_completed` 設成 `true`）。目前只是存起來，還沒接進 ENGINE01 抽取 prompt 或 ENGINE02/03 的排序邏輯，是後續要討論的個人化加分項。
+- `age_range`／`style_preferences` 來自登入後可略過的偏好調查（`PUT /profile`，`ProfileUpdate`——五個欄位都選填，略過就整包留空、只把 `onboarding_completed` 設成 `true`）。目前只是存起來，還沒接進 ENGINE01 抽取 prompt 或 ENGINE02/03 的排序邏輯，是後續要討論的個人化加分項。
+- `gender`／`contexts` 是 2026-09-19 新增的欄位，對齊實際蓋出來的前端（IntentWeave）onboarding 畫面實際蒐集的題目——原始 draft v1 沒有這兩個欄位，前端已經改成真的呼叫 `PUT /profile`（見 [frontend.md](frontend.md)），後端這次跟著補上。
 - `Intent` 相關的呼叫（下面第 1–5 節）現在全部要掛在登入使用者底下：後端用 `(user_id, session_id)` 當 session 的 key，`user_id` 從驗證過的 token 解出來，不是前端自己傳的。
 
 ## 1. 結構化意圖（`Intent`）
@@ -146,8 +149,17 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 - `concept_image` 是**選填**——生成模組還沒做出來之前，ENGINE02 單獨測試時填不出這個欄位，回 `null` 是合法的。
 - `reason_contributions`／`explanation_source` 是選填欄位（2026-09-19 因應 ENGINE02 的實作加進來）：ENGINE02 的排序是逐項加總算出 `score` 的，`reason_contributions` 把每一項的貢獻量都列出來，加總會等於 `score`，這個分解本身就是可解釋性的核心證據，不是另外生成的說明文字。沒有這個資訊的引擎（或還沒實作的模組）可以留空陣列，不影響既有欄位。
 
+## 6. 待其他負責人落地的規格（前端／ENGINE02／ENGINE03，尚未寫進 `schemas.py`）
+
+2026-09-19 使用者確認了三項規格（詳細背景見 [frontend.md](frontend.md) 代辦事項 3／4／5），這裡先記錄需要新增的欄位草案，**命名跟型別都還沒定案，要跟相關負責人確認後才落地到 `backend/shared/schemas.py`**：
+
+- **生圖獨立觸發（代辦 3）**：目前 `RetrievalResult.concept_image` 的假設是「跟這一輪的推薦商品同時並行產出、一起回傳」。新規格是使用者要主動按按鈕才觸發生圖，且生圖期間對話框要鎖定。這代表生圖可能需要拆成一支獨立的請求／端點，而不是掛在同一輪的 `RetrievalResult` 裡自動夾帶——確切怎麼調整，需要生成模組負責人／前端負責人一起確認。
+- **每張卡片的回饋（代辦 4）**：`FeedbackInput` 目前是「整輪一份」，沒有欄位指出這是對哪一張 `ProductCard`（或哪一張 `concept_image`）的回饋。草案方向：`ProductCard` 需要加 `favorited: bool`／`disliked: bool` 這類欄位（或者回饋改成前端只送「使用者實際做過動作」的項目、每項都帶一個卡片識別碼，而不是像現在整輪送一份）；試穿的 LIKE IT／NOT FOR ME 是另一種獨立訊號，不是細項打分，可能需要 `FeedbackInput.target` 增加一個新值（例如 `"tryon"`）或另外開一個更簡單的 model（不需要 `AttributeScore` 那麼細的結構，就是一個布林值）。**沒有任何動作的卡片不應該出現在送出的回饋資料裡**（配合 [engine03-feedback.md](engine03-feedback.md) 新增的「未互動不計權重」規則）。
+- **收藏小屋（代辦 5）**：目前的 model 裡沒有「使用者收藏了哪些商品／概念圖」這個持久清單的容身之處——`UserProfile` 是使用者設定，`SessionState`（ENGINE01 內部，不是共用 schema）是單一對話的暫存狀態，收藏清單性質上比較像前者（per-user、跨 session 持久），但要不要併進 `UserProfile` 還是另開一個 model，留給前端／ENGINE01 負責人一起談。分類可以直接沿用 ENGINE02 既有的 `category`/`subcategory`／taxonomy 欄位；生成出來的概念圖沒有這個欄位，需要額外設計怎麼打分類標籤。
+
 ## 給其他引擎負責人的待確認事項
 
 - `weight_adjustments` 的 `field` 要不要固定成一個 enum，還是維持自由文字、對應 `Intent`／排序訊號的名稱——目前是自由格式，如果 ENGINE02/03 需要更嚴格的比對再收緊。
 - `AttributeScore.score` 和 `RetrievalResult.match_score` 的單位／範圍——目前都是 0–1 的浮點數，請確認這樣是否適合 ENGINE03 實際的權重運算方式。
-- `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：規劃中的「虛擬形象試穿」延伸功能（見 [pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）如果最後走細項打分的回饋方式，可以直接沿用這個結構加一個 `"tryon"` 選項，不用另外開一套——確切要不要走這個方向還沒定案。
+- `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：虛擬形象試穿的 LIKE IT／NOT FOR ME 回饋（見上面第 6 節、[pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）2026-09-19 已經定案走簡單的二選一，不是細項打分——`"tryon"` 這個值該怎麼設計（沿用 `FeedbackInput` 加值，還是另開更簡單的 model）還沒定案。
+- **參考圖欄位（2026-09-19 新增，代辦事項 2）**：ENGINE01 現在會解析出一張參考圖網址（使用者上傳或 Pinterest 板子比對，見 [pinterest-and-generation.md](pinterest-and-generation.md)），目前只留在 ENGINE01 內部的 session 狀態，還沒有正式欄位可以透過 `POST /retrieve` 交給 ENGINE02——ENGINE01 目前也還沒有程式碼在呼叫 ENGINE02。要不要放進共用的 `Intent` model（例如加一個 `reference_image_url` 欄位）、欄位怎麼命名，需要 ENGINE02 負責人確認。這張圖只能給 ENGINE02 內部參考，不能透過任何回應欄位讓前端顯示出來。
