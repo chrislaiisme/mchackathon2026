@@ -357,3 +357,29 @@ def test_a_feedback_round_sent_to_retrieve_is_not_silently_ignored(monkeypatch):
                          "ops": [{"op": "exclude", "attribute": "color", "value": "Black"}]}}).json()
         warnings = b["engine02"]["unresolved_from_intent"]
         assert any("handshake" in w.lower() for w in warnings), warnings
+
+
+def test_engine03_ops_are_applied_by_retrieve_without_a_second_call(monkeypatch):
+    """ENGINE 03 returns a FeedbackRound; the orchestrator should not have to know that."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        r1 = client.post("/retrieve", json={"session_id": "ops", "round": 1,
+                                            "intent": {"item_type": "襯衫"}}).json()
+        ids = [p["product_id"] for p in r1["products"]]
+        r2 = client.post("/retrieve", json={
+            "session_id": "ops", "round": 2, "intent": {"item_type": "襯衫"},
+            "feedback": {"ops": [
+                {"op": "exclude", "attribute": "color", "value": "Black", "quote": "不要黑色"},
+                {"op": "adjust", "element": "formal_style", "step": -1},
+                {"op": "exclude_item", "item_ids": ids[:2]}]}}).json()
+        assert [e["op"] for e in r2["engine02"]["feedback_ledger"]] == \
+            ["exclude", "adjust", "exclude_item"]
+        assert not [p for p in r2["products"]
+                    if str(p["attributes"].get("color", "")).lower() == "black"]
+        assert not [p for p in r2["products"] if p["product_id"] in ids[:2]]

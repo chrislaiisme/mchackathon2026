@@ -118,10 +118,25 @@ def retrieve(body: RetrieveRequest, request: Request) -> dict:
             catalog_name=getattr(e.catalog, "name", None), catalog_items=e.catalog.items,
             top_k=body.top_k, arm=arm)
 
+    ledger, rejected = [], []
+    if isinstance(body.feedback, dict) and body.feedback.get("ops"):
+        # ENGINE 03 speaks in ops; applying them here means the orchestrator never has to know
+        # that /handshake exists (it still does, for callers that want the ledger alone).
+        from engine02.handshake import FeedbackRound, apply_round
+
+        fr = FeedbackRound.model_validate({"session_id": req.session_id,
+                                           "round": max(0, body.round - 1), **body.feedback})
+        applied = apply_round(req, None, fr, kansei=e.kansei)
+        req, ledger, rejected = applied.request, applied.ledger, applied.rejected_ops
+        req.round, req.options.top_k = body.round, body.top_k
+
     resp = rank(req)
     out = response_to_retrieval_result(e, req, resp, arm=arm, prev_req=prev_req)
     out["engine02"]["unresolved_from_intent"] = unresolved
     out["engine02"]["authenticated"] = bool(user)
+    if ledger or rejected:
+        out["engine02"]["feedback_ledger"] = [entry.model_dump() for entry in ledger]
+        out["engine02"]["rejected_ops"] = rejected
     return out
 
 

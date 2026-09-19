@@ -171,12 +171,22 @@ def main() -> None:
                               "ENGINE 03 的 op 全部被接受（沒有對不上的要素）", str(hb["rejected_ops"]))
 
         # ── ENGINE 02, round 2 ───────────────────────────────────────────────────────
-        r2 = e02.post("/retrieve", json={
-            "session_id": "smoke", "round": 2, "intent": intent, "prev_intent": intent,
-            "feedback": {"session_id": "smoke", "round": 1, "target": "recommended",
-                         "attribute_scores": [{"attribute": "正式感", "score": 0.3}],
-                         "free_text": "太像上班族了，不要黑色",
-                         "selected_option_id": shown[0]}})
+        # Close the loop with what ENGINE 03 ACTUALLY returned, not with a hand-written payload:
+        # that is the difference between "the three services are alive" and "the loop works".
+        next_intent = b3.get("updated_intent") or intent
+        e03_feedback = b3.get("engine02_feedback")
+        if e03_feedback:
+            print(chr(10) + "用 ENGINE 03 回傳的 engine02_feedback 跑第二輪:",
+                  sorted(k for k, v in e03_feedback.items() if v))
+        payload2 = {"session_id": "smoke", "round": 2, "intent": next_intent,
+                    "prev_intent": intent,
+                    "feedback": e03_feedback or {
+                        "session_id": "smoke", "round": 1, "target": "recommended",
+                        "attribute_scores": [{"attribute": "正式感", "score": 0.3}],
+                        "free_text": "太像上班族了，不要黑色",
+                        "selected_option_id": shown[0]}}
+        check(bool(e03_feedback), "第二輪用的是 ENGINE 03 真正吐出來的回饋（不是手寫的）")
+        r2 = e02.post("/retrieve", json=payload2)
         check(r2.status_code == 200, f"ENGINE 02 接受第二輪（{r2.status_code}）", r2.text[:160])
         if r2.status_code == 200:
             b2 = r2.json()
@@ -185,7 +195,11 @@ def main() -> None:
             print(f"\n第二輪 → {len(ids2)} 張卡片, match_score={b2['match_score']}"
                   f"（用上一輪意圖評 {b2['engine02']['match_score_detail'].get('vs_previous_intent')}）")
             check(ids2 != shown, "第二輪不是第一輪的重播")
-            check("black" not in colors2, "使用者說不要的黑色不再出現", str(colors2))
+            excluded_now = (payload2["feedback"] or {}).get("excluded_values") or                 (r2.json()["engine02"]["constraint_report"]["applied"] or {})
+            if "black" in str(payload2["feedback"]).lower() or "不要黑色" in str(payload2["feedback"]):
+                check("black" not in colors2, "使用者說不要的黑色不再出現", str(colors2))
+            else:
+                print(f"   （本輪回饋未包含顏色排除，顏色為 {colors2}）")
             check(b2["engine02"]["metrics"]["excluded_value_hits"] == 0, "排除值沒有被違反")
 
     _finish()

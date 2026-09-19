@@ -488,10 +488,31 @@ def intent_rank(body: IntentRankRequest) -> dict:
                                         round=max(0, body.round - 1),
                                         catalog_name=getattr(e.catalog, "name", None),
                                         catalog_items=e.catalog.items, top_k=body.top_k, arm=arm)
+    # ENGINE 03 returns a FeedbackRound of ops. Making the caller notice that and route it to
+    # /handshake is a whole class of integration bug for no benefit, so apply it here and
+    # report what each op did; /handshake stays for callers that want the ledger alone.
+    ledger, rejected = [], []
+    if isinstance(body.feedback, dict) and body.feedback.get("ops"):
+        from .handshake import FeedbackRound, apply_round
+
+        try:
+            fr = FeedbackRound.model_validate({"session_id": req.session_id,
+                                               "round": max(0, body.round - 1),
+                                               **body.feedback})
+        except ValidationError as exc:
+            raise HTTPException(422, {"error": "feedback looked like a FeedbackRound but is not valid",
+                                      "detail": exc.errors(include_url=False)})
+        applied = apply_round(req, None, fr, kansei=e.kansei)
+        req, ledger, rejected = applied.request, applied.ledger, applied.rejected_ops
+        req.round, req.options.top_k = body.round, body.top_k
+
     resp = rank(req)
     out = response_to_retrieval_result(e, req, resp, arm=arm, prev_req=prev_req)
     # what ENGINE 01 should fix, in ENGINE 01's own terms, next to what the pipeline itself found
     out["engine02"]["unresolved_from_intent"] = unresolved
+    if ledger or rejected:
+        out["engine02"]["feedback_ledger"] = [entry.model_dump() for entry in ledger]
+        out["engine02"]["rejected_ops"] = rejected
     return out
 
 
