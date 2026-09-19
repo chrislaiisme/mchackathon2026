@@ -10,13 +10,14 @@
 - 前端「我們幫你推」真的接上 ENGINE01／ENGINE02（`POST /recommend` → ENGINE02 的 `POST /intent/rank`／`POST /visual-search`；`POST /style-me` 真配對）。
 - 真人 demo 抓到並修好 3 個 bug：ENGINE02_PUBLIC_BASE 少 `/engine02` 前綴、Pinterest 參考圖蓋掉文字意圖、gender 詞彙英中對不上（PR [#15](https://github.com/chrislaiisme/mchackathon2026/pull/15)，還沒 merge 進 main）。
 - 澄清問題（clarifying questions）修正：ENGINE01 一輪如果同時缺好幾個核心欄位，後端本來就會一次回好幾題，但前端 `adaptToClarifyingMessage()` 只轉第一題、其餘題目被丟掉——已修成前端本地依序問完一批題目、答完才送出下一次 `/intent`，不會漏問。
-- 新增 `POST /concept-image`（重用 `bff/images/concept.py::generate_concepts()`），前端「Design for Me」按鈕已經接上（目前 `dry_run: true`，只組 prompt 不花額度）。
+- 新增 `POST /concept-image`（重用 `bff/images/concept.py::generate_concepts()`）＋ Windows→WSL2 的 Hermes 橋接，**已驗證真的能生圖**（Hermes 裝在這台機器的 WSL2，`agent/scripts/generate_grid.py` 加了跨界呼叫）。單一品項＋整套（`outfit_requested`）兩種情境都做了：整套會比照 `/recommend` 的兩分區模式，上衣／下身各生一組六格（**平行執行，已實測 35 秒完成兩組，沒有撞到 WSL2/Hermes session 衝突**），組一句 Top Pick 理由，前端重用既有的 Top Pick／Try More UI 殼顯示。
+- 推薦理由自然語句改寫：新增 `llm_client.rewrite_recommendation_reasons()`，批次（一次 `codex exec`）把 `/recommend` 回傳的樣板句理由改寫成自然語句，已驗證「整體風格和你描述的相近（+1.44）」→「風格貼近經典商業套裝」這種效果。
+- Merge 了前端剛推的虛擬試穿後端（`backend/virtual_you/`，許綺文寫的，用跟 ENGINE01 同一種 `codex exec` 零成本機制），裝好新依賴、啟動測試中（見下面「虛擬穿衣」）。
 
 **還缺什麼：**
-- Hermes Agent 生圖真正接通（見下面「生成模組」）。
-- 推薦理由目前是 ENGINE02 的樣板句，會露出內部分數／備註（例如「整體風格和你描述的相近（+1.44）」），需要改寫成自然語句（見下面「推薦理由品質」）。
 - ENGINE03 merge 之後，`engine02_client.py::intent_rank()` 要補 `feedback`／`prev_intent` 兩個參數，把 ENGINE03 的回饋帶進每一輪 ENGINE02 排序——ENGINE02 那一側已經就緒，見下面「ENGINE03」一節。
 - PR #15（gender 修正）還沒 merge 進 main。
+- 生成圖的收藏／不喜歡／打分／Try On 互動——設計草案見 `docs/engine03-feedback.md`，還沒實作，前提是前端資料庫商品那塊先到位＋ENGINE03 merge。
 
 ## ENGINE02（檢索與排序）—— 負責人：Evan-Jiamg（明志）
 
@@ -45,6 +46,8 @@
 
 這是跨 ENGINE02／ENGINE03／前端三邊的整合決定，建議先讓三邊負責人看過這個結論再動手。
 
+**追加**：資料庫商品跟生成圖（Design for Me）的回饋要能共用同一套 `/feedback` 格式，但用一個 `source: "catalog"|"generated"` 欄位分流成兩條不同的處理路徑（生成圖沒有 ENGINE02 的 `item_id`，不能走 `interaction.*`，要走 `attribute_scores`）——完整草案（含整套穿搭怎麼拆成兩筆）見 `docs/engine03-feedback.md` 的「資料庫商品跟生成圖的回饋要怎麼共用同一套邏輯」一節，可以直接複製那節內容去跟 ENGINE03 負責人討論。
+
 ## 前端（IntentWeave，Next.js 16 + React 19）—— 負責人：許綺文
 
 **現況：** 登入／onboarding 已接上真後端；推薦（Top Pick／Try More）已接上真後端；「Design for Me」已接上真後端（dry-run 模式）。
@@ -63,17 +66,29 @@
 
 ## 生成模組（概念圖／Design for Me）—— 負責人：Tony（`agent/scripts/generate_grid.py` 作者）
 
-**現況：** Hermes Agent 裝在這台機器的 WSL2（Ubuntu），不在 Windows 側；程式碼假設的安裝路徑（`~/.hermes/hermes-agent/venv`）跟這台機器實際的安裝方式（`/usr/local/lib/hermes-agent/venv`，root 模式安裝）不一樣。真正的障礙是 Windows 側的 ENGINE01 沒辦法直接跨進 WSL2 執行 Hermes 的 venv，今天要加一段 Windows→WSL2 的橋接（`platform.system()` 判斷式包住，只在 Windows 上生效，不影響 Tony 原本在 Linux／WSL2 上的用法）。
+**現況：已接通並驗證過。** Hermes Agent 裝在這台機器的 WSL2（Ubuntu），程式碼假設的安裝路徑（`~/.hermes/hermes-agent/venv`）跟這台機器實際的安裝方式（`/usr/local/lib/hermes-agent/venv`，root 模式安裝）不一樣；`agent/scripts/generate_grid.py` 加了 Windows→WSL2 的橋接（`platform.system()` 判斷式包住，只在 Windows 上生效，Tony 原本在 Linux／WSL2 上的用法不受影響）。Hermes 的 `openai-codex` image_gen plugin 原本沒啟用，已經 `hermes plugins enable openai-codex` + `hermes config set image_gen.provider openai-codex`（這是這台機器 Hermes 自己的設定，不在 git 裡）。
+
+單一品項、整套（上衣＋下身各六格、平行執行）兩種情境都實測生過真圖，六格版型/顏色都正確發散，圖片品質良好。
 
 **還缺什麼：**
-- 橋接程式碼驗證通過、`dry_run` 開關關掉、真的生一次圖確認整條管線動得起來。
-- 生圖出來的理由／`varied_label` 之後也可以套用跟推薦理由一樣的自然語句改寫（見下面）。
+- 生圖出來的理由／`varied_label` 之後也可以套用跟推薦理由一樣的自然語句改寫（技術上可以直接做，這次沒排進去）。
+- 生成圖的收藏／不喜歡／打分／Try On——見上面 ENGINE01「還缺什麼」跟 `docs/engine03-feedback.md`。
+
+## 虛擬穿衣（Virtual You / Create You）—— 負責人：許綺文
+
+**現況：** 全新、獨立的 FastAPI 服務 `backend/virtual_you/`（`POST /extract` 去背、`POST /try-on` 合成試穿圖），用跟 ENGINE01 同一種零成本機制（`codex exec` 的 `$imagegen`，不需要 `OPENAI_API_KEY`，直接在 Windows 上跑、不用像生圖那樣跨 WSL2）。已經 merge 進 `engine01-intent`、裝好新依賴（`pillow`／`rembg`／`onnxruntime`）、啟動在 port 8081。
+
+**卡住的地方**：`POST /extract`／`/try-on` 第一次呼叫時，`rembg` 的去背模型（`birefnet-portrait`，973MB）要從 GitHub 下載到本機快取——**這台機器現在的下載速度只有約 150kB/s，下完可能要 1-2 小時**，不是程式碼問題，是網路速度問題。今天稍早已經先觸發下載讓它在背景跑，demo 前務必先確認這個模型已經下載完成、warm up 過一次，不然 demo 現場第一次呼叫會卡在下載而不是在生成——建議提早（不要等到 demo 前）用一張測試照打一次 `/extract` 確認模型已經快取好。
+
+**還缺什麼：**
+- 等模型下載完成後，實際跑一次 `/try-on` 端到端驗證（目前卡在下載，還沒驗證過真的試穿合成效果）。
+- 前端 `.env.local` 要補 `PERSON_EXTRACTION_SERVICE_URL`／`VIRTUAL_TRY_ON_SERVICE_URL` 才會真的打這支服務，不然前端會自動退回 mock（`provider: "mock"`，回傳原圖）。
 
 ## 推薦理由品質
 
-現況：ENGINE02 沒有 `OPENAI_API_KEY`，推薦理由預設走樣板句，會露出內部細節（分數片段如「+1.44」、內部備註如「為了有足夠結果，放寬了 season 條件」），不是使用者想看到的推薦理由。
+**已完成。** 現況（改前）：ENGINE02 沒有 `OPENAI_API_KEY`，推薦理由預設走樣板句，會露出內部細節（分數片段如「+1.44」、內部備註如「為了有足夠結果，放寬了 season 條件」）。
 
-解法：ENGINE01 已經有現成、零成本的機制——`style_me.py` 的「幫你搭」理由已經在用 `llm_client.generate_freeform_text()`（`codex exec`）把樣板句改寫成自然語句，`/recommend` 還沒套用同一招。計畫是在 `/recommend` 回傳前批次（一次 `codex exec` 呼叫處理整輪所有理由，不逐卡呼叫）改寫，避免一輪要等十幾次 8-17 秒的呼叫。
+解法：新增 `llm_client.rewrite_recommendation_reasons()`，批次（一次 `codex exec` 呼叫處理整輪所有理由，不逐卡呼叫）把樣板句改寫成自然語句，`main.py` 的 `/recommend` 回傳前套用，失敗會原樣退回樣板句不擋主流程。已實測：「整體風格和你描述的相近（+1.44）」→「風格貼近經典商業套裝」。
 
 ## 文件本身的已知問題
 

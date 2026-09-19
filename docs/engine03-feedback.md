@@ -21,6 +21,43 @@
 
 這是跨 ENGINE02／ENGINE03／前端三邊的整合決定，**決定還沒拍板，需要三邊負責人都看過這個結論再動手**，這份文件先如實記錄調查結果，不代表已經定案。下面本文維持原本的提案內容（第 2 套方案基於 `FeedbackInput` 設計，已知跟真的要採用的第 3 套不是同一回事），保留是因為它把整個迴圈的邊界想清楚了，正式定案時可以參考，但**正式負責人接手時應該優先看 `backend/engine03_feedback/README.md`／`contracts.py`，不要把下面這份提案當成規格來源**。
 
+## ⚠️ 2026-09-19 追加：資料庫商品跟「Design for Me」生成圖的回饋要怎麼共用同一套邏輯
+
+使用者接著問：資料庫商品跟生成圖現在都需要收藏／不喜歡／打分／整套 Like-NotLike 這四種回饋，而且以後還會細分成「單一商品」跟「整套穿搭」兩種對象——這兩種來源的回饋*邏輯*很像（都是「使用者對某個東西表態」），但*能不能變成 ENGINE02 排序訊號*完全不一樣：資料庫商品有真的 `item_id` 在 ENGINE02 目錄裡，生成圖沒有。查證後確認：**這塊目前完全沒有人設計過**——`agent/skills/feedback-interpreter/SKILL.md` 整支是空的 TODO 檔案，沒有任何實作；就算 merge 了 PR #14，它的 `interaction.chosen_item_id`／`rejected_item_ids` 也是拿去對照 `engine02_response.items[].item_id` 驗證合法性的，生成圖沒有這個 id、根本不在 ENGINE02 的候選池裡，直接送會被判定「引用了沒顯示過的商品」，整筆回饋被丟進 `rejected_ops`（等於白送）。
+
+以下是可以拿去跟 ENGINE02／ENGINE03／前端三邊討論的具體草案，**還沒拍板，只是把問題想清楚、給一個可以討論的起點**：
+
+**建議的資料格式**（打 `POST /feedback` 時，每一筆回饋）：
+
+```json
+{
+  "session_id": "...",
+  "round": 3,
+  "target_level": "item",              // "item"（單一商品／單一生成格）或 "outfit"（整套穿搭，兩個 zone 一起表態）
+  "action": "favorite",                // favorite | dislike | rating | like_outfit | not_for_me_outfit
+  "rating_value": null,                 // 只有 action="rating" 才有值，1-5（之後改分項評分時，這裡會變成 {element: score} 的物件，不是單一數字）
+  "items": [
+    {
+      "zone": "top",                    // "top" | "bottom"；target_level="item" 時只會有一筆，"outfit" 時固定兩筆（上衣＋下身）
+      "source": "catalog",              // "catalog"（資料庫商品）| "generated"（Design for Me 生成的）——這就是區分兩種來源的欄位
+      "item_id": "ENGINE02的product_id",   // source="catalog" 時填真的 product_id
+      "design_attributes": null          // source="generated" 時才填，填生成那一格的 varied_attribute／keywords（例如 {"length": "膝上"}），因為生成格沒有 item_id 可以引用
+    }
+  ]
+}
+```
+
+**兩條處理路徑（這是關鍵，不是隨意分的）**：
+
+1. `source="catalog"` 的項目 → 走 PR #14（`backend/engine03_feedback`）現有的 `interaction.chosen_item_id` / `rejected_item_ids` / `excluded_item_ids`：favorite→chosen（或 anchor，看使用者是不是要拿它當搭配基準）、dislike→rejected（重複出現多次就考慮升級成 excluded，這個門檻由 ENGINE03 決定）。**這條路現有的驗證邏輯本來就要求這個 id 要出現在 `engine02_response.items[]`（也就是這輪真的顯示過的商品）**，資料庫商品符合這個前提，可以直接用，不用改 ENGINE03 的程式碼。
+2. `source="generated"` 的項目 → **不能**塞進 `interaction.*`（理由見上面）。這條路要改送 `attribute_scores`：把 `design_attributes` 裡的欄位（例如 `length: 膝上`）對應到 ENGINE02 kansei 認得的設計軸 id，favorite 對應到接近 1 的分數、dislike 對應到接近 0 的分數。**這個對應表（生成格的中文屬性名稱 ↔ ENGINE02 kansei 設計軸 id）需要 ENGINE02 負責人一起確認**，不是 ENGINE01 這邊可以單方面定的。
+
+**整套（`target_level="outfit"`）回饋怎麼處理**：一筆 outfit 回饋會拆成兩筆（上衣一筆、下身一筆），各自照上面兩條路徑分流——因為使用者可能整套裡一件是資料庫商品、一件是生成的（例如資料庫上衣配生成的下身），兩邊的 `source` 不一定一樣，不能假設整套一定同源。
+
+**採用順序**：使用者確認過方向是「先進 ENGINE03 當權重（`WeightAdjustment`／`design_adjust_steps`），之後再讓這個權重影響 ENGINE02 的排序」——這本來就是 ENGINE03 回饋迴圈的既定設計，不是另外發明新機制，只是要先把上面 `source` 欄位這個分流邏輯定下來，兩種來源才能共用同一個 `/feedback` 端點。
+
+**現在的實作現況**：`backend/engine03_feedback`（PR #14）目前只認得 `interaction`／`attribute_scores` 這兩個既有欄位，還沒有 `target_level`／`items[].source`／`design_attributes` 這些——這份格式需要 ENGINE01／ENGINE02／ENGINE03／前端一起看過、拍板欄位命名之後才能真的實作。另外，實作的**前提**是前端要先有生成圖卡片的收藏／不喜歡／打分 UI（目前連資料庫商品這塊都還在許綺文那邊修，見上面代辦事項 4／`docs/status.md`）——這份格式規劃在前，UI／後端接線在後，不是今天就要做完的量。
+
 ## 目標
 
 把一輪的回饋轉成能讓下一輪真的、可量化地變準的修正——這是整個比賽現場評測方式的核心引擎（評審出題 → 看結果 → 給回饋 → 出第二題 → 檢查系統是否真的變準）。簡報明確把「量化可驗證」列成這個引擎的評分重點之一。
