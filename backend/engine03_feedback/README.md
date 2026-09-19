@@ -7,13 +7,13 @@
 ```mermaid
 flowchart LR
     U[使用者文字、評分、點選] --> FE[前端]
-    E1[ENGINE 01 IntentResponse] --> ORCH[Orchestrator]
+    E1[ENGINE 01<br/>base intent + feedback intent] --> ORCH[Orchestrator]
     E2R[本輪 Engine02Request] --> ORCH
     E2O[本輪 Engine02Response<br/>items + design_scores] --> ORCH
     FE -->|FeedbackInput × 0..2<br/>UserInteraction| ORCH
     ORCH -->|Engine3Request| E3[ENGINE 03 /feedback]
     E3 -->|updated_intent| E1S[下一輪 ENGINE 01 state／意圖面板]
-    E3 -->|generation_prompt| GEN[概念圖生成模組]
+    E3 -->|generation_prompt + generation_adjustments| GEN[概念圖生成模組]
     E3 -->|FeedbackRound| HS[engine02.handshake.apply_round]
     HS -->|next Engine02Request| E2[ENGINE 02 /rank]
     HS -->|ledger + rejected_ops| FE
@@ -22,10 +22,10 @@ flowchart LR
 
 一輪的責任邊界：
 
-1. 前端送 0–2 筆共用 `FeedbackInput`：`recommended`、`generated` 各最多一筆；點選商品另放 `interaction`。
-2. ENGINE 03 只做語意轉譯與驗證，產生固定 operation；不計算排序浮點權重。
+1. 前端送 0–2 筆共用 `FeedbackInput`：`recommended`、`generated` 各最多一筆；每筆文字必填，評分選填，點選商品另放 `interaction`。
+2. 推薦回饋文字先交給 ENGINE 01，產生 `feedback_intent`；ENGINE 03 比較它與 `current_intent`，再融合評分與點選。
 3. ENGINE 02 的 `apply_round()` 負責累加 operation、裁切步數、維護 choice history，產生下一輪 request 與可解釋 ledger。
-4. `updated_intent` 的型別就是共用 `Intent`，可直接回寫 ENGINE 01 session；`generation_prompt` 交給生成模組。
+4. `recommended` 只產生 ENGINE 02 ops；`generated` 只產生 `generation_prompt` 與 `generation_adjustments`，兩條路徑在程式層分開。
 
 ## 檔案
 
@@ -72,6 +72,12 @@ ENGINE3_MODEL=gpt-4o-mini
 ```json
 {
   "current_intent": {"item_type": "top", "colors": [], "inferred_fields": []},
+  "feedback_intent": {
+    "item_type": "top",
+    "colors": [],
+    "style_keywords": ["休閒"],
+    "inferred_fields": []
+  },
   "feedback_inputs": [
     {
       "session_id": "demo-interview",
@@ -97,6 +103,8 @@ ENGINE3_MODEL=gpt-4o-mini
 硬性驗證：
 
 - `FeedbackInput.session_id/round` 必須和 ENGINE 02 request/response 一致。
+- 每筆 `FeedbackInput.free_text` 必填且不可是空白；純商品點選不建立 `FeedbackInput`，改放 `interaction`。
+- `target="recommended"` 的文字必須先經 ENGINE 01，並把完整候選 Intent 放入 `feedback_intent`。
 - `FeedbackInput.attribute_scores[].score` 使用整合框架文件定義的 0–1。
 - choice／exclude item 必須是本輪 `items` 出現過的 ID。
 - `adjust.element` 應來自 ENGINE 02 `GET /kansei`；商品屬性值應來自 `GET /vocabulary`。
@@ -124,7 +132,20 @@ ENGINE3_MODEL=gpt-4o-mini
   },
   "updated_intent": {"item_type": "top", "colors": [], "inferred_fields": []},
   "generation_prompt": "一件適合面試但偏休閒、非黑色的上衣",
+  "generation_adjustments": [],
   "rejected_ops": []
+}
+```
+
+`target="generated"` 不會產生任何 ENGINE 02 operation；其輸出範例如下：
+
+```json
+{
+  "engine02_feedback": {"session_id": "abc123", "round": 1, "utterance": null, "ops": []},
+  "generation_prompt": "柔和、休閒輪廓的面試上衣",
+  "generation_adjustments": [
+    {"attribute": "fit", "direction": -1, "strength": 0.6, "reason": "輪廓太正式"}
+  ]
 }
 ```
 

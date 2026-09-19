@@ -119,7 +119,11 @@ class UserInteraction(ContractModel):
 
 
 class Engine3Request(ContractModel):
+    # Snapshot used to produce the cards currently on screen.
     current_intent: Intent
+    # Full candidate Intent returned by ENGINE 01 after it merges the recommended-feedback text
+    # into `current_intent`. ENGINE 03 compares the two; it does not re-extract language from zero.
+    feedback_intent: Intent | None = None
     feedback_inputs: list[FeedbackInput] = Field(default_factory=list)
     engine02_request: Engine02RequestContext
     engine02_response: Engine02ResponseContext
@@ -146,6 +150,11 @@ class Engine3Request(ContractModel):
             for score in feedback.attribute_scores:
                 if not 0.0 <= score.score <= 1.0:
                     raise ValueError("FeedbackInput attribute score must be between 0 and 1")
+            # A score or click without the user's words is too ambiguous to turn into a semantic
+            # adjustment. Product clicks live in `interaction`, so every FeedbackInput is an
+            # explicit written critique and must carry its own explanation.
+            if not (feedback.free_text or "").strip():
+                raise ValueError("every FeedbackInput must include non-empty free_text")
 
         has_feedback = any(
             feedback.free_text
@@ -156,6 +165,13 @@ class Engine3Request(ContractModel):
         has_interaction = bool(self.interaction.model_dump(exclude_defaults=True))
         if not has_feedback and not has_interaction:
             raise ValueError("provide at least one FeedbackInput value or explicit UI interaction")
+        has_recommended_text = any(
+            feedback.target == "recommended" for feedback in self.feedback_inputs
+        )
+        if has_recommended_text and self.feedback_intent is None:
+            raise ValueError(
+                "recommended feedback requires feedback_intent produced by ENGINE 01"
+            )
         return self
 
 
@@ -239,7 +255,21 @@ class Engine3Decision(ContractModel):
     reasoning: str
     ops: list[FeedbackOp] = Field(default_factory=list)
     updated_intent: Intent
-    generation_prompt: str | None = None
+
+
+class GenerationAdjustment(ContractModel):
+    """A generation-only nudge. It must never be forwarded to ENGINE 02."""
+
+    attribute: str
+    direction: Literal[-1, 1]
+    strength: float = Field(default=1.0, ge=0.0, le=1.0)
+    reason: str | None = None
+
+
+class GenerationDecision(ContractModel):
+    reasoning: str
+    generation_prompt: str
+    adjustments: list[GenerationAdjustment] = Field(default_factory=list)
 
 
 class RejectedOperation(ContractModel):
@@ -253,4 +283,5 @@ class Engine3Response(ContractModel):
     engine02_feedback: FeedbackRound
     updated_intent: Intent
     generation_prompt: str | None = None
+    generation_adjustments: list[GenerationAdjustment] = Field(default_factory=list)
     rejected_ops: list[RejectedOperation] = Field(default_factory=list)

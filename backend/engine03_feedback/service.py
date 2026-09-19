@@ -22,10 +22,11 @@ from .contracts import (
     FeedbackOp,
     FeedbackRound,
     FeelingOp,
+    GenerationDecision,
     RejectedOperation,
     RequireOp,
 )
-from .prompts import SYSTEM_PROMPT
+from .prompts import GENERATION_SYSTEM_PROMPT, RECOMMENDATION_SYSTEM_PROMPT
 
 load_dotenv()
 
@@ -47,19 +48,22 @@ def _canonical_value(value: str, allowed: list[str]) -> str | None:
     return lookup.get(value.casefold())
 
 
-def _feedback_utterance(request: Engine3Request) -> str | None:
+def _feedback_utterance(request: Engine3Request, target: str = "recommended") -> str | None:
     messages: list[str] = []
     for feedback in request.feedback_inputs:
-        if feedback.free_text and feedback.free_text not in messages:
+        if feedback.target == target and feedback.free_text and feedback.free_text not in messages:
             messages.append(feedback.free_text)
     return "；".join(messages) or None
 
 
-def _requires_language_model(request: Engine3Request) -> bool:
+def _requires_language_model(request: Engine3Request, target: str = "recommended") -> bool:
     return any(
+        feedback.target == target
+        and (
         feedback.free_text
         or feedback.selected_option_id
         or feedback.attribute_scores
+        )
         for feedback in request.feedback_inputs
     )
 
@@ -155,10 +159,20 @@ def _deduplicate(ops: Iterable[FeedbackOp]) -> list[FeedbackOp]:
     return result
 
 
+def _feedback_for_target(request: Engine3Request, target: str) -> list[dict]:
+    return [
+        item.model_dump(mode="json")
+        for item in request.feedback_inputs
+        if item.target == target
+    ]
+
+
 def _model_decision(request: Engine3Request) -> Engine3Decision:
     context = {
-        "current_intent": request.current_intent.model_dump(mode="json"),
-        "feedback_inputs": [item.model_dump(mode="json") for item in request.feedback_inputs],
+        "base_intent": request.current_intent.model_dump(mode="json"),
+        "feedback_intent": request.feedback_intent.model_dump(mode="json"),
+        # Target separation is enforced before the model call, not trusted to prompting alone.
+        "feedback_inputs": _feedback_for_target(request, "recommended"),
         "engine02_request": request.engine02_request.model_dump(mode="json"),
         "shown_items": [item.model_dump(mode="json") for item in request.engine02_response.items],
         "interaction": request.interaction.model_dump(mode="json"),
@@ -168,7 +182,7 @@ def _model_decision(request: Engine3Request) -> Engine3Decision:
     response = _client().beta.chat.completions.parse(
         model=os.environ.get("ENGINE3_MODEL", "gpt-4o-mini"),
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": RECOMMENDATION_SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
         ],
         response_format=Engine3Decision,
@@ -180,17 +194,42 @@ def _model_decision(request: Engine3Request) -> Engine3Decision:
     return decision
 
 
+def _generation_decision(request: Engine3Request) -> GenerationDecision:
+    context = {
+        "current_intent": request.current_intent.model_dump(mode="json"),
+        "feedback_inputs": _feedback_for_target(request, "generated"),
+    }
+    response = _client().beta.chat.completions.parse(
+        model=os.environ.get("ENGINE3_MODEL", "gpt-4o-mini"),
+        messages=[
+            {"role": "system", "content": GENERATION_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
+        ],
+        response_format=GenerationDecision,
+        temperature=0.1,
+    )
+    decision = response.choices[0].message.parsed
+    if decision is None:
+        raise RuntimeError("model returned no parsed generation decision")
+    return decision
+
+
 def process_feedback(request: Engine3Request) -> Engine3Response:
     """Return a validated ENGINE 02 FeedbackRound and ENGINE 01 Intent."""
-    if _requires_language_model(request):
+    if _requires_language_model(request, "recommended"):
         decision = _model_decision(request)
     else:
         decision = Engine3Decision(
             reasoning="依照使用者在介面上的明確操作更新回饋帳本。",
             ops=[],
             updated_intent=request.current_intent,
-            generation_prompt=None,
         )
+
+    generation = (
+        _generation_decision(request)
+        if _requires_language_model(request, "generated")
+        else None
+    )
 
     # IDs come from explicit UI actions. Any LLM-produced ID operation is
     # discarded to prevent hallucinated products and duplicate evidence.
@@ -205,10 +244,11 @@ def process_feedback(request: Engine3Request) -> Engine3Response:
         engine02_feedback=FeedbackRound(
             session_id=request.engine02_response.session_id,
             round=request.engine02_response.round,
-            utterance=_feedback_utterance(request),
+            utterance=_feedback_utterance(request, "recommended"),
             ops=_deduplicate([*valid_ops, *ui_ops]),
         ),
         updated_intent=decision.updated_intent,
-        generation_prompt=decision.generation_prompt,
+        generation_prompt=generation.generation_prompt if generation else None,
+        generation_adjustments=generation.adjustments if generation else [],
         rejected_ops=[*rejected, *ui_rejected],
     )
