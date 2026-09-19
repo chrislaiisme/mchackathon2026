@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -101,7 +102,18 @@ def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
                 "cells": _cells_payload(manifest, sliced=False), "manifest": str(manifest_path)}
 
     # 切圖；切完 manifest 的每一格會多出 image 與 bbox。
-    _run(SLICE_GRID, ["--manifest", str(manifest_path)])
+    forced = False
+    try:
+        _run(SLICE_GRID, ["--manifest", str(manifest_path)])
+    except ConceptImageUnavailable as exc:
+        # 版面檢查要求切線落在等分點附近。模型常把六格畫得乾淨、但上下列不等高——
+        # 這時切線位置偏掉，格數卻是對的。錯誤訊息會把偵測到與要求的格數都印出來，
+        # 兩者相同就表示 gutter 找對了，只是不等分，照切的結果是好的。
+        if _counts_match(str(exc)):
+            _run(SLICE_GRID, ["--manifest", str(manifest_path), "--force"])
+            forced = True
+        else:
+            raise
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     return {
@@ -111,7 +123,15 @@ def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
         "unresolved": manifest.get("unresolved") or [],
         "cells": _cells_payload(manifest, sliced=True),
         "manifest": str(manifest_path.relative_to(ROOT)),
+        # 版面不等分但格數正確時會是 True；六格仍然可用，只是不是等分版面。
+        "layout_forced": forced,
     }
+
+
+def _counts_match(message: str) -> bool:
+    """錯誤訊息裡「偵測到 N 欄 × M 列，要求的是 N 欄 × M 列」兩組數字是否相同。"""
+    found = re.findall(r"(\d+)\s*欄\s*×\s*(\d+)\s*列", message)
+    return len(found) >= 2 and found[0] == found[1]
 
 
 def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:

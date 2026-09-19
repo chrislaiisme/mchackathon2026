@@ -78,6 +78,15 @@ export interface PreferenceSignal {
   direction: SignalDirection;
 }
 
+export interface GeneratedItem {
+  /** 六宮格切出來的單格，1 起算。 */
+  index: number;
+  imageUrl: string;
+  /** 這一格相對其他格改了什麼，中文原字，直接顯示在卡片上。 */
+  variedLabel?: string;
+  keywords: Record<string, string>;
+}
+
 export interface ChatMessage {
   id: string;
   conversationId?: string;
@@ -88,6 +97,8 @@ export interface ChatMessage {
   visualChoices?: VisualChoice[];
   recommendations?: FashionRecommendation[];
   recommendation?: ChatRecommendation;
+  /** AI 生成的單品（不是商品庫裡的東西，卡片上要標明）。 */
+  generatedItems?: GeneratedItem[];
 }
 
 export interface User {

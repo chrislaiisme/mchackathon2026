@@ -23,6 +23,8 @@ interface BackendIntentResponse {
   session_id: string;
   round: number;
   clarifying_questions: BackendClarifyingQuestion[];
+  /** ENGINE 01 抽出來的結構化意圖。生成單品要用它，所以這裡把它宣告出來。 */
+  intent?: Record<string, unknown>;
 }
 
 interface BackendProductCard {

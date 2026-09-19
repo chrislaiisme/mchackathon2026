@@ -173,7 +173,10 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
 
 
 class ConceptImageRequest(BaseModel):
-    session_id: str
+    session_id: Optional[str] = None
+    """走 BFF 自己那條流程時給。前端直接打 ENGINE 01 的話留空，改給 intent。"""
+    intent: Optional[dict[str, Any]] = None
+    """ENGINE 01 `/intent` 回傳裡的 intent，原樣帶過來即可。"""
     cells: int = 6
     model: Optional[str] = None
     """生圖模型，省略用 generate_grid.py 的預設。"""
@@ -188,16 +191,23 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
     明確觸發，不在每一輪自動跑：一張六宮格 26–48 秒。六件擠在一張圖裡生，
     比逐一生成快三倍多，理由見 bff/images/concept.py。
     """
-    s = _SESSIONS.get(body.session_id)
-    if s is None or not s.rounds:
-        raise HTTPException(404, f"session {body.session_id!r} 還沒有任何一輪結果")
-    if not s.intent:
-        raise HTTPException(409, "這個 session 還沒有結構化意圖，無法生圖")
+    # 兩種來源：BFF 自己的 session，或前端直接把 ENGINE 01 的 intent 帶過來。
+    if body.intent:
+        session_id = body.session_id or "direct"
+        round_no = 1
+        intent = body.intent
+    else:
+        s = _SESSIONS.get(body.session_id or "")
+        if s is None or not s.rounds:
+            raise HTTPException(404, "沒有 intent，也找不到這個 session 的任何一輪結果")
+        if not s.intent:
+            raise HTTPException(409, "這個 session 還沒有結構化意圖，無法生圖")
+        session_id, round_no, intent = s.session_id, s.round, s.intent
 
     activity: list[dict[str, Any]] = []
     t0 = time.time()
     try:
-        out = generate_concepts(s.session_id, s.round, s.intent,
+        out = generate_concepts(session_id, round_no, intent,
                                 cells=body.cells, model=body.model, dry_run=body.dry_run)
     except ConceptImageUnavailable as exc:
         activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000),
@@ -207,9 +217,10 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
         raise HTTPException(502, f"生成單品失敗：{type(exc).__name__}: {exc}"[:300])
 
     activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000), "ok": True})
-    s.concept_image = {"image_url": out.get("grid_image"), "prompt_used": out.get("prompt_used"),
-                       "response_id": None}
-    return {"session_id": s.session_id, "round": s.round, "concepts": out, "activity": activity}
+    if not body.intent and (s := _SESSIONS.get(session_id)):
+        s.concept_image = {"image_url": out.get("grid_image"),
+                           "prompt_used": out.get("prompt_used"), "response_id": None}
+    return {"session_id": session_id, "round": round_no, "concepts": out, "activity": activity}
 
 
 @app.get("/generated/{path:path}")

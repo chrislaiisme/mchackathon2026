@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
+import { generateItems } from "@/lib/services/concept-image";
 import {
   createChatRecommendation,
   createStylistReply,
@@ -230,6 +231,29 @@ function MessageBlock({
             </Button>
           ))}
           <span className="px-2 py-1 text-sm text-muted-foreground">{t.stylist.noneOfThese}</span>
+        </div>
+      )}
+
+      {message.generatedItems && message.generatedItems.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            AI GENERATED · 這些不是商品庫裡的商品
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {message.generatedItems.map((item) => (
+              <figure key={item.index} className="overflow-hidden border border-border bg-card">
+                <div
+                  className="fashion-image aspect-[4/5] bg-muted"
+                  style={{ backgroundImage: `url(${item.imageUrl})` }}
+                  role="img"
+                  aria-label={item.variedLabel || `生成單品 ${item.index}`}
+                />
+                {item.variedLabel && (
+                  <figcaption className="px-3 py-2 text-sm text-foreground">{item.variedLabel}</figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1359,6 +1383,9 @@ export function StylistExperience() {
   const [activeId, setActiveId] = useState<string>();
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  // ENGINE 01 最近一輪抽出來的意圖。生成單品要用它，所以每次問到就留下來。
+  const [lastIntent, setLastIntent] = useState<Record<string, unknown> | null>(null);
+  const [isGeneratingItems, setIsGeneratingItems] = useState(false);
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceElapsedSeconds, setVoiceElapsedSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
@@ -1757,6 +1784,7 @@ export function StylistExperience() {
 
     try {
       const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, trimmed, token);
+      setLastIntent(intentResult.intent ?? null);
 
       const assistantMessage: ChatMessage =
         intentResult.clarifying_questions.length > 0
@@ -1796,6 +1824,54 @@ export function StylistExperience() {
       persistConversation(nextConversation);
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  // 對商品庫撈到的東西不滿意時，用同一份意圖生六件新的。
+  // 一次生圖 26–48 秒，所以是明確按下去才跑，不是每輪自動。
+  async function handleGenerateItems() {
+    if (!activeConversation || !lastIntent || isGeneratingItems) {
+      return;
+    }
+
+    shouldFollowRef.current = true;
+    setIsGeneratingItems(true);
+    const conversationId = activeConversation.id;
+    const userId = activeConversation.userId;
+
+    try {
+      const items = await generateItems(lastIntent, activeConversation.engineSessionId);
+      const latest =
+        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
+        activeConversation;
+      persistConversation(
+        conversationService.appendMessage(latest, {
+          id: `ai-generated-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "商品庫裡沒有更合適的了，這六件是照你的需求生成的。"
+              : "Nothing closer in the catalog — here are six generated from what you asked for.",
+          generatedItems: items,
+        }),
+      );
+    } catch (error) {
+      console.error("[stylist] 生成單品失敗：", error);
+      const latest =
+        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
+        activeConversation;
+      persistConversation(
+        conversationService.appendMessage(latest, {
+          id: `ai-generated-error-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "生成單品失敗了，確認生圖服務有啟動（預設 8100 埠）再試一次。"
+              : "Generating items failed — check that the generation service is running on port 8100.",
+        }),
+      );
+    } finally {
+      setIsGeneratingItems(false);
     }
   }
 
@@ -2198,6 +2274,17 @@ export function StylistExperience() {
               </h1>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateItems}
+                disabled={!lastIntent || isGeneratingItems}
+                title={lastIntent ? undefined : locale === "zh-TW" ? "先說一句需求" : "Describe what you want first"}
+              >
+                {isGeneratingItems
+                  ? locale === "zh-TW" ? "生成中…" : "Generating…"
+                  : locale === "zh-TW" ? "AI 生成單品" : "Generate items"}
+              </Button>
               <Button variant="outline" size="sm" onClick={createNewSession}>
                 {t.stylist.newSession}
               </Button>
