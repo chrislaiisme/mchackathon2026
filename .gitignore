@@ -11,3 +11,5 @@ reports/server/
 reports/agents/
 reports/demo/
 reports/llm_paraphrase/
+engine02.egg-info/
+reports/forecast/
