@@ -1,5 +1,11 @@
 # 整合地圖：全系統長什麼樣、每塊在哪、缺什麼才跑得起來
 
+> **2026-09-19 更新**：這份是對 **2026-09-18 當時**各分支狀態的分析，內容照原樣保留。
+> `main` 已經不是文中描述的「舊結構」——它現在同時具備 `backend/`＋`frontend/`（原有）
+> 與 `bff/`＋`mcp_servers/`＋`agent/`＋`web/`（新增），兩套並存、都可運作。
+> 因此文中「在 hermes-app 上 `backend.engine02_retrieval` 不存在」這類敘述**只適用於
+> `integration/hermes-app`**，在 `main` 上兩個模組路徑都成立。
+
 調查時間：2026-09-19。方法：`git ls-tree -r --name-only origin/<branch>` 與 `git show origin/<branch>:<path>`，全程唯讀，未 checkout 任何其他分支、未 push。
 本文件是 ENGINE 02（`engine02-research`）為了「我們要服務誰、服務什麼 payload」而做的全域盤點。
 
@@ -33,7 +39,7 @@ $ git merge-base --is-ancestor origin/engine03-feedback       origin/integration
 
 `integration/hermes-app` 落後 main 0 個 commit、領先 158 個，且已包含 5 條分支中的 4 條（含我們 `fb13824` 的最新 HEAD）。
 唯一缺口是 `engine03-feedback`。
-對照 `docs/migration-to-hermes-app.md`：「Hermes Agent 應用的結構與三方整合的結果只存在於 `integration/hermes-app`，**demo 從這條分支跑**。」
+對照 `docs/migration-to-hermes-app.md`（該檔只在 `integration/hermes-app` 上；main 未收錄，因為它的前提是「不改動 main」）：「Hermes Agent 應用的結構與三方整合的結果只存在於 `integration/hermes-app`，**demo 從這條分支跑**。」
 
 反過來，沒有任何一條分支被併回 `main`（六次 `--is-ancestor ... origin/main` 全部回 1）。**`main` 是過期的。**
 
@@ -85,7 +91,7 @@ contracts/ evals/ data/ docs/ scripts/ tests/ reports/
 
 1. skill 是 Markdown，不能發 HTTP；`recommendation-explainer/SKILL.md` 的 Procedure 是 `TODO`，沒有寫要呼叫哪個端點。
 2. 該由 `bff/` 的流程控制去呼叫。但 `bff/README.md` 自述「目前狀態：尚未開始」，`bff/` 底下唯一的程式碼是 `engine01_intent/`（`/intent`、`/auth/google`、`/profile`、`/health`）＋`shared/`，沒有任何 orchestrator。
-3. `agent/` 沒有 `mcp.json`，`mcp_servers/catalog/` 也**不是** MCP server——它是一個 FastAPI app（`from fastapi import FastAPI`），沒有任何 MCP SDK 的痕跡，資料夾名稱與實作不符。`docs/migration-to-hermes-app.md` 的進度表把「engine02 包成 MCP 工具服務」列為「待做」。
+3. `agent/` 沒有 `mcp.json`，`mcp_servers/catalog/` 也**不是** MCP server——它是一個 FastAPI app（`from fastapi import FastAPI`），沒有任何 MCP SDK 的痕跡，資料夾名稱與實作不符。`integration/hermes-app` 的 `docs/migration-to-hermes-app.md` 進度表把「engine02 包成 MCP 工具服務」列為「待做」。
 4. `web/` 前端完全是 mock：`git grep -c 'fetch(' origin/integration/hermes-app -- 'web/*'` → **零個檔案有 `fetch(`**，狀態存在 `localStorage`（`intentweave.conversations`），資料來自 `web/lib/mock/stylist.ts`、`web/lib/mock/insights.ts`。
 
 **目前唯一真實存在的 ENGINE 02 呼叫介面**是 `mcp_servers/catalog/main.py`（與 `origin/engine02-research:backend/engine02_retrieval/main.py` **逐字元相同**，diff 為空）：
@@ -169,7 +175,7 @@ handoff = apply_round(previous_engine02_request, previous_engine02_response, fee
 - `git ls-tree -r origin/integration/hermes-app | grep '^bff/'` → 只有 `README.md`、`engine01_intent/*`、`shared/*`、以及 `activity_log/`、`feedback/`、`images/` 三個純 README 目錄。**沒有 `bff/engine02_retrieval/`，沒有任何 engine02 相關的 `.py`。**
 - 檔案本身沒有遺失：它被搬成 `mcp_servers/catalog/main.py`，內容與 `origin/engine02-research:backend/engine02_retrieval/main.py` 完全相同。
 - 但搬家後留下三個沒跟著改的東西：
-  1. 檔案 docstring 仍寫 `uvicorn backend.engine02_retrieval.main:app --port 8002`——**在 hermes-app 上這個模組路徑不存在**，照抄會 `ModuleNotFoundError`。正確指令是 `uvicorn mcp_servers.catalog.main:app --port 8002`。
+  1. 檔案 docstring 仍寫 `uvicorn backend.engine02_retrieval.main:app --port 8002`——**在 `integration/hermes-app` 上這個模組路徑不存在**（`main` 上存在），照抄會 `ModuleNotFoundError`。正確指令是 `uvicorn mcp_servers.catalog.main:app --port 8002`。
   2. `optional_user()` 裡 `from backend.shared.auth import decode_session_token`——hermes-app 上是 `bff.shared.auth`。因為包在 `try/except Exception` 裡，後果不是崩潰而是**任何帶 `Authorization` header 的請求都會被當成匿名**，session 不再依 user 命名空間化。
   3. `mcp_servers/` 沒有 `__init__.py`（只有 `mcp_servers/catalog/__init__.py`）。靠 Python 3 namespace package 仍可 import，但前提是 **cwd 必須是 repo 根目錄**。
 

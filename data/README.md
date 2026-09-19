@@ -1,13 +1,99 @@
 # data/
 
-**只存在本機，不進版控**（`.gitignore` 排除本資料夾內除了這份 README 以外的所有檔案）。
-原因：資料集體積大；Pinterest 圖片只能內部使用，不能公開。
+**不進版控**（`.gitignore` 排除本資料夾內除了這份 README 以外的所有檔案）。體積太大，
+而且 Pinterest 取得的素材只能內部使用。
 
-| 資料夾 | 內容 | 負責線 |
+但**所有東西都可以從 repo 重建**，不需要跟任何人要檔案、不需要帳號、不需要 GPU。
+以下指令都從 repo 根目錄執行。
+
+## 只拿得到 GitHub 的組員，照這個做
+
+### 1. 主商品庫（必要，約 8 分鐘 / 110 MB）
+
+```bash
+python scripts/prepare_catalog.py --source Marqo/KAGL --limit 5000 \
+    --out data/catalog/kagl --shuffle-buffer 256 --seed 0
+```
+
+來源是 Hugging Face 上的公開資料集 [`Marqo/KAGL`](https://huggingface.co/datasets/Marqo/KAGL)
+（MIT，上游是 Kaggle `paramaggarwal/fashion-product-images-dataset`）。**串流讀取，不會整包下載**，
+圖片統一縮到最長邊 384 px 存成 JPEG。
+
+`--seed 0 --shuffle-buffer 256 --limit 5000` 三個參數決定抽到哪 5000 件，**照抄就會拿到同一批**。
+實測產出：5000 件、失敗 0 張、70.6 MB、496.9 秒。屬性覆蓋率 color 100%、season 99.6%、
+occasion 99.9%、gender 100%、**price 0%**（這個來源沒有價格欄位）。
+
+### 2. 搭配關係（選用，整套搭配功能需要）
+
+```bash
+python scripts/prepare_catalog.py --source Marqo/polyvore --limit 3000 \
+    --out data/catalog/polyvore --full-cooccurrence
+```
+
+Polyvore 沒有屬性標籤，它的價值在 `outfit_ids`（哪些單品曾被搭在一起）。
+`--full-cooccurrence` 會掃完整資料集的文字欄位算共現，約 10 分鐘。
+
+### 3. 有價格的測試樣本（選用，只有要測預算功能才需要）
+
+```bash
+python scripts/make_priced_fixture.py --n 500
+```
+
+⚠️ **這份的價格是合成的**（依品類帶狀 log-uniform，seed 20260919）。它存在的唯一理由是
+「沒有價格的商品庫無法測試預算路徑」。**任何在這上面量到的數字都不可以當成結果引用。**
+
+### 4. 趨勢時間序列（選用，只有要跑預測才需要）
+
+```bash
+python scripts/fetch_trend_history.py      # Wikimedia Pageviews，免金鑰、CC0
+python scripts/fetch_pinterest_trends.py   # 需要 PINTEREST_ACCESS_TOKEN
+```
+
+Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore），**絕對不要 commit**。
+沒有 token 就只跑 Wikimedia 那支，預測功能一樣可用。
+
+## 不用自己建的東西
+
+`data/catalog/<name>/index/` 底下的 `.npy`（圖片向量、設計要素矩陣）**第一次啟動服務時會自動算好並快取**
+（`engine02/encoders.py`：檔案在就讀、不在就算完存檔）。
+
+- 有 GPU：幾分鐘
+- 只有 CPU：慢很多但會完成，**不會失敗**
+
+所以組員不需要另外跑索引指令，也不需要 GPU。
+
+## 唯一無法在筆電上重建的東西
+
+`data/catalog/kagl/vlm_attributes_Qwen3-VL-8B-Instruct.parquet`（692 KB）是用 Qwen3-VL-8B
+從圖片標的，需要 GPU。**它是選用的**——少了它系統照常運作，只是 VLM 屬性補值那條路走不了。
+
+需要的話跟 ENGINE 02 負責人要這個檔，或從 GitHub Release 下載（見下）。
+
+## 如果真的只能從 GitHub 拿現成檔案
+
+上面「從公開來源重建」是首選：可重現、可驗證、不佔 repo 空間。
+
+真的要直接拿檔案的話，把 `data/catalog/kagl/`（含 `images/` 與 `index/`，約 275 MB）打包成
+`tar.gz` 掛在 **GitHub Release** 當附件（單檔上限 2 GB，不進 git 歷史）。
+
+**不要把它 commit 進 repo**——二進位檔一旦進了 git 歷史就拿不掉，之後每個人 clone 都要付一次代價。
+
+## 目前的內容
+
+| 路徑 | 內容 | 怎麼來的 |
 |---|---|---|
-| `polyvore/` | Polyvore Outfits Dataset | 線 2 |
-| `pinterest_trends/` | 從團隊 Pinterest 板子讀取的趨勢圖 | 線 2 |
-| `target_images/` | 驗證用目標圖 30–50 張（額度不足時縮到 15–20 張） | 線 1 |
-| `demo_cache/` | demo 情境預先準備的結果與圖片，網路失效時重播用 | 線 3、線 5 |
+| `catalog/kagl/` | 主商品庫 5000 件 | 步驟 1 |
+| `catalog/polyvore/` | 搭配關係 3000 件 | 步驟 2 |
+| `catalog/kagl_priced_fixture/` | 500 件 + **合成價格** | 步驟 3 |
+| `catalog/kagl_polyvore/` | 兩者合併 | `scripts/merge_catalogs.py` |
+| `catalog/amz_smoke/` | 15 件真實價格樣本（太小，不足以評估） | 手動 |
+| `trends/` | 趨勢時間序列 | 步驟 4 |
+| `labels/`、`context/`、`verify_sample/` | 評測用標註與抽樣 | 各自的 `scripts/` |
 
-demo 當天使用的電腦需要事先把 `demo_cache/` 複製過去。
+每個商品庫底下都有自己的 `README.md` 與 `stats.json`，記錄來源、授權、建置參數與屬性覆蓋率。
+`items.parquet` 的 `attr_source` 欄位**逐商品**記錄每個屬性是資料集原生還是後製補的——
+補過的欄位不可以拿來當評估的標準答案。
+
+---
+
+demo 當天使用的電腦需要事先把 demo 用的商品庫與 `index/` 複製過去，不要現場重算。

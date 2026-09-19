@@ -42,7 +42,7 @@
 ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
 ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
-uvicorn backend.engine02_retrieval.main:app --host 0.0.0.0 --port 8002
+uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
 
 | 端點 | 用途 |
@@ -58,8 +58,12 @@ uvicorn backend.engine02_retrieval.main:app --host 0.0.0.0 --port 8002
 `engine02/{api,compat_ot,complete_look,llm}.py` 都用 `ROOT = Path(__file__).resolve().parents[1]`
 解析 `data/catalog/...`。搬進 `backend/engine02_retrieval/` 會讓 `parents[1]` 指到 `backend/`，
 所有預設資料路徑、14 個測試檔、40+ 個腳本與已發佈的 JSON Schema 全部失效。
-`origin/main` 上沒有任何程式碼 import `backend.engine02_retrieval`——團隊真正依賴的接縫是
-**啟動指令與 HTTP 介面**，這個檔案就是那個接縫。
+團隊真正依賴的接縫是**啟動指令與 HTTP 介面**，這個檔案就是那個接縫。
+
+`main` 上同時存在 `backend/engine02_retrieval/main.py`，兩份服務層內容等價（同樣的
+`/retrieve`、同樣的 ENGINE 03 ops 套用、同樣把 `/engine02/*` 掛上去）。測試與
+`scripts/simulate_sessions.py` 優先 import 這一份，缺了才退回 `backend/` 那份。
+**改動其中一份時另一份要一起改**——這是兩套結構並存的代價，等結構收斂後應該只留一份。
 
 > 這一點與 `CLAUDE.md` 的「Repo 結構」寫法不同，**需要 ENGINE 01 負責人確認**後同步更新該段落。
 
