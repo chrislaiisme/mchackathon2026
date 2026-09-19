@@ -10,7 +10,7 @@
   "season": 1.0,
   "occasion": 1.0,
   "gender": 1.0,
-  "price": 0.0,
+  "price": 1.0,
   "boldness": 1.0,
   "fit": 0.8973,
   "style": 1.0
@@ -32,5 +32,18 @@
   "1": 5787,
   "2": 354,
   "3": 9
+ },
+ "price": {
+  "estimator": "price-estimate-v1",
+  "estimated_total": 9870,
+  "listed": 0,
+  "median_twd_by_category": {
+   "bag": 990.0,
+   "bottom": 890.0,
+   "dress": 1290.0,
+   "outerwear": 2190.0,
+   "shoes": 1590.0,
+   "top": 790.0
+  }
  }
 }

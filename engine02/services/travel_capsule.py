@@ -162,7 +162,9 @@ def plan_capsule(items: pd.DataFrame, forecasts: list[DailyForecast], n_items: i
         if slot is None:
             continue
         iid = str(row.get("item_id"))
-        price = row.get("price") if has_price else None
+        # budgets are in NT$: use the comparable price when the catalog has one (crawl_tw lists
+        # some items in USD)
+        price = row.get("price_twd") if "price_twd" in row else (row.get("price") if has_price else None)
         price = None if _isnan(price) else float(price)
         if budget is not None and price is None:
             unpriced += 1
@@ -184,6 +186,7 @@ def plan_capsule(items: pd.DataFrame, forecasts: list[DailyForecast], n_items: i
         wr = bool(row.get("water_repellent")) if has_wr and not _isnan(row.get("water_repellent")) else False
         info[iid] = {"slot": slot, "color": None if _isnan(row.get("color")) else row.get("color"),
                      "price": price, "score": score, "warmth": warmth, "water_repellent": wr,
+                     "price_estimated": bool(row.get("price_estimated")) if not _isnan(row.get("price_estimated")) else False,
                      "title": str(row.get("title") or iid)}
 
     # keep the best few per slot so the search stays instant
@@ -338,8 +341,12 @@ def plan_capsule(items: pd.DataFrame, forecasts: list[DailyForecast], n_items: i
     notes.insert(1, "打包清單：" + "、".join(f"{SLOT_ZH[s]} {n} 件" for s, n in counts.items()))
     if rainy and outer_id and info[outer_id]["water_repellent"]:
         notes.append("行程中有雨天，已放進一件防潑水外套 🌧️")
+    n_est = sum(1 for i in chosen if info[i]["price_estimated"])
     if budget is not None and total is not None:
-        notes.append(f"合計 {total:.0f} 元，預算 {budget:.0f} 元內還剩 {budget - total:.0f} 元")
+        notes.append(f"合計 {total:.0f} 元，預算 {budget:.0f} 元內還剩 {budget - total:.0f} 元"
+                     + (f"（其中 {n_est} 件是估計價，非實際標價）" if n_est else ""))
+    elif total is not None and n_est:
+        notes.append(f"合計約 {total:.0f} 元（其中 {n_est} 件是估計價，非實際標價）")
     if any(info[i]["color"] is None for i in chosen):
         notes.append("有幾件沒有顏色資料，先當作百搭色計算")
     nn = sum(1 for i in chosen if not _is_neutral(info[i]["color"]))
@@ -348,7 +355,8 @@ def plan_capsule(items: pd.DataFrame, forecasts: list[DailyForecast], n_items: i
 
     return {
         "items": [{"item_id": i, "slot": info[i]["slot"], "title": info[i]["title"],
-                   "color": info[i]["color"], "price": info[i]["price"]} for i in chosen],
+                   "color": info[i]["color"], "price": info[i]["price"],
+                   "price_estimated": info[i]["price_estimated"]} for i in chosen],
         "outfits": outfits,
         "n_outfits": n_out,
         "per_day_plan": per_day,

@@ -103,7 +103,7 @@ ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_ENCODER=marqo-fashionSigLIP ENG
 ### 6. 爬蟲抓的台灣／國際電商商品（有真實價格；選用）
 
 `data/catalog/crawl_tw/` **已附在 repo 裡**：166 件，從 PChome 24h、SSENSE、iROO、Taiwanize、
-Cheesebeign、Plain-me、JKS、Whiterock 等 13 家店的商品頁抓的。標題、價格（新台幣）、品牌
+Cheesebeign、Plain-me、JKS、Whiterock 等 13 家店的商品頁抓的。標題、價格（多為新台幣；SSENSE 標美金，預算比較前自動換算）、品牌
 **只取頁面結構化資料寫的**，沒寫就留空；季節、場合、大膽度、風格同樣由 Qwen3-VL-8B 補。
 **每件都有價格**，所以預算篩選、租還是買在這個商品庫上才有意義。圖片同樣用
 `fetch_catalog_images.py --catalog data/catalog/crawl_tw` 重建。
@@ -117,6 +117,24 @@ Cheesebeign、Plain-me、JKS、Whiterock 等 13 家店的商品頁抓的。標�
   JSON + CSV，每個來源的狀態與停止原因在 `sources.json`。網頁會變，所以直接附上。
 - `data/inspiration/`：381 張伸展台／街拍／cosplay 照片（CC 授權，含作者與授權欄位，顯示時要標註），
   已自動剔除海報、人群、演講、臉部特寫、泳裝內衣等。給「我想要這種感覺」用，**不會混進商品庫**。
+
+## 價格：每件商品都有，但估計價會標示
+
+公開商品庫（KAGL、Polyvore、H&M）本來沒有價格。服務載入商品庫時（`Catalog.load`），沒標價的
+商品由 `engine02/price_estimate.py` 給一個**估計價**：依品類／子品類的台灣平價行情基準
+（例如 T 恤 399、洋裝 1,190、大衣 2,990 元），乘上正式場合、設計感、高級材質、商品庫定位等倍率，
+再加上依商品 ID 固定的 ±15% 差異，四捨五入成常見售價（399、1,190）。**不用 GPU、不用金鑰，
+每台電腦算出來都一樣**，clone 下來就有。
+
+- 每件都有 `price`、`currency`、`price_twd`（換算成新台幣，給預算比較用）；
+- 估計的那些 `price_estimated = true`，`price_basis` 寫怎麼算的（「估計價（非實際標價）：洋裝類基準
+  1,190 元 × 正式場合 1.2」），`attr_source.price = "estimated:price-estimate-v1"`；
+- 卡片、ENGINE 01 的商品屬性、租還是買、旅行膠囊都會標「估計價」；預算過濾用到估計價時，
+  回應的 `input_warnings` 會說用了幾件；
+- 真實標價只有 `crawl_tw`（新台幣與美金混合，預算比較前先換算）；
+- 估計價**不能**拿來當評估標準答案；要關掉就設 `ENGINE02_ESTIMATE_PRICES=0`；
+- 直接讀 parquet 的人：`hm_filled` 已寫入估計價；其他商品庫跑
+  `python scripts/estimate_prices.py --catalog data/catalog/<name>`。
 
 ## 不用自己建的東西
 

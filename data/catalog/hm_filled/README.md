@@ -12,7 +12,7 @@ image read by **Qwen/Qwen3-VL-8B-Instruct** (`scripts/vlm_fill_catalog.py`, 1x A
 | category, colour, pattern, gender | **H&M's own labels** (never overwritten by the model) |
 | season, occasion | model (`attr_source` says `vlm:Qwen3-VL-8B-Instruct`); `season_p`, `occasion_p` = answer probabilities |
 | fit, boldness (0-3), style | model; used for the 驚喜款 slot and the style terms |
-| price | **not in the source** -- null, so the price filter / rent-or-buy skip these items |
+| price | **not in the source** -- every row carries a labelled **estimate** (`price_estimated` = true, `price_basis`, `attr_source.price = "estimated:price-estimate-v1"`; engine02/price_estimate.py, written by `scripts/estimate_prices.py`). Never a price tag, never ground truth |
 
 130 of 10,000 rows were dropped because the image is not one sellable item:
 79 multipacks, 47 size charts, 4 not apparel (listed with titles in `vlm_fill_report.json`).

@@ -40,7 +40,7 @@
 | 欄位 | 來源 | 說明 |
 |---|---|---|
 | `constraints.{category,color,occasion,season,gender,style_keywords}` | ENGINE 01 M1 | 每欄 `state` ∈ `unmentioned / value / dont_care / inferred`（PRD 四態）。**`value` 才當硬過濾**，`inferred` 只當軟訊號。值必須是商品庫詞彙（見 §4.1）。 |
-| `constraints.budget` | ENGINE 01 M1 | `max_price / min_price`；目前商品庫沒有價格，會自動放寬並標示 |
+| `constraints.budget` | ENGINE 01 M1 | `max_price / min_price`（`currency` 預設 TWD，其他幣別的標價先換算）；沒標價的商品用**估計價**過濾，回應的 `applied.budget_estimated_prices` 與 `input_warnings` 說明用了幾件估計價；`ENGINE02_ESTIMATE_PRICES=0` 時才回到「無價格 → `budget_unavailable`」 |
 | `constraints.excluded_values` | ENGINE 03 `exclude(屬性,值)` | 永遠不放寬 |
 | `needs[] = {need_id, prob}` | ENGINE 01 M2 | p(n)，`need_id` 必須存在於感性對照表 |
 | `retrieval_text`（**新增提議**） | ENGINE 01 | 一句**英文、不含否定詞**的短描述。原因：商品庫是英文、使用者講中文；CLIP 類模型對否定詞接近隨機（CVPR 2025 NegBench，本機實測差距 ≤0.03） |
@@ -879,7 +879,7 @@ T16 量到域差之後，最自然的下一步是文獻裡效果最大的那一�
 | --- | --- |
 | **不憑空造條件** | 對不到商品庫值的詞留在檢索文字裡並列入 `unresolved`，絕不變成硬過濾 |
 | **`inferred_fields` 保持軟性** | ENGINE 01 標記「GPT 推論而非使用者說的」欄位 → `SlotState.INFERRED`，只進檢索、不砍候選池 |
-| **用不了的要說出來** | 預算沒有對應欄位（`price` 欄 100% 是空的），直接回報而不是假裝有過濾 |
+| **用不了的要說出來** | 預算：沒標價的商品用估計價過濾時，照實說用了幾件估計價；關掉估價（`ENGINE02_ESTIMATE_PRICES=0`）就回報 `budget_unavailable`，不假裝有過濾 |
 
 **測出來的四個坑（都已修）**：
 
@@ -1110,7 +1110,7 @@ RSS 只有「今天 10 則」、欄位只有 `ht:approx_traffic`，**完全沒�
 | **真人盲標 140 題 → Cohen's κ 與人工標準答案 AUROC** | 組員 1–2 小時 | ⏳ 工具與題本都備好（`data/labels/human_tasks.csv`、`scripts/eval_human_agreement.py`），**只差人標** |
 | M3 感性對照表的人工校正 | 全組 1 小時 | ⏳ T13 指出該校的是**正負號與是否為零**，不是數值大小（§3.18） |
 | LLM 改寫的幻覺率實測 | 組員的 ChatGPT agent（**不需要 API key**） | ⏳ 已改成貼上式流程：`scripts/eval_llm_paraphrase.py export` 產生 `paste_me.txt`（每批 10 張卡的事實 JSON），組員在他的 agent 裡跑完、把 `<id> \| <句子>` 存成一個檔，再跑 `score` 就得到通過率與被擋原因 |
-| 價格欄位 | 需要贊助商資料，或明確標示為合成 | ⏳ 目前一律 null，預算條件只有單元測試涵蓋 |
+| 價格欄位 | 需要贊助商資料，或明確標示為合成 | ✅ 沒標價的一律給**估計價**並標示（`engine02/price_estimate.py`、`price_estimated`／`price_basis`）；真實標價：`crawl_tw` 166 件（TWD／USD，預算前換算成同一幣別） |
 | ENGINE 01／03 的斷網重播 | 兩位 owner | ⏳ ENGINE 02 這半已完成（`engine02/replay.py`） |
 
 相關文件：`docs/engine02-literature-review.md`（文獻對照）、`docs/research/engine02-method-inventory.md`（方法清單）、`docs/research/industry-fashion-brands.md`（業界採用）、`docs/research/catalog-options.md`（資料集）、`reports/model_verification.md`（模型實測）。

@@ -40,7 +40,7 @@ and the cached forecast is used.
 | `POST /context/demand` | 情境需求雷達 for the manufacturer: next N days of weather + festivals -> demand shifts, catalog supply gaps, production lead-time calendar |
 | `POST /services/capsule` | 旅行打包膠囊衣櫥: destination forecast -> N items -> most mix-and-match outfits |
 | `POST /services/dress-code` | 服裝規定解碼器 (incl. 喝喜酒 etiquette: 白色留給新娘) |
-| `POST /services/rent-or-buy` | 租還是買; cost-per-wear only when a real price exists |
+| `POST /services/rent-or-buy` | 租還是買; cost-per-wear from the listed price, or from the estimate labelled 「估計價約 N 元（非實際標價）」 |
 | `POST /services/itinerary` | 行程表: `{origin:{city}, events:[{date, city, time, occasion}]}` -> per-stop weather or 5-year climate normal, a ready-to-send `/rank` context and top items per stop, one capsule for the whole trip, packing notes |
 | `GET /inspiration?group=runway\|street\|cosplay` | 381 inspiration photos from Wikimedia Commons (`data/inspiration/`, shipped), each with licence and author (attribution is required); posters, crowds, talks, close-ups and swimwear/lingerie screened out by `engine02.inspiration.screen` |
 | `POST /inspiration/{id}/recommend` | "我想要這種感覺": ranks purchasable items with the photo folded in at weight 0.2 |

@@ -371,6 +371,9 @@ def provenance(resp: Engine02Response) -> Provenance:
     caveats = []
     if not price_ok:
         caveats.append("商品庫無價格資料，預算條件不做過濾（畫面需標示）")
+    n_est = sum(1 for it in resp.items if getattr(it, "price_estimated", False))
+    if n_est:
+        caveats.append(f"{n_est} 件商品的價格是估計價（非實際標價，畫面需標示「估計價」）")
     if notes:
         caveats.append("部分硬條件屬性由模型判讀（見卡片註記），非資料集原值")
     if resp.constraint_report.relaxed:

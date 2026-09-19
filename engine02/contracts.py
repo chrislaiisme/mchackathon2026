@@ -297,6 +297,10 @@ class RankedItem(BaseModel):
     category: str | None = None
     color: str | None = None
     price: float | None = None
+    currency: str | None = None
+    # True when `price` is engine02.price_estimate's estimate, not a price tag: show 「估計價」
+    price_estimated: bool = False
+    price_basis: str | None = None  # how the estimate was reached, e.g. 「洋裝類基準 1,190 元 × 正式場合 1.2」
     score: float
     contributions: list[Contribution]
     need_contributions: dict[str, float] = Field(default_factory=dict)

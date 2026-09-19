@@ -492,6 +492,9 @@ class Engine02:
                     category=self.catalog.attr(pos, "category"),
                     color=self.catalog.attr(pos, "color"),
                     price=float(price) if price is not None else None,
+                    currency=self.catalog.attr(pos, "currency"),
+                    price_estimated=self.catalog.price_estimated(pos),
+                    price_basis=self.catalog.attr(pos, "price_basis"),
                     score=float(sc.scores[p]),
                     contributions=contribs,
                     need_contributions=need_contrib,
@@ -532,7 +535,10 @@ class Engine02:
                    if "budget_unavailable" in fr.applied else [])
                 + ([f"有 {fr.applied['budget_unpriced_excluded'][0]} 件商品沒有價格，"
                     f"依預算過濾時已被排除"]
-                   if "budget_unpriced_excluded" in fr.applied else []) + (
+                   if "budget_unpriced_excluded" in fr.applied else [])
+                + ([f"預算過濾用到 {fr.applied['budget_estimated_prices'][0]} 件估計價（非實際標價，"
+                    f"卡片上標示「估計價」）"]
+                   if "budget_estimated_prices" in fr.applied else []) + (
                     [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
                      f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
                     if bm25_gate_note else []),
