@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 # 那些常數就會讀到預設值，等於 .env 的設定沒生效。
 load_dotenv()  # must run before importing modules that read env vars at import time (llm_client)
 
+import concurrent.futures
 import os
 import uuid
 from pathlib import Path
@@ -23,13 +24,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.engine01_intent import gating, llm_client, recommend, session_store, style_me
+from backend.engine01_intent import gating, llm_client, recommend, session_store, style_me, zones
 from backend.pinterest import client as pinterest_client
 from backend.shared import user_store
 from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
 from backend.shared.schemas import (
     AuthResponse,
     GoogleAuthRequest,
+    Intent,
     IntentRequest,
     IntentResponse,
     ProfileUpdate,
@@ -302,31 +304,108 @@ def post_concept_image(
     state = session_store.get(user.sub, request.session_id)
     if state is None:
         raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
-    if not state.intent.item_type and not state.intent.outfit_requested:
-        # generate_grid.py 需要一個具體的 item_type 才知道要畫什麼類別的單品；
-        # outfit_requested=True 時 item_type 可能還是空的（套裝請求本來就不強制問），
-        # 這種情況目前還沒設計「該生上衣還是下身」，先明確擋掉、給前端看得懂的錯誤，
-        # 不要讓它一路傳到 generate_grid.py 才用一句 SystemExit 爆掉。
+
+    intent = state.intent
+    if intent.item_type:
+        # 單一品項：原本就有的行為，不管 outfit_requested 是不是 True
+        # （使用者這輪已經把品項講清楚了，就照單一品項生）。
+        try:
+            result = generate_concepts(
+                state.session_id,
+                state.round,
+                intent.model_dump(),
+                cells=request.cells,
+                model=request.model,
+                dry_run=request.dry_run,
+            )
+        except ConceptImageUnavailable as exc:
+            # 生圖那條線還沒到位（例如 Hermes Agent 沒裝好）或這次執行失敗——
+            # 跟 bff/main.py 的 /concept-image 一樣回 502，不是整個 API 掛掉，
+            # 前端可以照常讓使用者留在對話畫面，只是生圖沒有成功。
+            raise HTTPException(502, f"生成單品失敗：{exc}")
+        return {"session_id": state.session_id, "round": state.round, "concepts": result}
+
+    if not intent.outfit_requested:
+        # 沒有品項、也不是整套請求——現在還沒設計這種情況該生什麼，先明確擋掉，
+        # 給前端看得懂的錯誤，不要讓它一路傳到 generate_grid.py 才用一句
+        # SystemExit 爆掉。
         raise HTTPException(
             409, "這一輪意圖還沒有明確的品項（item_type），生圖需要先知道要畫哪一類單品"
         )
 
+    # 2026-09-19：整套請求（outfit_requested=True 且沒有單一 item_type）——
+    # 比照 recommend.py::build_zoned_recommendation() 的兩分區模式，上衣／
+    # 下身各生一組六格，跟資料庫推薦「上衣＋下身各 6 件」的展示邏輯一致。
+    # 先試平行執行（兩個 ThreadPoolExecutor worker 各自呼叫一次
+    # generate_concepts()，各自是獨立的 subprocess，互不共用狀態）；如果現場
+    # 撞到 WSL2/Hermes 的 session 衝突，再改成循序執行，不會兩種都寫進程式碼
+    # 用旗標切換——這是「試了才知道」的東西，不是能先預留兩條路的那種決定。
     try:
-        result = generate_concepts(
-            state.session_id,
-            state.round,
-            state.intent.model_dump(),
-            cells=request.cells,
-            model=request.model,
-            dry_run=request.dry_run,
-        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_top = executor.submit(
+                _generate_concepts_for_zone, state.session_id, state.round, intent,
+                "top", request.cells, request.model, request.dry_run,
+            )
+            future_bottom = executor.submit(
+                _generate_concepts_for_zone, state.session_id, state.round, intent,
+                "bottom", request.cells, request.model, request.dry_run,
+            )
+            top_result = future_top.result()
+            bottom_result = future_bottom.result()
     except ConceptImageUnavailable as exc:
-        # 生圖那條線還沒到位（例如 Hermes Agent 沒裝好）或這次執行失敗——
-        # 跟 bff/main.py 的 /concept-image 一樣回 502，不是整個 API 掛掉，
-        # 前端可以照常讓使用者留在對話畫面，只是生圖沒有成功。
         raise HTTPException(502, f"生成單品失敗：{exc}")
 
-    return {"session_id": state.session_id, "round": state.round, "concepts": result}
+    # Top Pick：上衣格、下身格各自第一格（位置性配對，不是 ENGINE02 算出來的
+    # 真相容性——生成圖各自獨立產生，沒有 /complete-look 那種可以真的比對的
+    # 資料可用，見 docs/status.md 的說明），理由套用跟 /recommend 一樣的自然
+    # 語句改寫，dry_run 模式沒有實際內容可以改寫，維持 None。
+    top_pick_reason = None
+    if not request.dry_run:
+        top_cells = top_result.get("cells") or []
+        bottom_cells = bottom_result.get("cells") or []
+        if top_cells and bottom_cells:
+            draft = (
+                f"上衣：{top_cells[0].get('prompt_fragment') or ''}；"
+                f"下身：{bottom_cells[0].get('prompt_fragment') or ''}"
+            )
+            rewritten = llm_client.rewrite_recommendation_reasons(
+                [("top-pick", draft)], " ".join(state.message_history)
+            )
+            top_pick_reason = (rewritten or {}).get("top-pick")
+
+    return {
+        "session_id": state.session_id,
+        "round": state.round,
+        "zones": {"top": top_result, "bottom": bottom_result},
+        "top_pick_reason": top_pick_reason,
+    }
+
+
+def _generate_concepts_for_zone(
+    session_id: str,
+    round: int,
+    intent: Intent,
+    zone: str,
+    cells: int,
+    model: Optional[str],
+    dry_run: bool,
+) -> dict[str, Any]:
+    """幫某一區（上衣／下身）生成六格——比照 recommend.py 的 `_with_item_type()`
+    模式，把 item_type 換成這一區的代表品項（`zones.default_category_for_zone()`），
+    其餘欄位（顏色／風格／場合／季節）維持使用者這輪講的原話。
+
+    `session_id` 加 `__top`／`__bottom` 尾綴（不能用冒號——Windows 檔案系統的
+    冒號是保留字元，`generate_concepts()` 會拿 session_id 當資料夾名稱的一部分，
+    真的用冒號會直接寫檔失敗），確保兩區各自的輸出目錄
+    （`data/generated/<session_id>__<zone>/r<round>/`）不會互相覆蓋。
+    """
+    zone_intent = intent.model_copy(
+        update={"item_type": zones.default_category_for_zone(zone, intent)}
+    )
+    return generate_concepts(
+        f"{session_id}__{zone}", round, zone_intent.model_dump(),
+        cells=cells, model=model, dry_run=dry_run,
+    )
 
 
 @app.get("/health")
