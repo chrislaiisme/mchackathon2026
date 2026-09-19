@@ -28,7 +28,7 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 ```
 
 - `sub` 是 Google 帳號 ID，當這個使用者的主鍵，同時也是 `data/users/<sub>.json` 的檔名。
-- `age_range`／`style_preferences` 來自登入後可略過的偏好調查（`PUT /profile`，`ProfileUpdate`——五個欄位都選填，略過就整包留空、只把 `onboarding_completed` 設成 `true`）。目前只是存起來，還沒接進 ENGINE01 抽取 prompt 或 ENGINE02/03 的排序邏輯，是後續要討論的個人化加分項。
+- `age_range`／`style_preferences` 來自登入後的偏好調查（`PUT /profile`，`ProfileUpdate`——五個欄位在 request body 上都是選填，方便 partial update，但**2026-09-19 起整份調查改成註冊時必填，不能再略過**：後端會擋下「`onboarding_completed=true` 但 `age_range`／`gender`／`style_preferences`／`contexts` 任一個是空的」這種請求，回 400；前端也拿掉了原本的「Skip」按鈕）。目前只是存起來，還沒接進 ENGINE01 抽取 prompt；`gender`／`style_preferences` 已經接進 `POST /recommend` 送給 ENGINE02 的 payload，見下面第 6 節。
 - `gender`／`contexts` 是 2026-09-19 新增的欄位，對齊實際蓋出來的前端（IntentWeave）onboarding 畫面實際蒐集的題目——原始 draft v1 沒有這兩個欄位，前端已經改成真的呼叫 `PUT /profile`（見 [frontend.md](frontend.md)），後端這次跟著補上。
 - `Intent` 相關的呼叫（下面第 1–5 節）現在全部要掛在登入使用者底下：後端用 `(user_id, session_id)` 當 session 的 key，`user_id` 從驗證過的 token 解出來，不是前端自己傳的。
 

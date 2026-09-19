@@ -110,6 +110,19 @@ def put_profile(
         user.contexts = update.contexts
     if update.onboarding_completed is not None:
         user.onboarding_completed = update.onboarding_completed
+
+    # 2026-09-19 起 onboarding 改成註冊時必填，不能再略過（原本允許前端傳
+    # onboarding_completed=True 但欄位留空當作「跳過」）。套用完這次更新後，
+    # 如果結果會是「已完成」卻有必填欄位是空的，直接拒絕——防止有人繞過
+    # 前端（前端已經拿掉 Skip 按鈕）直接打 API 把 onboarding 標記完成。
+    if user.onboarding_completed and not (
+        user.age_range and user.gender and user.style_preferences and user.contexts
+    ):
+        raise HTTPException(
+            400,
+            "onboarding 必填：age_range／gender／style_preferences／contexts 都要有值才能標記完成",
+        )
+
     user_store.save_user(user)
     return user
 

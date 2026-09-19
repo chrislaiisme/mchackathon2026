@@ -24,11 +24,11 @@
 
 **開發方便用**：`.env` 裡 `DEV_BYPASS_AUTH=true` 時，`get_current_user()` 直接回傳一個固定的本機測試使用者，不用每次真的跑 Google 登入流程也能測 `/intent`／`/profile`。預設關閉，**demo 現場絕對不能開著**。
 
-## 登入後的偏好調查（可略過）
+## 登入後的偏好調查（必填，2026-09-19 起不能再略過）
 
-登入後可以做一次身家調查：`age_range`（區間，例如 `18-24`／`25-34`／`35-44`／`45+`）、`style_preferences`（複選，例如日系／韓系／美式／歐美／街頭／簡約／正式／其他）、`gender`／`contexts`（2026-09-19 新增，對齊實際蓋出來的前端 onboarding 畫面多出的兩題）。走 `GET /profile`、`PUT /profile`（partial update，見 `UserProfile`／`ProfileUpdate`，[interface-contract.md](interface-contract.md)）。**這條路徑 2026-09-19 起前端已經真的接上**（不再是 localStorage mock），見 [frontend.md](frontend.md)。
+登入後要做一次身家調查：`age_range`（區間，例如 `18-24`／`25-34`／`35-44`／`45+`）、`style_preferences`（複選，例如日系／韓系／美式／歐美／街頭／簡約／正式／其他）、`gender`／`contexts`（2026-09-19 新增，對齊實際蓋出來的前端 onboarding 畫面多出的兩題）。走 `GET /profile`、`PUT /profile`（partial update，見 `UserProfile`／`ProfileUpdate`，[interface-contract.md](interface-contract.md)）。**這條路徑 2026-09-19 起前端已經真的接上**（不再是 localStorage mock），見 [frontend.md](frontend.md)。
 
-完全不擋主流程——登入完就能直接開始對話，填不填、什麼時候填都不影響能不能用 `/intent`。畫面上可以放一個小小的「略過」按鈕（例如卡片右下角），按下去直接呼叫 `PUT /profile` 帶空的 `age_range`／`style_preferences`、標記 `onboarding_completed: true`，不用真的填完表單——這是前端負責人的實作細節，後端這邊只要保證空值也能正常存就好。
+**2026-09-19 修正：這份調查改成註冊時必填，不能再略過**（原本設計是可以跳過、之後才補——這條規則已經取消）。前端 `onboarding-experience.tsx` 拿掉了原本的「Skip」按鈕，三步都要選完才能繼續。後端 `PUT /profile` 也加了對應驗證：套用完這次更新後，如果 `onboarding_completed` 會變成 `true`，但 `age_range`／`gender`／`style_preferences`／`contexts` 任一個是空的，會回 400——防止有人繞過前端直接打 API 把 onboarding 標記完成卻沒填資料。
 
 這份偏好資料目前只是存起來，還沒接進 ENGINE01 的抽取 prompt（那是要跟 ENGINE02/03 討論怎麼用個人化訊號的加分項，這次先把資料落地，介接邏輯留到後面）。
 
