@@ -199,7 +199,7 @@ def test_generated_feedback_becomes_design_delta_not_catalog_ids():
         "minimal_design": 0.5,
         "bold_pattern": -0.5,
     }
-    assert result.engine02_feedback.choice_history[0].chosen_item_id is None
+    assert result.engine02_feedback.choice_history == []
     evidence = result.generated_attribute_evidence
     assert [(item.field, bool(item.mapped_axes)) for item in evidence] == [
         ("fit", True), ("pattern", True), ("length", False),
@@ -247,3 +247,94 @@ def test_generated_feedback_requires_shown_id_and_design_metadata():
             "favorited": True,
             "design_attributes": {"fit": "loose"},
         }])
+
+
+def test_catalog_outfit_favorite_sends_both_items_without_fake_choice_record():
+    body = request(
+        shown_item_ids=["top-A", "bottom-B"],
+        item_feedbacks=[],
+        outfit_feedbacks=[{
+            "outfit_id": "look-1",
+            "favorited": True,
+            "items": [
+                {"zone": "top", "source": "catalog", "item_id": "top-A"},
+                {"zone": "bottom", "source": "catalog", "item_id": "bottom-B"},
+            ],
+        }],
+    )
+
+    result = process_feedback(body)
+
+    assert result.engine02_feedback.chosen_item_ids == ["top-A", "bottom-B"]
+    assert result.engine02_feedback.design_weight_delta == {}
+    assert result.engine02_feedback.choice_history == []
+    assert result.outfit_evidence[0].model_dump() == {
+        "round": 1,
+        "outfit_id": "look-1",
+        "catalog_item_ids": ["top-A", "bottom-B"],
+        "generated_item_ids": [],
+    }
+
+
+def test_mixed_outfit_maps_generated_member_and_preserves_pair_evidence():
+    generated_id = "generated:s1:r1:cell-2"
+    body = request(
+        shown_item_ids=["top-A"],
+        shown_generated_item_ids=[generated_id],
+        item_feedbacks=[],
+        outfit_feedbacks=[{
+            "outfit_id": "look-mixed",
+            "favorited": True,
+            "items": [
+                {"zone": "top", "source": "catalog", "item_id": "top-A"},
+                {
+                    "zone": "bottom",
+                    "source": "generated",
+                    "item_id": generated_id,
+                    "design_attributes": {"fit": "loose", "pattern": "solid"},
+                },
+            ],
+        }],
+    )
+
+    result = process_feedback(body)
+
+    assert result.engine02_feedback.chosen_item_ids == ["top-A"]
+    assert generated_id not in result.engine02_feedback.chosen_item_ids
+    assert result.engine02_feedback.design_weight_delta == {
+        "relaxed_fit": 0.5,
+        "tailored_fit": -0.5,
+        "minimal_design": 0.5,
+        "bold_pattern": -0.5,
+    }
+    assert result.outfit_evidence[0].catalog_item_ids == ["top-A"]
+    assert result.outfit_evidence[0].generated_item_ids == [generated_id]
+
+
+def test_outfit_requires_one_top_one_bottom_and_shown_items():
+    with pytest.raises(ValidationError, match="one top and one bottom"):
+        request(
+            shown_item_ids=["A", "B"],
+            item_feedbacks=[],
+            outfit_feedbacks=[{
+                "outfit_id": "bad-zones",
+                "favorited": True,
+                "items": [
+                    {"zone": "top", "item_id": "A"},
+                    {"zone": "top", "item_id": "B"},
+                ],
+            }],
+        )
+    with pytest.raises(ValidationError, match="outfit item ids were not shown"):
+        request(
+            shown_item_ids=["A"],
+            item_feedbacks=[],
+            outfit_feedbacks=[{
+                "outfit_id": "unshown",
+                "favorited": True,
+                "items": [
+                    {"zone": "top", "item_id": "A"},
+                    {"zone": "bottom", "item_id": "missing"},
+                ],
+            }],
+        )

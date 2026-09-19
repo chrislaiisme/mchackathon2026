@@ -1,7 +1,7 @@
 """Wire contracts for ENGINE 03.
 
 ENGINE 03 receives one batch for a recommendation round. It never receives
-natural language and deliberately does not model outfit feedback yet.
+natural language. Outfit feedback is an explicit favorite on one top/bottom pair.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, model_validator
 from .attributes import ATTRIBUTE_IDS
 
 
-CONTRACT_VERSION = "0.5.0"
+CONTRACT_VERSION = "0.6.0"
 
 
 class AttributeRating(BaseModel):
@@ -50,13 +50,50 @@ class ItemFeedback(BaseModel):
         return self
 
 
+class OutfitItem(BaseModel):
+    """One trusted member of a favorited top/bottom outfit."""
+
+    zone: Literal["top", "bottom"]
+    source: Literal["catalog", "generated"] = "catalog"
+    item_id: str = Field(min_length=1)
+    # Supplied by the trusted BFF for generated items, never trusted from the browser.
+    design_attributes: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_source_metadata(self) -> "OutfitItem":
+        if self.source == "catalog" and self.design_attributes:
+            raise ValueError("catalog outfit items must not contain generated design_attributes")
+        if self.source == "generated" and not self.design_attributes:
+            raise ValueError("generated outfit items require trusted design_attributes")
+        return self
+
+
+class OutfitFeedback(BaseModel):
+    """A favorite on exactly one top plus one bottom; no outfit dislike/rating."""
+
+    outfit_id: str = Field(min_length=1)
+    favorited: Literal[True]
+    items: list[OutfitItem] = Field(min_length=2, max_length=2)
+
+    @model_validator(mode="after")
+    def validate_pair(self) -> "OutfitFeedback":
+        zones = [item.zone for item in self.items]
+        if set(zones) != {"top", "bottom"}:
+            raise ValueError("an outfit must contain exactly one top and one bottom")
+        item_ids = [item.item_id for item in self.items]
+        if len(item_ids) != len(set(item_ids)):
+            raise ValueError("an outfit must contain two different items")
+        return self
+
+
 class FeedbackRound(BaseModel):
     """One completed recommendation round supplied by the BFF."""
 
     round: int = Field(ge=1)
     shown_item_ids: list[str] = Field(default_factory=list)
     shown_generated_item_ids: list[str] = Field(default_factory=list)
-    item_feedbacks: list[ItemFeedback] = Field(min_length=1)
+    item_feedbacks: list[ItemFeedback] = Field(default_factory=list)
+    outfit_feedbacks: list[OutfitFeedback] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_round(self) -> "Engine3Request":
@@ -66,6 +103,8 @@ class FeedbackRound(BaseModel):
             raise ValueError("shown_generated_item_ids must not contain duplicates")
         if not self.shown_item_ids and not self.shown_generated_item_ids:
             raise ValueError("a feedback round must contain shown catalog or generated items")
+        if not self.item_feedbacks and not self.outfit_feedbacks:
+            raise ValueError("a feedback round must contain item or outfit feedback")
         item_ids = [feedback.item_id for feedback in self.item_feedbacks]
         if len(item_ids) != len(set(item_ids)):
             raise ValueError("each item may appear only once in item_feedbacks")
@@ -81,6 +120,26 @@ class FeedbackRound(BaseModel):
             raise ValueError(
                 "feedback item ids were not shown this round: "
                 f"catalog={unknown_catalog}, generated={unknown_generated}"
+            )
+        outfit_ids = [feedback.outfit_id for feedback in self.outfit_feedbacks]
+        if len(outfit_ids) != len(set(outfit_ids)):
+            raise ValueError("each outfit may appear only once in outfit_feedbacks")
+        unknown_outfit_catalog = sorted({
+            item.item_id
+            for feedback in self.outfit_feedbacks
+            for item in feedback.items
+            if item.source == "catalog" and item.item_id not in self.shown_item_ids
+        })
+        unknown_outfit_generated = sorted({
+            item.item_id
+            for feedback in self.outfit_feedbacks
+            for item in feedback.items
+            if item.source == "generated" and item.item_id not in self.shown_generated_item_ids
+        })
+        if unknown_outfit_catalog or unknown_outfit_generated:
+            raise ValueError(
+                "outfit item ids were not shown this round: "
+                f"catalog={unknown_outfit_catalog}, generated={unknown_outfit_generated}"
             )
         unknown_attributes = sorted({
             rating.attribute
@@ -129,6 +188,15 @@ class GeneratedAttributeEvidence(BaseModel):
     mapped_axes: dict[str, float] = Field(default_factory=dict)
 
 
+class OutfitEvidence(BaseModel):
+    """Audit record retaining the pair relation that ENGINE 02 cannot represent."""
+
+    round: int
+    outfit_id: str
+    catalog_item_ids: list[str] = Field(default_factory=list)
+    generated_item_ids: list[str] = Field(default_factory=list)
+
+
 class ChoiceRecord(BaseModel):
     shown_item_ids: list[str]
     chosen_item_id: str | None = None
@@ -152,3 +220,4 @@ class Engine3Response(BaseModel):
     engine02_feedback: Engine02Feedback
     attribute_evidence: list[AttributeEvidence] = Field(default_factory=list)
     generated_attribute_evidence: list[GeneratedAttributeEvidence] = Field(default_factory=list)
+    outfit_evidence: list[OutfitEvidence] = Field(default_factory=list)

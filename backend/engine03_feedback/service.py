@@ -12,6 +12,7 @@ from .contracts import (
     Engine3Request,
     Engine3Response,
     GeneratedAttributeEvidence,
+    OutfitEvidence,
 )
 
 
@@ -22,6 +23,35 @@ STAR_TO_WEIGHT: dict[int, float] = {
     4: 0.5,
     5: 1.0,
 }
+
+
+def _apply_generated_action(
+    *,
+    round_number: int,
+    item_id: str,
+    design_attributes: dict[str, str],
+    action: str,
+    weights_by_attribute: dict[str, list[float]],
+    evidence: list[GeneratedAttributeEvidence],
+) -> None:
+    """Translate a generated favorite/dislike without leaking its id to ENGINE 02."""
+
+    action_sign = 1.0 if action == "favorite" else -1.0
+    for field, value in design_attributes.items():
+        mapped = {
+            axis: coefficient * action_sign
+            for axis, coefficient in generated_attribute_axes(field, value).items()
+        }
+        for engine02_axis, weight in mapped.items():
+            weights_by_attribute[engine02_axis].append(weight)
+        evidence.append(GeneratedAttributeEvidence(
+            round=round_number,
+            item_id=item_id,
+            action=action,
+            field=field,
+            value=value,
+            mapped_axes=mapped,
+        ))
 
 
 def process_feedback(request: Engine3Request) -> Engine3Response:
@@ -38,6 +68,7 @@ def process_feedback(request: Engine3Request) -> Engine3Response:
     choice_history: list[ChoiceRecord] = []
     evidence: list[AttributeEvidence] = []
     generated_evidence: list[GeneratedAttributeEvidence] = []
+    outfit_evidence: list[OutfitEvidence] = []
     weights_by_attribute: dict[str, list[float]] = defaultdict(list)
 
     for feedback_round in rounds:
@@ -52,22 +83,14 @@ def process_feedback(request: Engine3Request) -> Engine3Response:
                 round_rejected.append(feedback.item_id)
             if feedback.source == "generated" and (feedback.favorited or feedback.disliked):
                 action = "favorite" if feedback.favorited else "dislike"
-                action_sign = 1.0 if feedback.favorited else -1.0
-                for field, value in feedback.design_attributes.items():
-                    mapped = {
-                        axis: coefficient * action_sign
-                        for axis, coefficient in generated_attribute_axes(field, value).items()
-                    }
-                    for engine02_axis, weight in mapped.items():
-                        weights_by_attribute[engine02_axis].append(weight)
-                    generated_evidence.append(GeneratedAttributeEvidence(
-                        round=feedback_round.round,
-                        item_id=feedback.item_id,
-                        action=action,
-                        field=field,
-                        value=value,
-                        mapped_axes=mapped,
-                    ))
+                _apply_generated_action(
+                    round_number=feedback_round.round,
+                    item_id=feedback.item_id,
+                    design_attributes=feedback.design_attributes,
+                    action=action,
+                    weights_by_attribute=weights_by_attribute,
+                    evidence=generated_evidence,
+                )
             for rating in feedback.attribute_ratings:
                 weight = STAR_TO_WEIGHT[rating.stars]
                 for engine02_axis, coefficient in ATTRIBUTE_MAP[rating.attribute].items():
@@ -80,13 +103,38 @@ def process_feedback(request: Engine3Request) -> Engine3Response:
                     stars=rating.stars,
                     weight=weight,
                 ))
-        choice_history.append(ChoiceRecord(
-            shown_item_ids=feedback_round.shown_item_ids,
-            # ENGINE 02's ChoiceRecord supports one primary choice per round.
-            # All favorites are still preserved in chosen_item_ids for Rocchio.
-            chosen_item_id=round_chosen[0] if round_chosen else None,
-            rejected_item_ids=round_rejected,
-        ))
+        for outfit in feedback_round.outfit_feedbacks:
+            catalog_ids: list[str] = []
+            generated_ids: list[str] = []
+            for item in outfit.items:
+                if item.source == "catalog":
+                    item_status[item.item_id] = "chosen"
+                    catalog_ids.append(item.item_id)
+                else:
+                    generated_ids.append(item.item_id)
+                    _apply_generated_action(
+                        round_number=feedback_round.round,
+                        item_id=item.item_id,
+                        design_attributes=item.design_attributes,
+                        action="favorite",
+                        weights_by_attribute=weights_by_attribute,
+                        evidence=generated_evidence,
+                    )
+            outfit_evidence.append(OutfitEvidence(
+                round=feedback_round.round,
+                outfit_id=outfit.outfit_id,
+                catalog_item_ids=catalog_ids,
+                generated_item_ids=generated_ids,
+            ))
+
+        # Outfit favorites are deliberately excluded: ChoiceRecord can represent only
+        # one chosen item, so inserting the pair would create false preference history.
+        if round_chosen or round_rejected:
+            choice_history.append(ChoiceRecord(
+                shown_item_ids=feedback_round.shown_item_ids,
+                chosen_item_id=round_chosen[0] if round_chosen else None,
+                rejected_item_ids=round_rejected,
+            ))
 
     chosen_item_ids = [item_id for item_id, status in item_status.items() if status == "chosen"]
     rejected_item_ids = [item_id for item_id, status in item_status.items() if status == "rejected"]
@@ -110,4 +158,5 @@ def process_feedback(request: Engine3Request) -> Engine3Response:
         ),
         attribute_evidence=evidence,
         generated_attribute_evidence=generated_evidence,
+        outfit_evidence=outfit_evidence,
     )

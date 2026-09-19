@@ -96,6 +96,7 @@ def test_feedback_reuses_engine1_intent_and_calls_engine2_once(monkeypatch):
              "attribute_ratings": [{"attribute": "polished_formality", "stars": 2}]},
             {"item_id": "B", "source": "catalog", "disliked": True},
         ],
+        "outfit_feedbacks": [],
     }]
 
 
@@ -242,3 +243,78 @@ def test_generated_cell_uses_only_varied_attributes_as_feedback_evidence():
 
     assert cells[0]["design_attributes"] == {"fit": "loose", "pattern": "striped"}
     assert "occasion" not in cells[0]["design_attributes"]
+
+
+def test_mixed_outfit_uses_trusted_generated_metadata_and_calls_engine2(monkeypatch):
+    generated_id = "generated:s1:r2:cell-1"
+    main._SESSIONS["s1"] = main.Session(
+        session_id="s1",
+        round=2,
+        intent={"item_type": "套裝", "occasion": "日常"},
+        shown_item_ids=["top-A"],
+        shown_generated_item_ids=[generated_id],
+        generated_items={generated_id: {
+            "item_id": generated_id,
+            "round": 2,
+            "design_attributes": {"fit": "loose", "pattern": "solid"},
+        }},
+    )
+    calls: list[tuple[str, dict]] = []
+
+    def fake_post(url, payload, headers=None):
+        calls.append((url, payload))
+        if url.endswith("/feedback"):
+            assert payload["item_feedbacks"] == []
+            outfit = payload["outfit_feedbacks"][0]
+            assert outfit["items"][1]["design_attributes"] == {
+                "fit": "loose", "pattern": "solid",
+            }
+            return {
+                "engine02_feedback": {
+                    "chosen_item_ids": ["top-A"],
+                    "rejected_item_ids": [],
+                    "choice_history": [],
+                    "design_weight_delta": {
+                        "relaxed_fit": 0.5,
+                        "tailored_fit": -0.5,
+                        "minimal_design": 0.5,
+                        "bold_pattern": -0.5,
+                    },
+                },
+                "outfit_evidence": [{
+                    "round": 2,
+                    "outfit_id": "look-1",
+                    "catalog_item_ids": ["top-A"],
+                    "generated_item_ids": [generated_id],
+                }],
+            }
+        if url.endswith("/retrieve"):
+            assert payload["intent"] == {"item_type": "套裝", "occasion": "日常"}
+            assert payload["feedback"]["chosen_item_ids"] == ["top-A"]
+            assert generated_id not in payload["feedback"]["chosen_item_ids"]
+            return {"products": [{"product_id": "next"}]}
+        raise AssertionError(url)
+
+    monkeypatch.setattr(main, "_post", fake_post)
+    result = main.feedback(main.FeedbackRequest(
+        session_id="s1",
+        round=2,
+        outfit_feedbacks=[{
+            "outfit_id": "look-1",
+            "favorited": True,
+            "items": [
+                {"zone": "top", "source": "catalog", "item_id": "top-A"},
+                {
+                    "zone": "bottom",
+                    "source": "generated",
+                    "item_id": generated_id,
+                    "design_attributes": {"fit": "tight"},
+                },
+            ],
+        }],
+    ))
+
+    assert result["outfit_evidence"][0]["outfit_id"] == "look-1"
+    assert main._SESSIONS["s1"].feedback_rounds[0]["outfit_feedbacks"][0]["items"][1][
+        "design_attributes"
+    ] == {"fit": "loose", "pattern": "solid"}

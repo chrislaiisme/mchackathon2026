@@ -18,7 +18,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from bff.images.concept import GENERATED_ROOT, ConceptImageUnavailable, generate_concepts
 
@@ -150,6 +150,34 @@ def _trusted_item_feedbacks(s: Session, raw_feedbacks: list[dict[str, Any]]) -> 
     return trusted
 
 
+def _trusted_outfit_feedbacks(s: Session, raw_feedbacks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Inject trusted generated metadata into each outfit member."""
+
+    trusted: list[dict[str, Any]] = []
+    for raw_outfit in raw_feedbacks:
+        outfit = dict(raw_outfit)
+        trusted_items: list[dict[str, Any]] = []
+        for raw_item in outfit.get("items") or []:
+            item = dict(raw_item)
+            source = str(item.get("source") or "catalog")
+            item_id = str(item.get("item_id") or "")
+            if source == "catalog":
+                item["source"] = "catalog"
+                item.pop("design_attributes", None)
+            elif source == "generated":
+                generated = s.generated_items.get(item_id)
+                if generated is None or item_id not in s.shown_generated_item_ids:
+                    raise HTTPException(422, f"generated outfit item {item_id!r} was not shown this round")
+                item["source"] = "generated"
+                item["design_attributes"] = dict(generated.get("design_attributes") or {})
+            else:
+                raise HTTPException(422, f"unknown outfit item source {source!r}")
+            trusted_items.append(item)
+        outfit["items"] = trusted_items
+        trusted.append(outfit)
+    return trusted
+
+
 class RoundRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
@@ -198,8 +226,15 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
 class FeedbackRequest(BaseModel):
     session_id: str
     round: int
-    item_feedbacks: list[dict[str, Any]] = Field(min_length=1)
+    item_feedbacks: list[dict[str, Any]] = Field(default_factory=list)
+    outfit_feedbacks: list[dict[str, Any]] = Field(default_factory=list)
     top_k: int = 5
+
+    @model_validator(mode="after")
+    def validate_actions(self) -> "FeedbackRequest":
+        if not self.item_feedbacks and not self.outfit_feedbacks:
+            raise ValueError("feedback must contain item_feedbacks or outfit_feedbacks")
+        return self
 
 
 @app.post("/feedback")
@@ -219,11 +254,13 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
     activity: list[dict[str, Any]] = []
     headers = _auth_headers(authorization)
     trusted_feedbacks = _trusted_item_feedbacks(s, body.item_feedbacks)
+    trusted_outfits = _trusted_outfit_feedbacks(s, body.outfit_feedbacks)
     current_feedback_round = {
         "round": s.round,
         "shown_item_ids": s.shown_item_ids,
         "shown_generated_item_ids": s.shown_generated_item_ids,
         "item_feedbacks": trusted_feedbacks,
+        "outfit_feedbacks": trusted_outfits,
     }
     engine3_payload = {
         "session_id": s.session_id,
@@ -253,6 +290,7 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
         "feedback_applied": next_session.feedback,
         "attribute_evidence": fb_out.get("attribute_evidence") or [],
         "generated_attribute_evidence": fb_out.get("generated_attribute_evidence") or [],
+        "outfit_evidence": fb_out.get("outfit_evidence") or [],
         "activity": activity,
     }
     next_session.rounds.append(result)

@@ -14,7 +14,7 @@ from .contracts import Engine3Request, Engine3Response
 from .service import process_feedback
 
 
-app = FastAPI(title="ENGINE 03 — Structured Item Feedback", version="0.5.0")
+app = FastAPI(title="ENGINE 03 — Structured Item Feedback", version="0.6.0")
 _origins = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +32,7 @@ def feedback(body: Engine3Request, _user=Depends(get_current_user)) -> Engine3Re
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "engine": "engine03", "contract_version": "0.5.0"}
+    return {"status": "ok", "engine": "engine03", "contract_version": "0.6.0"}
 
 
 @app.get("/attributes")
