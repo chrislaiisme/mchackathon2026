@@ -39,6 +39,13 @@ def _board_name() -> str:
     return os.environ.get("PINTEREST_BOARD_NAME", "intentweave-references")
 
 
+def _normalize_board_name(name: str) -> str:
+    """比對板子名稱前先正規化：轉小寫、去頭尾空白、把連字號／底線都當空白，
+    這樣網址 slug（"intentweave-references"）跟顯示名稱（"IntentWeave References"）
+    才會被視為同一個板子。"""
+    return name.strip().lower().replace("-", " ").replace("_", " ")
+
+
 def _find_board_id(token: str, board_name: str) -> Optional[str]:
     """依板子名稱找 board_id；找不到、逾時或 API 出錯都回傳 None，並快取結果。"""
     if board_name in _board_id_cache:
@@ -53,8 +60,13 @@ def _find_board_id(token: str, board_name: str) -> Optional[str]:
             timeout=_TIMEOUT_SECONDS,
         )
         resp.raise_for_status()
+        # 2026-09-19 真實 API 驗證時發現：網址 slug（連字號分隔）跟板子實際
+        # 顯示名稱（空白分隔，例如 "IntentWeave References"）不一樣，直接
+        # 完全比對字串會找不到板子。這裡把連字號／底線都當成空白處理再比對，
+        # 兩種寫法都吃得到，比較不會因為這種常見落差就靜默找不到板子。
+        target = _normalize_board_name(board_name)
         for board in resp.json().get("items", []):
-            if str(board.get("name", "")).strip().lower() == board_name.strip().lower():
+            if _normalize_board_name(str(board.get("name", ""))) == target:
                 board_id = board.get("id")
                 break
     except Exception:
@@ -91,12 +103,33 @@ def _pin_image_url(pin: dict) -> Optional[str]:
     return None
 
 
+# 2026-09-19 真實 API 驗證時發現：團隊板子上的 pin 標題/描述全部是英文
+# （策展來源是英文的穿搭圖庫），但 Intent 欄位幾乎都是中文——原本純子字串
+# 比對「黑色」跟「black」永遠對不上，等於整個比對邏輯實際命中率是 0%。
+# 這裡補一個小型中英對照表，只涵蓋最常見的顏色／風格詞彙，讓中文關鍵字
+# 也能命中英文 pin 文字；沒收錄的詞就維持原樣比對（例如剛好中英同形的
+# 品牌詞、或本來就是英文的欄位值）。刻意不做完整的機器翻譯，這仍然是
+# best-effort 比對，不是正式的多語言檢索。
+_ZH_EN_FASHION_TERMS: dict[str, str] = {
+    "黑色": "black", "白色": "white", "灰色": "gray", "咖啡色": "brown",
+    "棕色": "brown", "卡其色": "khaki", "米色": "beige", "奶油色": "cream",
+    "藍色": "blue", "海軍藍": "navy", "紅色": "red", "綠色": "green",
+    "粉色": "pink", "粉紅色": "pink", "黃色": "yellow", "紫色": "purple",
+    "橘色": "orange", "橙色": "orange",
+    "復古": "vintage", "老錢風": "old money", "簡約": "minimalist",
+    "極簡": "minimalist", "街頭": "street style", "街頭風": "street style",
+    "學院風": "preppy", "休閒": "casual", "正式": "formal", "優雅": "elegant",
+    "文青": "aesthetic", "文藝": "poetcore", "秋冬": "fall", "春夏": "summer",
+}
+
+
 def _intent_keywords(intent: Intent) -> list[str]:
     """把 Intent 裡有值的欄位攤平成一組關鍵字，用來跟 pin 的文字做子字串比對。
 
     刻意不斷詞（中英文混雜，中文沒有空白分詞不好處理），直接拿整個欄位值當
     一個關鍵字去檢查是不是 pin 文字的子字串——夠簡單、夠快，符合這是內部
-    best-effort 比對，不是正式的檢索演算法的定位。
+    best-effort 比對，不是正式的檢索演算法的定位。有中英對照的詞會兩種都
+    加進去比對（見 `_ZH_EN_FASHION_TERMS`），沒有的維持原樣。
     """
     keywords: list[str] = []
     keywords.extend(intent.colors)
@@ -112,7 +145,9 @@ def _intent_keywords(intent: Intent) -> list[str]:
     ):
         if value:
             keywords.append(value)
-    return [k for k in keywords if k and k.strip()]
+    keywords = [k for k in keywords if k and k.strip()]
+    translated = [_ZH_EN_FASHION_TERMS[k] for k in keywords if k in _ZH_EN_FASHION_TERMS]
+    return keywords + translated
 
 
 def find_reference_image(intent: Intent) -> Optional[str]:

@@ -125,6 +125,57 @@ def test_board_not_found_returns_none_without_fetching_pins(monkeypatch):
     assert mock_get.call_count == 1  # 找板子那次打了，但找不到名稱吻合的板子就不會再去拉 pins
 
 
+def test_matches_english_pin_text_via_chinese_zh_en_dictionary(monkeypatch):
+    # 2026-09-19 真實 API 驗證時發現：板子上的 pin 全是英文，中文關鍵字
+    # 完全比對不到——這是那個 bug 的回歸測試，釘住中英對照有生效。
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "fake-token")
+    monkeypatch.setenv("PINTEREST_BOARD_NAME", "IntentWeave References")
+    intent = Intent(item_type="外套", colors=["黑色"], style_keywords=["復古", "老錢風"])
+
+    boards_resp = _mock_response(
+        {"items": [{"id": "board123", "name": "IntentWeave References"}]}
+    )
+    pins_resp = _mock_response(
+        {
+            "items": [
+                {
+                    "id": "pin1",
+                    "title": "Black V-Neck Sweater Outfit | Old Money Fashion & Vintage Style",
+                    "description": "A timeless black sweater look.",
+                    "media": {"images": {"600x": {"url": "https://example.com/pin1.jpg"}}},
+                }
+            ]
+        }
+    )
+
+    with patch(
+        "backend.pinterest.client.requests.get", side_effect=[boards_resp, pins_resp]
+    ):
+        result = pinterest_client.find_reference_image(intent)
+
+    assert result == "https://example.com/pin1.jpg"
+
+
+def test_board_name_matches_across_hyphen_and_space_variants(monkeypatch):
+    # 2026-09-19 真實 API 驗證時發現：網址 slug（連字號）跟板子顯示名稱
+    # （空白）不一樣，會找不到板子——這是那個 bug 的回歸測試。
+    monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "fake-token")
+    monkeypatch.setenv("PINTEREST_BOARD_NAME", "intentweave-references")
+    intent = Intent(item_type="外套")
+
+    boards_resp = _mock_response(
+        {"items": [{"id": "board123", "name": "IntentWeave References"}]}
+    )
+    pins_resp = _mock_response({"items": []})
+
+    with patch(
+        "backend.pinterest.client.requests.get", side_effect=[boards_resp, pins_resp]
+    ) as mock_get:
+        pinterest_client.find_reference_image(intent)
+
+    assert mock_get.call_count == 2  # 有找到板子才會繼續去拉 pins
+
+
 def test_api_error_returns_none_instead_of_raising(monkeypatch):
     monkeypatch.setenv("PINTEREST_ACCESS_TOKEN", "fake-token")
     intent = Intent(item_type="外套")
