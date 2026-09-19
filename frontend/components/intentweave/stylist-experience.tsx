@@ -2063,7 +2063,7 @@ export function StylistExperience() {
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
-      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
+      const preview = await virtualYouService.runVirtualTryOn(virtualYou, wearableItems);
       replaceActiveTryOnImage(preview.generatedImageUrl);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
