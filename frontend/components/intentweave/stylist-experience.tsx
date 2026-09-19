@@ -14,6 +14,7 @@ import {
   Send,
   Shirt,
   SlidersHorizontal,
+  Sparkles,
   Square,
   Star,
   ThumbsDown,
@@ -279,12 +280,8 @@ function GeneratedGroupCarousels({
         </p>
         {/* 兩邊都有東西才配得起來；只生出一邊時（另一邊生圖失敗）不給這顆按鈕。 */}
         {tops.length > 0 && bottoms.length > 0 && (
-          <button
-            type="button"
-            onClick={handlePairClick}
-            disabled={pairBusy}
-            className="border-b border-border pb-1 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <Button type="button" size="sm" onClick={handlePairClick} disabled={pairBusy}>
+            <Sparkles className="size-4" />
             {pairBusy
               ? locale === "zh-TW"
                 ? "配對中…"
@@ -292,7 +289,7 @@ function GeneratedGroupCarousels({
               : locale === "zh-TW"
                 ? "AI 幫我搭"
                 : "Style it for me"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -957,16 +954,14 @@ function CompleteOutfitCard({
               </Button>
             </div>
             <div className="flex gap-4">
-              {/* 商品庫裡沒有想要的 → 讓 AI 生幾件，直接併進上面的候選輪播。
-                  TOP 跟 BOTTOM 兩張六宮格並行生，現場約 50–70 秒。 */}
-              <button
-                type="button"
-                onClick={onDesignForMe}
-                disabled={designBusy}
-                className="border-b border-border pb-1 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              {/* 商品庫裡沒有想要的 → 讓 AI 生幾件。TOP 跟 BOTTOM 兩張六宮格並行生，
+                  現場約 50–70 秒。樣式跟 Enterprise Insights 的「Ask Your Market」
+                  一致（實心主色＋Sparkles）——同一套產品裡，叫 AI 做事的入口要長一樣，
+                  使用者才認得出哪些按鈕會花時間、會產生新東西。 */}
+              <Button type="button" size="sm" onClick={onDesignForMe} disabled={designBusy}>
+                <Sparkles className="size-4" />
                 {designBusy ? "Designing…" : "Design for Me"}
-              </button>
+              </Button>
               <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
                 Try More →
               </button>
