@@ -763,6 +763,79 @@ def needs_supply(arm: str = "full", threshold: float = 0.5, categories: str | No
             "supply": need_supply(engine(), arm, threshold, mask=mask)}
 
 
+@app.get("/trends/forecast")
+def trends_forecast(term: str | None = None, h: int = 8, model: str = "combination",
+                    level: float = 0.8) -> dict:
+    """Forecast attention for the trend terms, with the backtest that says whether to believe it.
+
+    Every series comes back with three things and never fewer: the point forecast, an interval
+    taken from this model's own rolling-origin errors, and its MASE against a seasonal-naive
+    baseline. MASE above 1.0 means the model is worse than repeating last year on that series, and
+    the response says so rather than letting a smooth curve imply otherwise.
+
+    Measured on 19 Wikipedia fashion series, 2019-2026 (§3.37): the combination of SES, Theta and
+    seasonal Theta averages MASE 0.583 against seasonal naive's 0.879 and wins on 18 of 19
+    (p=0.0001) -- which is the M4 competition's own finding, reproduced on our data.
+
+    This is attention, not demand, and it never enters the ranking (§3.15).
+    """
+    import glob
+    import json as _json
+
+    from .forecast import MODELS, backtest, forecast_with_interval
+
+    if model not in MODELS:
+        raise HTTPException(400, f"unknown model {model!r}; choose from {sorted(MODELS)}")
+    files = sorted(glob.glob(str(ROOT / "data" / "trends" / "history" / "wikipedia_*.json")))
+    if not files:
+        return {"available": False,
+                "note": ("沒有歷史序列。先跑 scripts/fetch_trend_history.py（會連網，"
+                         "服務路徑不會）。沒有歷史就沒有回測，沒有回測就不該畫預測。")}
+    doc = _json.loads(Path(files[-1]).read_text(encoding="utf-8"))
+
+    import numpy as np
+
+    def weekly(points):
+        vals = np.array([pt["views"] for pt in points], dtype=np.float64)
+        n = (len(vals) // 7) * 7
+        return vals[:n].reshape(-1, 7).sum(axis=1)
+
+    wanted = [term] if term else list(doc["series"])
+    out = []
+    for t in wanted:
+        s_ = doc["series"].get(t)
+        if s_ is None:
+            raise HTTPException(404, f"unknown term {t!r}; see {sorted(doc['series'])}")
+        y = weekly(s_["points"])
+        bt = backtest(y, m=52, h=h, n_windows=10)
+        fc = forecast_with_interval(y, model=model, m=52, h=h, level=level)
+        this = bt.mase.get(model, float("nan"))
+        baseline = bt.mase.get("seasonal_naive", float("nan"))
+        out.append({
+            "term": t, "target": s_.get("target"), "kind": s_.get("kind"),
+            "risk": s_.get("risk", ""),
+            "history_weeks": int(len(y)),
+            "forecast": fc,
+            "backtest": {"mase": this, "seasonal_naive_mase": baseline,
+                         "beats_baseline": bool(this < baseline) if
+                         (this == this and baseline == baseline) else None,
+                         "windows": bt.n_windows},
+            "trustworthy": bool(this < 1.0) if this == this else False,
+            "note": ("這條序列上這個模型比『重複去年同期』差，不要用它下結論"
+                     if (this == this and this >= 1.0) else ""),
+        })
+    out.sort(key=lambda r: (not r["trustworthy"], r["backtest"]["mase"]))
+    return {
+        "available": True, "model": model, "h_weeks": h, "level": level,
+        "source": doc.get("source"), "license": doc.get("license"),
+        "measures": doc.get("measures"),
+        "affects_score": False,
+        "n_series": len(out), "series": out,
+        "how_to_read": ("MASE < 1 代表比季節性天真基準好，= 1 就是基準，> 1 是更差。"
+                        "區間是這個模型自己的回測誤差分位數，不是常態假設。"),
+    }
+
+
 @app.get("/trends")
 def trends() -> dict:
     """Trend keywords used for display badges only (set ENGINE02_TRENDS=1 to load them)."""
