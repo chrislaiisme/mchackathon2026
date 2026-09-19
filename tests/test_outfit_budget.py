@@ -112,3 +112,50 @@ def test_a_budget_on_a_priceless_catalog_does_not_cost_the_user_their_colour(mon
         assert rep["applied"].get("color") == ["White"]
         assert "budget_unavailable" in rep["applied"]
         assert any("預算" in w for w in rep["input_warnings"]), rep["input_warnings"]
+
+
+FIXTURE = ROOT / "data" / "catalog" / "kagl_priced_fixture" / "items.parquet"
+
+
+@pytest.mark.skipif(not FIXTURE.exists(),
+                    reason="run scripts/make_priced_fixture.py (synthetic prices, tests only)")
+def test_a_budget_actually_filters_when_the_catalog_has_prices(monkeypatch):
+    """The adapter used to turn a budget straight into a warning, so it could never work."""
+    monkeypatch.setenv("ENGINE02_CATALOG", "data/catalog/kagl_priced_fixture")
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        b = client.post("/intent/rank", json={
+            "session_id": "p", "message": "預算 1500 的上衣",
+            "intent": {"item_type": "上衣", "budget_max": 1500}}).json()
+        rep = b["engine02"]["constraint_report"]
+        assert rep["applied"].get("budget"), rep["applied"]
+        assert not rep["relaxed"], rep["relaxed"]
+        assert b["products"], "a reachable budget must still return cards"
+        # the price has to reach the card: 「可購買」 is a scored criterion
+        prices = [float(p["attributes"]["price"]) for p in b["products"]]
+        assert prices and all(p <= 1500 for p in prices), prices
+
+
+@pytest.mark.skipif(not FIXTURE.exists(), reason="needs the priced fixture")
+def test_an_unreachable_budget_relaxes_visibly_rather_than_returning_nothing(monkeypatch):
+    monkeypatch.setenv("ENGINE02_CATALOG", "data/catalog/kagl_priced_fixture")
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        b = client.post("/intent/rank", json={
+            "session_id": "p", "message": "預算 100 的上衣",
+            "intent": {"item_type": "上衣", "budget_max": 100}}).json()
+        rep = b["engine02"]["constraint_report"]
+        assert b["products"], "an impossible budget must not blank the screen"
+        assert any("budget" in r for r in rep["relaxed"]), rep["relaxed"]

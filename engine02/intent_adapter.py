@@ -22,8 +22,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .contracts import (Engine02Options, Engine02Request, Engine02Response, HardConstraints, Slot,
-                        SlotState)
+from .contracts import (BudgetSlot, Engine02Options, Engine02Request, Engine02Response,
+                        HardConstraints, Slot, SlotState)
 
 # ── Chinese → the catalog's own vocabulary ────────────────────────────────────────────────
 # Only values that exist in the KAGL catalog appear on the right-hand side; see
@@ -303,12 +303,27 @@ def intent_to_request(
         unresolved.append(f"風格詞 {unmatched_words} 沒有對應的設計要素軸，只進檢索文字")
         caption += unmatched_words
 
-    # -- budget: a public catalog has no prices. Say so; do not pretend to filter on it.
-    if data.get("budget_min") is not None or data.get("budget_max") is not None:
-        unresolved.append(
-            f"預算 {data.get('budget_min')}–{data.get('budget_max')} 無法套用："
-            "公開商品庫沒有價格欄位（見 docs/engine02-design.md §7 限制）"
-        )
+    # -- budget. This used to be turned straight into a "cannot be applied" warning, which was
+    # right while every catalog had a null price column and wrong the moment one did not: a
+    # budget that is never assigned can never work. Whether it is usable is the catalog's
+    # question, and build_mask answers it (reporting `budget_unavailable` when there are no
+    # prices, filtering properly when there are).
+    lo, hi = data.get("budget_min"), data.get("budget_max")
+    if lo is not None or hi is not None:
+        c.budget = BudgetSlot(state=state("budget_max" if hi is not None else "budget_min"),
+                              min_price=float(lo) if lo is not None else None,
+                              max_price=float(hi) if hi is not None else None,
+                              currency=str(data.get("currency") or "TWD"))
+        priced = False
+        if catalog_items is not None and "price" in getattr(catalog_items, "columns", []):
+            import pandas as pd
+
+            priced = bool(pd.to_numeric(catalog_items["price"], errors="coerce").notna().any())
+        if not priced:
+            unresolved.append(
+                f"預算 {lo}–{hi} 這個商品庫無法套用：它沒有價格資料。"
+                "其餘條件照常，回應的 constraint_report 會標示 budget_unavailable"
+            )
 
     # ENGINE 03 may send its own FeedbackInput shape (attribute scores + free text) or ours;
     # feedback_from_engine03 passes ours through untouched
@@ -431,6 +446,17 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
             for key in ("category", "subcategory", "color", "occasion", "season", "gender"):
                 if key in items.columns and str(row.get(key, "")).strip() not in ("", "nan", "None"):
                     attrs[key] = str(row[key])
+            # 「可購買」 is a scored criterion, so the price has to reach the card rather than
+            # being dropped at this boundary
+            if "price" in items.columns:
+                import pandas as pd
+
+                v = pd.to_numeric(row.get("price"), errors="coerce")
+                if pd.notna(v):
+                    cur = str(row.get("currency") or "").strip()
+                    attrs["price"] = f"{float(v):.0f}" if float(v) >= 100 else f"{float(v):.2f}"
+                    if cur and cur.lower() not in ("nan", "none"):
+                        attrs["currency"] = cur
         products.append({
             "product_id": it.item_id,
             "image_url": f"{base}/{it.item_id}",
