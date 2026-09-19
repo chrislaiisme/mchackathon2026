@@ -1,0 +1,21 @@
+# Binary data must never go through line-ending conversion. core.autocrlf=true on Windows
+# would otherwise be free to rewrite bytes it mistakes for newlines; git's NUL-byte heuristic
+# usually catches these, but the evidence files in data/ and reports/ are not re-creatable,
+# so this is declared rather than left to a guess.
+*.parquet  binary
+*.npy      binary
+*.npz      binary
+*.jpg      binary
+*.jpeg     binary
+*.png      binary
+*.gz       binary
+*.pt       binary
+*.safetensors binary
+
+# Text data: normalise to LF in the repository so a clone on Linux and a clone on Windows
+# read the same bytes.
+*.csv   text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.md    text
+*.py    text

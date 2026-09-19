@@ -1,0 +1,33 @@
+{
+ "source": "live:google_trends_widgets",
+ "as_of": "2026-09-19",
+ "catalog": null,
+ "notes": [
+  "來源：Google Trends **非官方** widget 端點（pytrends 包的那個），geo=TW",
+  "HTTP 統計：{429: 3}；429 是這個端點的常態，不是本腳本的錯誤",
+  "pytrends 已於 2025-04-17 由作者封存唯讀；官方 Trends API 仍在 alpha（需候補名單）",
+  "score = 最近 4 週相對前 48 週的 z；Google 的值是 0–100 相對尺度，跨關鍵字不可比"
+ ],
+ "terms": [],
+ "affects_score": false,
+ "not_a_ranking_term": "這不是分數項。docs/engine02-design.md §3.15 量過 28 組「趨勢關鍵字進排序」，全部變差（NDCG@5 −0.16～−0.38）。這份檔案只餵 trends.trend_badges() 的展示標籤，以及後台需求面板。要進排序必須先有另一套帶時間軸的標準答案（§3.26）。",
+ "fetched_at": "2026-09-19T02:14:23+00:00",
+ "user_agent": "mchackathon2026-trend-sidecar/0.1 (academic hackathon, non-commercial; +https://github.com/Evan-Jiamg; ben940815@gmail.com)",
+ "login_used": false,
+ "endpoint": "trends.google.com/trends/api/{explore,widgetdata/multiline}",
+ "official": false,
+ "per_term": [
+  {
+   "term": "trench coat",
+   "http_status": 429
+  },
+  {
+   "term": "blazer",
+   "http_status": 429
+  },
+  {
+   "term": "cardigan",
+   "http_status": 429
+  }
+ ]
+}

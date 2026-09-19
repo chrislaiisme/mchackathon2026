@@ -1,0 +1,347 @@
+{
+  "source": "Marqo/polyvore (split=data, streaming, first 48 rows)",
+  "columns": [
+    "image",
+    "category",
+    "text",
+    "item_ID"
+  ],
+  "rows": [
+    {
+      "idx": 0,
+      "item_ID": "100002074_1",
+      "category": "Day Dresses",
+      "text": "tibi knit long sleeve dress",
+      "image": "images/00_100002074_1.jpg"
+    },
+    {
+      "idx": 1,
+      "item_ID": "100002074_2",
+      "category": "Boots",
+      "text": "michael kors leather over-the-knee boots",
+      "image": "images/01_100002074_2.jpg"
+    },
+    {
+      "idx": 2,
+      "item_ID": "100002074_3",
+      "category": "Handbags",
+      "text": "givenchy leather medium antigona duffel black",
+      "image": "images/02_100002074_3.jpg"
+    },
+    {
+      "idx": 3,
+      "item_ID": "100002074_4",
+      "category": "Sunglasses",
+      "text": "bottega veneta acetate leather sunglasses",
+      "image": "images/03_100002074_4.jpg"
+    },
+    {
+      "idx": 4,
+      "item_ID": "100002074_5",
+      "category": "Floral Decor",
+      "text": "pier imports stem",
+      "image": "images/04_100002074_5.jpg"
+    },
+    {
+      "idx": 5,
+      "item_ID": "100002074_7",
+      "category": "Coats",
+      "text": "miranda coat",
+      "image": "images/05_100002074_7.jpg"
+    },
+    {
+      "idx": 6,
+      "item_ID": "100010727_1",
+      "category": "Blazers",
+      "text": "three pocket blazer",
+      "image": "images/06_100010727_1.jpg"
+    },
+    {
+      "idx": 7,
+      "item_ID": "100010727_2",
+      "category": "Skinny Jeans",
+      "text": "givenchy skinny jean",
+      "image": "images/07_100010727_2.jpg"
+    },
+    {
+      "idx": 8,
+      "item_ID": "100010727_4",
+      "category": "Watches",
+      "text": "guess black silver-tone chronograph watch",
+      "image": "images/08_100010727_4.jpg"
+    },
+    {
+      "idx": 9,
+      "item_ID": "100010727_5",
+      "category": "Sunglasses",
+      "text": "ray-ban original wayfarer sunglasses",
+      "image": "images/09_100010727_5.jpg"
+    },
+    {
+      "idx": 10,
+      "item_ID": "100010727_6",
+      "category": "Accessories",
+      "text": "barrel clip key",
+      "image": "images/10_100010727_6.jpg"
+    },
+    {
+      "idx": 11,
+      "item_ID": "100010727_7",
+      "category": "Accessories",
+      "text": "design key ring magnetic",
+      "image": "images/11_100010727_7.jpg"
+    },
+    {
+      "idx": 12,
+      "item_ID": "100010727_8",
+      "category": "Men's Shirts",
+      "text": "contrast trimmed cotton shirt",
+      "image": "images/12_100010727_8.jpg"
+    },
+    {
+      "idx": 13,
+      "item_ID": "100029003_1",
+      "category": "Day Dresses",
+      "text": "rochas dress",
+      "image": "images/13_100029003_1.jpg"
+    },
+    {
+      "idx": 14,
+      "item_ID": "100029003_2",
+      "category": "Handbags",
+      "text": "phillip lim red leather satchel",
+      "image": "images/14_100029003_2.jpg"
+    },
+    {
+      "idx": 15,
+      "item_ID": "100029003_3",
+      "category": "Sunglasses",
+      "text": "classic drop military metal aviator sunglasses",
+      "image": "images/15_100029003_3.jpg"
+    },
+    {
+      "idx": 16,
+      "item_ID": "100050716_1",
+      "category": "Rompers",
+      "text": "river island blue embroidered cut playsuit",
+      "image": "images/16_100050716_1.jpg"
+    },
+    {
+      "idx": 17,
+      "item_ID": "100050716_2",
+      "category": "Sandals",
+      "text": "beige crystal sandals",
+      "image": "images/17_100050716_2.jpg"
+    },
+    {
+      "idx": 18,
+      "item_ID": "100050716_3",
+      "category": "Backpacks",
+      "text": "madden girl polka dot backpack",
+      "image": "images/18_100050716_3.jpg"
+    },
+    {
+      "idx": 19,
+      "item_ID": "100050716_5",
+      "category": "Food & Drink",
+      "text": "naked strawberry banana oz",
+      "image": "images/19_100050716_5.jpg"
+    },
+    {
+      "idx": 20,
+      "item_ID": "100056647_1",
+      "category": "Dining Chairs",
+      "text": "gray mary jane dining chair w/ cushion",
+      "image": "images/20_100056647_1.jpg"
+    },
+    {
+      "idx": 21,
+      "item_ID": "100056647_3",
+      "category": "Accent Tables",
+      "text": "vintage coffee table french table linen bleached linen chair wood gothic table round wooden table usa",
+      "image": "images/21_100056647_3.jpg"
+    },
+    {
+      "idx": 22,
+      "item_ID": "100056647_4",
+      "category": "Toys",
+      "text": "femme bustier",
+      "image": "images/22_100056647_4.jpg"
+    },
+    {
+      "idx": 23,
+      "item_ID": "100056647_7",
+      "category": "Font",
+      "text": "river city rubber",
+      "image": "images/23_100056647_7.jpg"
+    },
+    {
+      "idx": 24,
+      "item_ID": "100060207_1",
+      "category": "Day Dresses",
+      "text": "atelier pleat shift tunic",
+      "image": "images/24_100060207_1.jpg"
+    },
+    {
+      "idx": 25,
+      "item_ID": "100060207_2",
+      "category": "Pumps",
+      "text": "givenchy striped print pumps yellow grey black",
+      "image": "images/25_100060207_2.jpg"
+    },
+    {
+      "idx": 26,
+      "item_ID": "100060207_3",
+      "category": "Bags",
+      "text": "designer black patent belted purse",
+      "image": "images/26_100060207_3.jpg"
+    },
+    {
+      "idx": 27,
+      "item_ID": "100060207_4",
+      "category": "Necklaces",
+      "text": "tone triangle accent collar necklace",
+      "image": "images/27_100060207_4.jpg"
+    },
+    {
+      "idx": 28,
+      "item_ID": "100060207_5",
+      "category": "Bracelets & Bangles",
+      "text": "brown horn bangle pale yellow crystals",
+      "image": "images/28_100060207_5.jpg"
+    },
+    {
+      "idx": 29,
+      "item_ID": "100060207_6",
+      "category": "Earrings",
+      "text": "ceramic heart stud earrings",
+      "image": "images/29_100060207_6.jpg"
+    },
+    {
+      "idx": 30,
+      "item_ID": "100077218_1",
+      "category": "Sweatshirts",
+      "text": "billabong love sweatshirt",
+      "image": "images/30_100077218_1.jpg"
+    },
+    {
+      "idx": 31,
+      "item_ID": "100077218_2",
+      "category": "Blouses",
+      "text": "first petal top",
+      "image": "images/31_100077218_2.jpg"
+    },
+    {
+      "idx": 32,
+      "item_ID": "100077218_3",
+      "category": "Tops",
+      "text": "little top",
+      "image": "images/32_100077218_3.jpg"
+    },
+    {
+      "idx": 33,
+      "item_ID": "100077218_4",
+      "category": "Tops",
+      "text": "daily top",
+      "image": "images/33_100077218_4.jpg"
+    },
+    {
+      "idx": 34,
+      "item_ID": "100077218_5",
+      "category": "Sweaters",
+      "text": "topshop knitted rib detail crop jumper",
+      "image": "images/34_100077218_5.jpg"
+    },
+    {
+      "idx": 35,
+      "item_ID": "100077218_7",
+      "category": "Boyfriend Jeans",
+      "text": "rag destroyed boyfriend",
+      "image": "images/35_100077218_7.jpg"
+    },
+    {
+      "idx": 36,
+      "item_ID": "100077218_8",
+      "category": "Boyfriend Jeans",
+      "text": "topshop moto vintage boyfriend jeans",
+      "image": "images/36_100077218_8.jpg"
+    },
+    {
+      "idx": 37,
+      "item_ID": "100079699_1",
+      "category": "Day Dresses",
+      "text": "topshop strap back slip dress",
+      "image": "images/37_100079699_1.jpg"
+    },
+    {
+      "idx": 38,
+      "item_ID": "100079699_3",
+      "category": "Makeup",
+      "text": "sun glow pressed powder duo peach gold",
+      "image": "images/38_100079699_3.jpg"
+    },
+    {
+      "idx": 39,
+      "item_ID": "100079699_5",
+      "category": "Eyeliner",
+      "text": "m precision waterproof eye liner black",
+      "image": "images/39_100079699_5.jpg"
+    },
+    {
+      "idx": 40,
+      "item_ID": "100079699_7",
+      "category": "Face Makeup",
+      "text": "maybelline new york dream pure bb",
+      "image": "images/40_100079699_7.jpg"
+    },
+    {
+      "idx": 41,
+      "item_ID": "100079699_8",
+      "category": "Fragrance",
+      "text": "dior poison eau eau de toilette spray christian dior",
+      "image": "images/41_100079699_8.jpg"
+    },
+    {
+      "idx": 42,
+      "item_ID": "100089693_1",
+      "category": "Day Dresses",
+      "text": "stripe skinny bodycon mini dress",
+      "image": "images/42_100089693_1.jpg"
+    },
+    {
+      "idx": 43,
+      "item_ID": "100089693_2",
+      "category": "Pumps",
+      "text": "peep-toe black platform high heels",
+      "image": "images/43_100089693_2.jpg"
+    },
+    {
+      "idx": 44,
+      "item_ID": "100089693_3",
+      "category": "Clutches",
+      "text": "color block clutch bag",
+      "image": "images/44_100089693_3.jpg"
+    },
+    {
+      "idx": 45,
+      "item_ID": "100095342_1",
+      "category": "Blouses",
+      "text": "oversized plaid cotton shirt",
+      "image": "images/45_100095342_1.jpg"
+    },
+    {
+      "idx": 46,
+      "item_ID": "100095342_2",
+      "category": "Vests",
+      "text": "fake fur waistcoat",
+      "image": "images/46_100095342_2.jpg"
+    },
+    {
+      "idx": 47,
+      "item_ID": "100095342_3",
+      "category": "Boyfriend Jeans",
+      "text": "rag bone moss mid-rise boyfriend jeans",
+      "image": "images/47_100095342_3.jpg"
+    }
+  ]
+}

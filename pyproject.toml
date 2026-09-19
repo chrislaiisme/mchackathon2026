@@ -30,6 +30,15 @@ models = [
     "transformers>=4.44",
     "timm>=1.0",
     "safetensors>=0.4",
+    "sentence-transformers>=3.0",  # CrossEncoderReranker (ENGINE02_RERANKER) and verify_models.py
+    "psutil>=5.9",                  # scripts/verify_models.py measures peak RSS on every run
+]
+# Building data/ from public sources (scripts/prepare_catalog.py and friends stream from
+# Hugging Face). Not needed to *serve*: only to build the catalog the first time.
+data = [
+    "datasets>=3.0",
+    "huggingface_hub>=0.25",
+    "requests>=2.31",
 ]
 dev = [
     "pytest>=8.0",

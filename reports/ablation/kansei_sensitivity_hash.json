@@ -1,0 +1,17 @@
+{
+  "arm": "full_zclip3",
+  "catalog": "data/catalog/kagl",
+  "kansei_version": "kansei_v1_literature",
+  "rows": [
+    {
+      "noise": 0.2,
+      "trials": 2,
+      "queries": 8,
+      "top5_overlap": 1.0,
+      "kendall_tau_top20": 0.913,
+      "reasons_changed": 0.125,
+      "ndcg5_delta": 0.018,
+      "ndcg5_delta_p05": 0.0
+    }
+  ]
+}

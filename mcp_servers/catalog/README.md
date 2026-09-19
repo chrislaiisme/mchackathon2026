@@ -37,18 +37,29 @@
 
 ## 怎麼跑
 
+先照 `data/README.md` 步驟 0、1 裝好環境、建好 `data/catalog/kagl`。然後從 repo 根目錄：
+
 ```bash
-# 從 repo 根目錄執行
-ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
-ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
+# 等級 A：沒有 GPU、沒裝 torch（只需要 [data,dev]）
+ENGINE02_ENCODER=hash ENGINE02_DEMO=1 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
+
+# 等級 B：真正的 demo 編碼器（先裝 torch，再 uv pip install -e ".[models]"；CPU 也能跑）
+ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
 
-> **2026-09-19，ENGINE01 負責人實測發現並修正**：上面 `ENGINE02_PUBLIC_BASE` 原本寫的是
-> `http://localhost:8002`（沒有 `/engine02`），對著真實跑起來的服務＋真瀏覽器測過，
-> 商品圖網址會 404——這支 app 是用 `app.mount("/engine02", ...)` 掛的，`intent_adapter.py`
-> 拿 `ENGINE02_PUBLIC_BASE + "/images/<id>"` 組圖片網址時沒有算進這段 mount 前綴，
+**不設 `ENGINE02_ENCODER` 時預設是 `marqo-fashionSigLIP`，沒裝 torch 會啟動失敗**
+（`ModuleNotFoundError: No module named 'torch'`）。`ENGINE02_DEVICE` 預設 `auto`，不要寫死 `cuda`。
+`ENGINE02_OT=1`（OutfitTransformer）需要 `third_party/` 的權重，缺了會退回圖片相似度而不會失敗。
+
+> **2026-09-19，ENGINE01 負責人實測發現並修正：兩個等級的 `ENGINE02_PUBLIC_BASE` 都要帶
+> `/engine02` 這段路徑**——原本兩邊都寫 `http://localhost:8002`（沒有 `/engine02`），
+> 對著真實跑起來的服務＋真瀏覽器測過，商品圖網址會 404。這支 app 是用
+> `app.mount("/engine02", ...)` 掛的，`intent_adapter.py` 拿
+> `ENGINE02_PUBLIC_BASE + "/images/<id>"` 組圖片網址時沒有算進這段 mount 前綴，
 > 真正能連到的路徑是 `/engine02/images/<id>`，不是 `/images/<id>`。已經改成上面這樣，
 > 兩邊都測過確認能載出真圖。
 
@@ -57,6 +68,10 @@ uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 | `POST /retrieve` | **ENGINE 01 的 `Intent` → `RetrievalResult`**（`docs/interface-contract.md`） |
 | `GET /health` | 商品庫、編碼器、預熱狀態 |
 | `/engine02/*` | ENGINE 02 完整 API 原樣掛載（`/rank`、`/view`、`/facets`、`/complete-look`、`/visual-search`、缺口盤…） |
+
+`ENGINE02_CATALOG` 預設就是 `data/catalog/kagl`，那是 `scripts/prepare_catalog.py` 一行就能建出來的
+商品庫。其他腳本的說明裡出現的 `kagl_polyvore_filled` 是屬性補值實驗用的，**要另外建**（見
+`data/README.md`），一般開發與 demo 不需要。
 
 `ENGINE02_DEMO=1` 保證服務路徑不連網、不等 LLM。沒有 GPU 也能跑（純 CPU `/rank` p50 111 ms）。
 

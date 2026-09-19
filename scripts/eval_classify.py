@@ -3,7 +3,7 @@
 Stages (run in order on nycu; all outputs under --out):
 
   prep      splits for KAGL attribute eval (group-aware on colour/gender-stripped titles, stratified by
-            subcategory; test ≥2,400 / dev ~1,000 / train rest) + Qwen item lists (stratified category sample)
+            subcategory; test >=2,400 / dev ~1,000 / train rest) + Qwen item lists (stratified category sample)
   embed     image embeddings: copies shared caches, computes missing ones (fashion-clip on polyvore_big)
   zeroshot  CLIP prompt-ensemble logits (Marqo-FashionSigLIP, fashion-clip): category for all items of
             kagl_full + polyvore_big; gender / colour family / exact colour / occasion / season for scope items

@@ -1,0 +1,15 @@
+{
+ "source": "open-meteo.com (CC-BY-4.0, no key)",
+ "fetched_at": "2026-09-18T12:16:28+00:00",
+ "fetch_ms": 1510.5,
+ "city": "Hsinchu",
+ "lat": 24.8038,
+ "lon": 120.9686,
+ "temperature_c": 25.2,
+ "precipitation_mm": 0.0,
+ "today_high_c": 32.4,
+ "today_low_c": 23.9,
+ "suggested_season": "Summer",
+ "how_to_use": "呼叫端可把 suggested_season 放進 constraints.season 且 state=\"inferred\"：那是軟訊號（不會砍候選池），ENGINE 02 不會自己加，因為季節是呼叫端對使用者的判斷。",
+ "not_a_ranking_term": "這不是分數項。docs/research/context-weather-recsys.md 量過：本商品庫的 season 標籤不是體感季節（756 件 Winter 裡有 294 支手錶），因此無法驗證。"
+}

@@ -17,22 +17,64 @@ ENGINE 01（意圖理解）→ 【ENGINE 02：檢索＋排序＋解釋】→ ENG
 測試固定樣本直接取自 ENGINE 01 自己的 `test_cases.json`。細節見
 [`mcp_servers/catalog/README.md`](mcp_servers/catalog/README.md)。
 
-## 30 秒跑起來
+## 從 clone 到跑起來
+
+以下每一步都在 2026-09-19 從 GitHub **全新 clone** 到空目錄、全新 venv 實測過。
 
 ```bash
+# 1. 環境（一次）
 uv venv --python 3.12 .venv
-uv pip install -e ".[dev]"
-.venv/bin/python scripts/integration_check.py --catalog data/catalog/kagl --encoder hash
-# → PASS: an agent can drive this API     （22 項斷言，不需要 GPU、不需要下載模型、不需要網路）
+uv pip install -e ".[data,dev]"          # [data] 建商品庫要用；只裝 [dev] 下一步會 ModuleNotFoundError
+
+# 2. 商品庫（一次，約 8 分鐘，需要網路；不需要 Hugging Face 帳號）
+python scripts/prepare_catalog.py --source Marqo/KAGL --limit 5000 \
+    --out data/catalog/kagl --shuffle-buffer 256 --seed 0
+
+# 3. 驗證
+python scripts/integration_check.py --catalog data/catalog/kagl --encoder hash
+# → PASS: an agent can drive this API     （22 項斷言；第 2 步之後就不需要 GPU、模型或網路）
 ```
 
-現場 demo（真實商品庫 17,783 件）：
+`python` 指的是 venv 裡的那個：macOS／Linux 是 `.venv/bin/python`，Windows 是
+`.venv\Scripts\python.exe`（或先 activate）。第 2 步建出來的 5000 件與作者手上的**逐格相同**
+（同樣的 `item_id`、同樣的順序），repo 裡附的 VLM 屬性檔因此能 100% 對上。
+
+**繁體中文 Windows**：先 `set PYTHONUTF8=1`（PowerShell：`$env:PYTHONUTF8=1`）。
+主控台預設是 cp950，腳本輸出的部分符號會讓 Python 直接崩潰。
+
+### 啟動服務：先選一個等級
+
+| 等級 | 需要 | 指令 |
+|---|---|---|
+| **A. 沒有 GPU、沒裝 torch** | 只要上面的 `[data,dev]` | `ENGINE02_ENCODER=hash ENGINE02_DEMO=1 python -m uvicorn mcp_servers.catalog.main:app --port 8002` |
+| **B. 真正的 demo 編碼器** | 先照 https://pytorch.org/get-started/locally/ 裝 torch，再 `uv pip install -e ".[models]"`；CPU 可跑，只是較慢 | `ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 python -m uvicorn mcp_servers.catalog.main:app --port 8002` |
+
+⚠️ **不設 `ENGINE02_ENCODER` 時預設是 `marqo-fashionSigLIP`**，沒裝 torch 會在啟動時
+`ModuleNotFoundError: No module named 'torch'`。沒有 GPU 的組員請用等級 A。
+
+`ENGINE02_DEVICE` 預設 `auto`（有 CUDA 用 CUDA，否則 CPU），**不要**寫死成 `cuda`。
+
+### 用 curl 測試時，中文要從檔案送
+
+```bash
+curl -X POST localhost:8002/retrieve -H "Content-Type: application/json; charset=utf-8" \
+     --data-binary @request.json
+```
+
+在 Windows 上把中文直接寫在 `-d '...'` 裡，curl 會用系統編碼（cp950）送出，伺服器回
+`There was an error parsing the body`——那是用戶端的編碼問題，不是服務壞了。
+
+### 作者在 GPU 伺服器上用的完整 demo（組員無法直接重現）
 
 ```bash
 ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
-ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
+ENGINE02_OT=1 ENGINE02_DEMO=1 \
 python -m uvicorn engine02.api:app --host 0.0.0.0 --port 8002
 ```
+
+這個 17,783 件的 `kagl_polyvore_filled` **只存在於 GPU 伺服器**，repo 沒有、也沒有文件步驟能重建
+（見 `data/README.md`）。組員用上面的等級 A 或 B 搭配 `data/catalog/kagl`（5000 件）即可跑完整流程。
+`ENGINE02_OT=1` 需要 `third_party/outfit-transformer` 的權重；缺了會自動退回圖片相似度，**不會**啟動失敗。
 
 `ENGINE02_DEMO=1` 保證**任何情況下都不會等 LLM 回應**：理由走模板，斷網照常出卡片。
 上台前 60 秒：`curl localhost:8002/health` 看 `n_items` / `demo_mode` / `warm_ms`，

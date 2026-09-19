@@ -1,0 +1,152 @@
+{
+ "summary": {
+  "catalog": "data/catalog/kagl",
+  "encoder": "hash-256",
+  "arm": "full_zclip3",
+  "threshold": 0.5,
+  "trials": 12,
+  "n_elements": 15,
+  "random_baseline_mrr": 0.2212,
+  "mrr_base": 0.3863,
+  "mrr_injected": 0.448,
+  "mrr_control": 0.3863,
+  "first_place_injected": 0.25,
+  "first_place_control": 0.1667,
+  "p_injected_vs_control": 0.1259,
+  "p_control_vs_base": 1.0
+ },
+ "rows": [
+  {
+   "trial": 0,
+   "element": "crisp_collar",
+   "n_removed": 23,
+   "rank_base": 1,
+   "rank_injected": 1,
+   "rank_control": 1,
+   "supply_base": 0.0046,
+   "supply_injected": 0.0,
+   "supply_control": 0.004621257785814748
+  },
+  {
+   "trial": 1,
+   "element": "bright_color",
+   "n_removed": 3357,
+   "rank_base": 2,
+   "rank_injected": 1,
+   "rank_control": 2,
+   "supply_base": 0.6714,
+   "supply_injected": 0.0,
+   "supply_control": 0.667681071211199
+  },
+  {
+   "trial": 2,
+   "element": "structured_shoulders",
+   "n_removed": 326,
+   "rank_base": 3,
+   "rank_injected": 3,
+   "rank_control": 3,
+   "supply_base": 0.0652,
+   "supply_injected": 0.0,
+   "supply_control": 0.06504065040650407
+  },
+  {
+   "trial": 3,
+   "element": "soft_knit",
+   "n_removed": 730,
+   "rank_base": 4,
+   "rank_injected": 4,
+   "rank_control": 4,
+   "supply_base": 0.146,
+   "supply_injected": 0.0,
+   "supply_control": 0.14473067915690865
+  },
+  {
+   "trial": 4,
+   "element": "minimal_design",
+   "n_removed": 757,
+   "rank_base": 5,
+   "rank_injected": 5,
+   "rank_control": 5,
+   "supply_base": 0.1514,
+   "supply_injected": 0.0,
+   "supply_control": 0.1506009898656611
+  },
+  {
+   "trial": 5,
+   "element": "athletic_style",
+   "n_removed": 687,
+   "rank_base": 7,
+   "rank_injected": 6,
+   "rank_control": 7,
+   "supply_base": 0.1374,
+   "supply_injected": 0.0,
+   "supply_control": 0.13818687688383954
+  },
+  {
+   "trial": 6,
+   "element": "athletic_style",
+   "n_removed": 687,
+   "rank_base": 7,
+   "rank_injected": 7,
+   "rank_control": 7,
+   "supply_base": 0.1374,
+   "supply_injected": 0.0,
+   "supply_control": 0.14120102017157432
+  },
+  {
+   "trial": 7,
+   "element": "crisp_collar",
+   "n_removed": 23,
+   "rank_base": 1,
+   "rank_injected": 1,
+   "rank_control": 1,
+   "supply_base": 0.0046,
+   "supply_injected": 0.0,
+   "supply_control": 0.004621257785814748
+  },
+  {
+   "trial": 8,
+   "element": "structured_shoulders",
+   "n_removed": 326,
+   "rank_base": 3,
+   "rank_injected": 3,
+   "rank_control": 3,
+   "supply_base": 0.0652,
+   "supply_injected": 0.0,
+   "supply_control": 0.06546854942233633
+  },
+  {
+   "trial": 9,
+   "element": "soft_knit",
+   "n_removed": 730,
+   "rank_base": 3,
+   "rank_injected": 2,
+   "rank_control": 3,
+   "supply_base": 0.146,
+   "supply_injected": 0.0,
+   "supply_control": 0.1477751756440281
+  },
+  {
+   "trial": 10,
+   "element": "soft_knit",
+   "n_removed": 730,
+   "rank_base": 5,
+   "rank_injected": 5,
+   "rank_control": 5,
+   "supply_base": 0.146,
+   "supply_injected": 0.0,
+   "supply_control": 0.14707259953161592
+  },
+  {
+   "trial": 11,
+   "element": "bright_color",
+   "n_removed": 3357,
+   "rank_base": 5,
+   "rank_injected": 4,
+   "rank_control": 5,
+   "supply_base": 0.6714,
+   "supply_injected": 0.0,
+   "supply_control": 0.6695069993913573
+  }
+ ]
+}

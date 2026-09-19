@@ -22,7 +22,6 @@ backend/pinterest/cache/
 backend/generation/output/
 *.faiss
 *.chroma/
-data/
 models/
 artifacts/
 
@@ -30,7 +29,8 @@ artifacts/
 # report subfolders; docs/, docs/engine02-*.md, reports/model_verification*
 # are the checked-in results, these are working directories, not results
 third_party/
-reports/ablation/
+# reports/ablation/ 是論述數字的出處（872 KB），刻意納入版控——見 reports/README.md
+reports/ablation/**/*.png
 reports/server/
 reports/agents/
 reports/demo/
@@ -55,4 +55,30 @@ web/dist/
 *.tar.gz
 /mchackathon2026/
 engine02.egg-info/
-reports/forecast/
+
+# --- 證據檔：重現不出來或需要金鑰/GPU，所以完整附在 repo 裡 ---
+# 規則順序有意義：先排除整個目錄的內容，再逐一放行。
+!data/labels/
+!data/context/
+!data/trends/
+!data/verify_sample/
+data/verify_sample/*
+!data/verify_sample/meta.json
+!data/catalog/
+data/catalog/*
+!data/catalog/kagl/
+data/catalog/kagl/*
+!data/catalog/kagl/README.md
+!data/catalog/kagl/stats.json
+!data/catalog/kagl/vlm_attributes_*.parquet
+!data/catalog/kagl/vlm_attributes_*.meta.json
+# complete-the-look needs this 9x9 matrix; it is 989 bytes but takes a full-dataset scan
+!data/catalog/polyvore/
+data/catalog/polyvore/*
+!data/catalog/polyvore/category_cooccurrence.json
+!data/catalog/polyvore/category_cooccurrence.meta.json
+# Pinterest: metadata needs the team token, so it ships; the images are third-party and can be
+# rebuilt from the public CDN URLs in the metadata with --images-from, so they stay local.
+!data/pinterest/
+data/pinterest/*
+!data/pinterest/pins_*.json
