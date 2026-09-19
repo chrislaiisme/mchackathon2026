@@ -1,19 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
-import { getRecommendations } from "@/lib/mock/stylist";
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
-import type { Conversation, User } from "@/lib/types";
+import { preferenceService } from "@/lib/services/preferences";
+import type { Conversation, PreferenceItemSnapshot, User } from "@/lib/types";
 
 export function ProfileExperience() {
   const router = useRouter();
   const { locale, setLocale, t } = useI18n();
   const [user, setUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [savedLooks, setSavedLooks] = useState<PreferenceItemSnapshot[]>([]);
 
   const refresh = useCallback(() => {
     const session = authService.getSession();
@@ -26,27 +27,21 @@ export function ProfileExperience() {
     conversationService.ensureSeeded(session.id);
     setUser(session);
     setConversations(conversationService.list(session.id));
+    setSavedLooks(preferenceService.listSavedItems(session.id));
   }, [router]);
 
   useEffect(() => {
     queueMicrotask(refresh);
     window.addEventListener("intentweave-conversations-change", refresh);
+    window.addEventListener(preferenceService.changeEvent, refresh);
 
-    return () => window.removeEventListener("intentweave-conversations-change", refresh);
+    return () => {
+      window.removeEventListener("intentweave-conversations-change", refresh);
+      window.removeEventListener(preferenceService.changeEvent, refresh);
+    };
   }, [refresh]);
 
   const signals = conversations[0]?.preferenceSignals || [];
-  const savedLooks = useMemo(() => {
-    const likedIds = new Set(
-      conversations.flatMap((conversation) =>
-        Object.entries(conversation.recommendationFeedback)
-          .filter(([, value]) => value === "like")
-          .map(([id]) => id),
-      ),
-    );
-
-    return getRecommendations(locale).filter((recommendation) => likedIds.has(recommendation.id));
-  }, [conversations, locale]);
 
   function reopenConversation(id: string) {
     conversationService.setCurrentId(id);
@@ -111,7 +106,7 @@ export function ProfileExperience() {
                 <div className="fashion-image aspect-[3/4]" style={{ backgroundImage: `url(${look.imageUrl})` }} />
                 <div className="p-4">
                   <div className="font-serif text-xl">{look.name}</div>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{look.explanation}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{look.attributes.join(" / ")}</p>
                 </div>
               </article>
             ))}

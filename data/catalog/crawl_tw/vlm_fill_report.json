@@ -1,0 +1,153 @@
+{
+ "model": "Qwen/Qwen3-VL-8B-Instruct",
+ "catalog": "crawl_tw",
+ "n_items": 178,
+ "n_labelled": 178,
+ "n_unlabelled": 0,
+ "answered_per_question": {
+  "product": 178,
+  "category": 178,
+  "color": 178,
+  "season": 178,
+  "occasion": 178,
+  "fit": 178,
+  "pattern": 178,
+  "boldness": 178,
+  "style": 178
+ },
+ "agreement_with_dataset": {
+  "category": {
+   "n": 178,
+   "agreement": 0.9719
+  },
+  "color_exact": {
+   "n": 2,
+   "agreement": 0.0
+  },
+  "color_family": {
+   "n": 2,
+   "agreement": 0.0
+  }
+ },
+ "season_vs_description_words": {
+  "n_items_with_one_clear_word": 31,
+  "agreement": 0.9355,
+  "note": "season has no ground truth; this checks only items whose own text points one way"
+ },
+ "dropped": {
+  "n": 12,
+  "by_reason": {
+   "multipack": 11,
+   "size_chart": 1
+  },
+  "items": [
+   {
+    "item_id": "crawl_1c3cd7530fcc",
+    "title": "(熱銷破150+) 修修腿棉麻繭型褲 4colors",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_e11e6b97f149",
+    "title": "斜肩抽繩彈性Tee 6colors",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_b0be81c5378a",
+    "title": "泡泡棉雙層半身裙 小隻女友善 2colors",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "crawl_a65cbc71e6b5",
+    "title": "[熱銷破300+] 彎刀褲 S-L可穿 (不列入優惠)",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_ac2d7a122a08",
+    "title": "皺皺透膚內搭 3colors",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_063c83c15ad8",
+    "title": "秋日風衣外套 5colors (預購)",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_85896e9eb841",
+    "title": "綁帶雲朵背心 2colors",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_4635aeee3c83",
+    "title": "親膚彈性拼接TEE 2colors(不列入優惠）",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_94dd4b393bf5",
+    "title": "黑白幾何玫瑰荷葉長洋裝",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_8f211145f931",
+    "title": "rnrn Singlet 001",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_8e32f41a5713",
+    "title": "rnrn Windbreaker",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "crawl_01b718728ad8",
+    "title": "Pokémon 寶可夢 Fragment x Pokemon Thunderbolt Project Sweatshirts 大學T 卡比獸/皮卡丘/妙蛙種子/傑尼龜 PFM-122",
+    "vlm_product": "multipack"
+   }
+  ]
+ },
+ "filled": {
+  "season": 166,
+  "occasion": 166,
+  "color": 161
+ },
+ "coverage_after": {
+  "color": 0.9819,
+  "season": 1.0,
+  "occasion": 1.0,
+  "gender": 0.0,
+  "fit": 0.9398,
+  "boldness": 1.0,
+  "style": 1.0
+ },
+ "distribution": {
+  "season": {
+   "Summer": 100,
+   "Spring": 37,
+   "Winter": 25,
+   "Fall": 4
+  },
+  "occasion": {
+   "Casual": 131,
+   "Formal": 21,
+   "Smart Casual": 6,
+   "Travel": 4,
+   "Sports": 4
+  },
+  "boldness": {
+   "1": 136,
+   "0": 27,
+   "2": 2,
+   "3": 1
+  },
+  "style": {
+   "minimalist": 60,
+   "streetwear": 43,
+   "classic": 23,
+   "romantic": 16,
+   "sporty": 13,
+   "preppy": 4,
+   "vintage": 3,
+   "edgy": 2,
+   "bohemian": 1,
+   "avant_garde": 1
+  }
+ }
+}

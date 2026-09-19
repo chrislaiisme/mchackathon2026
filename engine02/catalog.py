@@ -31,10 +31,21 @@ class Catalog:
         self._id_to_pos = {str(i): p for p, i in enumerate(self.items["item_id"].astype(str))}
 
     @classmethod
-    def load(cls, path: str | Path) -> "Catalog":
+    def load(cls, path: str | Path, estimate_prices: bool | None = None) -> "Catalog":
+        """Load items.parquet. Rows without a price get a labelled estimate
+        (engine02.price_estimate; `price_estimated`, `price_basis`) unless
+        ENGINE02_ESTIMATE_PRICES=0 or estimate_prices=False."""
+        from .price_estimate import enabled, fill_missing_prices
+
         path = Path(path)
         df = pd.read_parquet(path / "items.parquet")
+        if enabled() if estimate_prices is None else estimate_prices:
+            df, _ = fill_missing_prices(df)
         return cls(items=df, root=path, name=path.name)
+
+    def price_estimated(self, pos: int) -> bool:
+        col = self.column("price_estimated")
+        return bool(col[pos]) if col is not None and col[pos] is not None else False
 
     def __len__(self) -> int:
         return len(self.items)

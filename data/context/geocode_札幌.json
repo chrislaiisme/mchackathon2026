@@ -1,0 +1,11 @@
+{
+ "name": "札幌",
+ "resolved_name": "札幌市",
+ "lat": 43.06667,
+ "lon": 141.35,
+ "country": "日本",
+ "country_code": "JP",
+ "timezone": "Asia/Tokyo",
+ "query": "Sapporo",
+ "fetched_at": "2026-09-19T19:31:47"
+}

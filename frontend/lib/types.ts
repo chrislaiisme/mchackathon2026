@@ -49,6 +49,10 @@ export type WardrobeCategory = "tops" | "bottoms" | "dresses" | "outerwear" | "s
 
 export type OutfitSlot = "top" | "bottom" | "dress" | "outerwear" | "shoes" | "accessories";
 
+export type PreferenceItemSource = "recommended" | "generated";
+export type PreferenceRatingDimension = "visual_impact" | "polished_formality" | "soft_energy";
+export type PreferenceDimensionRatings = Partial<Record<PreferenceRatingDimension, number>>;
+
 export interface WardrobeItem {
   id: string;
   name: string;
@@ -56,6 +60,32 @@ export interface WardrobeItem {
   category: WardrobeCategory;
   brand?: string;
   attributes: string[];
+}
+
+export interface PreferenceItemSnapshot extends WardrobeItem {
+  source: PreferenceItemSource;
+  likedBySave: boolean;
+  savedAt: string;
+  conversationId?: string;
+  messageId?: string;
+  roundKey?: string;
+}
+
+export interface TryOnFeedbackEntry {
+  outfitKey: string;
+  feedback: "like" | "dislike";
+  itemIds: string[];
+  timestamp: string;
+  conversationId?: string;
+  roundKey?: string;
+}
+
+export interface UserPreferenceState {
+  savedItems: Record<string, PreferenceItemSnapshot>;
+  dislikedItems: Record<string, PreferenceItemSnapshot>;
+  itemRatings: Record<string, PreferenceDimensionRatings>;
+  tryOnFeedback: Record<string, TryOnFeedbackEntry>;
+  recentRecommendationRounds: string[];
 }
 
 export interface GuidedChoice {

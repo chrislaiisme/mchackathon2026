@@ -492,6 +492,9 @@ class Engine02:
                     category=self.catalog.attr(pos, "category"),
                     color=self.catalog.attr(pos, "color"),
                     price=float(price) if price is not None else None,
+                    currency=self.catalog.attr(pos, "currency"),
+                    price_estimated=self.catalog.price_estimated(pos),
+                    price_basis=self.catalog.attr(pos, "price_basis"),
                     score=float(sc.scores[p]),
                     contributions=contribs,
                     need_contributions=need_contrib,
@@ -532,7 +535,10 @@ class Engine02:
                    if "budget_unavailable" in fr.applied else [])
                 + ([f"有 {fr.applied['budget_unpriced_excluded'][0]} 件商品沒有價格，"
                     f"依預算過濾時已被排除"]
-                   if "budget_unpriced_excluded" in fr.applied else []) + (
+                   if "budget_unpriced_excluded" in fr.applied else [])
+                + ([f"預算過濾用到 {fr.applied['budget_estimated_prices'][0]} 件估計價（非實際標價，"
+                    f"卡片上標示「估計價」）"]
+                   if "budget_estimated_prices" in fr.applied else []) + (
                     [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
                      f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
                     if bm25_gate_note else []),
@@ -759,7 +765,40 @@ class Engine02:
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])
             terms.append(Term(f"rerank:{self.cross_reranker.name}", "rerank", rs, arm.w_rerank))
+        terms += self._context_terms(req, arm, cand)
         return terms
+
+    def _context_terms(self, req, arm: ArmConfig, cand) -> list[Term]:
+        """The shopper's situation (weather, festival, commute) and opt-in personal options, one
+        un-normalised term per signal so "+0.30" on a card is exactly +0.30. No context -> no terms,
+        so every request without it ranks exactly as before."""
+        from .context.engine import CONTEXT_LABELS, build_signals, enriched, is_empty, item_scores
+
+        ctx = getattr(req, "context", None)
+        self._last_context = {"signals": [], "problems": []}
+        if is_empty(ctx):
+            CONTEXT_LABELS.set({})
+            return []
+        sigs, problems = build_signals(ctx)
+        self._last_context = {"signals": sigs, "problems": problems}
+        items = enriched(self.catalog.items)
+        c_mat = self.design_matrix(arm)
+        ids = list(self.kansei.element_ids)
+        out: list[Term] = []
+        labels: dict[str, str] = {}
+        for i, s in enumerate(sigs):
+            if not s.affects_ranking:
+                continue
+            raw = item_scores(s, items, cand, c_mat, ids)
+            if not np.any(np.abs(raw) > 1e-12):
+                continue
+            name = f"context:{s.source}"
+            if name in labels:
+                name = f"{name}:{i}"
+            out.append(Term(name, "context", raw, 1.0, normalize=False))
+            labels[name] = s.label
+        CONTEXT_LABELS.set(labels)
+        return out
 
     def _metrics(self, req: Engine02Request, shown_pos: list[int]) -> RoundMetrics:
         items = self.catalog.items
