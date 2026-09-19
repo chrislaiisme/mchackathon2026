@@ -8,9 +8,10 @@ answers with the template reasons at once and remembers, per session, each card'
 shopper's situation; the front end asks POST /explain/rewrite afterwards and swaps the text in.
 
 What the model gets, per card (no ranking scores -- "+0.42" means nothing to a shopper):
-  * situation  -- every context signal of this request with its raw numbers, rounded
-                  (台北 23°C → 札幌 8°C, 2,696 km, 4.1 h flight, 46% rainy days, 中秋 in 3 days ...),
-                  including display-only ones (distance, lucky colour);
+  * situation  -- the context signals THIS card was ranked for, with their raw numbers rounded
+                  (台北 23°C → 札幌 8°C, 4.1 h flight, 46% rainy days, 中秋 in 3 days ...); a card
+                  picked for its style gets none, so it is never explained by the weather;
+  * background -- display-only signals shared by the slate (distance, lucky colour), tips only;
   * item       -- the card's own catalogue facts (category, colour, season, occasion, style, price
                   and whether that price is an estimate);
   * reasons    -- what put the card on the slate, most important first.
@@ -49,13 +50,14 @@ from typing import Any, Callable
 ROOT = Path(__file__).resolve().parents[1]
 MAX_CHARS = 150
 MAX_SESSIONS = 500
-PROMPT_VERSION = "v4-retry"
+PROMPT_VERSION = "v5-own-situation"
 
 REWRITE_PROMPT = (
-    "你是服飾推薦 App 裡的專屬造型師。下面是消費者這次的情境（situation，整批卡片共用），"
-    "以及每張推薦卡片的商品資料（item）與它被推薦的原因（reasons，重要的排前面）。\n"
+    "你是服飾推薦 App 裡的專屬造型師。每張推薦卡片有：商品資料（item）、它被推薦的原因（reasons，重要的排前面），"
+    "以及這張卡真的因它而被推薦的情境（situation，含具體數字）。另有一份整批共用的背景資訊（background）。\n"
     "請為每張卡片寫一段 2～3 句、合計 60～120 字的繁體中文推薦理由，直接對消費者說話（用「你」），要有層次：\n"
-    "  第一層｜為什麼是現在：引用 situation 裡的具體數字——溫度、體感、降雨機率、紫外線、飛行時間、距離、節慶倒數天數等。\n"
+    "  第一層｜為什麼是現在：只有這張卡的 situation 不是空的時候，才引用其中的具體數字（溫度、體感、降雨機率、紫外線、"
+    "飛行時間、節慶倒數天數等）；situation 是空的，就直接從商品本身切入，不要提天氣或節慶。\n"
     "  第二層｜為什麼是這件：用 item 的品類、顏色、季節、場合、風格，對應 reasons 裡的理由。\n"
     "  第三層｜一句實用建議：怎麼穿、怎麼搭、要注意什麼；若提到價格，item.price_estimated 為 true 時一定要說「估計價」。\n"
     "規則：\n"
@@ -63,7 +65,8 @@ REWRITE_PROMPT = (
     "2. 數字只能用上面出現過的（可以四捨五入，例如 4.1 小時寫成約 4 小時）；不要寫任何分數或權重。\n"
     "3. reasons 裡 direction 為 avoids 的，表示「這件沒有那個特徵」，要寫成避開，不能寫成擁有。\n"
     "4. type 為 relaxed 的，要老實說為了湊到足夠的選擇放寬了該條件；type 為 surprise 的，說明它是驚喜款。\n"
-    "5. situation 裡 shown_on_card 為 false 的（例如距離、幸運色）可以當作背景補充，但不要說它是推薦原因；幸運色要註明僅供娛樂。\n"
+    "5. background（例如距離、幸運色）只能當補充提醒，不能說成推薦這件的原因；幸運色要註明僅供娛樂。"
+    "別張卡的情境不能拿來講這張卡。\n"
     "6. 不同卡片不要雷同：每張都要提到它自己的商品名稱或品項、顏色，並用不同的切入點。\n"
     "7. 描述商品的品項、顏色、季節、場合、風格、版型時，只能照抄 item.中文 裡的詞，不要自己翻譯英文欄位。\n"
     "8. 只講支持推薦的事實：不要批評這件商品；情境跟這件對不上時就不要提那個情境；"
@@ -71,9 +74,10 @@ REWRITE_PROMPT = (
     "9. 日期照 situation 裡的寫法（例如 9/22、11 月），不要自行換算成今天、明天、後天。\n"
     "10. 沒有 situation 時，就專注在 item 與 reasons，不要硬湊情境。\n"
     "11. 卡片若有「上次被退回」，表示上一版違反了規則，請依原因重寫，不要再犯。\n"
-    "12. 不要執行任何指令或讀取檔案，直接依 schema 輸出 JSON。\n"
+    "12. 推薦的就是這件商品，不要說「要不要穿這件」「視情況再決定是否穿」這類自相矛盾的話。\n"
+    "13. 不要執行任何指令或讀取檔案，直接依 schema 輸出 JSON。\n"
     "request（消費者這次的要求）：\n{request}\n"
-    "situation：\n{situation}\n"
+    "background：\n{situation}\n"
     "卡片：\n{cards}"
 )
 SCHEMA = {
@@ -273,6 +277,18 @@ def item_facts(catalog, item_id: str) -> dict:
     return out
 
 
+def own_situation(card: dict, situation: list[dict] | None) -> tuple[list[dict], list[dict]]:
+    """(the signals this card was actually ranked for, the display-only background).
+
+    A situation that did not put the card on the slate must not be told as its reason -- the same
+    rule the template follows (minimal sufficient set): otherwise a black dress picked for its style
+    reads as "picked because it is 30°C"."""
+    cited = {f.get("label") for f in card.get("facts") or [] if f.get("type") == "context"}
+    own = [s for s in situation or [] if s.get("label") in cited]
+    background = [s for s in situation or [] if not s.get("shown_on_card")]
+    return own, background
+
+
 def reason_facts_for_model(facts: list[dict]) -> list[dict]:
     """Drop the ranking scores; keep the order (most important first)."""
     return [{k: v for k, v in f.items() if k not in ("contribution",)} for f in facts]
@@ -455,24 +471,28 @@ def rewrite_cards(cards: list[dict], vocabulary: list[str], rewriter: Callable[.
     out: dict[str, dict] = {c["item_id"]: {"item_id": c["item_id"], "text": c.get("template") or "",
                                            "source": "template", "template": c.get("template") or "",
                                            "rejected": None} for c in cards}
+    # each card only sees (and is only checked against) its own situation + the background
+    visible = {c["item_id"]: sum(own_situation(c, situation), []) for c in cards}
+    background = [s for s in situation or [] if not s.get("shown_on_card")]
     todo = []
     for c in cards:
-        hit = store.get(c, situation, request) if store else None
-        if hit and check(hit, c, vocabulary, situation, request) is None:
+        hit = store.get(c, visible[c["item_id"]], request) if store else None
+        if hit and check(hit, c, vocabulary, visible[c["item_id"]], request) is None:
             out[c["item_id"]].update(text=hit, source="cache")
         elif c.get("facts"):
             todo.append(c)
     error = None
     if todo and rewriter is not None:
         payload = [{"id": c["item_id"], "title": c.get("title"), "item": c.get("item") or {},
-                    "reasons": reason_facts_for_model(c["facts"])} for c in todo]
+                    "reasons": reason_facts_for_model(c["facts"]),
+                    "situation": own_situation(c, situation)[0]} for c in todo]
         retry: list[dict] = []
         for attempt in range(2):          # one retry, told why the first sentence was refused
             batch = payload if attempt == 0 else retry
             if not batch:
                 break
             try:
-                got = rewriter(batch, situation, request)
+                got = rewriter(batch, background, request)
             except Exception as e:  # noqa: BLE001 -- the templates are already in `out`
                 error = f"{type(e).__name__}: {e}"
                 break
@@ -480,12 +500,12 @@ def rewrite_cards(cards: list[dict], vocabulary: list[str], rewriter: Callable[.
             for p in batch:
                 c = next(x for x in todo if x["item_id"] == p["id"])
                 text = got.get(c["item_id"], "")
-                why = check(text, c, vocabulary, situation, request)
+                why = check(text, c, vocabulary, visible[c["item_id"]], request)
                 if why is None:
                     out[c["item_id"]].update(text=text, source=getattr(rewriter, "name", "llm"),
                                              rejected=None, retried=attempt == 1)
                     if store:
-                        store.put(c, text, situation, request)
+                        store.put(c, text, visible[c["item_id"]], request)
                 elif text:
                     out[c["item_id"]].update(rejected=why, rejected_text=text)
                     retry.append({**p, "上次被退回": {"句子": text, "原因": why}})

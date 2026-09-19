@@ -22,7 +22,9 @@ SITUATION = [
 ]
 CARD = {"item_id": "a", "title": "Navy shirt", "template": "修身剪裁（+0.18）",
         "facts": [{"type": "design", "label": "修身剪裁", "direction": "has", "contribution": 0.18,
-                   "serves_needs": ["看起來專業"]}],
+                   "serves_needs": ["看起來專業"]},
+                  {"type": "context", "label": "往年同期晚上 7 點體感約 5°C → 厚外套、羊毛針織才夠暖",
+                   "source": "travel", "contribution": 0.2}],
         "item": {"category": "top", "color": "Navy Blue", "season": "Summer", "style": "classic", "price": 790,
                  "currency": "TWD", "price_estimated": True,
                  "中文": {"品項": "襯衫", "顏色": "深藍色", "季節": "夏季", "風格": "經典"}}}
@@ -91,7 +93,23 @@ def test_the_model_never_sees_ranking_scores_and_gets_situation_and_item():
     assert out["cards"][0]["source"] == "codex"
     card = seen["cards"][0]
     assert "contribution" not in json.dumps(card["reasons"]) and card["item"]["color"] == "Navy Blue"
-    assert seen["situation"] == SITUATION
+    assert seen["situation"] == [SITUATION[0]]                   # the rewriter's shared part: background only
+    assert card["situation"] == [SITUATION[1]]                   # this card's own, cited situation
+
+
+def test_a_card_not_picked_for_the_weather_cannot_be_explained_by_it():
+    from engine02.rewrite import own_situation
+    own, bg = own_situation(CARD_B, SITUATION)
+    assert own == [] and bg == [SITUATION[0]]
+    seen = {}
+
+    def fake(cards, situation, request=None):
+        seen["card"] = cards[0]
+        return {"b": "晚上 7 點體感約 5°C，這件藍色洋裝避開了正式感。"}
+    fake.name = "codex"
+    out = rewrite_cards([CARD_B], VOCAB, fake, None, situation=SITUATION)["cards"][0]
+    assert seen["card"]["situation"] == []
+    assert out["source"] == "template" and "number" in out["rejected"]     # 5°C is not this card's
     assert reason_facts_for_model(CARD["facts"])[0] == {k: v for k, v in CARD["facts"][0].items() if k != "contribution"}
 
 
