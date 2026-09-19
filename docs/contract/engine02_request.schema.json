@@ -1,0 +1,541 @@
+{
+  "$defs": {
+    "BudgetSlot": {
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/SlotState",
+          "default": "unmentioned"
+        },
+        "max_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Price"
+        },
+        "min_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Price"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "hard": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hard"
+        }
+      },
+      "title": "BudgetSlot",
+      "type": "object"
+    },
+    "ChoiceRecord": {
+      "description": "One round of ENGINE 03's ledger: what was shown and what the user picked / rejected.",
+      "properties": {
+        "shown_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shown Item Ids",
+          "type": "array"
+        },
+        "chosen_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chosen Item Id"
+        },
+        "rejected_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejected Item Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shown_item_ids"
+      ],
+      "title": "ChoiceRecord",
+      "type": "object"
+    },
+    "Critique": {
+      "description": "「這件但換成 X」— critique on a reference item (composed retrieval, CIReVL-style).",
+      "properties": {
+        "attribute": {
+          "enum": [
+            "color",
+            "occasion",
+            "category",
+            "subcategory",
+            "season"
+          ],
+          "title": "Attribute",
+          "type": "string"
+        },
+        "to_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Value"
+        },
+        "from_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Value"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "more_formal",
+                "more_casual",
+                "sportier"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        }
+      },
+      "required": [
+        "attribute"
+      ],
+      "title": "Critique",
+      "type": "object"
+    },
+    "Engine02Options": {
+      "properties": {
+        "top_k": {
+          "default": 5,
+          "title": "Top K",
+          "type": "integer"
+        },
+        "n_candidates": {
+          "default": 50,
+          "title": "N Candidates",
+          "type": "integer"
+        },
+        "arm": {
+          "default": "full_zclip3",
+          "title": "Arm",
+          "type": "string"
+        },
+        "explain_with_llm": {
+          "default": true,
+          "title": "Explain With Llm",
+          "type": "boolean"
+        },
+        "counterfactual_check": {
+          "default": true,
+          "title": "Counterfactual Check",
+          "type": "boolean"
+        },
+        "diversify": {
+          "default": "dpp",
+          "enum": [
+            "none",
+            "mmr",
+            "dpp",
+            "xquad"
+          ],
+          "title": "Diversify",
+          "type": "string"
+        },
+        "diversify_param": {
+          "default": 0.9,
+          "title": "Diversify Param",
+          "type": "number"
+        },
+        "diversify_depth": {
+          "default": 20,
+          "title": "Diversify Depth",
+          "type": "integer"
+        },
+        "critique_alpha": {
+          "default": 0.0,
+          "title": "Critique Alpha",
+          "type": "number"
+        }
+      },
+      "title": "Engine02Options",
+      "type": "object"
+    },
+    "FeedbackState": {
+      "properties": {
+        "design_adjust_steps": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Design Adjust Steps",
+          "type": "object"
+        },
+        "chosen_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Chosen Item Ids",
+          "type": "array"
+        },
+        "rejected_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejected Item Ids",
+          "type": "array"
+        },
+        "excluded_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded Item Ids",
+          "type": "array"
+        },
+        "anchor_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Anchor Item Ids",
+          "type": "array"
+        },
+        "concept_image_embedding": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Concept Image Embedding"
+        },
+        "reference_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Item Id"
+        },
+        "critique": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Critique"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "choice_history": {
+          "items": {
+            "$ref": "#/$defs/ChoiceRecord"
+          },
+          "title": "Choice History",
+          "type": "array"
+        },
+        "design_weight_delta": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Design Weight Delta",
+          "type": "object"
+        }
+      },
+      "title": "FeedbackState",
+      "type": "object"
+    },
+    "HardConstraints": {
+      "description": "Slots extracted by ENGINE 01 (M1). Values should already be normalised to the\ncatalog vocabulary (see engine02/resources/vocabulary.json).",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/Slot"
+        },
+        "color": {
+          "$ref": "#/$defs/Slot"
+        },
+        "occasion": {
+          "$ref": "#/$defs/Slot"
+        },
+        "season": {
+          "$ref": "#/$defs/Slot"
+        },
+        "gender": {
+          "$ref": "#/$defs/Slot"
+        },
+        "style_keywords": {
+          "$ref": "#/$defs/Slot"
+        },
+        "budget": {
+          "$ref": "#/$defs/BudgetSlot"
+        },
+        "excluded_values": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Excluded Values",
+          "type": "object"
+        },
+        "required_values": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Required Values",
+          "type": "object"
+        }
+      },
+      "title": "HardConstraints",
+      "type": "object"
+    },
+    "NeedProbability": {
+      "description": "PRD M2 output p(n).",
+      "properties": {
+        "need_id": {
+          "title": "Need Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "prob": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Prob",
+          "type": "number"
+        }
+      },
+      "required": [
+        "need_id",
+        "prob"
+      ],
+      "title": "NeedProbability",
+      "type": "object"
+    },
+    "ProfilePrior": {
+      "description": "A handful of forced choices made before round 1, as a prior over the design axes.\n\n`weights` is in user-feedback steps (the same ±1 units as `design_adjust_steps`), so the\nexisting clip to one `KanseiTable.step_size` applies unchanged. Zou et al. (SIGIR 2020) measure\nthat preference elicitation \"reaches very good performance already within the first 10\nquestions\"; three is a stage decision, not a literature result — see\ndocs/research/novelty-and-profile.md §B.",
+      "properties": {
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        },
+        "n_answers": {
+          "default": 0,
+          "title": "N Answers",
+          "type": "integer"
+        },
+        "kappa0": {
+          "default": 3.0,
+          "title": "Kappa0",
+          "type": "number"
+        }
+      },
+      "title": "ProfilePrior",
+      "type": "object"
+    },
+    "Slot": {
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/SlotState",
+          "default": "unmentioned"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Values",
+          "type": "array"
+        },
+        "hard": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hard"
+        }
+      },
+      "title": "Slot",
+      "type": "object"
+    },
+    "SlotState": {
+      "description": "PRD M1: every slot is in one of four states.",
+      "enum": [
+        "unmentioned",
+        "value",
+        "dont_care",
+        "inferred"
+      ],
+      "title": "SlotState",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "contract_version": {
+      "default": "0.1.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round": {
+      "default": 1,
+      "title": "Round",
+      "type": "integer"
+    },
+    "utterances": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Utterances",
+      "type": "array"
+    },
+    "retrieval_text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retrieval Text"
+    },
+    "retrieval_text_normalized": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Retrieval Text Normalized"
+    },
+    "design_weight_prior": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Design Weight Prior",
+      "type": "object"
+    },
+    "profile": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProfilePrior"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "constraints": {
+      "$ref": "#/$defs/HardConstraints"
+    },
+    "needs": {
+      "items": {
+        "$ref": "#/$defs/NeedProbability"
+      },
+      "title": "Needs",
+      "type": "array"
+    },
+    "feedback": {
+      "$ref": "#/$defs/FeedbackState"
+    },
+    "options": {
+      "$ref": "#/$defs/Engine02Options"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "title": "Engine02Request",
+  "type": "object"
+}

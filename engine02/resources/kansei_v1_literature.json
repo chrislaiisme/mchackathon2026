@@ -1,0 +1,843 @@
+{
+  "version": "kansei_v1_literature",
+  "_note": "Evidence-grounded revision of kansei_v0_draft (2026-09-17). Every non-zero K cell has an entry in `evidence`; cells without at least weak evidence are 0. Magnitude caps: strong<=0.8, moderate<=0.5, weak<=0.3. [V]=abstract opened via OpenAlex/PubMed API (full texts not read); [U]=not verified. Mostly Western samples; see docs/research/kansei-evidence.md.",
+  "step_size": 0.25,
+  "max_steps": 3,
+  "needs": {
+    "trustworthy": "被信任",
+    "energetic": "有精神",
+    "polished": "俐落專業",
+    "approachable": "親切好相處",
+    "relaxed": "輕鬆自在",
+    "avoid_tryhard": "怕顯得太用力",
+    "avoid_salesperson": "怕像業務",
+    "avoid_sloppy": "怕顯得邋遢",
+    "sporty": "有運動感",
+    "avoid_cheap": "怕看起來廉價"
+  },
+  "design_elements": [
+    {
+      "id": "structured_shoulders",
+      "label": "肩線挺",
+      "descriptors": [
+        "a jacket with structured padded shoulders",
+        "a tailored garment with a sharp shoulder line"
+      ],
+      "negative_descriptors": [
+        "a garment with soft dropped shoulders",
+        "an unstructured shoulder line"
+      ],
+      "applies_to": [
+        "top",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "matte_fabric",
+      "label": "霧面材質",
+      "descriptors": [
+        "a garment made of matte fabric with no shine",
+        "flat matte textile clothing"
+      ],
+      "negative_descriptors": [
+        "a shiny glossy satin garment",
+        "clothing with a lustrous sheen"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "glossy_fabric",
+      "label": "亮面材質",
+      "descriptors": [
+        "a shiny glossy satin garment",
+        "clothing with a lustrous sheen"
+      ],
+      "negative_descriptors": [
+        "a garment made of matte fabric with no shine",
+        "flat matte textile clothing"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "dark_tone",
+      "label": "低明度深色",
+      "descriptors": [
+        "dark colored clothing",
+        "a navy or charcoal garment"
+      ],
+      "negative_descriptors": [
+        "light pastel colored clothing",
+        "a white or beige garment"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "bright_color",
+      "label": "鮮豔色彩",
+      "descriptors": [
+        "brightly colored clothing",
+        "a vivid saturated color garment"
+      ],
+      "negative_descriptors": [
+        "muted neutral colored clothing",
+        "a grey or beige garment"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "visible_logo",
+      "label": "明顯 logo",
+      "descriptors": [
+        "clothing with a large visible logo print",
+        "a garment with big brand lettering"
+      ],
+      "negative_descriptors": [
+        "a plain garment with no logo",
+        "clothing without any lettering"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "minimal_design",
+      "label": "素面簡約",
+      "descriptors": [
+        "a plain minimalist garment without prints",
+        "simple solid color clothing"
+      ],
+      "negative_descriptors": [
+        "a garment with a bold loud pattern",
+        "clothing with a large graphic print"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "bold_pattern",
+      "label": "強烈圖案",
+      "descriptors": [
+        "a garment with a bold loud pattern",
+        "clothing with a large graphic print"
+      ],
+      "negative_descriptors": [
+        "a plain minimalist garment without prints",
+        "simple solid color clothing"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "relaxed_fit",
+      "label": "寬鬆版型",
+      "descriptors": [
+        "loose relaxed fit clothing",
+        "an oversized garment"
+      ],
+      "negative_descriptors": [
+        "slim tailored fit clothing",
+        "a fitted garment with clean lines"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "tailored_fit",
+      "label": "合身剪裁",
+      "descriptors": [
+        "slim tailored fit clothing",
+        "a fitted garment with clean lines"
+      ],
+      "negative_descriptors": [
+        "loose relaxed fit clothing",
+        "an oversized garment"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "formal_style",
+      "label": "正式感",
+      "descriptors": [
+        "formal business attire",
+        "a suit piece for the office"
+      ],
+      "negative_descriptors": [
+        "casual everyday wear",
+        "relaxed weekend clothing"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "casual_style",
+      "label": "休閒感",
+      "descriptors": [
+        "casual everyday wear",
+        "relaxed weekend clothing"
+      ],
+      "negative_descriptors": [
+        "formal business attire",
+        "a suit piece for the office"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "crisp_collar",
+      "label": "挺版領子",
+      "descriptors": [
+        "a shirt with a crisp stiff collar",
+        "a garment with a structured collar"
+      ],
+      "negative_descriptors": [
+        "a collarless garment",
+        "a shirt with a soft floppy collar"
+      ],
+      "applies_to": [
+        "top",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "soft_knit",
+      "label": "柔軟針織",
+      "descriptors": [
+        "a soft knit sweater texture",
+        "cozy knitted clothing"
+      ],
+      "negative_descriptors": [
+        "a stiff woven garment",
+        "crisp structured non-knit fabric"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "athletic_style",
+      "label": "運動機能風格",
+      "descriptors": [
+        "athletic sportswear such as leggings, joggers or a zip-up track jacket",
+        "technical performance fabric clothing with sporty seams and panels"
+      ],
+      "negative_descriptors": [
+        "a tailored wool office garment",
+        "a crisp woven dress shirt or suit piece"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes"
+      ]
+    }
+  ],
+  "K": {
+    "trustworthy": {
+      "formal_style": 0.5,
+      "casual_style": -0.4,
+      "structured_shoulders": 0.2,
+      "crisp_collar": 0.2,
+      "visible_logo": -0.2,
+      "athletic_style": -0.2
+    },
+    "energetic": {
+      "bright_color": 0.4,
+      "dark_tone": -0.2,
+      "athletic_style": 0.2
+    },
+    "polished": {
+      "formal_style": 0.6,
+      "casual_style": -0.5,
+      "tailored_fit": 0.5,
+      "relaxed_fit": -0.4,
+      "structured_shoulders": 0.3,
+      "crisp_collar": 0.3,
+      "athletic_style": -0.4
+    },
+    "approachable": {
+      "casual_style": 0.2,
+      "formal_style": -0.2,
+      "visible_logo": -0.4,
+      "dark_tone": -0.2,
+      "bright_color": 0.2,
+      "soft_knit": 0.2
+    },
+    "relaxed": {
+      "casual_style": 0.3,
+      "formal_style": -0.3,
+      "relaxed_fit": 0.3,
+      "tailored_fit": -0.2,
+      "soft_knit": 0.2,
+      "athletic_style": 0.2
+    },
+    "avoid_tryhard": {
+      "visible_logo": -0.6,
+      "minimal_design": 0.3,
+      "formal_style": -0.2,
+      "glossy_fabric": -0.2,
+      "matte_fabric": 0.2,
+      "bold_pattern": -0.2
+    },
+    "avoid_salesperson": {
+      "formal_style": -0.2
+    },
+    "avoid_sloppy": {
+      "tailored_fit": 0.4,
+      "relaxed_fit": -0.4,
+      "casual_style": -0.4,
+      "formal_style": 0.3,
+      "athletic_style": -0.3,
+      "crisp_collar": 0.2
+    },
+    "sporty": {
+      "athletic_style": 0.5,
+      "bright_color": 0.2,
+      "formal_style": -0.3
+    },
+    "avoid_cheap": {
+      "tailored_fit": 0.5,
+      "formal_style": 0.4,
+      "athletic_style": -0.3,
+      "casual_style": -0.2,
+      "relaxed_fit": -0.2,
+      "glossy_fabric": 0.2
+    }
+  },
+  "sources": {
+    "howlett2013": "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]",
+    "han2010": "Han, Nunes & Drèze (2010) Signaling status with luxury goods: the role of brand prominence. J Marketing. doi:10.1509/jmkg.74.4.015 [V]",
+    "berger2010": "Berger & Ward (2010) Subtle signals of inconspicuous consumption. J Consumer Research. doi:10.1086/655445 [V]",
+    "valdez1994": "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]",
+    "palmer2013": "Palmer, Schloss, Xu & Prado-León (2013) Music-color associations are mediated by emotion. PNAS. doi:10.1073/pnas.1212562110 [V]",
+    "bellezza2013": "Bellezza, Gino & Keinan (2013) The red sneakers effect. J Consumer Research. doi:10.1086/674870 [V]",
+    "petrilli2015": "Petrilli et al. (2015) Understanding the role of physician attire on patient perceptions: a systematic review (TAILOR). BMJ Open. doi:10.1136/bmjopen-2014-006578 [V]",
+    "petrilli2018": "Petrilli et al. (2018) Understanding patient preference for physician attire: 10 US academic centres. BMJ Open. doi:10.1136/bmjopen-2017-021239 [V]",
+    "xun2021": "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+    "jennings2016": "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]",
+    "morris1996": "Morris, Gorham, Cohen & Huffman (1996) Fashion in the classroom: effects of attire on student perceptions of instructors. Communication Education. doi:10.1080/03634529609379043 [V]",
+    "sotak2023": "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]",
+    "furnham2013": "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+    "sebastian2008": "Sebastian & Bristow (2008) Formal or informal? Style of dress and forms of address on students' perceptions of professors. J Education for Business. doi:10.3200/joeb.83.4.196-201 [V: abstract reports significant dress effect on trustworthiness/expertise/likeability; direction U]",
+    "kraus2014": "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+    "oh2019": "Oh, Shafir & Todorov (2019/2020) Economic status cues from clothes affect perceived competence from faces. Nature Human Behaviour. doi:10.1038/s41562-019-0782-4 (preprint abstract doi:10.31234/osf.io/saqnv) [V]",
+    "peluchette2007": "Peluchette & Karl (2007) The impact of workplace attire on employee self-perceptions. HRDQ. doi:10.1002/hrdq.1208 [V]",
+    "karl2013": "Karl, McIntyre Hall & Peluchette (2013) City employee perceptions of the impact of dress and appearance. Public Personnel Management. doi:10.1177/0091026013495772 [V]",
+    "garcia2018": "Garcia, Weaver & Chen (2018) The status signals paradox. Social Psychological & Personality Science. doi:10.1177/1948550618783712 [V]",
+    "cannon2018": "Cannon & Rucker (2018) The dark side of luxury: social costs of luxury consumption. PSPB. doi:10.1177/0146167218796790 [V]",
+    "meert2013": "Meert, Pandelaere & Patrick (2014) Taking a shine to it: preference for glossy stems from an innate need for water. J Consumer Psychology. doi:10.1016/j.jcps.2013.12.005 [V]",
+    "spence2021": "Spence (2021) On the questionable appeal of glossy/shiny food packaging. Foods. doi:10.3390/foods10050959 [V]",
+    "frank1988": "Frank & Gilovich (1988) The dark side of self- and social perception: black uniforms and aggression in professional sports. JPSP. doi:10.1037/0022-3514.54.1.74 [V]",
+    "kamata2020": "Kamata et al. (2020) Patient preferences for physician attire: a multicenter study in Japan. J Hospital Medicine. doi:10.12788/jhm.3350 [V]",
+    "matsuhisa2021": "Matsuhisa et al. (2021) Effect of physician attire on patient perceptions of empathy in Japan: quasi-RCT. BMC Family Practice. doi:10.1186/s12875-021-01416-w [V]",
+    "lipson2019": "Lipson, Stewart & Griffiths (2020) Athleisure: a qualitative investigation of a multi-billion-dollar clothing trend. Body Image. doi:10.1016/j.bodyim.2019.10.009 (PMID 31756602) [V]",
+    "wang2011": "Wang, Liu & Wu (2011) Research on high grade sense of silk garment based on Kansei engineering. Advanced Materials Research. doi:10.4028/www.scientific.net/amr.175-176.859 [V: abstract only; no effect sizes]",
+    "rucker1981": "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]",
+    "chatelain2015": "Chatelain (2015) The effect of academics' dress and gender on student perceptions of instructor approachability and likeability. J Higher Education Policy & Management. doi:10.1080/1360080x.2015.1056598 [V]",
+    "wu2017": "Wu, Luo, Schroeder & Borgerson (2017) Forms of inconspicuous consumption (Chinese luxury consumers). Marketing Theory. doi:10.1177/1470593117710983 [V]",
+    "ackerman2010": "Ackerman, Nocera & Bargh (2010) Incidental haptic sensations influence social judgments and decisions. Science. doi:10.1126/science.1189993 [V] (Study 1 failed preregistered replication, 2017 [V])",
+    "oostrom2020": "Oostrom, Ronay & van Kleef (2020) Signalling effects of nonconforming dress style in personnel selection. Eur J Work & Org Psych. doi:10.1080/1359432x.2020.1813112 [V]"
+  },
+  "evidence": {
+    "trustworthy|formal_style": {
+      "value": 0.5,
+      "strength": "moderate",
+      "sources": [
+        "Petrilli et al. (2015) Understanding the role of physician attire on patient perceptions: a systematic review (TAILOR). BMJ Open. doi:10.1136/bmjopen-2014-006578 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+        "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]",
+        "Peluchette & Karl (2007) The impact of workplace attire on employee self-perceptions. HRDQ. doi:10.1002/hrdq.1208 [V]",
+        "Sebastian & Bristow (2008) Formal or informal? Style of dress and forms of address on students' perceptions of professors. J Education for Business. doi:10.3200/joeb.83.4.196-201 [V: abstract reports significant dress effect on trustworthiness/expertise/likeability; direction U]"
+      ],
+      "note": "SR of 30 studies: formal attire/white coat preferred in 18/30 (trust, confidence), stronger in Europe & Asia and older patients; lawyers/dentists in formal attire rated more capable. Effect context-dependent and weak after real encounters."
+    },
+    "trustworthy|casual_style": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]",
+        "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]",
+        "Petrilli et al. (2015) Understanding the role of physician attire on patient perceptions: a systematic review (TAILOR). BMJ Open. doi:10.1136/bmjopen-2014-006578 [V]"
+      ],
+      "note": "Casual attire rated lower on trust/confidence (orthopaedic surgeons) and as less ethical than business casual in two lab studies."
+    },
+    "trustworthy|structured_shoulders": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Petrilli et al. (2015) Understanding the role of physician attire on patient perceptions: a systematic review (TAILOR). BMJ Open. doi:10.1136/bmjopen-2014-006578 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]"
+      ],
+      "note": "Extrapolation: structured shoulder is a defining visual feature of formal suit jackets used in formal-attire conditions; no study isolates shoulders."
+    },
+    "trustworthy|crisp_collar": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Petrilli et al. (2015) Understanding the role of physician attire on patient perceptions: a systematic review (TAILOR). BMJ Open. doi:10.1136/bmjopen-2014-006578 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]"
+      ],
+      "note": "Extrapolation from formal attire (collared dress shirt) conditions; collar not isolated."
+    },
+    "trustworthy|visible_logo": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Cannon & Rucker (2018) The dark side of luxury: social costs of luxury consumption. PSPB. doi:10.1177/0146167218796790 [V]",
+        "Garcia, Weaver & Chen (2018) The status signals paradox. Social Psychological & Personality Science. doi:10.1177/1948550618783712 [V]"
+      ],
+      "note": "Luxury/status displays cost perceived warmth (SCM warmth includes sincerity/trustworthiness); extrapolated from luxury goods to prominent logos."
+    },
+    "trustworthy|athletic_style": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+        "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]"
+      ],
+      "note": "Fleece/softshell (performance outerwear) rated less experienced/professional than white coat; casual lowers trust. Trust itself not measured for athletic wear."
+    },
+    "energetic|bright_color": {
+      "value": 0.4,
+      "strength": "moderate",
+      "sources": [
+        "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]",
+        "Palmer, Schloss, Xu & Prado-León (2013) Music-color associations are mediated by emotion. PNAS. doi:10.1073/pnas.1212562110 [V]"
+      ],
+      "note": "Saturation strongly predicts arousal (Arousal = -.31B + .60S); fast/happy music is matched to more saturated, lighter, yellower colours in US & Mexico. Colour-affect evidence, extrapolated to wearer perception."
+    },
+    "energetic|dark_tone": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Palmer, Schloss, Xu & Prado-León (2013) Music-color associations are mediated by emotion. PNAS. doi:10.1073/pnas.1212562110 [V]",
+        "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]"
+      ],
+      "note": "Slow/sad music matched to darker, desaturated colours; but Valdez found darker colours slightly MORE arousing, so kept small."
+    },
+    "energetic|athletic_style": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Lipson, Stewart & Griffiths (2020) Athleisure: a qualitative investigation of a multi-billion-dollar clothing trend. Body Image. doi:10.1016/j.bodyim.2019.10.009 (PMID 31756602) [V]"
+      ],
+      "note": "Athleisure wearers report feeling more athletic/confident; observer ratings of energy not measured."
+    },
+    "polished|formal_style": {
+      "value": 0.6,
+      "strength": "strong",
+      "sources": [
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+        "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]",
+        "Petrilli et al. (2018) Understanding patient preference for physician attire: 10 US academic centres. BMJ Open. doi:10.1136/bmjopen-2017-021239 [V]",
+        "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]"
+      ],
+      "note": "Replicated across medicine, law, dentistry, business: formal/business attire rated more professional/experienced/competent."
+    },
+    "polished|casual_style": {
+      "value": -0.5,
+      "strength": "strong",
+      "sources": [
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+        "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]",
+        "Jennings et al. (2016) Physicians' attire influences patients' perceptions in the urban outpatient orthopaedic surgery setting. Clin Orthop Relat Res. doi:10.1007/s11999-016-4855-7 [V]"
+      ],
+      "note": "Casual attire consistently rated less professional/experienced than formal or business casual."
+    },
+    "polished|tailored_fit": {
+      "value": 0.5,
+      "strength": "moderate",
+      "sources": [
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]",
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]"
+      ],
+      "note": "Bespoke vs off-the-peg suit (minor fit/detail differences, 5 s exposure) rated more confident, successful, higher-earning; form-fitting outfits judged more favourable than loose ones for job interviews."
+    },
+    "polished|relaxed_fit": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]",
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]"
+      ],
+      "note": "Loose outfits rated less favourably than form-fitting for job applicants (1981, female targets, drawings)."
+    },
+    "polished|structured_shoulders": {
+      "value": 0.3,
+      "strength": "weak",
+      "sources": [
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]",
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]"
+      ],
+      "note": "Extrapolation: tailored jacket construction; not isolated."
+    },
+    "polished|crisp_collar": {
+      "value": 0.3,
+      "strength": "weak",
+      "sources": [
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]"
+      ],
+      "note": "Extrapolation from formal shirt/business attire conditions."
+    },
+    "polished|athletic_style": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]"
+      ],
+      "note": "Fleece/softshell jackets rated far less professional than white coat (4.9 vs 3.2 on professionalism); sweatpants used as lower-class counterpart of business suit."
+    },
+    "approachable|casual_style": {
+      "value": 0.2,
+      "strength": "moderate",
+      "sources": [
+        "Peluchette & Karl (2007) The impact of workplace attire on employee self-perceptions. HRDQ. doi:10.1002/hrdq.1208 [V]",
+        "Karl, McIntyre Hall & Peluchette (2013) City employee perceptions of the impact of dress and appearance. Public Personnel Management. doi:10.1177/0091026013495772 [V]",
+        "Morris, Gorham, Cohen & Huffman (1996) Fashion in the classroom: effects of attire on student perceptions of instructors. Communication Education. doi:10.1080/03634529609379043 [V]",
+        "Matsuhisa et al. (2021) Effect of physician attire on patient perceptions of empathy in Japan: quasi-RCT. BMC Family Practice. doi:10.1186/s12875-021-01416-w [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]",
+        "Chatelain (2015) The effect of academics' dress and gender on student perceptions of instructor approachability and likeability. J Higher Education Policy & Management. doi:10.1080/1360080x.2015.1056598 [V]"
+      ],
+      "note": "MIXED: wearers feel friendliest in casual; casual instructors got most positive ratings (1996); Japanese male patients rated casual-dressed physicians more empathic. BUT Furnham 2013 found formal attire rated friendlier/easier to talk to and Chatelain 2015 found no approachability effect. Kept small."
+    },
+    "approachable|formal_style": {
+      "value": -0.2,
+      "strength": "moderate",
+      "sources": [
+        "Karl, McIntyre Hall & Peluchette (2013) City employee perceptions of the impact of dress and appearance. Public Personnel Management. doi:10.1177/0091026013495772 [V]",
+        "Peluchette & Karl (2007) The impact of workplace attire on employee self-perceptions. HRDQ. doi:10.1002/hrdq.1208 [V]",
+        "Matsuhisa et al. (2021) Effect of physician attire on patient perceptions of empathy in Japan: quasi-RCT. BMC Family Practice. doi:10.1186/s12875-021-01416-w [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]"
+      ],
+      "note": "MIXED (see casual_style). Employees feel least friendly in formal business attire; observer evidence inconsistent."
+    },
+    "approachable|visible_logo": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Cannon & Rucker (2018) The dark side of luxury: social costs of luxury consumption. PSPB. doi:10.1177/0146167218796790 [V]",
+        "Garcia, Weaver & Chen (2018) The status signals paradox. Social Psychological & Personality Science. doi:10.1177/1948550618783712 [V]"
+      ],
+      "note": "Displaying luxury/status markers lowers ascribed warmth (4 experiments) and attractiveness as a new friend (6 studies). Logo prominence used as proxy for status display."
+    },
+    "approachable|dark_tone": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]",
+        "Frank & Gilovich (1988) The dark side of self- and social perception: black uniforms and aggression in professional sports. JPSP. doi:10.1037/0022-3514.54.1.74 [V]"
+      ],
+      "note": "Brighter colours more pleasant (Pleasure = .69B + .22S) and less dominance-inducing; black uniforms perceived as more malevolent/aggressive."
+    },
+    "approachable|bright_color": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]"
+      ],
+      "note": "Brightness and saturation both raise pleasure; colour-affect extrapolation."
+    },
+    "approachable|soft_knit": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Ackerman, Nocera & Bargh (2010) Incidental haptic sensations influence social judgments and decisions. Science. doi:10.1126/science.1189993 [V] (Study 1 failed preregistered replication, 2017 [V])"
+      ],
+      "note": "Hard vs soft touch shifted social rigidity judgments; haptic (not visual) and Study 1 failed replication. Very weak; knitwear itself unstudied."
+    },
+    "relaxed|casual_style": {
+      "value": 0.3,
+      "strength": "weak",
+      "sources": [
+        "Karl, McIntyre Hall & Peluchette (2013) City employee perceptions of the impact of dress and appearance. Public Personnel Management. doi:10.1177/0091026013495772 [V]",
+        "Peluchette & Karl (2007) The impact of workplace attire on employee self-perceptions. HRDQ. doi:10.1002/hrdq.1208 [V]"
+      ],
+      "note": "Semantic/extrapolation: casual dress associated with friendliness and creativity (self-perception); 'relaxed' not directly measured."
+    },
+    "relaxed|formal_style": {
+      "value": -0.3,
+      "strength": "weak",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+        "Karl, McIntyre Hall & Peluchette (2013) City employee perceptions of the impact of dress and appearance. Public Personnel Management. doi:10.1177/0091026013495772 [V]"
+      ],
+      "note": "Business suit induces dominance/vigilance cues; employees feel least friendly in formal attire. Extrapolation."
+    },
+    "relaxed|relaxed_fit": {
+      "value": 0.3,
+      "strength": "weak",
+      "sources": [
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]"
+      ],
+      "note": "Near-definitional; loose fit read as less formal/business-like. Extrapolation."
+    },
+    "relaxed|tailored_fit": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]"
+      ],
+      "note": "Antonym extrapolation."
+    },
+    "relaxed|soft_knit": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Ackerman, Nocera & Bargh (2010) Incidental haptic sensations influence social judgments and decisions. Science. doi:10.1126/science.1189993 [V] (Study 1 failed preregistered replication, 2017 [V])"
+      ],
+      "note": "Soft-touch association with less rigidity; very weak."
+    },
+    "relaxed|athletic_style": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Bellezza, Gino & Keinan (2013) The red sneakers effect. J Consumer Research. doi:10.1086/674870 [V]",
+        "Lipson, Stewart & Griffiths (2020) Athleisure: a qualitative investigation of a multi-billion-dollar clothing trend. Body Image. doi:10.1016/j.bodyim.2019.10.009 (PMID 31756602) [V]"
+      ],
+      "note": "Gym clothes used as the prototypical informal/nonconforming outfit; athleisure associated with leisure lifestyle."
+    },
+    "avoid_tryhard|visible_logo": {
+      "value": -0.6,
+      "strength": "strong",
+      "sources": [
+        "Berger & Ward (2010) Subtle signals of inconspicuous consumption. J Consumer Research. doi:10.1086/655445 [V]",
+        "Han, Nunes & Drèze (2010) Signaling status with luxury goods: the role of brand prominence. J Marketing. doi:10.1509/jmkg.74.4.015 [V]",
+        "Garcia, Weaver & Chen (2018) The status signals paradox. Social Psychological & Personality Science. doi:10.1177/1948550618783712 [V]",
+        "Cannon & Rucker (2018) The dark side of luxury: social costs of luxury consumption. PSPB. doi:10.1177/0146167218796790 [V]"
+      ],
+      "note": "Four independent multi-study papers: loud branding is chosen by high need-for-status consumers; insiders prefer subtle signals; status displays reduce liking and costs are driven by impression-management attributions (= 'trying too hard')."
+    },
+    "avoid_tryhard|minimal_design": {
+      "value": 0.3,
+      "strength": "weak",
+      "sources": [
+        "Berger & Ward (2010) Subtle signals of inconspicuous consumption. J Consumer Research. doi:10.1086/655445 [V]",
+        "Han, Nunes & Drèze (2010) Signaling status with luxury goods: the role of brand prominence. J Marketing. doi:10.1509/jmkg.74.4.015 [V]"
+      ],
+      "note": "Extrapolation: quiet/unbranded goods preferred by high cultural-capital consumers; plainness not tested per se."
+    },
+    "avoid_tryhard|formal_style": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Bellezza, Gino & Keinan (2013) The red sneakers effect. J Consumer Research. doi:10.1086/674870 [V]",
+        "Oostrom, Ronay & van Kleef (2020) Signalling effects of nonconforming dress style in personnel selection. Eur J Work & Org Psych. doi:10.1080/1359432x.2020.1813112 [V]"
+      ],
+      "note": "Deliberate under-dressing (nonconformity) can signal autonomy/status in shared-norm settings; but in hiring, low-qualified applicants are punished for nonconforming dress. Small and context-bound."
+    },
+    "avoid_tryhard|glossy_fabric": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Spence (2021) On the questionable appeal of glossy/shiny food packaging. Foods. doi:10.3390/foods10050959 [V]",
+        "Meert, Pandelaere & Patrick (2014) Taking a shine to it: preference for glossy stems from an innate need for water. J Consumer Psychology. doi:10.1016/j.jcps.2013.12.005 [V]"
+      ],
+      "note": "Glossy surfaces are attention-capturing; consumers often dislike overt attention-grabbing (packaging domain). Extrapolation."
+    },
+    "avoid_tryhard|matte_fabric": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Spence (2021) On the questionable appeal of glossy/shiny food packaging. Foods. doi:10.3390/foods10050959 [V]"
+      ],
+      "note": "Matte associated with natural/less attention-seeking (packaging domain). Extrapolation."
+    },
+    "avoid_tryhard|bold_pattern": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Han, Nunes & Drèze (2010) Signaling status with luxury goods: the role of brand prominence. J Marketing. doi:10.1509/jmkg.74.4.015 [V]",
+        "Berger & Ward (2010) Subtle signals of inconspicuous consumption. J Consumer Research. doi:10.1086/655445 [V]"
+      ],
+      "note": "Extrapolation from 'loud' vs 'quiet' signalling; patterns not tested."
+    },
+    "avoid_salesperson|formal_style": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Bellezza, Gino & Keinan (2013) The red sneakers effect. J Consumer Research. doi:10.1086/674870 [V]"
+      ],
+      "note": "No direct study. Conforming, uniform-like formal dress earns less autonomy/status than intentional nonconformity; extrapolated to 'looking like a salesperson'."
+    },
+    "avoid_sloppy|tailored_fit": {
+      "value": 0.4,
+      "strength": "moderate",
+      "sources": [
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]",
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]"
+      ],
+      "note": "Form-fitting outfits judged better than loose; tailored suit rated more positively."
+    },
+    "avoid_sloppy|relaxed_fit": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Rucker, Taber & Harrison (1981) The effect of clothing variation on first impressions of female job applicants. Social Behavior & Personality. doi:10.2224/sbp.1981.9.1.53 [V]"
+      ],
+      "note": "Loose outfits rated less favourably for job interviews."
+    },
+    "avoid_sloppy|casual_style": {
+      "value": -0.4,
+      "strength": "moderate",
+      "sources": [
+        "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]",
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]",
+        "Chatelain (2015) The effect of academics' dress and gender on student perceptions of instructor approachability and likeability. J Higher Education Policy & Management. doi:10.1080/1360080x.2015.1056598 [V]"
+      ],
+      "note": "Casual attire judged less appropriate/ethical, less professional, and (instructors) less likeable than business casual/professional."
+    },
+    "avoid_sloppy|formal_style": {
+      "value": 0.3,
+      "strength": "moderate",
+      "sources": [
+        "Sotak, Serban, Friedman & Palanski (2023) Perceptions of ethicality: the role of attire style, attire appropriateness, and context. J Business Ethics. doi:10.1007/s10551-023-05347-7 [V]",
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]"
+      ],
+      "note": "Mirror of casual evidence; business casual already captures most of the benefit (Sotak 2023)."
+    },
+    "avoid_sloppy|athletic_style": {
+      "value": -0.3,
+      "strength": "moderate",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+        "Xun et al. (2021) Public perceptions of physician attire and professionalism in the US. JAMA Netw Open. doi:10.1001/jamanetworkopen.2021.17779 [V]"
+      ],
+      "note": "Sweatpants signal lower class; fleece/softshell rated less professional."
+    },
+    "avoid_sloppy|crisp_collar": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Furnham, Chan & Wilson (2013) What to wear? Attire and perceived professionalism of dentists and lawyers. J Applied Social Psychology. doi:10.1111/jasp.12136 [V]"
+      ],
+      "note": "Extrapolation from formal shirt conditions."
+    },
+    "sporty|athletic_style": {
+      "value": 0.5,
+      "strength": "moderate",
+      "sources": [
+        "Lipson, Stewart & Griffiths (2020) Athleisure: a qualitative investigation of a multi-billion-dollar clothing trend. Body Image. doi:10.1016/j.bodyim.2019.10.009 (PMID 31756602) [V]",
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]"
+      ],
+      "note": "Athleisure communicates adherence to fit/athletic lifestyle (qualitative, n=20 women); sweatpants used as the casual/athletic pole in experiments. Direction near-definitional."
+    },
+    "sporty|bright_color": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Valdez & Mehrabian (1994) Effects of color on emotions. J Exp Psychol: General. doi:10.1037/0096-3445.123.4.394 (PMID 7996122) [V]",
+        "Palmer, Schloss, Xu & Prado-León (2013) Music-color associations are mediated by emotion. PNAS. doi:10.1073/pnas.1212562110 [V]"
+      ],
+      "note": "Saturated colours raise arousal/energy; extrapolation to sporty image."
+    },
+    "sporty|formal_style": {
+      "value": -0.3,
+      "strength": "weak",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]"
+      ],
+      "note": "Business suit vs sweatpants as opposite poles; antonym extrapolation."
+    },
+    "avoid_cheap|tailored_fit": {
+      "value": 0.5,
+      "strength": "moderate",
+      "sources": [
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]",
+        "Oh, Shafir & Todorov (2019/2020) Economic status cues from clothes affect perceived competence from faces. Nature Human Behaviour. doi:10.1038/s41562-019-0782-4 (preprint abstract doi:10.31234/osf.io/saqnv) [V]"
+      ],
+      "note": "Bespoke suit rated more successful and higher-salaried; 'richer-looking' clothes raise perceived competence across 9 studies even at 129 ms (clothing cues not fit-specific)."
+    },
+    "avoid_cheap|formal_style": {
+      "value": 0.4,
+      "strength": "moderate",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+        "Oh, Shafir & Todorov (2019/2020) Economic status cues from clothes affect perceived competence from faces. Nature Human Behaviour. doi:10.1038/s41562-019-0782-4 (preprint abstract doi:10.31234/osf.io/saqnv) [V]"
+      ],
+      "note": "Business suit functions as an upper-class symbol vs sweatpants; richer-looking upper-body clothing raises competence ratings."
+    },
+    "avoid_cheap|athletic_style": {
+      "value": -0.3,
+      "strength": "moderate",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+        "Bellezza, Gino & Keinan (2013) The red sneakers effect. J Consumer Research. doi:10.1086/674870 [V]"
+      ],
+      "note": "Sweatpants = lower-class symbol; BUT gym clothes in a luxury boutique can raise status inferences when read as intentional nonconformity. Kept moderate-small."
+    },
+    "avoid_cheap|casual_style": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Kraus & Mendes (2014) Sartorial symbols of social class elicit class-consistent behavioral and physiological responses. J Exp Psychol: General. doi:10.1037/xge0000023 [V]",
+        "Oh, Shafir & Todorov (2019/2020) Economic status cues from clothes affect perceived competence from faces. Nature Human Behaviour. doi:10.1038/s41562-019-0782-4 (preprint abstract doi:10.31234/osf.io/saqnv) [V]"
+      ],
+      "note": "Extrapolation from status cue studies."
+    },
+    "avoid_cheap|relaxed_fit": {
+      "value": -0.2,
+      "strength": "weak",
+      "sources": [
+        "Howlett, Pine, Orakçıoğlu & Fletcher (2013) The influence of clothing on first impressions. J Fashion Marketing & Management. doi:10.1108/13612021311305128 [V]"
+      ],
+      "note": "Extrapolation: better fit read as higher status."
+    },
+    "avoid_cheap|glossy_fabric": {
+      "value": 0.2,
+      "strength": "weak",
+      "sources": [
+        "Wang, Liu & Wu (2011) Research on high grade sense of silk garment based on Kansei engineering. Advanced Materials Research. doi:10.4028/www.scientific.net/amr.175-176.859 [V: abstract only; no effect sizes]",
+        "Meert, Pandelaere & Patrick (2014) Taking a shine to it: preference for glossy stems from an innate need for water. J Consumer Psychology. doi:10.1016/j.jcps.2013.12.005 [V]"
+      ],
+      "note": "Chinese Kansei survey: silk's sheen contributes to 'high-grade sense'; glossy generally preferred. Conflicts with avoid_tryhard (flashiness); cheap synthetic shine may reverse this."
+    }
+  }
+}

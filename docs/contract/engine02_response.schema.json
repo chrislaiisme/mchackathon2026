@@ -1,0 +1,422 @@
+{
+  "$defs": {
+    "ConstraintReport": {
+      "properties": {
+        "applied": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Applied",
+          "type": "object"
+        },
+        "relaxed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Relaxed",
+          "type": "array"
+        },
+        "n_catalog": {
+          "default": 0,
+          "title": "N Catalog",
+          "type": "integer"
+        },
+        "n_after_filter": {
+          "default": 0,
+          "title": "N After Filter",
+          "type": "integer"
+        },
+        "grounded_terms": {
+          "items": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": "Grounded Terms",
+          "type": "array"
+        },
+        "exposure_excluded": {
+          "default": 0,
+          "title": "Exposure Excluded",
+          "type": "integer"
+        },
+        "exposure_cap_skipped": {
+          "default": false,
+          "title": "Exposure Cap Skipped",
+          "type": "boolean"
+        },
+        "input_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Input Warnings",
+          "type": "array"
+        }
+      },
+      "title": "ConstraintReport",
+      "type": "object"
+    },
+    "Contribution": {
+      "properties": {
+        "term": {
+          "title": "Term",
+          "type": "string"
+        },
+        "group": {
+          "enum": [
+            "dense",
+            "bm25",
+            "compat",
+            "trend",
+            "design",
+            "penalty",
+            "rerank",
+            "freshness",
+            "critique"
+          ],
+          "title": "Group",
+          "type": "string"
+        },
+        "raw": {
+          "title": "Raw",
+          "type": "number"
+        },
+        "normalized": {
+          "title": "Normalized",
+          "type": "number"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "contribution": {
+          "title": "Contribution",
+          "type": "number"
+        },
+        "need_shares": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Need Shares",
+          "type": "object"
+        },
+        "rank_without": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank Without"
+        },
+        "necessary": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Necessary"
+        },
+        "diff_vs_cutoff": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Diff Vs Cutoff"
+        },
+        "sufficient": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sufficient"
+        },
+        "cited": {
+          "default": false,
+          "title": "Cited",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "term",
+        "group",
+        "raw",
+        "normalized",
+        "weight",
+        "contribution"
+      ],
+      "title": "Contribution",
+      "type": "object"
+    },
+    "RankedItem": {
+      "properties": {
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "image_path": {
+          "title": "Image Path",
+          "type": "string"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "contributions": {
+          "items": {
+            "$ref": "#/$defs/Contribution"
+          },
+          "title": "Contributions",
+          "type": "array"
+        },
+        "need_contributions": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Need Contributions",
+          "type": "object"
+        },
+        "design_scores": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Design Scores",
+          "type": "object"
+        },
+        "margin_vs_cutoff": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Margin Vs Cutoff"
+        },
+        "reason_mode": {
+          "default": "sufficient",
+          "title": "Reason Mode",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "attribute_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attribute Notes",
+          "type": "array"
+        },
+        "explanation": {
+          "default": "",
+          "title": "Explanation",
+          "type": "string"
+        },
+        "explanation_source": {
+          "default": "template",
+          "enum": [
+            "llm",
+            "template"
+          ],
+          "title": "Explanation Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item_id",
+        "rank",
+        "title",
+        "image_path",
+        "score",
+        "contributions"
+      ],
+      "title": "RankedItem",
+      "type": "object"
+    },
+    "RoundMetrics": {
+      "description": "PRD §7 rule-based metrics — computed from item attributes, never from the score.",
+      "properties": {
+        "hard_constraint_satisfaction": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hard Constraint Satisfaction"
+        },
+        "match_policy": {
+          "default": "exact",
+          "title": "Match Policy",
+          "type": "string"
+        },
+        "excluded_value_hits": {
+          "default": 0,
+          "title": "Excluded Value Hits",
+          "type": "integer"
+        },
+        "rejected_item_hits": {
+          "default": 0,
+          "title": "Rejected Item Hits",
+          "type": "integer"
+        },
+        "feedback_violations": {
+          "default": 0,
+          "title": "Feedback Violations",
+          "type": "integer"
+        }
+      },
+      "title": "RoundMetrics",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "contract_version": {
+      "default": "0.1.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round": {
+      "title": "Round",
+      "type": "integer"
+    },
+    "arm": {
+      "title": "Arm",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/RankedItem"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "constraint_report": {
+      "$ref": "#/$defs/ConstraintReport"
+    },
+    "metrics": {
+      "$ref": "#/$defs/RoundMetrics"
+    },
+    "kansei_version": {
+      "title": "Kansei Version",
+      "type": "string"
+    },
+    "encoder": {
+      "title": "Encoder",
+      "type": "string"
+    },
+    "query_embedding": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Query Embedding"
+    },
+    "timings_ms": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Timings Ms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "session_id",
+    "round",
+    "arm",
+    "items",
+    "constraint_report",
+    "metrics",
+    "kansei_version",
+    "encoder"
+  ],
+  "title": "Engine02Response",
+  "type": "object"
+}

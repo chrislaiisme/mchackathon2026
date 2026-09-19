@@ -30,7 +30,7 @@
 | 模組 | 負責 | 核心技術 | 資料夾 |
 |---|---|---|---|
 | ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `backend/engine01_intent/` |
-| ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `backend/engine02_retrieval/` |
+| ENGINE02 | 檢索與排序（**已實作**） | KAGL 商品庫、自寫 BM25 ＋ dense hybrid search、逐項加總的可解釋排序 | `engine02/`（實作）＋ `backend/engine02_retrieval/`（介接層） |
 | ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
 | 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
 | Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
@@ -50,21 +50,26 @@ docs/                    所有 markdown 文件＋架構圖都放這裡
 backend/
   shared/                跨引擎共用的 Pydantic schema — 介面契約的程式碼版本
   engine01_intent/        \
-  engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格
-  engine03_feedback/      /
+  engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格；engine02_retrieval 只是
+  engine03_feedback/      /  ENGINE02 的 HTTP 介接層，實作在 engine02/（見下面）
   generation/
   pinterest/
-  requirements.txt        整個 backend/ 共用一份依賴檔
+  requirements.txt        整個 backend/ 共用一份依賴檔（ENGINE02 例外，見「環境備註」）
+engine02/                ENGINE02 的實作套件，刻意放在 repo 根目錄、不是 backend/ 底下——
+                         內部用 Path(__file__).resolve().parents[1] 解析 data/catalog/...，
+                         套件內部互相 import、14 個測試檔、40+ 支腳本全部假設它在這個位置，
+                         搬進 backend/ 要重寫所有 import 路徑並重新驗證全部測試，
+                         已評估過不值得為了目錄好看冒這個風險（2026-09-19 決定）
 frontend/                React + Vite
 validation/              模擬使用者驗證迴圈腳本
-scripts/                 開發輔助腳本（例如下載資料集）
+scripts/                 開發輔助腳本（例如下載資料集），也有 ENGINE02 的評測／工具腳本
 ```
 
 **不要重新調整或刪除根目錄的 `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`。** 這些是給 Pinterest App 審核用的隱私權政策網站。GitHub Pages 實際上是從獨立的 `gh-pages` 分支發布的（`chrislaiisme.github.io/mchackathon2026/`），所以這些檔案留在 `main` 上目前只是歷史遺留——但沒跟團隊確認前不要刪，也絕對不要沒確認就 push 到 `gh-pages`。
 
 ## P0 現況 — 各模組的 GPT 存取方式
 
-**團隊目前只有 ChatGPT Plus/Pro 訂閱，還沒有人申請 platform.openai.com 的 API key。** 這件事對 ENGINE02（推薦理由生成）、ENGINE03、生成模組（透過 Responses API 呼叫 `image_generation` tool）仍然重要，這幾個都需要 `OPENAI_API_KEY`。如果之後團隊決定要申請：去 platform.openai.com 建帳號、生一把 key、加一筆小額預付款（整場黑客松預估花費遠低於 US$2，抓 US$5–10 就很夠），並且透過線下管道分享——絕對不要寫進 commit 或明碼貼在聊天紀錄裡。把 `.env.example` 複製成 `.env`、本機填好；`.env` 已經被 gitignore。
+**團隊目前只有 ChatGPT Plus/Pro 訂閱，還沒有人申請 platform.openai.com 的 API key。** 這件事對 ENGINE03、生成模組（透過 Responses API 呼叫 `image_generation` tool）仍然重要，這兩個都需要 `OPENAI_API_KEY`。**ENGINE02 是例外**：它的推薦理由預設走樣板句（`engine02/llm.py` 已經處理成「沒有 `OPENAI_API_KEY` 就自動退回樣板，功能完整只是不如 LLM 改寫流暢」），有這把 key 只是錦上添花，不是必要條件。如果之後團隊決定要申請：去 platform.openai.com 建帳號、生一把 key、加一筆小額預付款（整場黑客松預估花費遠低於 US$2，抓 US$5–10 就很夠），並且透過線下管道分享——絕對不要寫進 commit 或明碼貼在聊天紀錄裡。把 `.env.example` 複製成 `.env`、本機填好；`.env` 已經被 gitignore。
 
 **ENGINE01 已經不需要這個了。** 它改用 `codex exec`，細節見下面。不要假設其他引擎也一樣不需要 API key，那是各自負責人要做的決定。
 
@@ -102,20 +107,21 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 ## Git 工作流程
 
 - `main` 是共用分支；目前其他組員的既有內容是 GitHub Pages 網站，維持原樣。
-- 每條線一個分支，目前提議的命名慣例（還沒經過全隊確認）：`engine01-intent`、`engine02-retrieval`、`engine03-feedback`、`frontend`、`pinterest-generation`。
+- 每條線一個分支。實際使用的分支名稱：`engine01-intent`、`engine02-research`（原本提議的命名是 `engine02-retrieval`，ENGINE02 負責人自己開的分支叫這個名字，兩者混用時注意別搞混）；`engine03-feedback`、`frontend`（實際分支 `feature/frontend-user-ui`）、`pinterest-generation` 這幾條命名慣例還沒跟全隊對過。
 - `git worktree` 是規劃文件裡提到的選用技巧（在同一台機器上把多個分支各自簽出到不同資料夾），如果想同時跑多個 agent 在不同分支上會用得到，一般單分支開發不需要。
 - 推到共用遠端或開 PR 一律先跟使用者確認——這會讓其他四位組員都看得到。
 
 ## 負責人對照
 
 - ENGINE01（需求理解）：這個工作目錄的擁有者。
+- ENGINE02（檢索與排序）：分支 `engine02-research` 的負責人，姓名還沒同步進這份文件，確定後補上。
 - Pinterest 板子策展：品諭（依規劃文件）。
-- ENGINE02、ENGINE03、前端、生成模組：文件裡還沒指定，確定後再補上。
+- ENGINE03、前端、生成模組：文件裡還沒指定，確定後再補上。
 
 ## 環境備註
 
 - 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
-- 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。
+- 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。**ENGINE02 是這條規則明文的例外**（2026-09-19 整合進 main 時定案）：它有自己的 `pyproject.toml`（`numpy>=2` 等），用 `uv` 裝、跑自己的獨立服務，不吃 `backend/requirements.txt`。原因：它的依賴（`numpy>=2`、選用的 `models` extra 裡有 torch/transformers 這類重量級 ML 套件）跟原本占位猜測、後來確認用不到而移除的 `faiss-cpu` 會拉 `numpy<2` 產生版本衝突；而且它有 258 項測試是對著這個獨立環境驗證過的，硬塞進同一份 `requirements.txt` 只會製造沒有實質好處的風險。跑法見 [`backend/engine02_retrieval/README.md`](backend/engine02_retrieval/README.md)。
 - 前端：React + Vite，不用 Next.js／SSR——UI 就是輸入框、結果卡片、意圖面板、回饋控制項，用不到一整套 app 框架的複雜度。
 - 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設 `http://localhost:5173`），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
 
@@ -123,5 +129,5 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 - 完整競賽簡報、評分標準、設計討論歷程：[docs/hackathon-brief.md](docs/hackathon-brief.md)
 - PRD 骨架：[docs/prd.md](docs/prd.md)
-- 各模組規格：`docs/engine01-intent.md`、`docs/engine02-retrieval.md`、`docs/engine03-feedback.md`、`docs/frontend.md`、`docs/pinterest-and-generation.md`
+- 各模組規格：`docs/engine01-intent.md`、`docs/engine03-feedback.md`、`docs/frontend.md`、`docs/pinterest-and-generation.md`。ENGINE02 已實作，正式規格在 [`docs/engine02-design.md`](docs/engine02-design.md)／[`docs/engine02-pipeline.md`](docs/engine02-pipeline.md)（`docs/engine02-retrieval.md` 只剩一個指向這兩份的導覽，內容本身已經過時）。
 - 量化驗證設計：[docs/validation-plan.md](docs/validation-plan.md)

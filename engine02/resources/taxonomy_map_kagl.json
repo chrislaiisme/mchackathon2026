@@ -1,0 +1,1892 @@
+{
+ "taxonomy_version": "taxonomy_v1",
+ "source": "kagl",
+ "field": "subcategory (= KAGL category3 / articleType)",
+ "catalogs": [
+  "kagl",
+  "kagl_full",
+  "kagl_polyvore"
+ ],
+ "statuses": {
+  "mapped": "L2 node",
+  "mapped_l1": "generic source label; L1 node only",
+  "collection": "cross-cutting collection only",
+  "non_apparel": "not clothing/accessory/beauty",
+  "unmapped": "clothing-related but no garment type (generic or age-group bucket)"
+ },
+ "entries": {
+  "Accessory Gift Set": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl_full": {
+     "other": 111
+    }
+   },
+   "reason": "領帶+袖扣+口袋巾組合",
+   "implied_coarse": "accessory"
+  },
+  "Baby Dolls": {
+   "node": "intimates.sleepwear",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 16
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Backpacks": {
+   "node": "bags.backpacks",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 55
+    },
+    "kagl_full": {
+     "bag": 724
+    },
+    "kagl_polyvore": {
+     "bag": 55
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Bangle": {
+   "node": "jewelry.bracelets",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "jewelry": 85
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Basketballs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 13
+    }
+   },
+   "reason": "運動器材",
+   "implied_coarse": null
+  },
+  "Bath Robe": {
+   "node": "intimates.robes",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 20
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Beauty Accessory": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Belts": {
+   "node": "accessories.belts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 77
+    },
+    "kagl_full": {
+     "accessory": 810,
+     "top": 3
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Blazers": {
+   "node": "outerwear.blazers",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "outerwear": 8
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Body Lotion": {
+   "node": "beauty.bath_body",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Body Wash and Scrub": {
+   "node": "beauty.bath_body",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 1
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Booties": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 12
+    }
+   },
+   "reason": "KAGL Booties 全是嬰兒鞋（'Infant Boys ... Booties'）；童裝不在目錄受眾",
+   "implied_coarse": null
+  },
+  "Boxers": {
+   "node": "intimates.underwear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 11
+    },
+    "kagl_full": {
+     "other": 52
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bra": {
+   "node": "intimates.bras",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 21
+    },
+    "kagl_full": {
+     "other": 477
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bracelet": {
+   "node": "jewelry.bracelets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "jewelry": 3
+    },
+    "kagl_full": {
+     "jewelry": 66
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Briefs": {
+   "node": "intimates.underwear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 76
+    },
+    "kagl_full": {
+     "other": 849
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Camisoles": {
+   "node": "intimates.undershirts",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 39
+    }
+   },
+   "reason": "KAGL 的 Camisoles 在 Innerwear 下（Jockey 等內搭）",
+   "implied_coarse": "other"
+  },
+  "Capris": {
+   "node": "bottoms.capris",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 16
+    },
+    "kagl_full": {
+     "bottom": 175
+    },
+    "kagl_polyvore": {
+     "bottom": 16
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Caps": {
+   "node": "accessories.hats",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 12
+    },
+    "kagl_full": {
+     "accessory": 283
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Casual Shoes": {
+   "node": "shoes.sneakers",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 325
+    },
+    "kagl_full": {
+     "shoes": 2846
+    },
+    "kagl_polyvore": {
+     "shoes": 325
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Churidar": {
+   "node": "bottoms.ethnic_bottoms",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 1
+    },
+    "kagl_full": {
+     "bottom": 30
+    },
+    "kagl_polyvore": {
+     "bottom": 1
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Clothing Set": {
+   "node": "sets.clothing_sets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 8
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Clutches": {
+   "node": "bags.clutches",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 29
+    },
+    "kagl_full": {
+     "bag": 288
+    },
+    "kagl_polyvore": {
+     "bag": 29
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Compact": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 8
+    },
+    "kagl_full": {
+     "other": 49
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Concealer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 5
+    },
+    "kagl_full": {
+     "other": 11
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Cufflinks": {
+   "node": "jewelry.cufflinks",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "jewelry": 106
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Cushion Covers": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "kagl_full": {
+     "other": 1
+    }
+   },
+   "reason": "居家織品",
+   "implied_coarse": null
+  },
+  "Deodorant": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 53
+    },
+    "kagl_full": {
+     "other": 347
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Dresses": {
+   "node": "dresses.dresses",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "dress": 19
+    },
+    "kagl_full": {
+     "dress": 464
+    },
+    "kagl_polyvore": {
+     "dress": 19
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Duffel Bag": {
+   "node": "bags.travel",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 21
+    },
+    "kagl_full": {
+     "bag": 88
+    },
+    "kagl_polyvore": {
+     "bag": 21
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Dupatta": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 116
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Earrings": {
+   "node": "jewelry.earrings",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "jewelry": 6
+    },
+    "kagl_full": {
+     "jewelry": 417
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Eye Cream": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eyeshadow": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 12
+    },
+    "kagl_full": {
+     "other": 42
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Moisturisers": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 8
+    },
+    "kagl_full": {
+     "other": 61
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Scrub and Exfoliator": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 5
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Serum and Gel": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Wash and Cleanser": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 28
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Flats": {
+   "node": "shoes.flats",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 73
+    },
+    "kagl_full": {
+     "shoes": 500
+    },
+    "kagl_polyvore": {
+     "shoes": 73
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Flip Flops": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 81
+    },
+    "kagl_full": {
+     "shoes": 916
+    },
+    "kagl_polyvore": {
+     "shoes": 81
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Footballs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 8
+    }
+   },
+   "reason": "運動器材",
+   "implied_coarse": null
+  },
+  "Formal Shoes": {
+   "node": "shoes.dress_shoes",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 135
+    },
+    "kagl_full": {
+     "shoes": 637
+    },
+    "kagl_polyvore": {
+     "shoes": 135
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Foundation and Primer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 31
+    },
+    "kagl_full": {
+     "other": 76
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Fragrance Gift Set": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 57
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Free Gifts": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "kagl": {
+     "other": 20
+    },
+    "kagl_full": {
+     "other": 91
+    }
+   },
+   "reason": "贈品桶：手錶、球衣、包混雜，無單一類別",
+   "implied_coarse": null
+  },
+  "Gloves": {
+   "node": "accessories.gloves",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 20
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Hair Accessory": {
+   "node": "accessories.hair",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 1
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Hair Colour": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 19
+    },
+    "kagl_full": {
+     "other": 19
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Handbags": {
+   "node": "bags.handbags",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 362
+    },
+    "kagl_full": {
+     "bag": 1759
+    },
+    "kagl_polyvore": {
+     "bag": 362
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Hat": {
+   "node": "accessories.hats",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 3
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Headband": {
+   "node": "accessories.hair",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 7
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Heels": {
+   "node": "shoes.heels",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 97
+    },
+    "kagl_full": {
+     "shoes": 1323
+    },
+    "kagl_polyvore": {
+     "shoes": 97
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Highlighter and Blush": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 24
+    },
+    "kagl_full": {
+     "other": 53
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Innerwear Vests": {
+   "node": "intimates.undershirts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 7
+    },
+    "kagl_full": {
+     "other": 242
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Ipad": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 1
+    }
+   },
+   "reason": "電子產品",
+   "implied_coarse": null
+  },
+  "Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "outerwear": 36
+    },
+    "kagl_full": {
+     "outerwear": 258
+    },
+    "kagl_polyvore": {
+     "outerwear": 36
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 13
+    },
+    "kagl_full": {
+     "bottom": 608
+    },
+    "kagl_polyvore": {
+     "bottom": 13
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Jeggings": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 2
+    },
+    "kagl_full": {
+     "bottom": 34
+    },
+    "kagl_polyvore": {
+     "bottom": 2
+    }
+   },
+   "reason": "jeggings = 牛仔感內搭褲；歸牛仔褲以對齊 Polyvore 的 jeans 細類",
+   "implied_coarse": "bottom"
+  },
+  "Jewellery Set": {
+   "node": "jewelry.sets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "jewelry": 4
+    },
+    "kagl_full": {
+     "jewelry": 58
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Jumpsuit": {
+   "node": "dresses.jumpsuits_rompers",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "dress": 16
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Kajal and Eyeliner": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 42
+    },
+    "kagl_full": {
+     "other": 102
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Key chain": {
+   "node": "accessories.keychains",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 2
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Kurta Sets": {
+   "node": "sets.ethnic_sets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 4
+    },
+    "kagl_full": {
+     "other": 94
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Kurtas": {
+   "node": "tops.kurtas",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 128
+    },
+    "kagl_full": {
+     "top": 1844
+    },
+    "kagl_polyvore": {
+     "top": 128
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Kurtis": {
+   "node": "tops.kurtas",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 22
+    },
+    "kagl_full": {
+     "top": 234
+    },
+    "kagl_polyvore": {
+     "top": 22
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Laptop Bag": {
+   "node": "bags.work_laptop",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 9
+    },
+    "kagl_full": {
+     "bag": 82
+    },
+    "kagl_polyvore": {
+     "bag": 9
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Leggings": {
+   "node": "bottoms.leggings",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 10
+    },
+    "kagl_full": {
+     "bottom": 177
+    },
+    "kagl_polyvore": {
+     "bottom": 10
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Lehenga Choli": {
+   "node": "dresses.sarees_lehengas",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Lip Care": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 4
+    },
+    "kagl_full": {
+     "other": 16
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Gloss": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 36
+    },
+    "kagl_full": {
+     "other": 144
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Liner": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 17
+    },
+    "kagl_full": {
+     "other": 48
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Plumper": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lipstick": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 65
+    },
+    "kagl_full": {
+     "other": 315
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lounge Pants": {
+   "node": "intimates.loungewear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 61
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lounge Shorts": {
+   "node": "intimates.loungewear",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 34
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lounge Tshirts": {
+   "node": "intimates.loungewear",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Makeup Remover": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Mascara": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 4
+    },
+    "kagl_full": {
+     "other": 13
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Mask and Peel": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 12
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Mens Grooming Kit": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl_full": {
+     "other": 1
+    }
+   },
+   "reason": "男士理容組",
+   "implied_coarse": "other"
+  },
+  "Messenger Bag": {
+   "node": "bags.shoulder_crossbody",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 5
+    },
+    "kagl_full": {
+     "bag": 44
+    },
+    "kagl_polyvore": {
+     "bag": 5
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Mobile Pouch": {
+   "node": "bags.waist_pouches",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 16
+    },
+    "kagl_full": {
+     "bag": 47
+    },
+    "kagl_polyvore": {
+     "bag": 16
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Mufflers": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 3
+    },
+    "kagl_full": {
+     "accessory": 38
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Nail Essentials": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 5
+    },
+    "kagl_full": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Nail Polish": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 68
+    },
+    "kagl_full": {
+     "other": 329
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Necklace and Chains": {
+   "node": "jewelry.necklaces",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "jewelry": 3
+    },
+    "kagl_full": {
+     "jewelry": 160
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Nehru Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "outerwear": 5
+    }
+   },
+   "reason": "Fashionpedia 把 nehru 列為 jacket 的 nickname",
+   "implied_coarse": "outerwear"
+  },
+  "Night suits": {
+   "node": "intimates.sleepwear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 63
+    },
+    "kagl_full": {
+     "other": 141
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Nightdress": {
+   "node": "intimates.sleepwear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 14
+    },
+    "kagl_full": {
+     "other": 189
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Patiala": {
+   "node": "bottoms.ethnic_bottoms",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 21
+    },
+    "kagl_full": {
+     "bottom": 38
+    },
+    "kagl_polyvore": {
+     "bottom": 21
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Pendant": {
+   "node": "jewelry.necklaces",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "jewelry": 6
+    },
+    "kagl_full": {
+     "jewelry": 176
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Perfume and Body Mist": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 56
+    },
+    "kagl_full": {
+     "other": 609
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Rain Jacket": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "outerwear": 18
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Rain Trousers": {
+   "node": "outerwear.rainwear",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "bottom": 2
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Ring": {
+   "node": "jewelry.rings",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "jewelry": 118
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Robe": {
+   "node": "intimates.robes",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Rompers": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "kagl_full": {
+     "top": 12
+    }
+   },
+   "reason": "KAGL Rompers 全是嬰兒包屁衣（標題 'Infant Boys ... Snapsuit Romper'）；童裝不在目錄受眾",
+   "implied_coarse": null
+  },
+  "Rucksacks": {
+   "node": "bags.backpacks",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 2
+    },
+    "kagl_full": {
+     "bag": 11
+    },
+    "kagl_polyvore": {
+     "bag": 2
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Salwar": {
+   "node": "bottoms.ethnic_bottoms",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 19
+    },
+    "kagl_full": {
+     "bottom": 32
+    },
+    "kagl_polyvore": {
+     "bottom": 19
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Salwar and Dupatta": {
+   "node": "sets.ethnic_sets",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "bottom": 7
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Sandals": {
+   "node": "shoes.sandals",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 116
+    },
+    "kagl_full": {
+     "shoes": 897
+    },
+    "kagl_polyvore": {
+     "shoes": 116
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Sarees": {
+   "node": "dresses.sarees_lehengas",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 29
+    },
+    "kagl_full": {
+     "other": 427
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Scarves": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 10
+    },
+    "kagl_full": {
+     "accessory": 118,
+     "other": 1
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Shapewear": {
+   "node": "intimates.shapewear",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "other": 9
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Shirts": {
+   "node": "tops.shirts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 538
+    },
+    "kagl_full": {
+     "top": 3215
+    },
+    "kagl_polyvore": {
+     "top": 538
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Shoe Accessories": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl": {
+     "accessory": 1
+    },
+    "kagl_full": {
+     "accessory": 23
+    }
+   },
+   "reason": "鞋墊/鞋用品",
+   "implied_coarse": "accessory"
+  },
+  "Shoe Laces": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl_full": {
+     "accessory": 1
+    }
+   },
+   "reason": "鞋帶",
+   "implied_coarse": "accessory"
+  },
+  "Shorts": {
+   "node": "bottoms.shorts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 36
+    },
+    "kagl_full": {
+     "bottom": 545,
+     "other": 2
+    },
+    "kagl_polyvore": {
+     "bottom": 36
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Shrug": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "outerwear": 1
+    },
+    "kagl_full": {
+     "outerwear": 6
+    },
+    "kagl_polyvore": {
+     "outerwear": 1
+    }
+   },
+   "reason": "Fashionpedia: bolero 屬 jacket",
+   "implied_coarse": "outerwear"
+  },
+  "Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 17
+    },
+    "kagl_full": {
+     "bottom": 128
+    },
+    "kagl_polyvore": {
+     "bottom": 17
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Socks": {
+   "node": "accessories.socks",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 57
+    },
+    "kagl_full": {
+     "accessory": 686
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sports Sandals": {
+   "node": "shoes.sandals",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 10
+    },
+    "kagl_full": {
+     "shoes": 67
+    },
+    "kagl_polyvore": {
+     "shoes": 10
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Sports Shoes": {
+   "node": "shoes.athletic",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "shoes": 321
+    },
+    "kagl_full": {
+     "shoes": 2036
+    },
+    "kagl_polyvore": {
+     "shoes": 321
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Stockings": {
+   "node": "accessories.hosiery",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 9
+    },
+    "kagl_full": {
+     "accessory": 32
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Stoles": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 90
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sunglasses": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 151
+    },
+    "kagl_full": {
+     "accessory": 1073
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sunscreen": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 25
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Suspenders": {
+   "node": "accessories.belts",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "accessory": 40
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sweaters": {
+   "node": "tops.sweaters",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 33
+    },
+    "kagl_full": {
+     "top": 277
+    },
+    "kagl_polyvore": {
+     "top": 33
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Sweatshirts": {
+   "node": "tops.sweatshirts_hoodies",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 46
+    },
+    "kagl_full": {
+     "top": 285
+    },
+    "kagl_polyvore": {
+     "top": 46
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Swimwear": {
+   "node": "swimwear",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 17
+    }
+   },
+   "reason": "泛用泳裝",
+   "implied_coarse": "other"
+  },
+  "Tablet Sleeve": {
+   "node": "bags.work_laptop",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "bag": 3
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Ties": {
+   "node": "accessories.ties",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 22
+    },
+    "kagl_full": {
+     "accessory": 258,
+     "other": 5
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Ties and Cufflinks": {
+   "node": "accessories.ties",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "jewelry": 2
+    }
+   },
+   "reason": "領帶與袖扣組合，以主件領帶歸類",
+   "implied_coarse": "accessory"
+  },
+  "Tights": {
+   "node": "bottoms.leggings",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "bottom": 9
+    }
+   },
+   "reason": "混雜：Nike 訓練緊身褲與 Happy Socks 褲襪；多數為運動緊身褲",
+   "implied_coarse": "bottom"
+  },
+  "Toner": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 1
+    },
+    "kagl_full": {
+     "other": 5
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Tops": {
+   "node": "tops",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl": {
+     "top": 119
+    },
+    "kagl_full": {
+     "top": 1762
+    },
+    "kagl_polyvore": {
+     "top": 119
+    }
+   },
+   "reason": "KAGL 'Tops' = 女裝泛用上衣，無法再細分",
+   "implied_coarse": "top"
+  },
+  "Track Pants": {
+   "node": "bottoms.track_pants",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 33
+    },
+    "kagl_full": {
+     "bottom": 304
+    },
+    "kagl_polyvore": {
+     "bottom": 33
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Tracksuits": {
+   "node": "sets.tracksuits",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 3
+    },
+    "kagl_full": {
+     "other": 29
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Travel Accessory": {
+   "node": "bags",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl": {
+     "accessory": 4
+    },
+    "kagl_full": {
+     "accessory": 16
+    }
+   },
+   "reason": "標題實為 'United Colors of Benetton ... Bags'",
+   "implied_coarse": "bag"
+  },
+  "Trolley Bag": {
+   "node": "bags.travel",
+   "status": "mapped",
+   "counts": {
+    "kagl_full": {
+     "bag": 3
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Trousers": {
+   "node": "bottoms.trousers",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bottom": 156
+    },
+    "kagl_full": {
+     "bottom": 530
+    },
+    "kagl_polyvore": {
+     "bottom": 156
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Trunk": {
+   "node": "intimates.underwear",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "other": 3
+    },
+    "kagl_full": {
+     "other": 140
+    }
+   },
+   "reason": "標題為 'Boxer ... Trunks'",
+   "implied_coarse": "other"
+  },
+  "Tshirts": {
+   "node": "tops.tshirts",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 550
+    },
+    "kagl_full": {
+     "accessory": 1,
+     "top": 7068
+    },
+    "kagl_polyvore": {
+     "top": 550
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Tunics": {
+   "node": "tops.tunics",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "top": 15
+    },
+    "kagl_full": {
+     "top": 229
+    },
+    "kagl_polyvore": {
+     "top": 15
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Umbrellas": {
+   "node": "accessories.umbrellas",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 4
+    },
+    "kagl_full": {
+     "accessory": 6
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Waist Pouch": {
+   "node": "bags.waist_pouches",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "bag": 1
+    },
+    "kagl_full": {
+     "bag": 17
+    },
+    "kagl_polyvore": {
+     "bag": 1
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Waistcoat": {
+   "node": "outerwear.vests",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "outerwear": 5
+    },
+    "kagl_full": {
+     "outerwear": 15
+    },
+    "kagl_polyvore": {
+     "outerwear": 5
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Wallets": {
+   "node": "bags.wallets",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 110
+    },
+    "kagl_full": {
+     "accessory": 936
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Watches": {
+   "node": "accessories.watches",
+   "status": "mapped",
+   "counts": {
+    "kagl": {
+     "accessory": 294
+    },
+    "kagl_full": {
+     "accessory": 2542
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Water Bottle": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "kagl": {
+     "other": 2
+    },
+    "kagl_full": {
+     "other": 11
+    }
+   },
+   "reason": "運動水壺",
+   "implied_coarse": null
+  },
+  "Wristbands": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "kagl": {
+     "accessory": 1,
+     "other": 1
+    },
+    "kagl_full": {
+     "accessory": 3,
+     "other": 4
+    }
+   },
+   "reason": "運動腕帶（Nike/Puma）",
+   "implied_coarse": "accessory"
+  }
+ }
+}
