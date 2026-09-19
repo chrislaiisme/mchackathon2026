@@ -1081,12 +1081,14 @@ function VirtualYouFigure({
   tryOnOverlays,
   isTryingOn,
   loadingLabel,
+  waitingLabel,
 }: {
   baseImage: string;
   displayImage: string;
   tryOnOverlays: TryOnOverlay[];
   isTryingOn: boolean;
   loadingLabel: string;
+  waitingLabel: string;
 }) {
   return (
     <div className="relative min-h-[320px] overflow-visible">
@@ -1107,8 +1109,21 @@ function VirtualYouFigure({
         ))}
       </div>
       {isTryingOn && (
-        <div className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center text-sm leading-6 text-muted-foreground">
-          {loadingLabel}
+        <div
+          className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex max-w-full flex-col items-center rounded-full border border-background/70 bg-background/80 px-5 py-4 text-center shadow-[0_10px_30px_rgba(26,22,35,0.12)] backdrop-blur-sm">
+            <span
+              className="mb-2 size-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary"
+              aria-hidden="true"
+            />
+            <p className="max-w-full text-sm font-semibold uppercase tracking-[0.12em] text-foreground sm:text-base">
+              {loadingLabel}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm">{waitingLabel}</p>
+          </div>
         </div>
       )}
     </div>
@@ -1225,6 +1240,7 @@ function CreateYouSection({
           tryOnOverlays={activeTryOnOverlays}
           isTryingOn={tryOnStatus === "generating"}
           loadingLabel={t.virtualYou.tryingItOn}
+          waitingLabel={t.virtualYou.tryOnWait}
         />
       ) : (
         <div className="relative min-h-[320px] overflow-visible">
