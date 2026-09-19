@@ -1,0 +1,115 @@
+{
+ "setup": {
+  "catalog": "data/catalog/kagl",
+  "encoder": "hash-256",
+  "queries": 8,
+  "common": 0.1
+ },
+ "per_wording": {
+  "coverage": {
+   "lexical": 1.0,
+   "paraphrase": 0.6768
+  },
+  "content_cov": {
+   "lexical": 1.0,
+   "paraphrase": 0.6768
+  },
+  "bm25_max_z": {
+   "lexical": 6.0051,
+   "paraphrase": 15.9408
+  },
+  "share_docs_touched": {
+   "lexical": 0.5115,
+   "paraphrase": 0.0523
+  },
+  "median_df_share": {
+   "lexical": 0.1038,
+   "paraphrase": 0.0014
+  },
+  "gold_in_bm25_top50": {
+   "lexical": 1.0,
+   "paraphrase": 0.125
+  },
+  "ndcg5_dense": {
+   "lexical": 0.75,
+   "paraphrase": 0.0
+  },
+  "ndcg5_hybrid_rrf": {
+   "lexical": 0.6786,
+   "paraphrase": 0.086
+  },
+  "ndcg5_full_zclip3": {
+   "lexical": 0.695,
+   "paraphrase": 0.0815
+  },
+  "ndcg5_full_adaptive_bm25": {
+   "lexical": 0.7235,
+   "paraphrase": 0.0401
+  },
+  "hybrid_cost": {
+   "lexical": 0.055,
+   "paraphrase": -0.0815
+  }
+ },
+ "gates": {
+  "coverage": {
+   "threshold_from_dev": 0.605,
+   "dev_ndcg5": 0.3506,
+   "test_ndcg5": 0.4202,
+   "corr_with_hurt": -0.033
+  },
+  "content_cov": {
+   "threshold_from_dev": 0.605,
+   "dev_ndcg5": 0.3506,
+   "test_ndcg5": 0.4202,
+   "corr_with_hurt": -0.033
+  },
+  "bm25_max_z": {
+   "threshold_from_dev": 4.2259,
+   "dev_ndcg5": 0.4112,
+   "test_ndcg5": 0.4259,
+   "corr_with_hurt": -0.079
+  },
+  "share_docs_touched": {
+   "threshold_from_dev": 0.0524,
+   "dev_ndcg5": 0.284,
+   "test_ndcg5": 0.4202,
+   "corr_with_hurt": 0.393
+  },
+  "median_df_share": {
+   "threshold_from_dev": 0.0012,
+   "dev_ndcg5": 0.284,
+   "test_ndcg5": 0.4202,
+   "corr_with_hurt": 0.317
+  },
+  "gold_in_bm25_top50": {
+   "threshold_from_dev": 0.0,
+   "dev_ndcg5": 0.3506,
+   "test_ndcg5": 0.4259,
+   "corr_with_hurt": 0.073
+  }
+ },
+ "baselines": [
+  {
+   "split": "all",
+   "always_hybrid": 0.3882,
+   "always_dense": 0.375,
+   "shipped_gate": 0.3818,
+   "oracle": 0.4205
+  },
+  {
+   "split": "dev",
+   "always_hybrid": 0.3506,
+   "always_dense": 0.3355,
+   "shipped_gate": 0.3127,
+   "oracle": 0.4112
+  },
+  {
+   "split": "test",
+   "always_hybrid": 0.4259,
+   "always_dense": 0.4145,
+   "shipped_gate": 0.4509,
+   "oracle": 0.4297
+  }
+ ]
+}

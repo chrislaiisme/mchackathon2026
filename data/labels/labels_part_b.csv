@@ -1,0 +1,211 @@
+task_id,element,item_id,label,confidence,note
+1,crisp_collar,8605,1,high,
+3,visible_logo,47039,0,high,
+5,relaxed_fit,8851,0,low,regular fit dress shirt
+7,bold_pattern,53702,0,low,croc embossed texture only
+9,relaxed_fit,53802,0,low,regular fit tee
+11,crisp_collar,53810,0,high,
+13,relaxed_fit,36237,1,low,loose A-line tunic
+15,relaxed_fit,35998,na,low,flat product shot kids tee
+17,structured_shoulders,14922,0,high,
+19,relaxed_fit,14995,0,low,regular fit zip sweater
+21,visible_logo,8527,0,high,
+23,crisp_collar,15969,1,high,
+25,structured_shoulders,16130,0,high,
+27,structured_shoulders,16488,0,high,
+29,structured_shoulders,53785,0,low,casual shirt unpadded shoulders
+31,bold_pattern,16312,1,high,
+33,crisp_collar,26359,0,high,
+35,soft_knit,16404,0,high,
+37,bold_pattern,53981,0,high,
+39,visible_logo,14756,0,high,
+41,visible_logo,26591,1,high,
+43,bold_pattern,2679,1,high,
+45,soft_knit,16442,0,high,
+47,visible_logo,15029,0,high,
+49,glossy_fabric,29829,0,high,
+51,relaxed_fit,36217,na,low,flat product shot shorts
+53,soft_knit,16272,0,high,
+55,glossy_fabric,14640,0,high,
+57,glossy_fabric,36133,1,low,shiny synthetic leather metallic swoosh
+59,bold_pattern,53755,0,high,
+61,bold_pattern,29167,0,low,small polka dot print
+63,soft_knit,47035,0,high,
+65,visible_logo,35809,0,high,
+67,visible_logo,45752,0,high,
+69,structured_shoulders,14750,0,low,dress shirt not tailored jacket
+71,visible_logo,53773,0,high,
+73,structured_shoulders,16138,0,high,
+75,soft_knit,8558,0,high,
+77,structured_shoulders,45782,0,high,
+79,crisp_collar,35877,0,high,
+81,glossy_fabric,36141,0,high,
+83,soft_knit,16208,0,high,
+85,visible_logo,4720,1,low,text lettering within floral graphic
+87,glossy_fabric,16456,0,high,
+89,crisp_collar,36314,0,high,
+91,soft_knit,5559,0,high,
+93,bold_pattern,26804,1,low,narrow but high-contrast stripes
+95,relaxed_fit,8859,0,low,regular fit dress shirt
+97,crisp_collar,26873,0,high,
+99,glossy_fabric,26720,0,high,
+101,visible_logo,15064,0,high,
+103,structured_shoulders,14738,0,low,dress shirt not tailored jacket
+105,bold_pattern,54115,1,low,snakeskin print on straps
+107,crisp_collar,14783,1,high,
+109,glossy_fabric,26693,0,low,nylon with slight sheen
+111,relaxed_fit,16286,0,low,regular fit tee
+113,soft_knit,16200,0,low,jersey polo no knit texture
+115,glossy_fabric,26600,0,low,mesh with small synthetic overlays
+117,relaxed_fit,26485,0,low,regular fit tee
+119,relaxed_fit,26807,0,high,
+121,crisp_collar,29625,1,high,
+123,crisp_collar,16324,0,high,
+125,soft_knit,29553,0,low,pique polo texture not visible
+127,relaxed_fit,36315,na,low,flat product shot kids tee
+129,soft_knit,16344,0,high,
+131,visible_logo,8552,1,low,medium-size chest applique graphic
+133,soft_knit,35891,0,high,
+135,structured_shoulders,16326,0,low,casual shirt unpadded shoulders
+137,visible_logo,29231,0,high,
+139,relaxed_fit,15994,0,low,regular fit shirt
+141,crisp_collar,8720,1,high,
+143,structured_shoulders,15984,0,low,casual shirt unpadded shoulders
+145,bold_pattern,29667,1,high,
+147,relaxed_fit,26805,0,high,
+149,soft_knit,26478,0,high,
+151,glossy_fabric,5377,1,low,glossy synthetic cycling shoe upper
+153,relaxed_fit,15967,0,low,regular fit shirt
+155,soft_knit,26795,0,high,
+157,crisp_collar,47035,0,high,
+159,bold_pattern,35820,0,high,
+161,relaxed_fit,8842,0,low,straight regular fit chinos
+163,glossy_fabric,36315,0,high,
+165,bold_pattern,47128,1,high,
+167,bold_pattern,15079,1,low,tie-dye print
+169,soft_knit,26843,0,high,
+171,bold_pattern,53796,1,high,
+173,crisp_collar,53770,0,high,
+175,bold_pattern,45836,0,low,small tonal leaf allover print
+177,soft_knit,26489,0,high,
+179,visible_logo,47074,0,high,
+181,bold_pattern,47359,0,high,
+183,visible_logo,26419,0,high,
+185,glossy_fabric,8982,0,low,smooth leather slight sheen
+187,structured_shoulders,14785,na,low,folded shirt shoulders hidden
+189,visible_logo,36062,1,high,
+191,bold_pattern,26594,0,low,brand stripes not a pattern
+193,soft_knit,29616,0,high,
+195,crisp_collar,2680,0,high,
+197,visible_logo,8497,0,high,
+199,structured_shoulders,14673,0,low,casual shirt unpadded shoulders
+201,visible_logo,16150,0,high,
+203,bold_pattern,26904,0,high,
+205,crisp_collar,8824,1,high,
+207,bold_pattern,26705,0,high,
+209,visible_logo,45954,0,high,
+211,structured_shoulders,26725,0,high,
+213,relaxed_fit,16351,0,low,regular fit dress shirt
+215,glossy_fabric,26468,0,high,
+217,crisp_collar,8730,1,high,
+219,relaxed_fit,26813,na,high,folded flat-lay no silhouette
+221,bold_pattern,36294,0,low,embellishments not a pattern
+223,visible_logo,45591,0,high,
+225,structured_shoulders,29282,0,low,casual shirt unpadded shoulders
+227,structured_shoulders,26502,0,high,
+229,visible_logo,53710,0,high,
+231,visible_logo,16509,0,high,
+233,glossy_fabric,47058,0,high,
+235,bold_pattern,5569,0,high,
+237,crisp_collar,47029,0,low,mandarin band collar
+239,relaxed_fit,14940,1,low,loose cargo shorts
+241,visible_logo,16403,0,high,
+243,visible_logo,29742,0,high,
+245,crisp_collar,14914,0,high,
+247,structured_shoulders,16282,0,high,
+249,soft_knit,29294,0,high,
+251,crisp_collar,14672,1,high,
+253,glossy_fabric,47207,1,low,polished embossed leather sheen
+255,glossy_fabric,8792,0,high,
+257,relaxed_fit,29813,0,low,regular fit shirt
+259,soft_knit,35992,0,high,
+261,crisp_collar,29187,0,high,
+263,relaxed_fit,15021,1,low,roomy windbreaker
+265,crisp_collar,2970,0,high,
+267,structured_shoulders,8485,na,low,strappy dress no shoulder line
+269,bold_pattern,53776,1,low,large logo print on one leg
+271,glossy_fabric,26534,0,low,semi-matte leather
+273,glossy_fabric,26908,0,high,
+275,structured_shoulders,5560,0,low,sleeveless padded vest
+277,relaxed_fit,16051,0,low,regular fit shirt
+279,relaxed_fit,29653,0,low,regular fit dress shirt
+281,soft_knit,16488,0,high,
+283,bold_pattern,8774,1,low,medium-scale check
+285,crisp_collar,46992,0,high,
+287,crisp_collar,45962,0,high,
+289,visible_logo,47447,0,high,
+291,soft_knit,53771,0,high,
+293,visible_logo,15970,0,high,
+295,structured_shoulders,16034,0,low,casual shirt unpadded shoulders
+297,structured_shoulders,35892,0,high,
+299,soft_knit,16443,0,high,
+301,visible_logo,2656,0,high,
+303,bold_pattern,55631,0,low,patchwork applique not bold print
+305,crisp_collar,14719,0,high,
+307,relaxed_fit,1625,0,low,regular fit tee
+309,relaxed_fit,2689,0,high,
+311,glossy_fabric,54020,0,high,
+313,structured_shoulders,15006,0,high,
+315,crisp_collar,14787,1,high,
+317,structured_shoulders,15994,0,low,casual shirt unpadded shoulders
+319,soft_knit,53778,0,high,
+321,structured_shoulders,8891,0,low,dress shirt not tailored jacket
+323,crisp_collar,15981,1,high,
+325,visible_logo,47374,0,high,
+327,relaxed_fit,8949,0,low,straight regular fit trousers
+329,soft_knit,8884,0,high,
+331,soft_knit,45441,0,low,polo knit texture not visible
+333,visible_logo,5351,0,high,
+335,glossy_fabric,3596,0,high,
+337,soft_knit,53788,0,high,
+339,soft_knit,53836,0,high,
+341,crisp_collar,16044,1,high,
+343,soft_knit,35970,0,high,
+345,structured_shoulders,15090,0,low,casual shirt unpadded shoulders
+347,relaxed_fit,8840,0,low,straight regular fit cargo
+349,structured_shoulders,16400,0,low,casual shirt unpadded shoulders
+351,bold_pattern,45577,0,high,
+353,crisp_collar,8803,1,high,
+355,crisp_collar,35985,0,high,
+357,crisp_collar,1616,0,high,
+359,visible_logo,14644,0,high,
+361,visible_logo,29571,0,high,
+363,glossy_fabric,4569,1,low,patent leather toe section only
+365,glossy_fabric,26813,0,high,
+367,soft_knit,8831,0,high,
+369,soft_knit,16136,0,high,
+371,structured_shoulders,35896,0,high,
+373,structured_shoulders,53824,0,low,sleeveless tunic no shoulder structure
+375,relaxed_fit,26883,0,low,regular to fitted tee
+377,soft_knit,9061,0,high,
+379,crisp_collar,26474,0,high,
+381,glossy_fabric,54087,0,low,slight sheen possibly viscose
+383,bold_pattern,29674,0,high,
+385,structured_shoulders,26497,0,high,
+387,relaxed_fit,36240,0,low,straight shift not oversized
+389,glossy_fabric,26496,0,high,
+391,soft_knit,26891,0,high,
+393,visible_logo,14934,0,high,
+395,glossy_fabric,45757,0,low,possible slight silk sheen
+397,relaxed_fit,14623,0,low,regular fit shirt
+399,glossy_fabric,47169,0,high,
+401,soft_knit,26723,0,high,
+403,visible_logo,5381,0,high,
+405,relaxed_fit,16423,0,low,regular fit tee
+407,relaxed_fit,16026,0,low,regular fit shirt
+409,relaxed_fit,45949,1,high,
+411,soft_knit,16350,0,high,
+413,relaxed_fit,2982,0,low,regular fit tank
+415,visible_logo,16425,1,high,
+417,bold_pattern,29575,0,high,
+419,bold_pattern,26401,1,high,

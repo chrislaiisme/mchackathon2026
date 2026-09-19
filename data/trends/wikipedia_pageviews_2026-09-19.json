@@ -1,0 +1,310 @@
+{
+ "source": "live:wikipedia_pageviews",
+ "as_of": "2026-09-19",
+ "catalog": null,
+ "notes": [
+  "來源：Wikimedia Pageviews REST API（en.wikipedia，agent=user，過濾爬蟲），無金鑰、無登入",
+  "HTTP 統計：{200: 19}；匿名速率上限 10 requests/minute，本腳本每次呼叫間隔 6.5s",
+  "資料本身為 CC0（Wikimedia 分析資料），可存檔、可重現",
+  "score = 最近 7 日日均相對前段日均的 z 分數；df = 最近 7 日總瀏覽數",
+  "**注意力 ≠ 購買意圖**：條目瀏覽混入新聞、學術、同名事物（見每列 risk）"
+ ],
+ "terms": [
+  {
+   "term": "satin",
+   "score": 1.2599,
+   "df": 2457
+  },
+  {
+   "term": "knitwear",
+   "score": 1.0022,
+   "df": 1780
+  },
+  {
+   "term": "miniskirt",
+   "score": 0.7986,
+   "df": 2020
+  },
+  {
+   "term": "trench coat",
+   "score": 0.5811,
+   "df": 2379
+  },
+  {
+   "term": "turtleneck",
+   "score": 0.5178,
+   "df": 581
+  },
+  {
+   "term": "quiet luxury",
+   "score": 0.4031,
+   "df": 804
+  },
+  {
+   "term": "jeans",
+   "score": 0.2569,
+   "df": 3539
+  },
+  {
+   "term": "corduroy",
+   "score": 0.1046,
+   "df": 2456
+  },
+  {
+   "term": "athleisure",
+   "score": -0.1419,
+   "df": 1328
+  },
+  {
+   "term": "sneakers",
+   "score": -0.1449,
+   "df": 63
+  },
+  {
+   "term": "hoodie",
+   "score": -0.1814,
+   "df": 1622
+  },
+  {
+   "term": "tailoring",
+   "score": -0.2158,
+   "df": 784
+  },
+  {
+   "term": "loafers",
+   "score": -0.2217,
+   "df": 54
+  },
+  {
+   "term": "blazer",
+   "score": -0.4037,
+   "df": 1181
+  },
+  {
+   "term": "cardigan",
+   "score": -0.6396,
+   "df": 611
+  },
+  {
+   "term": "cargo pants",
+   "score": -0.6439,
+   "df": 607
+  },
+  {
+   "term": "pleated skirt",
+   "score": -0.7746,
+   "df": 16
+  },
+  {
+   "term": "crop top",
+   "score": -0.9564,
+   "df": 1461
+  },
+  {
+   "term": "linen",
+   "score": -1.0976,
+   "df": 4410
+  }
+ ],
+ "affects_score": false,
+ "not_a_ranking_term": "這不是分數項。docs/engine02-design.md §3.15 量過 28 組「趨勢關鍵字進排序」，全部變差（NDCG@5 −0.16～−0.38）。這份檔案只餵 trends.trend_badges() 的展示標籤，以及後台需求面板。要進排序必須先有另一套帶時間軸的標準答案（§3.26）。",
+ "fetched_at": "2026-09-19T02:13:57+00:00",
+ "user_agent": "mchackathon2026-trend-sidecar/0.1 (academic hackathon, non-commercial; +https://github.com/Evan-Jiamg; ben940815@gmail.com)",
+ "login_used": false,
+ "endpoint": "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/{proj}/all-access/user/{article}/daily/{start}/{end}",
+ "official": true,
+ "rate_limit": "10/min anon",
+ "window": "2026-06-20 .. 2026-09-18",
+ "per_term": [
+  {
+   "term": "trench coat",
+   "article": "Trench_coat",
+   "kind": "category",
+   "target": "outerwear.coats",
+   "risk": "電影／軍事新聞會拉高，與服飾需求無關",
+   "views_7d": 2379,
+   "baseline_mean_daily": 306.5,
+   "z_7d_vs_prior": 0.5811
+  },
+  {
+   "term": "blazer",
+   "article": "Blazer",
+   "kind": "category",
+   "target": "outerwear.blazers",
+   "risk": "英式學校制服語意，非時尚語意",
+   "views_7d": 1181,
+   "baseline_mean_daily": 189.9,
+   "z_7d_vs_prior": -0.4037
+  },
+  {
+   "term": "cardigan",
+   "article": "Cardigan,_Ceredigion",
+   "kind": "category",
+   "target": "tops.cardigans",
+   "risk": "同名地名（威爾斯），這一列註定被污染，留著當反例",
+   "views_7d": 611,
+   "baseline_mean_daily": 100.8,
+   "z_7d_vs_prior": -0.6396
+  },
+  {
+   "term": "hoodie",
+   "article": "Hoodie",
+   "kind": "category",
+   "target": "tops.sweatshirts_hoodies",
+   "risk": "社會新聞用語",
+   "views_7d": 1622,
+   "baseline_mean_daily": 279.2,
+   "z_7d_vs_prior": -0.1814
+  },
+  {
+   "term": "jeans",
+   "article": "Jeans",
+   "kind": "category",
+   "target": "bottoms.jeans",
+   "risk": "—",
+   "views_7d": 3539,
+   "baseline_mean_daily": 488.2,
+   "z_7d_vs_prior": 0.2569
+  },
+  {
+   "term": "sneakers",
+   "article": "Sneakers_(footwear)",
+   "kind": "category",
+   "target": "shoes.sneakers",
+   "risk": "球鞋轉售新聞 ≠ 服飾需求",
+   "views_7d": 63,
+   "baseline_mean_daily": 9.5,
+   "z_7d_vs_prior": -0.1449
+  },
+  {
+   "term": "loafers",
+   "article": "Loafer",
+   "kind": "category",
+   "target": "shoes.loafers",
+   "risk": "`Loafer_(shoe)` 是 404（2026-09-19 實測）；條目名要一個一個驗，猜不得",
+   "views_7d": 54,
+   "baseline_mean_daily": 11.8,
+   "z_7d_vs_prior": -0.2217
+  },
+  {
+   "term": "miniskirt",
+   "article": "Miniskirt",
+   "kind": "attr",
+   "target": "length=mini",
+   "risk": "—",
+   "views_7d": 2020,
+   "baseline_mean_daily": 267.1,
+   "z_7d_vs_prior": 0.7986
+  },
+  {
+   "term": "crop top",
+   "article": "Crop_top",
+   "kind": "attr",
+   "target": "length=cropped",
+   "risk": "—",
+   "views_7d": 1461,
+   "baseline_mean_daily": 244.9,
+   "z_7d_vs_prior": -0.9564
+  },
+  {
+   "term": "turtleneck",
+   "article": "Polo_neck",
+   "kind": "attr",
+   "target": "neckline=turtle",
+   "risk": "英式條目名 Polo neck，字面與 tops.polos 撞名",
+   "views_7d": 581,
+   "baseline_mean_daily": 76.7,
+   "z_7d_vs_prior": 0.5178
+  },
+  {
+   "term": "linen",
+   "article": "Linen",
+   "kind": "element",
+   "target": "matte_fabric",
+   "risk": "材質→感性軸是有損投影：亞麻≠所有霧面",
+   "views_7d": 4410,
+   "baseline_mean_daily": 706.7,
+   "z_7d_vs_prior": -1.0976
+  },
+  {
+   "term": "corduroy",
+   "article": "Corduroy",
+   "kind": "element",
+   "target": "matte_fabric",
+   "risk": "同上",
+   "views_7d": 2456,
+   "baseline_mean_daily": 317.7,
+   "z_7d_vs_prior": 0.1046
+  },
+  {
+   "term": "satin",
+   "article": "Satin",
+   "kind": "element",
+   "target": "glossy_fabric",
+   "risk": "同上",
+   "views_7d": 2457,
+   "baseline_mean_daily": 310.5,
+   "z_7d_vs_prior": 1.2599
+  },
+  {
+   "term": "athleisure",
+   "article": "Athleisure",
+   "kind": "element",
+   "target": "athletic_style",
+   "risk": "—",
+   "views_7d": 1328,
+   "baseline_mean_daily": 205.0,
+   "z_7d_vs_prior": -0.1419
+  },
+  {
+   "term": "quiet luxury",
+   "article": "Quiet_luxury",
+   "kind": "element",
+   "target": "minimal_design",
+   "risk": "媒體造詞，語意逐季漂移；投影到 minimal_design 是我們的判斷不是資料的",
+   "views_7d": 804,
+   "baseline_mean_daily": 106.6,
+   "z_7d_vs_prior": 0.4031
+  },
+  {
+   "term": "tailoring",
+   "article": "Bespoke_tailoring",
+   "kind": "element",
+   "target": "tailored_fit",
+   "risk": "條目談工藝史，不談當季",
+   "views_7d": 784,
+   "baseline_mean_daily": 116.8,
+   "z_7d_vs_prior": -0.2158
+  },
+  {
+   "term": "knitwear",
+   "article": "Knitting",
+   "kind": "attr",
+   "target": "construction=knit",
+   "risk": "Knitting 條目是手工藝，不是成衣需求",
+   "views_7d": 1780,
+   "baseline_mean_daily": 220.6,
+   "z_7d_vs_prior": 1.0022
+  },
+  {
+   "term": "cargo pants",
+   "article": "Cargo_pants",
+   "kind": "category",
+   "target": "bottoms.trousers",
+   "risk": "只落到 trousers，cargo 這個設計細節在我們的封閉詞彙裡沒有位置",
+   "views_7d": 607,
+   "baseline_mean_daily": 98.0,
+   "z_7d_vs_prior": -0.6439
+  },
+  {
+   "term": "pleated skirt",
+   "article": "Pleated_skirt",
+   "kind": "category",
+   "target": "bottoms.skirts",
+   "risk": "同上，pleat 無槽位",
+   "views_7d": 16,
+   "baseline_mean_daily": 4.4,
+   "z_7d_vs_prior": -0.7746
+  }
+ ]
+}

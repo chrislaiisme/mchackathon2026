@@ -1,0 +1,22 @@
+element,scorer,auroc,ci95_lo,ci95_hi,n_pos,n_neg
+bold_pattern,fashion-clip:descriptor (PRD),0.92875,0.8493414998849781,0.9864340180516651,20,40
+bold_pattern,fashion-clip:random_words,0.515,0.35551800951446044,0.686113220742976,20,40
+bold_pattern,fashion-clip:antonym+DN,0.9,0.8207037037037037,0.9647519753178321,20,40
+crisp_collar,fashion-clip:descriptor (PRD),1.0,1.0,1.0,27,33
+crisp_collar,fashion-clip:random_words,0.13468013468013468,0.05227885922630083,0.23815350389321407,27,33
+crisp_collar,fashion-clip:antonym+DN,0.9854096520763187,0.9580650914890045,1.0,27,33
+glossy_fabric,fashion-clip:descriptor (PRD),0.7777777777777778,0.5956577266922094,0.9236363636363636,9,51
+glossy_fabric,fashion-clip:random_words,0.4466230936819172,0.2653061224489796,0.6405475397706251,9,51
+glossy_fabric,fashion-clip:antonym+DN,0.7167755991285403,0.49163671150278293,0.9090909090909091,9,51
+relaxed_fit,fashion-clip:descriptor (PRD),0.7629179331306991,0.4895486111111111,1.0,7,47
+relaxed_fit,fashion-clip:random_words,0.5896656534954408,0.28540584415584414,0.8735459183673469,7,47
+relaxed_fit,fashion-clip:antonym+DN,0.878419452887538,0.6925925925925925,1.0,7,47
+soft_knit,fashion-clip:descriptor (PRD),,,,0,60
+soft_knit,fashion-clip:random_words,,,,0,60
+soft_knit,fashion-clip:antonym+DN,,,,0,60
+structured_shoulders,fashion-clip:descriptor (PRD),,,,0,56
+structured_shoulders,fashion-clip:random_words,,,,0,56
+structured_shoulders,fashion-clip:antonym+DN,,,,0,56
+visible_logo,fashion-clip:descriptor (PRD),0.8331053351573188,0.70211708172147,0.935707280195417,17,43
+visible_logo,fashion-clip:random_words,0.5362517099863201,0.3594745710784314,0.7034922750904777,17,43
+visible_logo,fashion-clip:antonym+DN,0.9699042407660738,0.9239089673913043,0.9983654354433725,17,43

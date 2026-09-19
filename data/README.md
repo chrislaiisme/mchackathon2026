@@ -6,13 +6,15 @@
 **跑系統需要的東西都可以從公開來源重建**，不需要 Hugging Face 帳號、不需要 GPU
 （`Marqo/KAGL` 與 `Marqo/polyvore` 經 HF API 確認 `gated: false`、`private: false`）。
 
-但**有三樣東西重建不出來**，不要以為照著跑就會拿到完整的 `data/`：
+**有三樣東西重建不出來，所以已經直接附在 repo 裡**（約 4 MB），
+不用跟任何人要，`git clone` 就有：
 
 | 重建不出來的 | 為什麼 | 影響 |
 |---|---|---|
-| `labels/*.csv` | **人工標註**（210 題 ×2 份，`note` 欄是人寫的，例如「large Puma formstrip on side」） | 只影響 `eval_human_agreement.py`、`eval_visual_labels.py` 這兩支評測。**跑系統不需要** |
-| `catalog/*/vlm_attributes_*.parquet` | 需要 GPU 跑 Qwen3-VL-8B | 只影響 `concept_mode=vlm/hybrid`。預設的 `antonym` 模式不需要 |
-| `catalog/kagl_polyvore_filled/` | 要先 `merge_catalogs.py` 再跑 `eval_classify.py fill` 訓練屬性分類器。**我沒有在無 GPU 環境驗證過這條** | 只影響屬性補值的對照實驗。服務**預設用 `data/catalog/kagl`**，不需要它 |
+| `labels/**` ✅**已附上** | **人工標註**（210 題 ×2 份，`note` 欄是人寫的，例如「large Puma formstrip on side」） | `eval_human_agreement.py`、`eval_visual_labels.py` 的基準 |
+| `catalog/kagl/vlm_attributes_*.parquet` ✅**已附上** | 需要 GPU 跑 Qwen3-VL-8B | `concept_mode=vlm/hybrid` 需要；預設 `antonym` 不需要 |
+| `trends/history/**` ✅**已附上** | Pinterest 那半需要 token，別人拿不到 | 預測回測的輸入 |
+| `catalog/kagl_polyvore_filled/` ❌**沒附**（太大） | 要 `merge_catalogs.py` + `eval_classify.py fill` 訓練分類器，且未在無 GPU 環境驗證 | 只影響屬性補值對照實驗。服務**預設用 `data/catalog/kagl`** |
 
 換句話說：**demo 與開發只需要下面的步驟 1**，其餘都是選用的。
 
@@ -116,3 +118,10 @@ Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore�
 ---
 
 demo 當天使用的電腦需要事先把 demo 用的商品庫與 `index/` 複製過去，不要現場重算。
+
+---
+
+## 哪個數字出自哪個檔案
+
+見 [`reports/README.md`](../reports/README.md)——每個宣稱對到一個可以打開來看的檔案，
+並且誠實列出目前**還沒有**證據檔的宣稱。

@@ -1,0 +1,11 @@
+qid,arm,rejected,n_items,violations,violation_rate,empty,relaxed,honoured,ndcg5
+q6,full_zclip3_noneg,yellow,5,1,0.2,0,,0,0.9504088699980561
+q6,full_zclip3,yellow,5,0,0.0,0,,1,0.9504088699980561
+q191,full_zclip3_noneg,blue,5,1,0.2,0,,0,0.4109291050032111
+q191,full_zclip3,blue,5,0,0.0,0,,1,0.5535403758653302
+q243,full_zclip3_noneg,grey,5,1,0.2,0,,0,1.0
+q243,full_zclip3,grey,5,0,0.0,0,,1,1.0
+q179,full_zclip3_noneg,purple,5,0,0.0,0,,0,0.896534830308853
+q179,full_zclip3,purple,5,0,0.0,0,,1,0.896534830308853
+q167,full_zclip3_noneg,grey,5,1,0.2,0,,0,1.0
+q167,full_zclip3,grey,5,0,0.0,0,,1,1.0

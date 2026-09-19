@@ -1,0 +1,102 @@
+{
+ "source": "live:bluesky_public",
+ "as_of": "2026-09-19",
+ "catalog": null,
+ "notes": [
+  "來源：Bluesky 公開 AppView + 公開 Jetstream firehose，無帳號、無金鑰、無登入",
+  "取樣視窗 300s，共讀到 10063 則公開貼文；只統計詞頻，**不存任何貼文內容或作者**",
+  "app.bsky.feed.searchPosts 從台灣呼叫在 BunnyCDN 邊緣回 403（2026-09-19 實測），故改用 firehose 取樣",
+  "score = log10(每百萬則貼文出現次數 + 1)；**單輪沒有基準線**，要比較必須連續跑幾天",
+  "Bluesky 是英語為主、科技人口為主的樣本，對台灣成衣需求的外部效度未知"
+ ],
+ "terms": [
+  {
+   "term": "cardigan",
+   "score": 2.3005,
+   "df": 2
+  },
+  {
+   "term": "jeans",
+   "score": 2.3005,
+   "df": 2
+  }
+ ],
+ "affects_score": false,
+ "not_a_ranking_term": "這不是分數項。docs/engine02-design.md §3.15 量過 28 組「趨勢關鍵字進排序」，全部變差（NDCG@5 −0.16～−0.38）。這份檔案只餵 trends.trend_badges() 的展示標籤，以及後台需求面板。要進排序必須先有另一套帶時間軸的標準答案（§3.26）。",
+ "fetched_at": "2026-09-19T02:10:42+00:00",
+ "user_agent": "mchackathon2026-trend-sidecar/0.1 (academic hackathon, non-commercial; +https://github.com/Evan-Jiamg; ben940815@gmail.com)",
+ "login_used": false,
+ "official": true,
+ "get_trends_http": 200,
+ "platform_trending_topics": [
+  {
+   "topic": "Kelsey Mitchell sets WNBA scoring record",
+   "posts": 104,
+   "category": "sports"
+  },
+  {
+   "topic": "Death of actor Gerrit Graham",
+   "posts": 260,
+   "category": "entertainment"
+  },
+  {
+   "topic": "Trump bans CNN, MSNBC, Politico",
+   "posts": 6269,
+   "category": "politics"
+  },
+  {
+   "topic": "Trump plans Kennedy Center demolition",
+   "posts": 14487,
+   "category": "politics"
+  },
+  {
+   "topic": "Pete Alonso hits 3-run homer",
+   "posts": 335,
+   "category": "sports"
+  },
+  {
+   "topic": "US strikes Greenland security deal",
+   "posts": 1154,
+   "category": "politics"
+  },
+  {
+   "topic": "BB28 HOH competition",
+   "posts": 6293,
+   "category": "entertainment"
+  },
+  {
+   "topic": "Pentagon mandates testosterone screening for troops",
+   "posts": 242,
+   "category": "politics"
+  },
+  {
+   "topic": "Cregger's Resident Evil earns praise",
+   "posts": 2747,
+   "category": "entertainment"
+  },
+  {
+   "topic": "Trump threatens EU over Canada",
+   "posts": 26597,
+   "category": "politics"
+  }
+ ],
+ "posts_sampled": 10063,
+ "per_term": [
+  {
+   "term": "cardigan",
+   "kind": "category",
+   "target": "tops.cardigans",
+   "risk": "同名地名（威爾斯），這一列註定被污染，留著當反例",
+   "hits": 2,
+   "rate_per_million_posts": 198.7
+  },
+  {
+   "term": "jeans",
+   "kind": "category",
+   "target": "bottoms.jeans",
+   "risk": "—",
+   "hits": 2,
+   "rate_per_million_posts": 198.7
+  }
+ ]
+}

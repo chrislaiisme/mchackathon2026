@@ -1,0 +1,111 @@
+{
+  "source": "outfit_partner",
+  "as_of": "2026-09-18",
+  "catalog": "polyvore_big",
+  "notes": [
+    "來源：與 ['outerwear', 'top'] 同一套穿搭的單品用詞（PMI lift）",
+    "情境相依：換錨點品類就換一組關鍵字"
+  ],
+  "terms": [
+    {
+      "term": "frye",
+      "score": 0.7473,
+      "df": 18
+    },
+    {
+      "term": "tortoiseshell",
+      "score": 0.7141,
+      "df": 8
+    },
+    {
+      "term": "corduroy",
+      "score": 0.7024,
+      "df": 20
+    },
+    {
+      "term": "jelly",
+      "score": 0.6569,
+      "df": 4
+    },
+    {
+      "term": "footwear",
+      "score": 0.6569,
+      "df": 4
+    },
+    {
+      "term": "leigh",
+      "score": 0.6569,
+      "df": 4
+    },
+    {
+      "term": "amanda",
+      "score": 0.6569,
+      "df": 4
+    },
+    {
+      "term": "pamela",
+      "score": 0.6569,
+      "df": 4
+    },
+    {
+      "term": "keychain",
+      "score": 0.6469,
+      "df": 11
+    },
+    {
+      "term": "vivier",
+      "score": 0.6469,
+      "df": 11
+    },
+    {
+      "term": "roger",
+      "score": 0.6349,
+      "df": 10
+    },
+    {
+      "term": "moonstone",
+      "score": 0.6349,
+      "df": 10
+    },
+    {
+      "term": "geiger",
+      "score": 0.6349,
+      "df": 10
+    },
+    {
+      "term": "cutoff",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "coachella",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "3x1",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "smythson",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "belly",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "lolita",
+      "score": 0.6206,
+      "df": 3
+    },
+    {
+      "term": "jegging",
+      "score": 0.6206,
+      "df": 3
+    }
+  ]
+}
