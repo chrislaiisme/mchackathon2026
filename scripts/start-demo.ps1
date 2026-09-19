@@ -16,7 +16,23 @@
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
-param()
+param(
+    # Do not inherit ENGINE02_REWRITER from an arbitrary parent terminal. A
+    # stale "none" silently disables card-copy rewriting, which is hard to
+    # notice because ranking still works and returns templates. Opt out only
+    # when explicitly requested for an offline demo.
+    [ValidateSet("codex", "none")]
+    [string]$Engine02Rewriter = "codex",
+
+    # `gpt-5.6-luna`, the current Codex default on this machine, does not
+    # accept `minimal`. Make its fastest supported setting explicit instead
+    # of inheriting an incompatible value from a previous terminal command.
+    [ValidateSet("none", "low", "medium", "high", "xhigh", "max")]
+    [string]$Engine02CodexEffort = "low",
+
+    # Blank means that Codex CLI selects the account's current default model.
+    [string]$Engine02CodexModel = ""
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -116,10 +132,23 @@ if (-not (Test-Path -LiteralPath $engine02Python)) { throw "Missing ENGINE02 Pyt
 if (-not $npm) { throw "npm.cmd was not found. Install Node.js first." }
 New-Item -ItemType Directory -Path $logsRoot -Force | Out-Null
 
+$engine02Environment = @{
+    ENGINE02_CATALOG = "data/catalog/hm_filled"
+    ENGINE02_DEMO = "1"
+    ENGINE02_PUBLIC_BASE = "http://127.0.0.1:8002/engine02"
+    # /recommend 先回 template；ENGINE01 隨後背景呼叫 ENGINE02 的
+    # fact-checked copy rewrite。預設 codex；離線 demo 請明確傳參數。
+    ENGINE02_REWRITER = $Engine02Rewriter
+    # Do not inherit stale shell values: a model may reject a reasoning effort
+    # it does not support, which makes the optional rewrite fall back to a template.
+    ENGINE02_CODEX_EFFORT = $Engine02CodexEffort
+    ENGINE02_CODEX_MODEL = $Engine02CodexModel
+}
+
 $services = @(
     Start-DemoService -Name "ENGINE02" -Port 8002 -FilePath $engine02Python -WorkingDirectory $repoRoot `
         -Arguments @("-m", "uvicorn", "mcp_servers.catalog.main:app", "--host", "127.0.0.1", "--port", "8002") `
-        -Environment @{ ENGINE02_CATALOG = "data/catalog/hm_filled"; ENGINE02_DEMO = "1"; ENGINE02_PUBLIC_BASE = "http://127.0.0.1:8002/engine02" }
+        -Environment $engine02Environment
     Start-DemoService -Name "ENGINE01" -Port 8000 -FilePath $python -WorkingDirectory $repoRoot `
         -Arguments @("-m", "uvicorn", "backend.engine01_intent.main:app", "--host", "127.0.0.1", "--port", "8000")
     Start-DemoService -Name "ENGINE03" -Port 8003 -FilePath $python -WorkingDirectory $repoRoot `

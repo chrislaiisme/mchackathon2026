@@ -24,8 +24,9 @@ What stays true whatever the model writes (`check`):
   * a failed, slow or signed-out Codex never breaks anything: those cards keep their templates;
   * `source` says who wrote each sentence ("codex", "cache" or "template").
 
-Enable with ENGINE02_REWRITER=codex on a machine where `codex login` was done with the ChatGPT
-account (Codex CLI, https://github.com/openai/codex). Calls count against that plan's usage.
+Codex is enabled by default on a machine where `codex login` was done with the ChatGPT account
+(Codex CLI, https://github.com/openai/codex). Set ENGINE02_REWRITER=none to explicitly run an
+offline demo without it. Calls count against that plan's usage.
 ENGINE02_CODEX_BIN, ENGINE02_CODEX_MODEL, ENGINE02_CODEX_EFFORT (default low),
 ENGINE02_CODEX_TIMEOUT (seconds, default 120), ENGINE02_REWRITE_CACHE (json file; default
 data/cache/rewrites.json) tune it.
@@ -158,7 +159,12 @@ class CodexRewriter:
 
 
 def get_rewriter() -> CodexRewriter | None:
-    return CodexRewriter() if os.environ.get("ENGINE02_REWRITER", "").strip().lower() == "codex" else None
+    # The demo should use the richer, fact-checked Codex copy by default.  In
+    # particular, a process spawned from PowerShell can lose a one-off
+    # environment override before uvicorn imports this module.  Keep `none` as
+    # an explicit, reliable opt-out for offline demos.
+    configured = os.environ.get("ENGINE02_REWRITER", "codex").strip().lower()
+    return CodexRewriter() if configured == "codex" else None
 
 
 # ---- the facts the model may use --------------------------------------------------------------

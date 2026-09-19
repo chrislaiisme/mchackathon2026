@@ -45,6 +45,9 @@ from backend.shared.schemas import (
     IntentRequest,
     IntentResponse,
     ProfileUpdate,
+    RecommendationReasonRewriteCard,
+    RecommendationReasonRewriteRequest,
+    RecommendationReasonRewriteResponse,
     RecommendRequest,
     StyledComplement,
     StyleMeRequest,
@@ -135,6 +138,12 @@ def put_profile(
         user.age_range = update.age_range
     if update.style_preferences is not None:
         user.style_preferences = update.style_preferences
+        # onboarding 是明示的初始偏好；只補尚未有行為資料的 style，不覆蓋
+        # 已由跨 session 回饋學到的分數。
+        for style in update.style_preferences:
+            normalized = style.strip()
+            if normalized:
+                user.style_affinities.setdefault(normalized, 1.5)
     if update.gender is not None:
         user.gender = update.gender
     if update.contexts is not None:
@@ -241,6 +250,7 @@ def post_recommend(
     if state is None:
         raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
 
+    state.engine02_rewrite_session_ids = []
     result = recommend.build_zoned_recommendation(
         state.intent,
         state.session_id,
@@ -252,17 +262,9 @@ def post_recommend(
         user,
         feedback=state.pending_engine02_feedback,
         prev_intent=state.prev_intent,
-    )
-    # ENGINE02 沒有 OPENAI_API_KEY 時，reason 是樣板句，會露出內部分數／備註
-    # （例如「整體風格和你描述的相近（+1.44）」）——比照 style_me.py 既有的
-    # LLM 改寫模式，批次（一次 codex exec 呼叫）把這輪要顯示的理由都改寫成
-    # 自然語句，失敗就原樣返回樣板句，不擋主流程。2026-09-20：多帶一份
-    # profile_context（onboarding 長期偏好＋這輪結構化 Intent），讓改寫出來的
-    # 句子能點名使用者自己的偏好，不是只靠原始對話字串籠統判斷語氣。
-    result = recommend.apply_natural_language_reasons(
-        result,
-        " ".join(state.message_history),
-        recommend.build_profile_context(state.intent, user),
+        # 每次推薦都先清空上一輪 targets；否則背景改寫可能取回前一輪的
+        # slate，讓舊卡片理由意外覆蓋到新畫面。
+        rewrite_session_ids=state.engine02_rewrite_session_ids,
     )
 
     # 2026-09-19 新增：記下這輪兩分區攤平後實際展示過的商品 id，/feedback
@@ -272,6 +274,28 @@ def post_recommend(
     session_store.save(user.sub, state)
 
     return result
+
+
+@app.post("/recommend/reasons", response_model=RecommendationReasonRewriteResponse)
+def post_recommendation_reasons(
+    request: RecommendationReasonRewriteRequest, user: UserProfile = Depends(get_current_user)
+) -> RecommendationReasonRewriteResponse:
+    """Background proxy for ENGINE02's fact-checked recommendation-card copy."""
+    state = session_store.get(user.sub, request.session_id)
+    if state is None:
+        raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
+
+    from backend.engine01_intent import engine02_client
+
+    rewritten = engine02_client.rewrite_recommendation_reasons(state.engine02_rewrite_session_ids)
+    return RecommendationReasonRewriteResponse(
+        session_id=state.session_id,
+        round=state.round,
+        cards=[
+            RecommendationReasonRewriteCard(product_id=item_id, **payload)
+            for item_id, payload in rewritten.items()
+        ],
+    )
 
 
 @app.post("/feedback", response_model=FeedbackResponse)
@@ -383,6 +407,7 @@ def post_feedback(
     # 回饋窗口可以送。
     state.pending_engine02_feedback = result["engine02_feedback"]
     state.feedback_rounds = (state.feedback_rounds + [current_round])[-3:]
+    _update_style_affinities(user, state, item_feedbacks, outfit_feedbacks)
     session_store.save(user.sub, state)
 
     return FeedbackResponse(
@@ -395,6 +420,38 @@ def post_feedback(
         skipped_generated_item_feedbacks=[],
         skipped_generated_outfit_feedbacks=[],
     )
+
+
+def _update_style_affinities(
+    user: UserProfile,
+    state: session_store.SessionState,
+    item_feedbacks: list[dict[str, Any]],
+    outfit_feedbacks: list[dict[str, Any]],
+) -> None:
+    """Persist a compact, explainable cross-session style signal.
+
+    We only learn from explicit positive/negative choices. Age is deliberately
+    not used to score fashion products; gender is already a catalog constraint;
+    the dynamic signal is solely the style language the user chose or used in
+    this conversation. This keeps the profile useful without inventing a taste
+    from demographic data.
+    """
+    positive = any(feedback.get("favorited") for feedback in item_feedbacks) or bool(outfit_feedbacks)
+    negative = any(feedback.get("disliked") for feedback in item_feedbacks)
+    if not positive and not negative:
+        return
+
+    styles = state.intent.style_keywords or user.style_preferences
+    if not styles:
+        return
+    affinities = dict(user.style_affinities)
+    delta = (1.0 if positive else 0.0) + (-0.75 if negative else 0.0)
+    for style in styles:
+        normalized = style.strip()
+        if normalized:
+            affinities[normalized] = max(-3.0, min(5.0, affinities.get(normalized, 0.0) + delta))
+    user.style_affinities = {key: value for key, value in affinities.items() if abs(value) >= 0.05}
+    user_store.save_user(user)
 
 
 @app.post("/style-me", response_model=StyledComplement)

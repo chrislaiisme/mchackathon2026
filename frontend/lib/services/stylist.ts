@@ -52,6 +52,16 @@ interface BackendZonedRecommendationResult {
   zones: BackendZoneSlate[];
 }
 
+interface BackendRecommendationReasonRewriteResponse {
+  session_id: string;
+  round: number;
+  cards: Array<{
+    product_id: string;
+    reason: string;
+    explanation_source: string;
+  }>;
+}
+
 interface BackendStyledComplement {
   session_id: string;
   round: number;
@@ -241,6 +251,26 @@ export async function fetchRecommendation(
   }
 
   return (await response.json()) as BackendZonedRecommendationResult;
+}
+
+// ENGINE02 的事實查核改寫刻意是背景工作（可能要十多秒）；首屏先用 /recommend
+// 的模板理由，完成後再由畫面把同一批卡片文字無痛替換，不延遲推薦商品出現。
+export async function fetchRecommendationReasonRewrite(
+  sessionId: string,
+  token: string,
+): Promise<Record<string, string>> {
+  const response = await fetch(`${API_BASE_URL}/recommend/reasons`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+
+  if (!response.ok) {
+    throw new StylistApiError(`POST /recommend/reasons 失敗（HTTP ${response.status}）`, response.status);
+  }
+
+  const data = (await response.json()) as BackendRecommendationReasonRewriteResponse;
+  return Object.fromEntries(data.cards.map((card) => [card.product_id, card.reason]));
 }
 
 // 幫你搭的相容配對；找不到搭配時後端回 404，這裡回傳 null 而不是 throw，
