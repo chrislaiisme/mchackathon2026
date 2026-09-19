@@ -11,6 +11,19 @@ export interface FashionRecommendation {
   feedback?: "like" | "dislike";
 }
 
+export type WardrobeCategory = "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "accessories";
+
+export type OutfitSlot = "top" | "bottom" | "dress" | "outerwear" | "shoes" | "accessories";
+
+export interface WardrobeItem {
+  id: string;
+  name: string;
+  imageUrl: string;
+  category: WardrobeCategory;
+  brand?: string;
+  attributes: string[];
+}
+
 export interface GuidedChoice {
   id: string;
   label: string;
