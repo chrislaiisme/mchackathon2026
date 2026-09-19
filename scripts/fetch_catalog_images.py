@@ -25,19 +25,26 @@ import pandas as pd
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
+# Identify ourselves the way the crawler does (never a browser string). Python's default
+# "Python-urllib/3.x" is refused by several shops' image hosts (iROO, Plain-me, Whiterock: 47 of
+# crawl_tw's 166 images on a fresh clone).
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from engine02.crawl import USER_AGENT  # noqa: E402
 
 
 def fetch(url: str, dst: Path) -> bool:
     for attempt in range(3):
         try:
-            with urllib.request.urlopen(url, timeout=60) as r:
+            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(req, timeout=60) as r:
                 im = Image.open(io.BytesIO(r.read())).convert("RGB")
             im.thumbnail((384, 384))
             dst.parent.mkdir(parents=True, exist_ok=True)
             im.save(dst, "JPEG", quality=90)
             return True
         except urllib.error.HTTPError as e:
-            if e.code == 404:
+            if e.code in (401, 403, 404, 410, 451):     # missing or refused: retrying will not help
                 return False
             time.sleep(2 * (attempt + 1))
         except (urllib.error.URLError, OSError):
