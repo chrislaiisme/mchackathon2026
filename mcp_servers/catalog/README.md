@@ -39,7 +39,7 @@
 
 ```bash
 # 從 repo 根目錄執行
-ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
+ENGINE02_CATALOG=data/catalog/kagl ENGINE02_ENCODER=marqo-fashionSigLIP \
 ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
@@ -50,6 +50,10 @@ uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 | `POST /retrieve` | **ENGINE 01 的 `Intent` → `RetrievalResult`**（`docs/interface-contract.md`） |
 | `GET /health` | 商品庫、編碼器、預熱狀態 |
 | `/engine02/*` | ENGINE 02 完整 API 原樣掛載（`/rank`、`/view`、`/facets`、`/complete-look`、`/visual-search`、缺口盤…） |
+
+`ENGINE02_CATALOG` 預設就是 `data/catalog/kagl`，那是 `scripts/prepare_catalog.py` 一行就能建出來的
+商品庫。其他腳本的說明裡出現的 `kagl_polyvore_filled` 是屬性補值實驗用的，**要另外建**（見
+`data/README.md`），一般開發與 demo 不需要。
 
 `ENGINE02_DEMO=1` 保證服務路徑不連網、不等 LLM。沒有 GPU 也能跑（純 CPU `/rank` p50 111 ms）。
 

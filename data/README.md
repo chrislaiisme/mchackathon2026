@@ -3,7 +3,19 @@
 **不進版控**（`.gitignore` 排除本資料夾內除了這份 README 以外的所有檔案）。體積太大，
 而且 Pinterest 取得的素材只能內部使用。
 
-但**所有東西都可以從 repo 重建**，不需要跟任何人要檔案、不需要帳號、不需要 GPU。
+**跑系統需要的東西都可以從公開來源重建**，不需要 Hugging Face 帳號、不需要 GPU
+（`Marqo/KAGL` 與 `Marqo/polyvore` 經 HF API 確認 `gated: false`、`private: false`）。
+
+但**有三樣東西重建不出來**，不要以為照著跑就會拿到完整的 `data/`：
+
+| 重建不出來的 | 為什麼 | 影響 |
+|---|---|---|
+| `labels/*.csv` | **人工標註**（210 題 ×2 份，`note` 欄是人寫的，例如「large Puma formstrip on side」） | 只影響 `eval_human_agreement.py`、`eval_visual_labels.py` 這兩支評測。**跑系統不需要** |
+| `catalog/*/vlm_attributes_*.parquet` | 需要 GPU 跑 Qwen3-VL-8B | 只影響 `concept_mode=vlm/hybrid`。預設的 `antonym` 模式不需要 |
+| `catalog/kagl_polyvore_filled/` | 要先 `merge_catalogs.py` 再跑 `eval_classify.py fill` 訓練屬性分類器。**我沒有在無 GPU 環境驗證過這條** | 只影響屬性補值的對照實驗。服務**預設用 `data/catalog/kagl`**，不需要它 |
+
+換句話說：**demo 與開發只需要下面的步驟 1**，其餘都是選用的。
+
 以下指令都從 repo 根目錄執行。
 
 ## 只拿得到 GitHub 的組員，照這個做
@@ -86,9 +98,11 @@ Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore�
 | `catalog/polyvore/` | 搭配關係 3000 件 | 步驟 2 |
 | `catalog/kagl_priced_fixture/` | 500 件 + **合成價格** | 步驟 3 |
 | `catalog/kagl_polyvore/` | 兩者合併 | `scripts/merge_catalogs.py` |
-| `catalog/amz_smoke/` | 15 件真實價格樣本（太小，不足以評估） | 手動 |
+| `catalog/amz_smoke/` | 15 件**真實**價格樣本（太小，不足以評估） | `scripts/prepare_catalog_priced.py`（Amazon Reviews 2023，公開；**但該資料集未宣告授權**，僅供研究）|
 | `trends/` | 趨勢時間序列 | 步驟 4 |
-| `labels/`、`context/`、`verify_sample/` | 評測用標註與抽樣 | 各自的 `scripts/` |
+| `context/weather.json` | 天氣情境 | `scripts/fetch_context.py` |
+| `verify_sample/` | Polyvore 前 48 筆抽樣 | 可重建（`meta.json` 記錄了來源與切片）|
+| `labels/` | **人工標註**，評測基準 | ⚠️ **不可重建**，見上表 |
 
 每個商品庫底下都有自己的 `README.md` 與 `stats.json`，記錄來源、授權、建置參數與屬性覆蓋率。
 `items.parquet` 的 `attr_source` 欄位**逐商品**記錄每個屬性是資料集原生還是後製補的——
