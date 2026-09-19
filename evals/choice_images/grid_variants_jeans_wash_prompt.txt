@@ -1,0 +1,19 @@
+A studio product contact sheet: exactly 6 photographs arranged in a strict grid of 3 columns and 2 rows.
+
+GRID: 6 equal-sized cells separated by clean pure-white gutters of uniform width. Every cell uses the same framing, the same camera distance and the same garment scale, so the 6 garments can be compared side by side. No garment, shadow or background tone crosses a gutter.
+
+IN EVERY CELL: the same invisible ghost-mannequin product photograph - headless and bodiless, no person, no face, no hands, no skin; the garment holds its own three-dimensional shape as if worn. Seamless mid-grey studio background, even soft box lighting, straight-on front view, the whole garment visible with a small even margin.
+
+FORBIDDEN anywhere in the image: text, letters, numbers, captions, labels, logos, watermarks, price tags, hangers, props, people, reflections.
+
+BASELINE GARMENT, identical in every cell except where stated: a pair of denim jeans, in loose fit, for casual occasions, styled plain minimal.
+
+Each cell differs from the baseline in exactly ONE attribute, in this reading order (left to right, top row first):
+Cell 1: the current choice: medium blue colour.
+Cell 2: identical to the baseline, EXCEPT navy blue colour.
+Cell 3: identical to the baseline, EXCEPT black colour.
+Cell 4: identical to the baseline, EXCEPT off white colour.
+Cell 5: identical to the baseline, EXCEPT light blue colour.
+Cell 6: identical to the baseline, EXCEPT grey colour.
+
+Anything not named as that cell's exception must stay exactly consistent with the baseline across every cell: same fabric, same fit, same occasion, same styling, same lighting, same framing, same scale.

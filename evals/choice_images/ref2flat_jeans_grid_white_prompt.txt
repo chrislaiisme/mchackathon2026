@@ -1,0 +1,19 @@
+A studio product contact sheet: exactly 6 photographs arranged in a strict grid of 3 columns and 2 rows.
+
+GRID: 6 equal-sized cells separated by uniform mid-grey gutters of even width, clearly darker than the white background inside the cells. Every cell uses the same framing, the same camera distance and the same garment scale, so the 6 garments can be compared side by side. No garment or background tone crosses a gutter.
+
+IN EVERY CELL: clean e-commerce product photography of one garment entirely on its own, laid flat and photographed from directly above - no mannequin, no dress form, no body, no head, no hands, no skin, no hanger, no rail. Legs arranged straight and parallel, the fabric softly filled so the piece reads as a three-dimensional object rather than crushed flat. Real cloth: fine visible twill weave texture and subtle vertical yarn variation, crisp topstitching, slight natural creasing where the fabric folds, and gentle asymmetry. Seamless pure white background inside every cell, completely flat and even, with no gradient and no vignette. Perfectly even shadowless lighting: NO cast shadow, NO contact shadow, NO drop shadow anywhere under or beside the garment. The whole garment visible with a small even margin.
+
+FORBIDDEN anywhere in the image: cast shadows, drop shadows, contact shadows, mannequins, dress forms, bodies, hangers, clothing rails, 3D renders, CGI, mockup templates, vector illustration, plastic or glossy artificial surfaces, perfect mirror symmetry, text, letters, numbers, captions, labels, logos, watermarks, price tags, props, people, reflections.
+
+BASELINE GARMENT, identical in every cell except where stated: the exact jeans shown in the reference image - same low rise, same skinny leg cut, same five-pocket layout, same stitching and rivets, same fade and whisker pattern - laid flat and emptied of the person wearing them.
+
+Each cell differs from the baseline in exactly ONE attribute, in this reading order (left to right, top row first):
+Cell 1: the current choice: medium blue wash.
+Cell 2: identical to the baseline, EXCEPT dark navy wash.
+Cell 3: identical to the baseline, EXCEPT black wash.
+Cell 4: identical to the baseline, EXCEPT ecru off-white wash.
+Cell 5: identical to the baseline, EXCEPT light pale blue wash.
+Cell 6: identical to the baseline, EXCEPT grey wash.
+
+Anything not named as that cell's exception must stay exactly consistent with the baseline across every cell: same fit, same cut, same pockets, same stitching, same lighting, same framing, same scale.

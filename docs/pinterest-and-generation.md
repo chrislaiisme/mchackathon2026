@@ -22,6 +22,8 @@ Pinterest API v5 的 Trial access 只能讀寫／搜尋連結帳號自己的 pin
 
 ## 概念圖生成
 
+> **這一節描述的是早期規劃，已經被實作取代。** 現在的做法是「一次生一張六宮格、吃 ENGINE02 top-1 的真實商品照當基準圖」，走 Hermes 的 `image_generate` 工具而不是 OpenAI Responses API，也不需要 `OPENAI_API_KEY`。執行規則在 [`agent/skills/concept-image-director/SKILL.md`](../agent/skills/concept-image-director/SKILL.md)，理由與實測數字在 [concept-image-generation.md](concept-image-generation.md)。下面這段保留作為原始規劃的紀錄。
+
 OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的 `Intent` 轉成一段抽象的 prompt（顏色／剪裁／場合／材質——避免點名真實品牌或設計師，畢竟是在出題企業的評審面前 demo）。多輪銜接用 `previous_response_id`，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生。範例程式碼在 [hackathon-brief.md](hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
 
 **2026-09-19 規格修正：生圖跟資料庫推薦一樣拆成上衣／下身兩張獨立圖片，不是生成一張統一的套裝合照。** 原本討論過「生圖統一生成一整套」，後來使用者修正成要跟 `POST /recommend` 的兩分區展示邏輯一致——這樣兩張圖才能各自獨立試穿、也才能套進 [frontend.md](frontend.md) 代辦事項 3 新增的「我們幫你搭」按鈕。這代表生圖至少要跑兩次生成呼叫（一次上衣、一次下身），`previous_response_id` 的銜接邏輯要分別對上衣鏈跟下身鏈各自維護，不是一條鏈。**「幫你搭」不是隨機挑**（2026-09-19 再次修正）——`POST /style-me` 已實作，接 ENGINE02 的 `/complete-look` 拿有理由的相容性搭配；生圖商品不在 ENGINE02 商品庫裡，錨點傳生圖 id 過去會找不到，這種情況退回 LLM 生一句理由，細節見 [interface-contract.md](interface-contract.md) 第 6a 節。

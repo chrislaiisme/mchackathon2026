@@ -1,0 +1,315 @@
+{
+  "session_id": "demo-jeans",
+  "round": 1,
+  "mode": "variants",
+  "cols": 3,
+  "rows": 2,
+  "locked": {
+    "material": "denim",
+    "fit": "loose",
+    "occasion": "casual",
+    "style_keywords": "plain minimal"
+  },
+  "locked_zh": {
+    "material": {
+      "value": "丹寧",
+      "inferred": false
+    },
+    "fit": {
+      "value": "寬鬆",
+      "inferred": false
+    },
+    "occasion": {
+      "value": "日常",
+      "inferred": false
+    },
+    "style_keywords": {
+      "value": [
+        "簡約"
+      ],
+      "inferred": false
+    }
+  },
+  "unresolved": [],
+  "varied_field": "colors",
+  "house_style_hash": "8f8e0a29997c",
+  "prompt": "A studio product contact sheet: exactly 6 photographs arranged in a strict grid of 3 columns and 2 rows.\n\nGRID: 6 equal-sized cells separated by clean pure-white gutters of uniform width. Every cell uses the same framing, the same camera distance and the same garment scale, so the 6 garments can be compared side by side. No garment, shadow or background tone crosses a gutter.\n\nIN EVERY CELL: the same invisible ghost-mannequin product photograph - headless and bodiless, no person, no face, no hands, no skin; the garment holds its own three-dimensional shape as if worn. Seamless mid-grey studio background, even soft box lighting, straight-on front view, the whole garment visible with a small even margin.\n\nFORBIDDEN anywhere in the image: text, letters, numbers, captions, labels, logos, watermarks, price tags, hangers, props, people, reflections.\n\nBASELINE GARMENT, identical in every cell except where stated: a pair of denim jeans, in loose fit, for casual occasions, styled plain minimal.\n\nEach cell differs from the baseline in exactly ONE attribute, in this reading order (left to right, top row first):\nCell 1: the current choice: medium blue colour.\nCell 2: identical to the baseline, EXCEPT navy blue colour.\nCell 3: identical to the baseline, EXCEPT black colour.\nCell 4: identical to the baseline, EXCEPT off white colour.\nCell 5: identical to the baseline, EXCEPT light blue colour.\nCell 6: identical to the baseline, EXCEPT grey colour.\n\nAnything not named as that cell's exception must stay exactly consistent with the baseline across every cell: same fabric, same fit, same occasion, same styling, same lighting, same framing, same scale.",
+  "cells": [
+    {
+      "index": 1,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "medium blue"
+      },
+      "prompt_fragment": "the current choice: medium blue colour.",
+      "option_id": null,
+      "varied_attribute": null,
+      "varied_label_zh": "目前的選擇",
+      "bbox": [
+        9,
+        0,
+        430,
+        589
+      ],
+      "check": {
+        "content_ratio": 0.6613,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          144.9,
+          144.3,
+          144.2
+        ],
+        "mid_rgb": [
+          95.5,
+          109.5,
+          129.7
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true
+      }
+    },
+    {
+      "index": 2,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "navy blue"
+      },
+      "prompt_fragment": "identical to the baseline, EXCEPT navy blue colour.",
+      "option_id": "w1",
+      "varied_attribute": "colors",
+      "varied_label_zh": "深藍",
+      "bbox": [
+        446,
+        0,
+        866,
+        589
+      ],
+      "check": {
+        "content_ratio": 0.6329,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          143.0,
+          142.3,
+          141.9
+        ],
+        "mid_rgb": [
+          53.5,
+          61.8,
+          77.9
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true,
+        "color_delta_lit": 3.59,
+        "color_delta_mid": 81.99,
+        "color_delta_vs_base": 81.99,
+        "shape_delta_vs_base": 0.0458,
+        "varied_as_expected": true
+      }
+    },
+    {
+      "index": 3,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "black"
+      },
+      "prompt_fragment": "identical to the baseline, EXCEPT black colour.",
+      "option_id": "w2",
+      "varied_attribute": "colors",
+      "varied_label_zh": "黑",
+      "bbox": [
+        882,
+        0,
+        1303,
+        589
+      ],
+      "check": {
+        "content_ratio": 0.6513,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          144.4,
+          143.8,
+          143.5
+        ],
+        "mid_rgb": [
+          56.7,
+          56.5,
+          56.4
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true,
+        "color_delta_lit": 0.99,
+        "color_delta_mid": 98.42,
+        "color_delta_vs_base": 98.42,
+        "shape_delta_vs_base": 0.0215,
+        "varied_as_expected": true
+      }
+    },
+    {
+      "index": 4,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "off white"
+      },
+      "prompt_fragment": "identical to the baseline, EXCEPT off white colour.",
+      "option_id": "w3",
+      "varied_attribute": "colors",
+      "varied_label_zh": "米白",
+      "bbox": [
+        9,
+        603,
+        430,
+        1199
+      ],
+      "check": {
+        "content_ratio": 0.7797,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          230.3,
+          227.1,
+          222.2
+        ],
+        "mid_rgb": [
+          202.2,
+          198.8,
+          194.2
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true,
+        "color_delta_lit": 142.24,
+        "color_delta_mid": 153.36,
+        "color_delta_vs_base": 153.36,
+        "shape_delta_vs_base": 0.1188,
+        "varied_as_expected": true
+      }
+    },
+    {
+      "index": 5,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "light blue"
+      },
+      "prompt_fragment": "identical to the baseline, EXCEPT light blue colour.",
+      "option_id": "w4",
+      "varied_attribute": "colors",
+      "varied_label_zh": "淺藍",
+      "bbox": [
+        446,
+        603,
+        866,
+        1199
+      ],
+      "check": {
+        "content_ratio": 0.7088,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          158.5,
+          172.1,
+          189.6
+        ],
+        "mid_rgb": [
+          135.0,
+          150.2,
+          170.5
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true,
+        "color_delta_lit": 54.95,
+        "color_delta_mid": 69.87,
+        "color_delta_vs_base": 69.87,
+        "shape_delta_vs_base": 0.0719,
+        "varied_as_expected": true
+      }
+    },
+    {
+      "index": 6,
+      "keywords": {
+        "material": "denim",
+        "fit": "loose",
+        "occasion": "casual",
+        "style_keywords": "plain minimal",
+        "colors": "grey"
+      },
+      "prompt_fragment": "identical to the baseline, EXCEPT grey colour.",
+      "option_id": "w5",
+      "varied_attribute": "colors",
+      "varied_label_zh": "灰",
+      "bbox": [
+        882,
+        603,
+        1303,
+        1199
+      ],
+      "check": {
+        "content_ratio": 0.6904,
+        "stray_white_ratio": 0.0,
+        "lit_rgb": [
+          148.3,
+          147.8,
+          147.6
+        ],
+        "mid_rgb": [
+          131.5,
+          131.1,
+          131.7
+        ],
+        "empty_cell": false,
+        "overflow": false,
+        "clean_edges": true,
+        "color_delta_lit": 5.95,
+        "color_delta_mid": 42.03,
+        "color_delta_vs_base": 42.03,
+        "shape_delta_vs_base": 0.0458,
+        "varied_as_expected": true
+      }
+    }
+  ],
+  "grid_image": "data/generated/demo-jeans/r1/grid.png",
+  "canvas": [
+    1312,
+    1199
+  ],
+  "source": {
+    "engine": "engine01",
+    "item_type": "牛仔褲",
+    "node_id": "bottoms.jeans",
+    "item_en": "jeans"
+  },
+  "generation": {
+    "model": "gpt-image-2-low",
+    "aspect_requested": "portrait",
+    "ok": true,
+    "seconds": 37.3,
+    "quality": "low",
+    "size_requested": "1024x1536",
+    "size_returned": "1312x1199",
+    "provider": "openai-codex",
+    "cache_path": "/Users/admin/.hermes/cache/images/openai_codex_gpt-image-2-low_20260919_133706_1376835a.png"
+  },
+  "checks": {
+    "pixel": {
+      "ran": true,
+      "failures": [],
+      "pass_rate": 1.0
+    }
+  }
+}
