@@ -8,6 +8,7 @@ import { ChevronDown, LogOut, Settings, Shirt, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
 import { authService } from "@/lib/services/auth";
+import { onboardingService } from "@/lib/services/onboarding";
 import type { Locale } from "@/lib/i18n/dictionaries";
 import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       if (!nextUser && pathname !== "/login") {
         router.replace("/login");
+        return;
+      }
+
+      if (nextUser && pathname !== "/login" && pathname !== "/onboarding" && !onboardingService.isCompleted()) {
+        router.replace("/onboarding");
       }
     }
 
