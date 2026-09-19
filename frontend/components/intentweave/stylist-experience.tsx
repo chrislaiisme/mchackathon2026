@@ -35,7 +35,6 @@ import {
   adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
-  conceptCellsToRecommendations,
   fetchConceptImage,
   fetchIntentTurn,
   fetchRecommendation,
@@ -1968,7 +1967,9 @@ export function StylistExperience() {
     // 絕對不能讓回饋送不出去卡住使用者這輪新的對話。用 baseConversation
     // （呼叫端傳進來的，還沒被下面的 /intent 回應覆寫 engineSessionId／
     // engineRound）才是「上一輪」真正的狀態。
-    void submitPendingRoundFeedback(baseConversation, token);
+    // 回饋要先成功寫回 ENGINE01 session，下一次 /recommend 才能吃到 ENGINE03
+    // 的權重調整；submitPendingRoundFeedback 會自行處理失敗，不會阻斷對話。
+    await submitPendingRoundFeedback(baseConversation, token);
 
     try {
       const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);
@@ -2245,7 +2246,7 @@ export function StylistExperience() {
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
-      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
+      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems);
       replaceActiveTryOnImage(preview.generatedImageUrl);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");

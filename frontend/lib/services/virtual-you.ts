@@ -441,46 +441,52 @@ export const virtualYouService = {
     };
   },
 
-  async generateVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): Promise<TryOnResult> {
+  async generateVirtualTryOn(profile: VirtualYouProfile | null, outfits: FashionRecommendation[]): Promise<TryOnResult> {
+    if (outfits.length === 0) {
+      throw new Error("try_on_requires_outfit");
+    }
+
     const virtualYouImageUrl = profile?.modelImageUrl || defaultVirtualYouImage;
-    const personImage = await fetchImageBlob(virtualYouImageUrl);
-    const garmentImage = await fetchImageBlob(outfit.imageUrl).catch(() => null);
-    const formData = new FormData();
+    let personImage = await fetchImageBlob(virtualYouImageUrl);
+    let provider: "mock" | "remote" = "remote";
 
-    formData.append("personImage", personImage, "virtual-you.png");
-    formData.append("garmentImageUrl", outfit.imageUrl);
+    // 試穿 worker 一次只接受一件衣物。穿整套時，把前一件的輸出作為下一件的
+    // personImage，避免舊實作永遠只送 wearableItems[0]、漏掉下身。
+    for (const outfit of outfits) {
+      const garmentImage = await fetchImageBlob(outfit.imageUrl).catch(() => null);
+      const formData = new FormData();
+      formData.append("personImage", personImage, "virtual-you.png");
+      formData.append("garmentImageUrl", outfit.imageUrl);
 
-    if (garmentImage) {
-      formData.append("garmentImage", garmentImage, "garment.jpg");
+      if (garmentImage) {
+        formData.append("garmentImage", garmentImage, "garment.jpg");
+      }
+
+      formData.append("category", tryOnCategory(outfit));
+      formData.append("garmentId", outfit.id);
+      formData.append("garmentName", outfit.name);
+
+      const response = await fetch("/api/virtual-you/try-on", { method: "POST", body: formData });
+      const result = (await response.json().catch(() => null)) as
+        | { imageBase64?: string; provider?: "mock" | "remote"; error?: string }
+        | null;
+
+      if (!response.ok || !result?.imageBase64) {
+        throw new Error(result?.error || "try_on_failed");
+      }
+
+      personImage = base64ToBlob(result.imageBase64, "image/png");
+      provider = result.provider || "remote";
     }
-
-    formData.append("category", tryOnCategory(outfit));
-    formData.append("garmentId", outfit.id);
-    formData.append("garmentName", outfit.name);
-
-    const response = await fetch("/api/virtual-you/try-on", {
-      method: "POST",
-      body: formData,
-    });
-    const result = (await response.json().catch(() => null)) as
-      | { imageBase64?: string; provider?: "mock" | "remote"; error?: string }
-      | null;
-
-    if (!response.ok || !result?.imageBase64) {
-      throw new Error(result?.error || "try_on_failed");
-    }
-
-    const generatedImage = base64ToBlob(result.imageBase64, "image/png");
-    const generatedImageUrl = URL.createObjectURL(generatedImage);
 
     return {
-      id: `${result.provider || "remote"}-try-on-${Date.now()}`,
-      generatedImage,
-      generatedImageUrl,
+      id: `${provider}-try-on-${Date.now()}`,
+      generatedImage: personImage,
+      generatedImageUrl: URL.createObjectURL(personImage),
       virtualYouImageUrl,
-      outfitImageUrl: outfit.imageUrl,
-      outfitName: outfit.name,
-      provider: result.provider || "remote",
+      outfitImageUrl: outfits.map((outfit) => outfit.imageUrl).join(","),
+      outfitName: outfits.map((outfit) => outfit.name).join(" + "),
+      provider,
     };
   },
 

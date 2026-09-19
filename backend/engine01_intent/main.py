@@ -282,13 +282,10 @@ def post_feedback(
 ) -> FeedbackResponse:
     """接上 ENGINE03（backend/engine03_feedback/）的真實回饋迴圈——2026-09-19 新增。
 
-    只吃 `source="catalog"`（資料庫商品）的回饋：單品收藏／不喜歡／三個具名
-    維度打分，跟整套喜歡（`OutfitFeedback`，只有「喜歡」這個方向，ENGINE03
-    本身沒有「整套不喜歡」的概念）。`source="generated"` 的單品回饋今天整批
-    跳過（`skipped_generated_item_feedbacks` 誠實列出，不是默默丟掉）——
-    ENGINE03 要求這種回饋的 `design_attributes` 由「受信任」的一方提供，
-    生成模組的 `keywords` 詞彙目前沒有對應到 ENGINE03 屬性 id 的轉換邏輯，
-    需要跨負責人確認才能做，見 docs 記錄的已知落差。
+    同時接受 catalog 與 generated 單品的明確回饋。生成圖的
+    `design_attributes` 不信任瀏覽器傳來的內容，而是依 item_id 從 session 裡、
+    由生成 manifest 建立的資料補回；這樣 ENGINE03 才能把偏好安全地轉成
+    ENGINE02 的 design_weight_delta。
 
     ENGINE03 的 `/feedback` 掛了跟 ENGINE01 共用同一把 `SESSION_SECRET` 的
     `Depends(get_current_user)`，一定要把這裡收到的 `Authorization` header
@@ -303,15 +300,28 @@ def post_feedback(
     if not state.shown_item_ids and not state.shown_generated_item_ids:
         raise HTTPException(409, "這一輪還沒有展示過任何商品，沒有東西可以回饋")
 
-    catalog_feedbacks: list[dict[str, Any]] = []
-    skipped_generated: list[str] = []
+    item_feedbacks: list[dict[str, Any]] = []
     for item_feedback in request.item_feedbacks:
         if item_feedback.source == "generated":
-            skipped_generated.append(item_feedback.item_id)
+            if item_feedback.item_id not in state.shown_generated_item_ids:
+                raise HTTPException(422, f"generated item_id {item_feedback.item_id!r} 不是這輪展示過的商品")
+            design_attributes = state.generated_item_design_attributes.get(item_feedback.item_id) or {}
+            if not design_attributes:
+                raise HTTPException(422, f"generated item_id {item_feedback.item_id!r} 缺少受信任的設計屬性")
+            item_feedbacks.append(
+                {
+                    "item_id": item_feedback.item_id,
+                    "source": "generated",
+                    "favorited": item_feedback.favorited,
+                    "disliked": item_feedback.disliked,
+                    "attribute_ratings": [rating.model_dump() for rating in item_feedback.attribute_ratings],
+                    "design_attributes": design_attributes,
+                }
+            )
             continue
         if item_feedback.item_id not in state.shown_item_ids:
             raise HTTPException(422, f"item_id {item_feedback.item_id!r} 不是這輪展示過的商品")
-        catalog_feedbacks.append(
+        item_feedbacks.append(
             {
                 "item_id": item_feedback.item_id,
                 "source": "catalog",
@@ -322,39 +332,44 @@ def post_feedback(
         )
 
     outfit_feedbacks: list[dict[str, Any]] = []
-    skipped_generated_outfits: list[str] = []
     for outfit_feedback in request.outfit_feedbacks:
-        # 整套裡只要有一件是 source="generated"，整筆 outfit 都跳過（不是只挑
-        # 資料庫那一件單獨送）——「半套的整套喜歡」語意會失真，而且
-        # design_attributes 詞彙映射還沒人跟 ENGINE02／生成模組負責人確認過，
-        # 不能自己瞎猜著送，見 backend/shared/schemas.py::OutfitFeedbackRequest。
-        if any(item.source == "generated" for item in outfit_feedback.items):
-            skipped_generated_outfits.append(outfit_feedback.outfit_id)
-            continue
-
+        trusted_items: list[dict[str, Any]] = []
         for item in outfit_feedback.items:
+            if item.source == "generated":
+                if item.item_id not in state.shown_generated_item_ids:
+                    raise HTTPException(422, f"generated item_id {item.item_id!r} 不是這輪展示過的商品")
+                design_attributes = state.generated_item_design_attributes.get(item.item_id) or {}
+                if not design_attributes:
+                    raise HTTPException(422, f"generated item_id {item.item_id!r} 缺少受信任的設計屬性")
+                trusted_items.append(
+                    {
+                        "zone": item.zone,
+                        "source": "generated",
+                        "item_id": item.item_id,
+                        "design_attributes": design_attributes,
+                    }
+                )
+                continue
             if item.item_id not in state.shown_item_ids:
                 raise HTTPException(422, f"item_id {item.item_id!r} 不是這輪展示過的商品")
+            trusted_items.append({"zone": item.zone, "source": "catalog", "item_id": item.item_id})
 
         outfit_feedbacks.append(
             {
                 "outfit_id": outfit_feedback.outfit_id,
                 "favorited": True,
-                "items": [
-                    {"zone": item.zone, "source": item.source, "item_id": item.item_id}
-                    for item in outfit_feedback.items
-                ],
+                "items": trusted_items,
             }
         )
 
-    if not catalog_feedbacks and not outfit_feedbacks:
-        raise HTTPException(422, "沒有可送出的回饋（generated 來源今天還不支援）")
+    if not item_feedbacks and not outfit_feedbacks:
+        raise HTTPException(422, "沒有可送出的明確回饋")
 
     current_round = {
         "round": state.round,
         "shown_item_ids": state.shown_item_ids,
         "shown_generated_item_ids": state.shown_generated_item_ids,
-        "item_feedbacks": catalog_feedbacks,
+        "item_feedbacks": item_feedbacks,
         "outfit_feedbacks": outfit_feedbacks,
     }
     result = engine03_client.submit_feedback(
@@ -377,8 +392,8 @@ def post_feedback(
         attribute_evidence=result.get("attribute_evidence") or [],
         generated_attribute_evidence=result.get("generated_attribute_evidence") or [],
         outfit_evidence=result.get("outfit_evidence") or [],
-        skipped_generated_item_feedbacks=skipped_generated,
-        skipped_generated_outfit_feedbacks=skipped_generated_outfits,
+        skipped_generated_item_feedbacks=[],
+        skipped_generated_outfit_feedbacks=[],
     )
 
 
@@ -572,6 +587,26 @@ def _assemble_concept_zone_response(
     """統一組裝 /concept-image 的兩分區回應——Top Pick 理由沿用既有邏輯
     （上衣格、下身格各自第一格位置性配對，套用跟 /recommend 一樣的自然語句
     改寫；dry_run 沒有實際內容可以改寫，維持 None）。"""
+    # 生成 cell 的識別碼和 attributes 都由後端建立並保存在 session。前端只會
+    # 拿這個 id 回傳回饋，不能藉由自行拼 id 或附帶 attributes 竄改 ENGINE03 權重。
+    generated_attributes: dict[str, dict[str, str]] = {}
+    generated_item_ids: list[str] = []
+    for zone in ("top", "bottom"):
+        for cell in zone_results[zone].get("cells") or []:
+            # 沒有切圖就不會顯示成可互動商品（dry run 也是），不列入可回饋清單。
+            if not cell.get("image_url"):
+                continue
+            item_id = f"generated:{state.session_id}:r{state.round}:{zone}:cell-{cell.get('index')}"
+            cell["id"] = item_id
+            design_attributes = cell.get("design_attributes") or {}
+            generated_attributes[item_id] = {
+                str(key): str(value) for key, value in design_attributes.items() if value is not None
+            }
+            generated_item_ids.append(item_id)
+    state.shown_generated_item_ids = generated_item_ids
+    state.generated_item_design_attributes = generated_attributes
+    session_store.save(user_profile.sub, state)
+
     top_pick_reason = None
     if not dry_run:
         top_cells = zone_results["top"].get("cells") or []

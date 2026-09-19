@@ -100,9 +100,16 @@ function WardrobeItemCard({
   const { t } = useI18n();
 
   return (
-    <button
-      type="button"
+    <article
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(item)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(item);
+        }
+      }}
       aria-pressed={selected}
       className={cn(
         "group overflow-hidden border bg-card text-left transition focus-visible:border-primary focus-visible:outline-none",
@@ -138,7 +145,7 @@ function WardrobeItemCard({
           {item.brand || t.dressingRoom.filters[item.category]}
         </div>
       </div>
-    </button>
+    </article>
   );
 }
 

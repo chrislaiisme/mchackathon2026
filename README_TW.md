@@ -58,6 +58,14 @@ pip install -r backend/requirements.txt
 
 ### 怎麼開各個服務（2026-09-19，實測過的組合）
 
+Windows demo 機最快的方式是用一支啟動器一次開完整服務：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1
+```
+
+它會在背景啟動 ENGINE01／02／03、Whisper、Virtual You 與前端；已被使用的 port 會沿用、不會強制關掉既有程序，log 會寫到 `data/runtime/logs/`。想先只看它預計做什麼、不真正啟動時，加上 `-WhatIf`。
+
 下面每一項都是一個要一直開著的獨立 terminal。ENGINE02 要先開（ENGINE01 會直接打它），其餘順序不拘。
 
 ```powershell
@@ -82,7 +90,7 @@ $env:VIRTUAL_TRY_ON_PROVIDER="codex"
 
 補充：
 - `ENGINE02_PUBLIC_BASE` 一定要帶 `/engine02` 路徑段——`mcp_servers.catalog.main:app` 是把整包 API 掛在這個前綴底下的，沒帶這段組出來的商品圖網址會 404。
-- 前端 `frontend/.env.local`（不會進 git）要對應補上：ENGINE01 用的 `NEXT_PUBLIC_API_BASE_URL`，虛擬試穿（Terminal 5）用的 `PERSON_EXTRACTION_SERVICE_URL`／`VIRTUAL_TRY_ON_SERVICE_URL`——沒設這兩個，試穿功能會自動退回 mock（直接回傳原圖）。
+- 前端 `frontend/.env.local`（不會進 git）要對應補上：ENGINE01 用的 `NEXT_PUBLIC_API_BASE_URL`，虛擬試穿（Terminal 5）用的 `PERSON_EXTRACTION_SERVICE_URL`／`VIRTUAL_TRY_ON_SERVICE_URL`——少了這兩個時，試穿現在會明確回設定錯誤，不會再把原圖假裝成成功結果。
 - 虛擬試穿服務第一次呼叫 `/extract` 會下載一個約 973MB 的去背模型（`rembg` 的 `birefnet-portrait`）；語音服務第一次呼叫 `/transcribe` 會下載 Whisper `small` 模型——這兩個都建議提早 warm up，不要等到 demo 現場才第一次觸發下載。
 - ENGINE02 的商品目錄是服務啟動時讀一次、存進記憶體，不是每次請求都重讀——底層資料有更新的話要重啟 Terminal 1 才會生效；ENGINE01 不會快取 ENGINE02 的任何資料，不用跟著改。
 

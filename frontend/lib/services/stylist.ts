@@ -65,6 +65,7 @@ interface BackendStyledComplement {
 // 只有 prompt_used／keywords／varied_label 可以顯示，Hermes Agent 這套外部工具還沒
 // 裝好之前先靠這個驗證整條管線接不接得通（見 CLAUDE.md、跟使用者的討論記錄）。
 interface BackendConceptCell {
+  id?: string;
   index: number;
   keywords: Record<string, string>;
   varied_label?: string | null;
@@ -141,7 +142,9 @@ export function conceptCellsToRecommendations(
   return concepts.cells
     .filter((cell) => Boolean(cell.image_url))
     .map((cell) => ({
-      id: `${prefix}-${cell.index}`,
+      // 生成 id 由 ENGINE01 從 manifest 建立並保存；必須原樣回傳給 /feedback，
+      // 不能只靠 index 在瀏覽器端重新組一個暫時 id。
+      id: cell.id || `${prefix}-${cell.index}`,
       name: cell.varied_label || `Option ${cell.index}`,
       imageUrl: toAbsoluteMediaUrl(cell.image_url as string),
       explanation: cell.prompt_fragment || concepts.prompt_used,
@@ -438,7 +441,7 @@ export async function submitFeedback(
 // product_id）不會是這個格式——用來判斷這張卡片的回饋要不要送給 ENGINE03
 // （source="generated" 的今天整批由後端跳過，見 main.py::post_feedback()）。
 function isGeneratedItemId(itemId: string): boolean {
-  return /^(top-|bottom-)?concept-\d+$/.test(itemId);
+  return itemId.startsWith("generated:") || /^(top-|bottom-)?concept-\d+$/.test(itemId);
 }
 
 // 這一輪實際展示過的商品 id → 屬於哪一區——整套喜歡（OutfitFeedbackRequest）

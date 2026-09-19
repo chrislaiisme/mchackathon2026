@@ -133,11 +133,20 @@ async def generate_try_on(
     if provider not in {"", "mock", "worker", "remote"}:
         raise HTTPException(status_code=503, detail=f"unsupported try-on provider: {provider}")
 
-    if not worker_url or provider == "mock":
+    # mock 只保留給明確指定的開發情境。provider 未設定或 worker 設定漏掉時，
+    # 原本會回傳原人物圖而且 HTTP 仍是 200，前端便誤以為「已試穿」；這種
+    # 靜默 fallback 對 demo 是假成功，必須讓操作者立刻看到設定錯誤。
+    if provider == "mock":
         return {
             "imageBase64": base64.b64encode(person_bytes).decode("ascii"),
             "provider": "mock",
         }
+
+    if not worker_url:
+        raise HTTPException(
+            status_code=503,
+            detail="try-on provider is not configured; set VIRTUAL_TRY_ON_PROVIDER=codex or configure VIRTUAL_TRY_ON_WORKER_URL",
+        )
 
     try:
         response = await asyncio.to_thread(

@@ -44,9 +44,13 @@ class SessionState:
     # shown_item_ids 是上一輪 /recommend 兩分區攤平後實際展示過的商品 id，
     # /feedback 驗證用——不能信瀏覽器自己講的它看過什麼，只信這裡記錄的。
     shown_item_ids: list[str] = field(default_factory=list)
-    # 生成單品這輪展示過的 id——先存不用，source="generated" 的回饋今天整批
-    # 跳過（見 docs 記錄的已知落差：design_attributes 詞彙映射需要跨負責人確認）。
+    # 生成單品這輪實際展示過的 id。這個 id 由 ENGINE01 回傳給前端，而不是讓
+    # 瀏覽器自己拿 cell index 組字串；/feedback 會用它驗證回饋確實屬於本輪。
     shown_generated_item_ids: list[str] = field(default_factory=list)
+    # 生成 manifest 中、由伺服器信任的設計屬性。前端只能送 item_id 和動作，
+    # ENGINE01 依 id 從這裡補回 design_attributes 後才會轉送 ENGINE03，避免
+    # 瀏覽器偽造屬性權重。
+    generated_item_design_attributes: dict[str, dict[str, str]] = field(default_factory=dict)
     # 最近一次 /feedback 拿到的 engine02_feedback（chosen_item_ids／
     # rejected_item_ids／choice_history／design_weight_delta），每輪 /recommend
     # 原樣夾帶給 intent_rank() 的 feedback 參數——ENGINE03 自己已經把最近幾輪
