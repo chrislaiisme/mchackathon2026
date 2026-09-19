@@ -19,17 +19,27 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from backend.engine01_intent import gating, llm_client, recommend, session_store, style_me, zones
+from backend.engine01_intent import (
+    engine03_client,
+    gating,
+    llm_client,
+    recommend,
+    session_store,
+    style_me,
+    zones,
+)
 from backend.pinterest import client as pinterest_client
 from backend.shared import user_store
 from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
 from backend.shared.schemas import (
     AuthResponse,
+    FeedbackRequest,
+    FeedbackResponse,
     GoogleAuthRequest,
     Intent,
     IntentRequest,
@@ -180,6 +190,10 @@ def post_intent(
     state = session_store.get_or_create(user.sub, request.session_id)
     extraction = llm_client.extract_intent(request.message, state.intent)
 
+    # 2026-09-19 新增：更新 state.intent 之前先把舊值存起來，餵給下一次
+    # /recommend 呼叫 intent_rank() 的 prev_intent（ENGINE02 用來算「用上一輪
+    # 意圖評」的對照分數）。第一輪（round 0）沒有「上一輪」，維持 None。
+    state.prev_intent = state.intent.model_dump() if state.round > 0 else None
     state.intent = extraction.intent
     state.round += 1
     state.message_history.append(request.message)
@@ -236,12 +250,119 @@ def post_recommend(
             state.reference_image_url, state.reference_image_source
         ),
         user,
+        feedback=state.pending_engine02_feedback,
+        prev_intent=state.prev_intent,
     )
     # ENGINE02 沒有 OPENAI_API_KEY 時，reason 是樣板句，會露出內部分數／備註
     # （例如「整體風格和你描述的相近（+1.44）」）——比照 style_me.py 既有的
     # LLM 改寫模式，批次（一次 codex exec 呼叫）把這輪要顯示的理由都改寫成
     # 自然語句，失敗就原樣返回樣板句，不擋主流程。
-    return recommend.apply_natural_language_reasons(result, " ".join(state.message_history))
+    result = recommend.apply_natural_language_reasons(result, " ".join(state.message_history))
+
+    # 2026-09-19 新增：記下這輪兩分區攤平後實際展示過的商品 id，/feedback
+    # 驗證要用——不能信瀏覽器自己講的它看過什麼。這支端點原本完全沒有把
+    # 狀態存回去（唯讀），這裡是第一次新增 save() 呼叫。
+    state.shown_item_ids = [card.product_id for slate in result.zones for card in slate.products]
+    session_store.save(user.sub, state)
+
+    return result
+
+
+@app.post("/feedback", response_model=FeedbackResponse)
+def post_feedback(
+    request: FeedbackRequest,
+    user: UserProfile = Depends(get_current_user),
+    authorization: Optional[str] = Header(default=None),
+) -> FeedbackResponse:
+    """接上 ENGINE03（backend/engine03_feedback/）的真實回饋迴圈——2026-09-19 新增。
+
+    只吃 `source="catalog"`（資料庫商品）的回饋：單品收藏／不喜歡／三個具名
+    維度打分，跟整套喜歡（`OutfitFeedback`，只有「喜歡」這個方向，ENGINE03
+    本身沒有「整套不喜歡」的概念）。`source="generated"` 的單品回饋今天整批
+    跳過（`skipped_generated_item_feedbacks` 誠實列出，不是默默丟掉）——
+    ENGINE03 要求這種回饋的 `design_attributes` 由「受信任」的一方提供，
+    生成模組的 `keywords` 詞彙目前沒有對應到 ENGINE03 屬性 id 的轉換邏輯，
+    需要跨負責人確認才能做，見 docs 記錄的已知落差。
+
+    ENGINE03 的 `/feedback` 掛了跟 ENGINE01 共用同一把 `SESSION_SECRET` 的
+    `Depends(get_current_user)`，一定要把這裡收到的 `Authorization` header
+    原樣轉發，不然 `DEV_BYPASS_AUTH=false` 時 ENGINE03 那邊會直接 401——
+    見 `engine03_client.py` 的說明，這跟完全不驗證的 ENGINE02 不一樣。
+    """
+    state = session_store.get(user.sub, request.session_id)
+    if state is None:
+        raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
+    if request.round != state.round:
+        raise HTTPException(409, f"round 不一致：session 目前是 {state.round}，收到 {request.round}")
+    if not state.shown_item_ids and not state.shown_generated_item_ids:
+        raise HTTPException(409, "這一輪還沒有展示過任何商品，沒有東西可以回饋")
+
+    catalog_feedbacks: list[dict[str, Any]] = []
+    skipped_generated: list[str] = []
+    for item_feedback in request.item_feedbacks:
+        if item_feedback.source == "generated":
+            skipped_generated.append(item_feedback.item_id)
+            continue
+        if item_feedback.item_id not in state.shown_item_ids:
+            raise HTTPException(422, f"item_id {item_feedback.item_id!r} 不是這輪展示過的商品")
+        catalog_feedbacks.append(
+            {
+                "item_id": item_feedback.item_id,
+                "source": "catalog",
+                "favorited": item_feedback.favorited,
+                "disliked": item_feedback.disliked,
+                "attribute_ratings": [rating.model_dump() for rating in item_feedback.attribute_ratings],
+            }
+        )
+
+    outfit_feedbacks: list[dict[str, Any]] = []
+    for outfit_feedback in request.outfit_feedbacks:
+        for item_id in (outfit_feedback.top_item_id, outfit_feedback.bottom_item_id):
+            if item_id not in state.shown_item_ids:
+                raise HTTPException(422, f"item_id {item_id!r} 不是這輪展示過的商品")
+        outfit_feedbacks.append(
+            {
+                "outfit_id": outfit_feedback.outfit_id,
+                "favorited": True,
+                "items": [
+                    {"zone": "top", "source": "catalog", "item_id": outfit_feedback.top_item_id},
+                    {"zone": "bottom", "source": "catalog", "item_id": outfit_feedback.bottom_item_id},
+                ],
+            }
+        )
+
+    if not catalog_feedbacks and not outfit_feedbacks:
+        raise HTTPException(422, "沒有可送出的回饋（generated 來源今天還不支援）")
+
+    current_round = {
+        "round": state.round,
+        "shown_item_ids": state.shown_item_ids,
+        "shown_generated_item_ids": state.shown_generated_item_ids,
+        "item_feedbacks": catalog_feedbacks,
+        "outfit_feedbacks": outfit_feedbacks,
+    }
+    result = engine03_client.submit_feedback(
+        state.session_id, state.feedback_rounds, current_round, authorization
+    )
+    if result is None:
+        raise HTTPException(502, "呼叫 ENGINE03 /feedback 失敗")
+
+    # ENGINE03 的 previous_rounds 最多 3 筆、必須比本輪 round 舊——這裡把這輪
+    # 送出去的原始輸入累加進去，只留最近 3 筆，下一輪 /feedback 才有正確的
+    # 回饋窗口可以送。
+    state.pending_engine02_feedback = result["engine02_feedback"]
+    state.feedback_rounds = (state.feedback_rounds + [current_round])[-3:]
+    session_store.save(user.sub, state)
+
+    return FeedbackResponse(
+        session_id=state.session_id,
+        round=state.round,
+        engine02_feedback=result["engine02_feedback"],
+        attribute_evidence=result.get("attribute_evidence") or [],
+        generated_attribute_evidence=result.get("generated_attribute_evidence") or [],
+        outfit_evidence=result.get("outfit_evidence") or [],
+        skipped_generated_item_feedbacks=skipped_generated,
+    )
 
 
 @app.post("/style-me", response_model=StyledComplement)
@@ -306,24 +427,50 @@ def post_concept_image(
         raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
 
     intent = state.intent
+
     if intent.item_type:
-        # 單一品項：原本就有的行為，不管 outfit_requested 是不是 True
-        # （使用者這輪已經把品項講清楚了，就照單一品項生）。
+        # 單品請求——2026-09-19 改成跟 recommend.py::build_zoned_recommendation()
+        # 一樣的三分支判斷：連身裙、單品＋填充另一區、（不是連身裙也不是整套的）
+        # 純單品都要先問過 zones.resolve_zone_for_item_type()，不能再像原本
+        # 那樣不管三七二十一都走扁平單品生成——連身裙的 item_type 本來就有值
+        # （例如「連身裙」），原本的邏輯完全沒有意識到這件事，一律當普通單品生。
+        primary_zone, dress = zones.resolve_zone_for_item_type(intent.item_type)
+        other_zone = "bottom" if primary_zone == "top" else "top"
         try:
-            result = generate_concepts(
-                state.session_id,
-                state.round,
-                intent.model_dump(),
-                cells=request.cells,
-                model=request.model,
-                dry_run=request.dry_run,
-            )
+            if dress:
+                # 連身裙：只生使用者真正問的那一區（維持原始 item_type，
+                # 不能被 default_category_for_zone() 蓋掉），另一區留空、
+                # 不呼叫生成管線——連身裙本身就涵蓋下半身。
+                primary_result = _generate_concepts_for_zone(
+                    state.session_id, state.round, intent, primary_zone,
+                    request.cells, request.model, request.dry_run, keep_item_type=True,
+                )
+                other_result = _empty_zone_result()
+            else:
+                # 不是連身裙：要問的那一區真的生成（維持原始 item_type），
+                # 另一區也生成一個代表性品項當填充，讓單品請求也有兩分區可以
+                # 看——跟資料庫推薦 _assemble_single_item_result() 的既有行為
+                # 一致，不是只有整套請求才有兩分區展示。
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                    future_primary = executor.submit(
+                        _generate_concepts_for_zone, state.session_id, state.round, intent,
+                        primary_zone, request.cells, request.model, request.dry_run,
+                        keep_item_type=True,
+                    )
+                    future_other = executor.submit(
+                        _generate_concepts_for_zone, state.session_id, state.round, intent,
+                        other_zone, request.cells, request.model, request.dry_run,
+                    )
+                    primary_result = future_primary.result()
+                    other_result = future_other.result()
         except ConceptImageUnavailable as exc:
             # 生圖那條線還沒到位（例如 Hermes Agent 沒裝好）或這次執行失敗——
             # 跟 bff/main.py 的 /concept-image 一樣回 502，不是整個 API 掛掉，
             # 前端可以照常讓使用者留在對話畫面，只是生圖沒有成功。
             raise HTTPException(502, f"生成單品失敗：{exc}")
-        return {"session_id": state.session_id, "round": state.round, "concepts": result}
+
+        zone_results = {primary_zone: primary_result, other_zone: other_result}
+        return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run)
 
     if not intent.outfit_requested:
         # 沒有品項、也不是整套請求——現在還沒設計這種情況該生什麼，先明確擋掉，
@@ -333,9 +480,9 @@ def post_concept_image(
             409, "這一輪意圖還沒有明確的品項（item_type），生圖需要先知道要畫哪一類單品"
         )
 
-    # 2026-09-19：整套請求（outfit_requested=True 且沒有單一 item_type）——
-    # 比照 recommend.py::build_zoned_recommendation() 的兩分區模式，上衣／
-    # 下身各生一組六格，跟資料庫推薦「上衣＋下身各 6 件」的展示邏輯一致。
+    # 整套請求（outfit_requested=True 且沒有單一 item_type）——比照
+    # recommend.py::build_zoned_recommendation() 的兩分區模式，上衣／下身
+    # 各生一組六格，跟資料庫推薦「上衣＋下身各 6 件」的展示邏輯一致。
     # 先試平行執行（兩個 ThreadPoolExecutor worker 各自呼叫一次
     # generate_concepts()，各自是獨立的 subprocess，互不共用狀態）；如果現場
     # 撞到 WSL2/Hermes 的 session 衝突，再改成循序執行，不會兩種都寫進程式碼
@@ -350,35 +497,11 @@ def post_concept_image(
                 _generate_concepts_for_zone, state.session_id, state.round, intent,
                 "bottom", request.cells, request.model, request.dry_run,
             )
-            top_result = future_top.result()
-            bottom_result = future_bottom.result()
+            zone_results = {"top": future_top.result(), "bottom": future_bottom.result()}
     except ConceptImageUnavailable as exc:
         raise HTTPException(502, f"生成單品失敗：{exc}")
 
-    # Top Pick：上衣格、下身格各自第一格（位置性配對，不是 ENGINE02 算出來的
-    # 真相容性——生成圖各自獨立產生，沒有 /complete-look 那種可以真的比對的
-    # 資料可用，見 docs/status.md 的說明），理由套用跟 /recommend 一樣的自然
-    # 語句改寫，dry_run 模式沒有實際內容可以改寫，維持 None。
-    top_pick_reason = None
-    if not request.dry_run:
-        top_cells = top_result.get("cells") or []
-        bottom_cells = bottom_result.get("cells") or []
-        if top_cells and bottom_cells:
-            draft = (
-                f"上衣：{top_cells[0].get('prompt_fragment') or ''}；"
-                f"下身：{bottom_cells[0].get('prompt_fragment') or ''}"
-            )
-            rewritten = llm_client.rewrite_recommendation_reasons(
-                [("top-pick", draft)], " ".join(state.message_history)
-            )
-            top_pick_reason = (rewritten or {}).get("top-pick")
-
-    return {
-        "session_id": state.session_id,
-        "round": state.round,
-        "zones": {"top": top_result, "bottom": bottom_result},
-        "top_pick_reason": top_pick_reason,
-    }
+    return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run)
 
 
 def _generate_concepts_for_zone(
@@ -389,23 +512,68 @@ def _generate_concepts_for_zone(
     cells: int,
     model: Optional[str],
     dry_run: bool,
+    *,
+    keep_item_type: bool = False,
 ) -> dict[str, Any]:
     """幫某一區（上衣／下身）生成六格——比照 recommend.py 的 `_with_item_type()`
     模式，把 item_type 換成這一區的代表品項（`zones.default_category_for_zone()`），
     其餘欄位（顏色／風格／場合／季節）維持使用者這輪講的原話。
+
+    `keep_item_type=True`（2026-09-19 新增，單品請求裡「使用者真的問的那一區」用）：
+    不覆寫 `item_type`，維持使用者的原話——跟整套請求／單品請求的「填充區」
+    不一樣，那兩種情境要換成這一區的代表品項，這種情境要保留使用者真正問的
+    那個品項，不能被 `default_category_for_zone()` 蓋掉。
 
     `session_id` 加 `__top`／`__bottom` 尾綴（不能用冒號——Windows 檔案系統的
     冒號是保留字元，`generate_concepts()` 會拿 session_id 當資料夾名稱的一部分，
     真的用冒號會直接寫檔失敗），確保兩區各自的輸出目錄
     （`data/generated/<session_id>__<zone>/r<round>/`）不會互相覆蓋。
     """
-    zone_intent = intent.model_copy(
+    zone_intent = intent if keep_item_type else intent.model_copy(
         update={"item_type": zones.default_category_for_zone(zone, intent)}
     )
     return generate_concepts(
         f"{session_id}__{zone}", round, zone_intent.model_dump(),
         cells=cells, model=model, dry_run=dry_run,
     )
+
+
+def _empty_zone_result() -> dict[str, Any]:
+    """連身裙的另一區——概念上跟 ZoneSlate(requested=False, products=[]) 一致，
+    保留 cells/prompt_used/grid_image 三個鍵讓前端不用處理 undefined，只是
+    內容是空的：連身裙本身涵蓋下半身，不用也不該幫下身區另外生一張圖。"""
+    return {"cells": [], "prompt_used": "", "grid_image": None}
+
+
+def _assemble_concept_zone_response(
+    state: session_store.SessionState,
+    zone_results: dict[str, dict[str, Any]],
+    message_history: list[str],
+    dry_run: bool,
+) -> dict[str, Any]:
+    """統一組裝 /concept-image 的兩分區回應——Top Pick 理由沿用既有邏輯
+    （上衣格、下身格各自第一格位置性配對，套用跟 /recommend 一樣的自然語句
+    改寫；dry_run 沒有實際內容可以改寫，維持 None）。"""
+    top_pick_reason = None
+    if not dry_run:
+        top_cells = zone_results["top"].get("cells") or []
+        bottom_cells = zone_results["bottom"].get("cells") or []
+        if top_cells and bottom_cells:
+            draft = (
+                f"上衣：{top_cells[0].get('prompt_fragment') or ''}；"
+                f"下身：{bottom_cells[0].get('prompt_fragment') or ''}"
+            )
+            rewritten = llm_client.rewrite_recommendation_reasons(
+                [("top-pick", draft)], " ".join(message_history)
+            )
+            top_pick_reason = (rewritten or {}).get("top-pick")
+
+    return {
+        "session_id": state.session_id,
+        "round": state.round,
+        "zones": {"top": zone_results["top"], "bottom": zone_results["bottom"]},
+        "top_pick_reason": top_pick_reason,
+    }
 
 
 @app.get("/health")

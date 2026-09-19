@@ -76,6 +76,15 @@ def _primary_zone_slate(products: list[ProductCard]) -> tuple[zones.Zone, bool, 
     return zones.zone_of(category), zones.is_dress(category), products
 
 
+def _match_score_of(result) -> float:
+    """跟 _products_of() 對應的 match_score 版本——只有 intent_rank() 回傳的
+    RetrievalResult 有這個欄位，visual_search() 回的純 list 沒有（那條路沒有
+    這個分數可用），查不到／連不上一律當 0.0，不是真的查詢結果。"""
+    if result is None or isinstance(result, list):
+        return 0.0
+    return result.match_score
+
+
 def resolve_reference_image_for_retrieval(
     reference_image_url: Optional[str],
     reference_image_source: Literal["user_upload", "pinterest", "none"],
@@ -100,7 +109,14 @@ def build_zoned_recommendation(
     message_history: list[str],
     reference_image: Optional[str],
     user_profile: UserProfile,
+    feedback: Optional[dict] = None,
+    prev_intent: Optional[dict] = None,
 ) -> ZonedRecommendationResult:
+    """`feedback`／`prev_intent`（2026-09-19 新增）：ENGINE03 上一輪回饋的
+    `engine02_feedback`、跟上一輪的 Intent——原封不動往下傳給每一次
+    `intent_rank()` 呼叫，同一輪的 `design_weight_delta` 是 session 層級的
+    調整，兩分區都要套用，不是只套用在其中一區。見
+    `backend/engine01_intent/engine03_client.py` 的說明。"""
     message = " ".join(message_history)
     outgoing_intent = _with_style_fallback(intent, user_profile)
 
@@ -115,28 +131,37 @@ def build_zoned_recommendation(
                 primary_zone, is_dress, primary_products = _primary_zone_slate(visual_products)
                 return _assemble_single_item_result(
                     outgoing_intent, session_id, round, message, user_profile,
-                    primary_zone, is_dress, primary_products,
+                    primary_zone, is_dress, primary_products, 0.0,
+                    feedback=feedback, prev_intent=prev_intent,
                 )
         # 抓不到圖或 visual_search 失敗，不擋主流程，退回下面純文字流程。
 
     if outgoing_intent.outfit_requested:
-        top_products = engine02_client.intent_rank(
+        top_result = engine02_client.intent_rank(
             _with_item_type(outgoing_intent, zones.default_category_for_zone("top", outgoing_intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
+            feedback=feedback, prev_intent=prev_intent,
         )
-        bottom_products = engine02_client.intent_rank(
+        bottom_result = engine02_client.intent_rank(
             _with_item_type(outgoing_intent, zones.default_category_for_zone("bottom", outgoing_intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
+            feedback=feedback, prev_intent=prev_intent,
         )
         return ZonedRecommendationResult(
             session_id=session_id,
             round=round,
             outfit_requested=True,
             zones=[
-                ZoneSlate(zone="top", requested=True, products=_products_of(top_products)),
-                ZoneSlate(zone="bottom", requested=True, products=_products_of(bottom_products)),
+                ZoneSlate(
+                    zone="top", requested=True, products=_products_of(top_result),
+                    match_score=_match_score_of(top_result),
+                ),
+                ZoneSlate(
+                    zone="bottom", requested=True, products=_products_of(bottom_result),
+                    match_score=_match_score_of(bottom_result),
+                ),
             ],
         )
 
@@ -144,11 +169,13 @@ def build_zoned_recommendation(
     primary_result = engine02_client.intent_rank(
         outgoing_intent, session_id, round, message, top_k=6,
         user_sub=user_profile.sub, gender=user_profile.gender,
+        feedback=feedback, prev_intent=prev_intent,
     )
     primary_zone, is_dress, primary_products = _primary_zone_slate(_products_of(primary_result))
     return _assemble_single_item_result(
         outgoing_intent, session_id, round, message, user_profile,
-        primary_zone, is_dress, primary_products,
+        primary_zone, is_dress, primary_products, _match_score_of(primary_result),
+        feedback=feedback, prev_intent=prev_intent,
     )
 
 
@@ -172,6 +199,10 @@ def _assemble_single_item_result(
     primary_zone: zones.Zone,
     is_dress: bool,
     primary_products: list[ProductCard],
+    primary_match_score: float = 0.0,
+    *,
+    feedback: Optional[dict] = None,
+    prev_intent: Optional[dict] = None,
 ) -> ZonedRecommendationResult:
     other_zone: zones.Zone = "bottom" if primary_zone == "top" else "top"
 
@@ -180,14 +211,20 @@ def _assemble_single_item_result(
         # 要求的規則，不是查詢失敗。
         other_slate = ZoneSlate(zone=other_zone, requested=False, products=[])
     else:
-        other_products = engine02_client.intent_rank(
+        other_result = engine02_client.intent_rank(
             _with_item_type(intent, zones.default_category_for_zone(other_zone, intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
+            feedback=feedback, prev_intent=prev_intent,
         )
-        other_slate = ZoneSlate(zone=other_zone, requested=False, products=_products_of(other_products))
+        other_slate = ZoneSlate(
+            zone=other_zone, requested=False, products=_products_of(other_result),
+            match_score=_match_score_of(other_result),
+        )
 
-    primary_slate = ZoneSlate(zone=primary_zone, requested=True, products=primary_products)
+    primary_slate = ZoneSlate(
+        zone=primary_zone, requested=True, products=primary_products, match_score=primary_match_score,
+    )
     zone_slates = [primary_slate, other_slate]
     zone_slates.sort(key=lambda slate: slate.zone)  # 固定順序：bottom 在前、top 在後，回應穩定好測試
 

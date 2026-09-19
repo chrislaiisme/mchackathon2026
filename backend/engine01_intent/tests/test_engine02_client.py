@@ -84,6 +84,32 @@ def test_intent_rank_drops_gender_with_no_engine02_mapping():
     assert "gender" not in sent_json["intent"]
 
 
+def test_intent_rank_threads_feedback_and_prev_intent_to_engine02():
+    # ENGINE02 /intent/rank 早就接受 feedback／prev_intent 兩個欄位，ENGINE01
+    # 這邊一直沒送——確認 intent_rank() 有把兩者原封不動塞進送出的 JSON。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    feedback = {"chosen_item_ids": ["a"], "rejected_item_ids": [], "choice_history": [], "design_weight_delta": {}}
+    prev_intent = {"item_type": "襯衫"}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 1, "訊息", feedback=feedback, prev_intent=prev_intent)
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["feedback"] == feedback
+    assert sent_json["prev_intent"] == prev_intent
+
+
+def test_intent_rank_omits_feedback_and_prev_intent_by_default():
+    # 沒有回饋歷史的第一輪（或還沒接上 ENGINE03 時）兩者都該是 None，
+    # 不是漏掉不送——ENGINE02 那邊的欄位本身是 Optional，None 是合法值。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 0, "訊息")
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["feedback"] is None
+    assert sent_json["prev_intent"] is None
+
+
 def test_intent_rank_connection_error_returns_none():
     with patch(
         "backend.engine01_intent.engine02_client.requests.post",

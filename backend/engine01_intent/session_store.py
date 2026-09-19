@@ -40,6 +40,25 @@ class SessionState:
     # （engine02/negation.py）是讀 message 原句判斷的，只傳最新一句會
     # 漏掉前幾輪講過的排除條件（例如「不要太正式」）。
     message_history: list[str] = field(default_factory=list)
+    # 2026-09-19 新增，接上 ENGINE03 回饋迴圈用：
+    # shown_item_ids 是上一輪 /recommend 兩分區攤平後實際展示過的商品 id，
+    # /feedback 驗證用——不能信瀏覽器自己講的它看過什麼，只信這裡記錄的。
+    shown_item_ids: list[str] = field(default_factory=list)
+    # 生成單品這輪展示過的 id——先存不用，source="generated" 的回饋今天整批
+    # 跳過（見 docs 記錄的已知落差：design_attributes 詞彙映射需要跨負責人確認）。
+    shown_generated_item_ids: list[str] = field(default_factory=list)
+    # 最近一次 /feedback 拿到的 engine02_feedback（chosen_item_ids／
+    # rejected_item_ids／choice_history／design_weight_delta），每輪 /recommend
+    # 原樣夾帶給 intent_rank() 的 feedback 參數——ENGINE03 自己已經把最近幾輪
+    # 聚合成一個值，這裡不再自己累加，整包替換即可。
+    pending_engine02_feedback: Optional[dict] = None
+    # 最近 3 輪送去 ENGINE03 的原始輸入（FeedbackRound 形狀），ENGINE03 的
+    # Engine3Request.previous_rounds 規定最多 3 筆、必須比本輪 round 舊。
+    feedback_rounds: list[dict] = field(default_factory=list)
+    # 上一輪的 Intent（呼叫 /intent 覆寫前的舊值），餵給 intent_rank() 的
+    # prev_intent，讓 ENGINE02 同時算「用本輪意圖評」跟「用上一輪意圖評」
+    # 兩個 match_score 做誠實度對照。
+    prev_intent: Optional[dict] = None
 
 
 # 純記憶體字典，key 是 (user_id, session_id) 這組 tuple，代表「哪個使用者的哪個對話串」，

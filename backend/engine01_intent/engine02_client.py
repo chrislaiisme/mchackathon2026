@@ -75,6 +75,8 @@ def intent_rank(
     top_k: int = 6,
     user_sub: Optional[str] = None,
     gender: Optional[str] = None,
+    feedback: Optional[dict] = None,
+    prev_intent: Optional[dict] = None,
 ) -> Optional[RetrievalResult]:
     """呼叫 ENGINE02 的 `POST /intent/rank`，回傳團隊介面契約的 `RetrievalResult`。
 
@@ -85,6 +87,20 @@ def intent_rank(
     額外一個 `gender` key：`engine02/intent_adapter.py` 有明確的處理邏輯
     接住這個 key（即使它不在我們 `Intent` model 的正式欄位裡，見
     `intent_adapter.py:288-291` 的註解）。
+
+    `feedback`（2026-09-19 新增）：ENGINE03 `POST /feedback` 回傳的
+    `engine02_feedback` dict（`chosen_item_ids`／`rejected_item_ids`／
+    `choice_history`／`design_weight_delta`），原封不動往下傳——ENGINE02 的
+    `engine02/intent_adapter.py::feedback_from_engine03()` 已經確認這幾個 key
+    都在它認得的欄位集合裡，會原樣放行，不需要在這裡多做任何轉換。**這個
+    dict 絕對不能含有 `"ops"` key**：那會被 `engine02/api.py` 導去另一條給
+    ENGINE02 自己 `/handshake` 協定用的路徑，跟 ENGINE03 真正回傳的形狀是
+    兩回事，ENGINE03 回傳的 `engine02_feedback` 不會有這個 key，可以放心直傳。
+
+    `prev_intent`（2026-09-19 新增）：上一輪的 `Intent`（呼叫 `/intent` 覆寫前
+    的舊值，session_store 存的 `state.prev_intent`），讓 ENGINE02 同時回傳
+    「用本輪意圖評」跟「用上一輪意圖評」兩個 match_score 做誠實度對照——這是
+    ENGINE02 自己要求要顯示的既有機制，ENGINE01 之前一直沒送。
     """
     namespaced_session_id = f"{user_sub}:{session_id}" if user_sub else session_id
     intent_payload = intent.model_dump()
@@ -101,6 +117,8 @@ def intent_rank(
                 "message": message,
                 "intent": intent_payload,
                 "top_k": top_k,
+                "feedback": feedback,
+                "prev_intent": prev_intent,
             },
             timeout=_TIMEOUT_SECONDS,
         )
