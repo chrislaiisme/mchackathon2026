@@ -1,7 +1,7 @@
 """Fetch external context (weather) ONCE, into a local file the serving path can read.
 
 Why a side-car and not a call inside /rank: measured from Taipei, Open-Meteo's cold connection is
-p50 **1.57 s** (TLS handshake alone ≈0.95 s) and a warm one is 0.295 s, against a /rank that is
+p50 **1.57 s** (TLS handshake alone ~0.95 s) and a warm one is 0.295 s, against a /rank that is
 12.8 ms (§3.21) inside a 1.5 s per-request budget — and the demo runs with ENGINE02_DEMO=1, which
 has no network on the serving path at all. So the network call happens here, before the demo or on
 a timer, and the request path only ever reads a small JSON file.

@@ -532,10 +532,10 @@
         "商品描述直接提到你要的關鍵字（+0.73）",
         "這件你這輪還沒看過（+0.50）",
         "避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」",
-        "避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」"
+        "避開正式感（+0.18），對應你想要的「怕顯得太用力」"
       ],
       "attribute_notes": [],
-      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；這件你這輪還沒看過（+0.50）；避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」；避開正式感（+0.18），對應你想要的「你上一輪的回饋、怕顯得太用力」",
+      "explanation": "整體風格和你描述的相近（+2.23）；商品描述直接提到你要的關鍵字（+0.73）；這件你這輪還沒看過（+0.50）；避開明顯 logo（+0.45），對應你想要的「怕顯得太用力、被信任」；避開正式感（+0.18），對應你想要的「怕顯得太用力」",
       "explanation_source": "template"
     },
     {
@@ -1357,6 +1357,9 @@
     "grounded_terms": [],
     "exposure_excluded": 0,
     "exposure_cap_skipped": false,
+    "honoured_negations": [],
+    "retracted_constraints": [],
+    "substitutes": [],
     "input_warnings": []
   },
   "metrics": {
@@ -1375,12 +1378,12 @@
     0.0
   ],
   "timings_ms": {
-    "filter": 1.15,
+    "filter": 1.41,
     "bm25_docs_touched": 0.5134,
-    "retrieve": 0.93,
-    "fuse": 0.17,
-    "rerank": 1.19,
-    "counterfactual": 0.32,
-    "explain": 0.74
+    "retrieve": 1.34,
+    "fuse": 0.4,
+    "rerank": 2.35,
+    "counterfactual": 0.83,
+    "explain": 1.7
   }
 }

@@ -37,13 +37,23 @@
 
 ## 怎麼跑
 
+先照 `data/README.md` 步驟 0、1 裝好環境、建好 `data/catalog/kagl`。然後從 repo 根目錄：
+
 ```bash
-# 從 repo 根目錄執行
-ENGINE02_CATALOG=data/catalog/kagl ENGINE02_ENCODER=marqo-fashionSigLIP \
-ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
+# 等級 A：沒有 GPU、沒裝 torch（只需要 [data,dev]）
+ENGINE02_ENCODER=hash ENGINE02_DEMO=1 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
+
+# 等級 B：真正的 demo 編碼器（先裝 torch，再 uv pip install -e ".[models]"；CPU 也能跑）
+ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
+
+**不設 `ENGINE02_ENCODER` 時預設是 `marqo-fashionSigLIP`，沒裝 torch 會啟動失敗**
+（`ModuleNotFoundError: No module named 'torch'`）。`ENGINE02_DEVICE` 預設 `auto`，不要寫死 `cuda`。
+`ENGINE02_OT=1`（OutfitTransformer）需要 `third_party/` 的權重，缺了會退回圖片相似度而不會失敗。
 
 | 端點 | 用途 |
 |---|---|

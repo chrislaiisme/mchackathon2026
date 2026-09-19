@@ -71,3 +71,8 @@ data/catalog/kagl/*
 !data/catalog/kagl/stats.json
 !data/catalog/kagl/vlm_attributes_*.parquet
 !data/catalog/kagl/vlm_attributes_*.meta.json
+# complete-the-look needs this 9x9 matrix; it is 989 bytes but takes a full-dataset scan
+!data/catalog/polyvore/
+data/catalog/polyvore/*
+!data/catalog/polyvore/category_cooccurrence.json
+!data/catalog/polyvore/category_cooccurrence.meta.json
