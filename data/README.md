@@ -18,7 +18,7 @@
 | `catalog/kagl_polyvore_filled/` ❌**沒附、也無法照文件重建** | 見下方「需要 GPU 的」一節 | 只影響作者的屬性補值對照實驗。服務**預設用 `data/catalog/kagl`**，組員不需要它 |
 
 換句話說：**demo 與開發只需要下面的步驟 0、1**，其餘都是選用的。
-2026-09-19 從 GitHub 全新 clone、只做步驟 0、1 實測：**288 個測試全過**，服務可啟動並回應 `/retrieve`。
+2026-09-19 從 GitHub 全新 clone、建全新環境、只做步驟 0、1 實測：**579 passed、3 skipped**（跳過的是選用步驟 2、3），服務啟動後 `/rank`、`/services/itinerary`、`/inspiration` 都正常回應。
 
 以下指令都從 repo 根目錄執行。
 
