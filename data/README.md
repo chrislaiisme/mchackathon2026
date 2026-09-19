@@ -74,12 +74,17 @@ Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore�
 
 所以組員不需要另外跑索引指令，也不需要 GPU。
 
-## 唯一無法在筆電上重建的東西
+## 需要 GPU 的那兩個（都是選用的）
 
 `data/catalog/kagl/vlm_attributes_Qwen3-VL-8B-Instruct.parquet`（692 KB）是用 Qwen3-VL-8B
-從圖片標的，需要 GPU。**它是選用的**——少了它系統照常運作，只是 VLM 屬性補值那條路走不了。
+從圖片標的。少了它系統照常運作，只是 `concept_mode=vlm/hybrid` 走不了；**預設的 `antonym`
+模式不需要它**。
 
-需要的話跟 ENGINE 02 負責人要這個檔，或從 GitHub Release 下載（見下）。
+`data/catalog/kagl_polyvore_filled/` 要先 `scripts/merge_catalogs.py` 合併，再跑
+`scripts/eval_classify.py fill` 訓練屬性分類器。**服務預設不用這個商品庫**，它只出現在屬性補值的
+對照實驗裡。
+
+兩個都可以跟 ENGINE 02 負責人要，或從 GitHub Release 下載（見下）。
 
 ## 如果真的只能從 GitHub 拿現成檔案
 
