@@ -42,6 +42,8 @@ class Session(BaseModel):
     prev_intent: Optional[dict[str, Any]] = None
     feedback: Optional[dict[str, Any]] = None       # ENGINE 03 上一輪的產出
     shown_item_ids: list[str] = Field(default_factory=list)  # ENGINE 02 上輪實際展示的商品
+    shown_generated_item_ids: list[str] = Field(default_factory=list)
+    generated_items: dict[str, dict[str, Any]] = Field(default_factory=dict)
     feedback_rounds: list[dict[str, Any]] = Field(default_factory=list)  # 最近三輪的 ENGINE 03 原始輸入
     utterance: str = ""                             # 使用者最近說的那句原話（生圖要用）
     concept_image: Optional[dict[str, Any]] = None  # 最近一次生成的單品圖
@@ -105,6 +107,49 @@ def _shown_item_ids(retrieval: dict[str, Any]) -> list[str]:
     return ids
 
 
+def _register_generated_items(s: Session, generated: dict[str, Any]) -> dict[str, Any]:
+    """Give generated cells stable ids and retain trusted variant metadata server-side."""
+    shown: list[str] = []
+    for cell in generated.get("cells") or []:
+        index = cell.get("index")
+        if index is None:
+            continue
+        item_id = f"generated:{s.session_id}:r{s.round}:cell-{index}"
+        cell["generated_item_id"] = item_id
+        cell["source"] = "generated"
+        s.generated_items[item_id] = {
+            "item_id": item_id,
+            "round": s.round,
+            "image_url": cell.get("image_url"),
+            "design_attributes": dict(cell.get("design_attributes") or {}),
+        }
+        shown.append(item_id)
+    s.shown_generated_item_ids = shown
+    return generated
+
+
+def _trusted_item_feedbacks(s: Session, raw_feedbacks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Inject generated metadata from the session; never trust browser-supplied attributes."""
+    trusted: list[dict[str, Any]] = []
+    for raw in raw_feedbacks:
+        item = dict(raw)
+        source = str(item.get("source") or "catalog")
+        item_id = str(item.get("item_id") or "")
+        if source == "catalog":
+            item["source"] = "catalog"
+            item.pop("design_attributes", None)
+        elif source == "generated":
+            generated = s.generated_items.get(item_id)
+            if generated is None or item_id not in s.shown_generated_item_ids:
+                raise HTTPException(422, f"generated item {item_id!r} was not shown this round")
+            item["source"] = "generated"
+            item["design_attributes"] = dict(generated.get("design_attributes") or {})
+        else:
+            raise HTTPException(422, f"unknown feedback source {source!r}")
+        trusted.append(item)
+    return trusted
+
+
 class RoundRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
@@ -131,6 +176,7 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
 
     retrieval = _retrieve(s, activity, body.message, body.top_k, headers)
     s.shown_item_ids = _shown_item_ids(retrieval)
+    s.shown_generated_item_ids = []
 
     result = {
         "session_id": sid, "round": s.round,
@@ -167,15 +213,17 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
         raise HTTPException(404, f"session {body.session_id!r} 不存在，請先呼叫 /round")
     if body.round != s.round:
         raise HTTPException(409, f"feedback round {body.round} 與目前 round {s.round} 不一致")
-    if not s.shown_item_ids:
-        raise HTTPException(409, "上一輪沒有可供回饋的 ENGINE 02 商品")
+    if not s.shown_item_ids and not s.shown_generated_item_ids:
+        raise HTTPException(409, "上一輪沒有可供回饋的商品或生成圖")
 
     activity: list[dict[str, Any]] = []
     headers = _auth_headers(authorization)
+    trusted_feedbacks = _trusted_item_feedbacks(s, body.item_feedbacks)
     current_feedback_round = {
         "round": s.round,
         "shown_item_ids": s.shown_item_ids,
-        "item_feedbacks": body.item_feedbacks,
+        "shown_generated_item_ids": s.shown_generated_item_ids,
+        "item_feedbacks": trusted_feedbacks,
     }
     engine3_payload = {
         "session_id": s.session_id,
@@ -195,6 +243,7 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
     next_session.round = s.round + 1
     retrieval = _retrieve(next_session, activity, None, body.top_k, headers)
     next_session.shown_item_ids = _shown_item_ids(retrieval)
+    next_session.shown_generated_item_ids = []
 
     result = {
         "session_id": next_session.session_id, "round": next_session.round,
@@ -203,6 +252,7 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
         "concept_image": next_session.concept_image,
         "feedback_applied": next_session.feedback,
         "attribute_evidence": fb_out.get("attribute_evidence") or [],
+        "generated_attribute_evidence": fb_out.get("generated_attribute_evidence") or [],
         "activity": activity,
     }
     next_session.rounds.append(result)
@@ -245,8 +295,11 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
         raise HTTPException(502, f"生成單品失敗：{type(exc).__name__}: {exc}"[:300])
 
     activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000), "ok": True})
+    if not body.dry_run:
+        out = _register_generated_items(s, out)
     s.concept_image = {"image_url": out.get("grid_image"), "prompt_used": out.get("prompt_used"),
-                       "response_id": None}
+                       "response_id": None,
+                       "generated_item_ids": list(s.shown_generated_item_ids)}
     return {"session_id": s.session_id, "round": s.round, "concepts": out, "activity": activity}
 
 

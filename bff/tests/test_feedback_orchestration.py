@@ -1,6 +1,7 @@
 import pytest
 
 from bff import main
+from bff.images.concept import _cells_payload
 
 
 @pytest.fixture(autouse=True)
@@ -24,6 +25,7 @@ def test_feedback_reuses_engine1_intent_and_calls_engine2_once(monkeypatch):
             }
         if url.endswith("/feedback"):
             assert payload["shown_item_ids"] == ["A", "B"]
+            assert payload["shown_generated_item_ids"] == []
             assert payload["previous_rounds"] == []
             return {
                 "session_id": "s1",
@@ -88,10 +90,11 @@ def test_feedback_reuses_engine1_intent_and_calls_engine2_once(monkeypatch):
     assert main._SESSIONS["s1"].feedback_rounds == [{
         "round": 1,
         "shown_item_ids": ["A", "B"],
+        "shown_generated_item_ids": [],
         "item_feedbacks": [
-            {"item_id": "A", "favorited": True,
+            {"item_id": "A", "source": "catalog", "favorited": True,
              "attribute_ratings": [{"attribute": "polished_formality", "stars": 2}]},
-            {"item_id": "B", "disliked": True},
+            {"item_id": "B", "source": "catalog", "disliked": True},
         ],
     }]
 
@@ -155,3 +158,87 @@ def test_feedback_sends_only_previous_three_rounds_to_engine3(monkeypatch):
     assert [item["round"] for item in main._SESSIONS["s1"].feedback_rounds] == [2, 3, 4]
     engine2_payload = next(payload for url, payload in calls if url.endswith("/retrieve"))
     assert engine2_payload["feedback"]["chosen_item_ids"] == ["old-1", "old-2", "old-3", "current"]
+
+
+def test_generated_feedback_uses_server_metadata_and_never_sends_generated_id_to_engine2(monkeypatch):
+    generated_id = "generated:s1:r1:cell-2"
+    main._SESSIONS["s1"] = main.Session(
+        session_id="s1",
+        round=1,
+        intent={"item_type": "top"},
+        shown_item_ids=["A"],
+        shown_generated_item_ids=[generated_id],
+        generated_items={generated_id: {
+            "item_id": generated_id,
+            "round": 1,
+            "image_url": "/generated/cell-2.png",
+            "design_attributes": {"fit": "loose"},
+        }},
+    )
+    calls: list[tuple[str, dict]] = []
+
+    def fake_post(url, payload, headers=None):
+        calls.append((url, payload))
+        if url.endswith("/feedback"):
+            item = payload["item_feedbacks"][0]
+            assert item["design_attributes"] == {"fit": "loose"}
+            assert payload["shown_generated_item_ids"] == [generated_id]
+            return {"engine02_feedback": {
+                "chosen_item_ids": [],
+                "rejected_item_ids": [],
+                "choice_history": [],
+                "design_weight_delta": {"relaxed_fit": 0.5, "tailored_fit": -0.5},
+            }}
+        if url.endswith("/retrieve"):
+            assert generated_id not in payload["feedback"]["chosen_item_ids"]
+            assert generated_id not in payload["feedback"]["rejected_item_ids"]
+            return {"products": [{"product_id": "next"}]}
+        raise AssertionError(url)
+
+    monkeypatch.setattr(main, "_post", fake_post)
+    main.feedback(main.FeedbackRequest(
+        session_id="s1",
+        round=1,
+        item_feedbacks=[{
+            "item_id": generated_id,
+            "source": "generated",
+            "favorited": True,
+            "design_attributes": {"fit": "tight"},
+        }],
+    ))
+
+    assert main._SESSIONS["s1"].shown_generated_item_ids == []
+
+
+def test_concept_image_registers_stable_generated_ids(monkeypatch):
+    main._SESSIONS["s1"] = main.Session(
+        session_id="s1", round=2, intent={"item_type": "top"}, rounds=[{"round": 2}])
+    monkeypatch.setattr(main, "generate_concepts", lambda *args, **kwargs: {
+        "grid_image": "/generated/grid.png",
+        "prompt_used": "prompt",
+        "cells": [{
+            "index": 1,
+            "image_url": "/generated/cell_1.png",
+            "design_attributes": {"pattern": "striped"},
+        }],
+    })
+
+    result = main.concept_image(main.ConceptImageRequest(session_id="s1"))
+
+    generated_id = "generated:s1:r2:cell-1"
+    assert result["concepts"]["cells"][0]["generated_item_id"] == generated_id
+    assert main._SESSIONS["s1"].shown_generated_item_ids == [generated_id]
+    assert main._SESSIONS["s1"].generated_items[generated_id]["design_attributes"] == {
+        "pattern": "striped"
+    }
+
+
+def test_generated_cell_uses_only_varied_attributes_as_feedback_evidence():
+    cells = _cells_payload({"cells": [{
+        "index": 1,
+        "keywords": {"occasion": "interview", "fit": "loose", "pattern": "striped"},
+        "varied_attribute": "fit,pattern",
+    }]}, sliced=False)
+
+    assert cells[0]["design_attributes"] == {"fit": "loose", "pattern": "striped"}
+    assert "occasion" not in cells[0]["design_attributes"]

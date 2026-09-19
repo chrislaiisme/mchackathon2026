@@ -117,9 +117,20 @@ def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
 def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:
     out = []
     for cell in manifest.get("cells") or []:
+        keywords = cell.get("keywords") or {}
+        varied_fields = [
+            field.strip()
+            for field in str(cell.get("varied_attribute") or "").split(",")
+            if field.strip()
+        ]
         item = {
             "index": cell.get("index"),
-            "keywords": cell.get("keywords") or {},
+            "keywords": keywords,
+            # Only attributes varied by this generated option become preference evidence. Locked
+            # intent attributes are not re-counted merely because the user liked the image.
+            "design_attributes": {
+                field: str(keywords[field]) for field in varied_fields if field in keywords
+            },
             # 這格相對其他格改了什麼，中文原字，前端可以直接顯示在卡片上。
             "varied_label": cell.get("varied_label_zh") or cell.get("varied_attribute"),
             "prompt_fragment": cell.get("prompt_fragment"),

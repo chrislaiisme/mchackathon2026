@@ -175,3 +175,75 @@ def test_rejects_more_than_three_previous_rounds():
     } for number in range(1, 5)]
     with pytest.raises(ValidationError, match="at most 3 items"):
         request(round=5, previous_rounds=previous)
+
+
+def test_generated_feedback_becomes_design_delta_not_catalog_ids():
+    body = request(
+        shown_item_ids=["A"],
+        shown_generated_item_ids=["generated:s1:r1:cell-2"],
+        item_feedbacks=[{
+            "item_id": "generated:s1:r1:cell-2",
+            "source": "generated",
+            "favorited": True,
+            "design_attributes": {"fit": "loose", "pattern": "solid", "length": "midi"},
+        }],
+    )
+
+    result = process_feedback(body)
+
+    assert result.engine02_feedback.chosen_item_ids == []
+    assert result.engine02_feedback.rejected_item_ids == []
+    assert result.engine02_feedback.design_weight_delta == {
+        "relaxed_fit": 0.5,
+        "tailored_fit": -0.5,
+        "minimal_design": 0.5,
+        "bold_pattern": -0.5,
+    }
+    assert result.engine02_feedback.choice_history[0].chosen_item_id is None
+    evidence = result.generated_attribute_evidence
+    assert [(item.field, bool(item.mapped_axes)) for item in evidence] == [
+        ("fit", True), ("pattern", True), ("length", False),
+    ]
+
+
+def test_generated_dislike_reverses_mapped_direction_and_ratings_still_apply():
+    body = request(
+        shown_item_ids=[],
+        shown_generated_item_ids=["generated:s1:r1:cell-1"],
+        item_feedbacks=[{
+            "item_id": "generated:s1:r1:cell-1",
+            "source": "generated",
+            "disliked": True,
+            "design_attributes": {"material": "satin"},
+            "attribute_ratings": [{"attribute": "soft_energy", "stars": 5}],
+        }],
+    )
+
+    result = process_feedback(body)
+
+    assert result.engine02_feedback.design_weight_delta == {
+        "glossy_fabric": -0.5,
+        "matte_fabric": 0.5,
+        "soft_knit": 1.0,
+        "athletic_style": 1.0,
+    }
+    assert result.attribute_evidence[0].source == "generated"
+
+
+def test_generated_feedback_requires_shown_id_and_design_metadata():
+    with pytest.raises(ValidationError, match="trusted design_attributes"):
+        request(
+            shown_generated_item_ids=["generated:s1:r1:cell-1"],
+            item_feedbacks=[{
+                "item_id": "generated:s1:r1:cell-1",
+                "source": "generated",
+                "favorited": True,
+            }],
+        )
+    with pytest.raises(ValidationError, match="not shown"):
+        request(item_feedbacks=[{
+            "item_id": "generated:s1:r1:cell-9",
+            "source": "generated",
+            "favorited": True,
+            "design_attributes": {"fit": "loose"},
+        }])

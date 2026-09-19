@@ -71,6 +71,72 @@ ATTRIBUTE_MAP = {attribute.id: dict(attribute.maps_to) for attribute in ATTRIBUT
 ENGINE02_AXIS_IDS = frozenset(axis for mapping in ATTRIBUTE_MAP.values() for axis in mapping)
 
 
+def _opposite_pair(positive: str, negative: str) -> dict[str, float]:
+    """Represent one bipolar preference without double-counting after E2 folds antonyms."""
+    return {positive: 0.5, negative: -0.5}
+
+
+def generated_attribute_axes(field: str, value: str) -> dict[str, float]:
+    """Map explicit generated-cell metadata to existing ENGINE 02 axes.
+
+    Unknown or ambiguous values return an empty mapping and are reported as evidence instead of
+    being guessed.
+    """
+    key = field.strip().lower().replace("-", "_")
+    text = value.strip().lower().replace("-", " ").replace("_", " ")
+
+    if key == "fit":
+        if text in {"loose", "oversized", "relaxed", "baggy"}:
+            return _opposite_pair("relaxed_fit", "tailored_fit")
+        if text in {"tight", "slim", "fitted", "tailored"}:
+            return _opposite_pair("tailored_fit", "relaxed_fit")
+        return {}
+
+    if key == "pattern":
+        if text in {"solid", "plain", "unpatterned", "minimal"}:
+            return _opposite_pair("minimal_design", "bold_pattern")
+        if text:
+            return _opposite_pair("bold_pattern", "minimal_design")
+
+    if key == "material":
+        if any(token in text for token in ("knit", "cotton", "wool", "cashmere")):
+            return {"soft_knit": 1.0}
+        if any(token in text for token in ("satin", "silk", "glossy")):
+            return _opposite_pair("glossy_fabric", "matte_fabric")
+        if "matte" in text:
+            return _opposite_pair("matte_fabric", "glossy_fabric")
+        return {}
+
+    if key in {"colors", "color"}:
+        if any(token in text for token in (
+            "black", "navy", "charcoal", "dark", "maroon", "burgundy", "brown", "coffee",
+        )):
+            return _opposite_pair("dark_tone", "bright_color")
+        if any(token in text for token in (
+            "white", "light", "bright", "yellow", "orange", "gold", "silver", "lime",
+            "turquoise", "pink", "magenta", "rose", "peach",
+        )):
+            return _opposite_pair("bright_color", "dark_tone")
+        return {}
+
+    if key in {"collar", "neckline"}:
+        if text in {"shirt collar", "polo collar", "collared", "stand collar"}:
+            return {"crisp_collar": 1.0}
+        if text in {"crew", "v neck", "scoop", "boat", "square", "hood", "halter"}:
+            return {"crisp_collar": -1.0}
+        return {}
+
+    if key in {"style", "style_keywords"}:
+        if any(token in text for token in ("formal", "business", "professional")):
+            return _opposite_pair("formal_style", "casual_style")
+        if any(token in text for token in ("casual", "relaxed")):
+            return _opposite_pair("casual_style", "formal_style")
+        if any(token in text for token in ("sporty", "athletic", "active")):
+            return {"athletic_style": 1.0}
+
+    return {}
+
+
 def frontend_attribute_catalog() -> dict:
     return {
         "rating_scale": {"1": -1.0, "2": -0.5, "3": 0.0, "4": 0.5, "5": 1.0},
