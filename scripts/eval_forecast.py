@@ -26,10 +26,17 @@ sys.path.insert(0, str(ROOT))
 import numpy as np  # noqa: E402
 
 
-def to_weekly(points: list[dict]) -> np.ndarray:
-    """Daily pageviews → weekly totals. Fashion attention moves on weeks, not days, and the daily
-    series carries a strong day-of-week cycle that would flatter any model that learns it."""
+def to_weekly(points: list[dict], granularity: str = "daily") -> np.ndarray:
+    """Daily pageviews → weekly totals; a series that is already weekly is passed through.
+
+    Fashion attention moves on weeks, and a daily series carries a day-of-week cycle that would
+    flatter any model that learns it. But summing every 7 points of an ALREADY weekly series turns
+    52 weeks into 7 points and silently makes every series too short to backtest — which is exactly
+    what happened the first time Pinterest data was fed through here.
+    """
     vals = np.array([p["views"] for p in points], dtype=np.float64)
+    if str(granularity).lower().startswith("week"):
+        return vals
     n = (len(vals) // 7) * 7
     return vals[:n].reshape(-1, 7).sum(axis=1)
 
@@ -56,7 +63,7 @@ def main() -> None:
 
     per_series: dict[str, dict[str, float]] = {}
     for term, s in doc["series"].items():
-        y = to_weekly(s["points"])
+        y = to_weekly(s["points"], doc.get("granularity", "daily"))
         res = backtest(y, m=a.m, h=a.h, n_windows=a.windows)
         if res.note:
             print(f"  {term:<16} 跳過：{res.note}")

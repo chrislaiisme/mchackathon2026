@@ -32,8 +32,10 @@
    汽車銷售 MAE 改善 10.6%、消費者信心 9.3%，**但失業初領件數的一步預測 MAE 從 3.37% 變差到 3.68%**（V，原文）。
    Google Flu Trends 則是反例的教科書：**連續 108 週裡有 100 週高估**，而「GFT + 落後兩週的 CDC」MAE 0.232
    比 GFT 單獨的 0.486 好一倍（V，Lazer et al. 2014 原文）。**教訓是：注意力訊號要當「加在基線上的補充項」，
-   永遠不能取代基線。** 而 Google Trends **同一個查詢重抓 6 次，各次相關只有 0.79–0.94**
-   （Cebrián & Domenech, *Applied Economics Letters* 2023，V）——**這就是我們用 Wikimedia（CC0、確定性）的理由**（§3.5）。
+   永遠不能取代基線。** 而 Google Trends 本身已經不堪用：**原始訊號「often degrades performance in
+   statistical models」，且零值比例在 2024 年 2–4 月從 64% 漲到 87%**（Djorno, Santillana & Yang,
+   arXiv:2504.07032，V）；**只差一天下載，同一份分析的相關係數可以差 82.6%**（Rovetta 2021，V）。
+   ——**這就是我們用 Wikimedia（CC0、確定性、逐日可重現）的理由**（§3.5）。
 6. **§3.15 的否決不動搖，但它不是這件事的判決。** §3.15 量的是「趨勢詞進 BM25 式分數項」，標準答案是商品屬性
    metadata。本檔講的是另一件事：**一條有自己標準答案（下一週的實際瀏覽數）的時間序列預測**。這兩件事可以同時為真。
    誠實的用途只有兩個：**後台觀察欄位**與**展示標籤**；**不可以進排序，也不可以自動轉成權重**（§6）。
@@ -283,28 +285,57 @@ arXiv:2403.07815 Table 9/10（V）：
   比 ARIMA／ETS／TBATS／NNAR 分別好 **29%／33%／29%／53%**（10% 顯著），但 **h=12 時四個全部不顯著**。
   **對我們的意義有兩層**：(i) 「預測注意力序列本身」是一個**已被同儕審查接受的研究對象**，不是我們自創的遁詞；
   (ii) 它的效果**隨 h 衰減到不顯著**，與 §7.3 我們量到的方向一致。
+- **另外兩個量級參考**（都只核到摘要）：*Predicting Chinese consumption series with Baidu*
+  （*J. Chinese Economic and Business Studies*, 2022, doi:10.1080/14765284.2022.2161175）——百度搜尋資料讓
+  **汽車與手機**的 nowcast/forecast 誤差**降低超過 10%**；*Can Google Trends improve sales forecasts on a
+  product level?*（*Applied Economics Letters*, 2020, doi:10.1080/13504851.2019.1686110）——**單品層級**，
+  但樣本只有 **Sennheiser 的兩個產品、2015–2016 週資料**，且**摘要沒有數字 → 效果量 U，不要引用百分比**。
+  → **把這三個放在一起看：聚合／耐久財有 10–20% 的量級，單品層級的證據薄到只有兩個產品。**
 
-### 3.5 失敗模式：Google Trends 的同一個查詢，重抓會得到不同的數字
+### 3.5 失敗模式：Google Trends 的原始訊號現在會讓模型變差
 
-這是拒絕把 Google Trends 放進關鍵路徑最技術性、也最無可辯駁的理由。
-**Cebrián & Domenech, *Is Google Trends a quality data source?*, *Applied Economics Letters* 30(6), 2023,
-doi:10.1080/13504851.2021.2023088**；數字經其會議版 *Simulating the inconsistencies of Google Trends data*
-（CARMA 2022, doi:10.4995/CARMA2022.2022.15093，**全文 V**）逐條核實：
+這是拒絕把 Google Trends 放進關鍵路徑最技術性、也最無可辯駁的理由。**而且證據在 2024 年之後變得更硬。**
 
-- 同一組奧地利城市查詢**在 6 個不同日子重抓**，各次之間的**相關係數只有 0.79–0.94**。
-- Carrière-Swallow & Labbé (2013)：對 "Chevrolet" **抓 50 次**，平均標準差**超過 15%**。
-- D'Amuri & Marcucci (2017, *IJF* 33(4))：對 "jobs" 抓 24 次，交叉相關**至少 0.99**。
-  → **不穩定度取決於查詢的熱門程度**：冷門詞單次抓取 r 僅 **0.802**，抓 10 次平均才 0.974。
-- **還有一個少被提及的坑**：平均會改變尺度。冷門詞單次抓取 SVI 範圍 18–100，
-  平均 20 次後變成 27.1–81.3 → **單次抓取的值不能直接跟平均後的序列比較**。
-- **時尚文獻自己就知道這件事**：GTM-Transformer 原文寫明「我們把每條 Google Trend **下載 10 次取平均**」。
+**(a) 最強的一篇：Djorno, Santillana & Yang, *Restoring the Forecasting Power of Google Trends with
+Statistical Preprocessing*，arXiv:2504.07032（2025-04 投、2025-10 改；Semantic Scholar 給的
+doi:10.1016/j.ijforecast.2026.03.001 指向 *IJF* 2026，但 arXiv 頁面沒有 journal-ref → **「IJF 2026」標 U，預印本本身 V**）。**全文已核。**
+
+- **摘要原話**：「preprocessed signals enhance forecast accuracy, while **raw Google Trends data often
+  degrades performance in statistical models**」。**原始訊號不是沒用，是會讓模型變差。**
+- **資料品質在 2024 年實際惡化了**：橫跨 **161 個關鍵字 × 52 個地區**，回傳 0 的比例從 2024-02-11 的 **64%**
+  漲到 2024-04-21 的 **87%**；「零值總數在 2024 年初增加 40%」；單一關鍵字 `Nasal Congestion` 的零值比例
+  在 2024 年 2–4 月間**增加 104%**。
+- **它也給出了「為什麼重抓會不一樣」最乾淨的一句機制說明**：Google 會快取，**同一天內重複查詢回傳相同結果；
+  UTC 午夜快取重置，才重新抽樣**。→ **要重抽樣必須跨「天」，同一天抓 10 次是白做的。**
+- 效果量（預測美國流感住院數，h=0–3 週，Relative Efficiency = 有/無外生訊號的 MSE 比，<1 為較好）：
+  **經過預處理**後的中位 RE，ARIMAX 0.83/0.80/0.83/0.82、ARGO 0.83/0.72/0.73/0.73、
+  LightGBM 0.85/0.71/0.75/0.78、AdaBoost 0.81/0.62/0.61/0.64。
+
+**(b) 不穩定到會翻轉結論：Rovetta, *Reliability of Google Trends…*, *Frontiers in Research Metrics and
+Analytics* 6:670226, 2021, doi:10.3389/frma.2021.670226**（全文 V）。
+同一個查詢連續每天重抓 7–20 天：與 COVID 病例數的相關係數從 12/8 的 **r=−0.29** 變成隔天的 **r=−0.36**
+（|Δ|=+24.1%），全期落在 [−0.23, −0.42]（**|Δ|=+82.6%**）；跨國的 Spearman 相關落在 [0.04, 0.11]（**|Δ|=+175%**）。
+**也就是說：只差一天下載，同一份分析報出來的相關係數可以差 82.6%～175%。這是會改變結論的等級。**
+
+**(c) 較早、但仍常被引的基準數字**：Cebrián & Domenech, *Is Google Trends a quality data source?*,
+*Applied Economics Letters* 30(6), 2023, doi:10.1080/13504851.2021.2023088（數字經其 CARMA 2022 會議版
+doi:10.4995/CARMA2022.2022.15093 核實，V）——同一組查詢**在 6 個不同日子重抓，各次相關只有 0.79–0.94**；
+Carrière-Swallow & Labbé 對 "Chevrolet" 抓 50 次，平均標準差**超過 15%**；
+但 D'Amuri & Marcucci 對熱門詞 "jobs" 抓 24 次卻有 **r≥0.99** → **不穩定度取決於查詢熱門程度**，
+而我們的時尚詞**正好都在冷門那一端**。另有一個少被提及的坑：**平均會改變尺度**
+（冷門詞單次 SVI 範圍 18–100，平均 20 次後變 27.1–81.3），**單次抓取的值不能跟平均後的序列直接比較**。
+
+**(d) 時尚文獻自己就知道**：GTM-Transformer 原文寫明「我們把每條 Google Trend **下載 10 次取平均**」。
 
 補充：Tom Coupé 對 Choi & Varian 做過複製研究（*Economics* 2018, doi:10.5018/economics-ejournal.ja.2018-34），
 **但其結論我與 sub-agent 都無法取得全文** → 標 **U**。
+另有一個可能繞開重抓問題的資料源：**GoogleTrendArchive**（ICWSM 2026, arXiv:2603.21871），
+一份長達一年的即時熱搜存檔——**本輪未開啟、未評估 → U**，但如果將來真的要用 Trends，這是該先看的東西。
 
 **對我們的判決**：`live-trend-sources.md` 已實測非官方 widget 端點回 **429**、`pytrends` 自 2025-04-17 唯讀封存（C）。
-**加上這一節：就算抓得到，同一個查詢重抓的相關只有 0.79–0.94。**
-→ **Wikimedia pageviews（CC0、確定性、可存檔）是唯一該用的來源**，這也是 §7 為什麼用它。
+**加上這一節：就算抓得到，(i) 同一查詢重抓的相關只有 0.79–0.94、(ii) 差一天下載能讓結論翻轉、
+(iii) 2024 年起零值比例從 64% 漲到 87%、(iv) 原始訊號會讓統計模型變差。**
+→ **Wikimedia pageviews（CC0、確定性、可存檔、逐日可重現）是唯一該用的來源**，這也是 §7 為什麼用它。
 
 ---
 
@@ -349,7 +380,14 @@ GTM-Transformer（2021/2024）**55.2** → Dif4FF（2024）**54.6** → MDiFF（
 時間序列基礎模型（Chronos／TimesFM／Moirai）在時尚需求基準上的數字**。
 最接近的是 *Zero-shot Demand Forecasting for Products with Limited Sales Periods*（**IEEE BigData 2024**,
 doi:10.1109/bigdata62323.2024.10825549），摘要只說「比既有時間序列方法準，尤其是銷售期短的商品」，
-**沒有數字、全文付費牆 → U**。→ **§8 第 2 名做的事，在文獻上是空白格。** 這是加分項，但也代表沒有前人的數字可以對照。
+**沒有數字、全文付費牆 → U**。
+
+**而這個空白是「刻意的」不是「沒人做」**：2025–2026 年基礎模型幾乎每個應用領域都被 benchmark 過了——
+手足口病（*Frontiers in Public Health* 2025, doi:10.3389/fpubh.2025.1634138，比較 TimesFM／Moirai 與古典法）、
+香港職缺（*Humanities and Social Sciences Communications* 2026, doi:10.1057/s41599-026-07795-8，含 Chronos-2）、
+交通／電力需求／能源價格（arXiv 2602.24238／2602.05390／2605.17045）。**唯獨零售與時尚是洞。**
+→ **§8 第 2 名做的事，在文獻上是空白格。** 這是加分項，但也代表**沒有前人的數字可以對照**——
+所以 §7.1 那張我們自己跑出來的基線表，就是唯一的分母。
 
 ---
 
@@ -540,6 +578,12 @@ doi:10.1016/j.ijforecast.2006.03.001（書目 V；主張經 FPP3 §5.8 原文轉
 - **Coupé（2018）對 Choi & Varian 的複製研究結論**：EconStor／De Gruyter 皆擋機器人，全文未取得。
 - **Vosen & Schmidt（2011）、Carrière-Swallow & Labbé（2013）的確切 RMSE 改善**：付費牆，只核到摘要主張。
 - **基礎模型在零售／時尚上的同儕審查數字**：IEEE BigData 2024 那篇全文付費牆，摘要無數字。
+- **Djorno, Santillana & Yang 的發表狀態**：Semantic Scholar 給的 doi:10.1016/j.ijforecast.2026.03.001
+  指向 *IJF* 2026，但 arXiv:2504.07032 頁面沒有 journal-ref → **「IJF 2026」標 U；預印本內容與數字 V**。
+- ***Can Google Trends improve sales forecasts on a product level?*（AEL 2020）的效果量**：摘要無數字、付費牆 →
+  **不要引用任何百分比**（只能說「樣本是 Sennheiser 的兩個產品」）。
+- **GoogleTrendArchive（ICWSM 2026, arXiv:2603.21871）**：本輪未開啟、未評估其涵蓋範圍與授權。
+- **Rovetta (2024) *Google Trends in infodemiology*（doi:10.1016/j.ijmedinf.2024.105563）**：未讀。
 - **Chronos 的 TMLR 接受狀態**：由 repo 連向 OpenReview 推得，arXiv metadata 本身沒有 journal ref。
 - **Lag-Llama 的 NeurIPS 2023 R0-FoMo workshop 版本**：arXiv abs 頁未載明。
 - **Diebold–Mariano 在 h>1 的 HAC／HLN 小樣本校正細節**：沿用領域常識，未讀原文。
