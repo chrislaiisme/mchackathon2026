@@ -628,9 +628,14 @@ function StylePanel({
       </div>
       <p className="font-serif text-2xl leading-8 text-foreground">{t.stylist.evolves}</p>
       <p className="text-sm leading-6 text-muted-foreground">{message}</p>
-      <Link href="/profile" className="inline-flex border-b border-primary pb-1 text-sm font-medium text-foreground">
-        {t.stylist.viewProfile}
-      </Link>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <Link href="/profile" className="inline-flex border-b border-primary pb-1 text-sm font-medium text-foreground">
+          {t.stylist.viewProfile}
+        </Link>
+        <Link href="/dressing-room" className="inline-flex border-b border-primary pb-1 text-sm font-medium text-foreground">
+          {t.nav.dressingRoom}
+        </Link>
+      </div>
       <CreateYouSection
         profile={virtualYou}
         isProcessing={createYouProcessing}
