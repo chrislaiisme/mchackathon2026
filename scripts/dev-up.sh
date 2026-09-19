@@ -52,9 +52,14 @@ VIRTUAL_YOU_PORT="${VIRTUAL_YOU_PORT:-8081}"
 WHISPER_PORT="${WHISPER_PORT:-9000}"
 WEB_PORT="${WEB_PORT:-3000}"
 
-start() {  # start <名稱> <port> <health 路徑> <指令...>
+# start <名稱> <port> <health 路徑> <指令...>
+# 等待秒數用 WAIT 環境變數覆寫（預設 60）。ENGINE 02 要載向量模型、暖機，
+# 第一次啟動還要從 HuggingFace 下載權重，60 秒一定不夠——等太短會把還在載入的
+# 服務誤判成「啟動失敗」然後整支腳本 exit 1。
+start() {
   local name="$1" port="$2" health="$3"; shift 3
   local pidfile="$RUN_DIR/$name.pid"
+  local wait_for="${WAIT:-60}"
 
   if [[ -f "$pidfile" ]] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
     echo "  $name 已經在跑（pid $(cat "$pidfile")）"
@@ -69,7 +74,7 @@ start() {  # start <名稱> <port> <health 路徑> <指令...>
 
   ( "$@" >"$LOG_DIR/$name.log" 2>&1 & echo $! >"$pidfile" )
 
-  for _ in $(seq 1 60); do
+  for _ in $(seq 1 "$wait_for"); do
     if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:$port$health"; then
       echo "  $name  :$port  ok"
       return
@@ -81,7 +86,7 @@ start() {  # start <名稱> <port> <health 路徑> <指令...>
     fi
     sleep 1
   done
-  echo "！$name 60 秒內沒有健康，看 $LOG_DIR/$name.log" >&2
+  echo "！${name} ${wait_for} 秒內沒有健康，看 $LOG_DIR/$name.log" >&2
   exit 1
 }
 
@@ -100,7 +105,7 @@ echo
 #                     （真實溫度、航班時間、單品自己的屬性），none = 回模板理由。
 #   ENGINE02_CODEX_EFFORT 不要繼承外面的值：模型不支援某個 effort 會直接拒絕，
 #                     改寫就默默退回模板，看起來像「沒開」而不是「被拒絕」。
-start engine02 "$ENGINE02_PORT" /health \
+WAIT=600 start engine02 "$ENGINE02_PORT" /health \
   env ENGINE02_DEMO=1 \
       ENGINE02_ENCODER="${ENGINE02_ENCODER:-marqo-fashionSigLIP}" \
       ENGINE02_REWRITER="${ENGINE02_REWRITER:-codex}" \
