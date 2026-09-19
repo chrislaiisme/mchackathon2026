@@ -216,6 +216,12 @@ interface TryOnItemFeedback {
   timestamp: string;
 }
 
+interface TranscriptionResponse {
+  text?: string;
+  error?: string;
+  details?: string;
+}
+
 class CreateYouError extends Error {
   details?: CreateYouApiErrorDetails;
 
@@ -947,6 +953,11 @@ export function StylistExperience() {
     setVoiceError("");
 
     try {
+      console.log("[Voice] Sending audio for transcription", {
+        type: audio.type || "(empty)",
+        size: audio.size,
+      });
+
       const formData = new FormData();
       const extension = audio.type.includes("mp4") ? "mp4" : audio.type.includes("ogg") ? "ogg" : "webm";
       formData.append("audio", audio, `intentweave-voice.${extension}`);
@@ -955,16 +966,41 @@ export function StylistExperience() {
         method: "POST",
         body: formData,
       });
-      const result = (await response.json().catch(() => null)) as { text?: string; error?: string } | null;
+      const result = (await response.json().catch(() => null)) as TranscriptionResponse | null;
 
       if (!response.ok || !result?.text) {
-        setVoiceError(result?.error === "missing_api_key" ? t.stylist.voiceConfigError : t.stylist.voiceTranscriptionError);
+        console.error("[Voice] Transcription failed", {
+          status: response.status,
+          error: result?.error,
+          details: result?.details,
+        });
+
+        if (result?.error === "missing_api_key") {
+          setVoiceError(t.stylist.voiceConfigError);
+        } else if (
+          result?.error === "invalid_audio" ||
+          result?.error === "unsupported_audio" ||
+          result?.error === "transcription_empty"
+        ) {
+          setVoiceError(t.stylist.voiceInvalidAudioError);
+        } else if (result?.error === "openai_rate_limited") {
+          setVoiceError(t.stylist.voiceRateLimitError);
+        } else if (result?.error === "openai_quota_exceeded") {
+          setVoiceError(t.stylist.voiceQuotaError);
+        } else {
+          setVoiceError(t.stylist.voiceTranscriptionError);
+        }
+
         return;
       }
 
+      console.log("[Voice] Transcription succeeded", {
+        textLength: result.text.length,
+      });
       appendTranscription(result.text);
-    } catch {
-      setVoiceError(t.stylist.voiceTranscriptionError);
+    } catch (error) {
+      console.error("[Voice] Transcription request error", error);
+      setVoiceError(t.stylist.voiceNetworkError);
     } finally {
       setVoiceState("idle");
     }
