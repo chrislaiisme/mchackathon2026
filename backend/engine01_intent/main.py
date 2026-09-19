@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.engine01_intent import gating, llm_client, recommend, session_store
+from backend.engine01_intent import gating, llm_client, recommend, session_store, style_me
 from backend.pinterest import client as pinterest_client
 from backend.shared import user_store
 from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
@@ -32,6 +32,8 @@ from backend.shared.schemas import (
     IntentResponse,
     ProfileUpdate,
     RecommendRequest,
+    StyledComplement,
+    StyleMeRequest,
     UserProfile,
     ZonedRecommendationResult,
 )
@@ -215,6 +217,33 @@ def post_recommend(
         state.message_history,
         state.reference_image_url,
         user,
+    )
+
+
+@app.post("/style-me", response_model=StyledComplement)
+def post_style_me(
+    request: StyleMeRequest, user: UserProfile = Depends(get_current_user)
+) -> StyledComplement:
+    # 「我們幫你搭」——不是隨機配，見 style_me.py 的說明。
+    state = session_store.get(user.sub, request.session_id)
+    if state is None:
+        raise HTTPException(404, "找不到這個 session，請先呼叫過 /intent")
+
+    result = style_me.build_styled_complement(
+        state.session_id,
+        state.round,
+        state.message_history,
+        state.intent,
+        user,
+        request.anchor_product_id,
+        request.anchor_zone,
+    )
+    if result is None:
+        raise HTTPException(404, "這個分區目前找不到可以搭配的商品")
+
+    zone, complement = result
+    return StyledComplement(
+        session_id=state.session_id, round=state.round, zone=zone, complement=complement
     )
 
 

@@ -261,3 +261,29 @@ class ZonedRecommendationResult(BaseModel):
 
 class RecommendRequest(BaseModel):
     session_id: str
+
+
+# ── 「幫你搭」（POST /style-me，ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端 ──
+# 負責人確認）：不是隨機配對，是拿一件錨點商品去問 ENGINE02 的
+# POST /complete-look 要真的相容性排序＋理由；錨點不在商品庫（例如生圖）時
+# 退回 LLM 生一句理由，見 backend/engine01_intent/style_me.py。
+
+
+class StyleMeRequest(BaseModel):
+    session_id: str
+    anchor_product_id: str
+    """使用者畫面上已經看到的一件商品／生圖 id，當搭配的起點。"""
+    anchor_zone: Literal["top", "bottom"]
+    """錨點是在哪一區——前端本來就知道（正在顯示哪一區），要求明講，
+    這裡不會另外呼叫 ENGINE02 去查這件商品屬於哪一區。"""
+
+
+class StyledComplement(BaseModel):
+    session_id: str
+    round: int
+    zone: Literal["top", "bottom"]
+    """這是「錨點的另一區」——跟 anchor_zone 相反那一區的搭配建議。"""
+    complement: ProductCard
+    """`complement.reason` 帶搭配理由：ENGINE02 `/complete-look` 算出來的真實
+    相容性理由，或錨點不在商品庫時的 LLM 備援理由（`explanation_source` 會
+    標明是 "complete_look" 還是 "llm_fallback"）。"""
