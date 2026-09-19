@@ -1,12 +1,12 @@
 # data/
 
-**不進版控**（`.gitignore` 排除本資料夾內除了這份 README 以外的所有檔案）。體積太大，
-而且 Pinterest 取得的素材只能內部使用。
+**大部分不進版控**：商品圖片與 `items.parquet` 體積大，而且都能從公開來源重建。
+**例外是重建不出來的證據檔**——那些刻意附在 repo 裡（見下表），`.gitignore` 對它們逐一放行。
 
 **跑系統需要的東西都可以從公開來源重建**，不需要 Hugging Face 帳號、不需要 GPU
 （`Marqo/KAGL` 與 `Marqo/polyvore` 經 HF API 確認 `gated: false`、`private: false`）。
 
-**有三樣東西重建不出來，所以已經直接附在 repo 裡**（約 4 MB），
+**重建不出來的東西已經直接附在 repo 裡**（約 4 MB），
 不用跟任何人要，`git clone` 就有：
 
 | 重建不出來的 | 為什麼 | 影響 |
@@ -21,6 +21,18 @@
 以下指令都從 repo 根目錄執行。
 
 ## 只拿得到 GitHub 的組員，照這個做
+
+### 0. 先裝環境（一次就好）
+
+```bash
+uv venv --python 3.12 .venv                 # 或 python -m venv .venv
+uv pip install -e ".[data,dev]"             # 或 .venv/bin/pip install -e ".[data,dev]"
+```
+
+**`[data]` 一定要裝**——建商品庫的腳本要從 Hugging Face 串流，需要 `datasets` 與
+`huggingface_hub`；只裝核心依賴的話，下面步驟 1 會直接 `ModuleNotFoundError`。
+`[dev]` 是跑測試用的。要用真正的 demo 編碼器（Marqo-FashionSigLIP）再加 `[models]`，
+並且**先**照 https://pytorch.org/get-started/locally/ 裝對應機器的 torch。
 
 ### 1. 主商品庫（必要，約 8 分鐘 / 110 MB）
 

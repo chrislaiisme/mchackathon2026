@@ -31,6 +31,13 @@ models = [
     "timm>=1.0",
     "safetensors>=0.4",
 ]
+# Building data/ from public sources (scripts/prepare_catalog.py and friends stream from
+# Hugging Face). Not needed to *serve*: only to build the catalog the first time.
+data = [
+    "datasets>=3.0",
+    "huggingface_hub>=0.25",
+    "requests>=2.31",
+]
 dev = [
     "pytest>=8.0",
     "rank_bm25>=0.2.2",     # tests/test_sparse.py checks our BM25 against it, score for score

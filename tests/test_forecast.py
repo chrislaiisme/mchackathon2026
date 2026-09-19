@@ -8,6 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY = sorted((ROOT / "data" / "trends" / "history").glob("wikipedia_*.json"))
+CATALOG = ROOT / "data" / "catalog" / "kagl" / "items.parquet"
 
 
 def seasonal_series(n: int = 300, m: int = 52, noise: float = 0.0) -> np.ndarray:
@@ -87,6 +88,9 @@ def test_the_real_backtest_still_beats_the_baseline():
 
 
 @pytest.mark.skipif(not HISTORY, reason="run scripts/fetch_trend_history.py")
+# The trend history ships with the repo, but this test starts the whole API, and the API
+# loads the catalog on startup -- which a fresh clone has not built yet.
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl (scripts/prepare_catalog.py)")
 def test_the_endpoint_never_returns_a_forecast_without_its_backtest(monkeypatch):
     monkeypatch.setenv("ENGINE02_ENCODER", "hash")
     monkeypatch.setenv("ENGINE02_LLM", "none")
