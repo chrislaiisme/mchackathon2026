@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -218,20 +219,93 @@ def _hermes_python() -> Path:
     return Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
 
 
+# 2026-09-19 新增：這台機器上 Hermes Agent 裝在 WSL2（Ubuntu）裡，不在 Windows 側——
+# Windows 的 Python 沒辦法直接執行一支 Linux 執行檔（`_hermes_python()` 找到的路徑
+# 就算存在也打不開），這是兩個作業系統的邊界問題，不是路徑設錯。下面這段只在
+# `platform.system() == "Windows"` 時生效，把整個呼叫透過 `wsl.exe` 轉進 WSL2；
+# Tony 原本在原生 Linux／WSL2 內部直接跑的路徑完全不受影響，維持原樣。
+_WSL_DISTRO = os.environ.get("HERMES_WSL_DISTRO", "Ubuntu")
+# 這台機器上 Hermes Agent 實際的安裝方式是官方文件講的「Root 模式」，直譯器在
+# /usr/local/lib/hermes-agent/venv/bin/python（不是 _hermes_python() 預設猜的
+# ~/.hermes/hermes-agent/venv/bin/python，那是「使用者級」安裝的路徑）——這裡另外
+# 開一個環境變數而不是硬塞進 _hermes_python()，因為兩支函式分別對應「原生執行」
+# 跟「跨進 WSL2 執行」兩種完全不同的呼叫方式，路徑意義不一樣，混在一起會讓人搞不清楚
+# 到底是哪一邊的直譯器路徑。
+_WSL_HERMES_PYTHON = os.environ.get("HERMES_WSL_PYTHON", "/usr/local/lib/hermes-agent/venv/bin/python")
+
+
+def _windows_path_to_wsl(path: Path) -> str:
+    """`C:\\Users\\x\\y` → `/mnt/c/Users/x/y`，給 wsl.exe 裡執行的程式讀。"""
+    drive, rest = str(path.resolve()).split(":", 1)
+    return f"/mnt/{drive.lower()}{rest.replace(chr(92), '/')}"
+
+
+def _wsl_path_to_windows(distro: str, wsl_path: str) -> Path:
+    """WSL2 內的絕對路徑（例如 `/home/x/y`）→ Windows 端讀得到的 UNC 路徑
+    （`\\\\wsl.localhost\\<distro>\\home\\x\\y`）——Hermes 生完圖存在 WSL2 自己的
+    檔案系統裡，Windows 側接下來的 shutil.copy2() 要用這個形式的路徑才讀得到。"""
+    return Path(f"\\\\wsl.localhost\\{distro}" + wsl_path.replace("/", "\\"))
+
+
 def _generate(prompt_path: Path, model: str, aspect: str) -> dict[str, Any]:
-    """跨行程呼叫 hermes_image.py（理由見那支檔案的 docstring）。"""
-    py = _hermes_python()
-    if not py.exists():
-        raise SystemExit(f"找不到 Hermes 的直譯器：{py}\n"
-                         f"裝好 Hermes Agent，或用 HERMES_PYTHON 指定路徑。")
-    cmd = [str(py), str(Path(__file__).with_name("hermes_image.py")),
-           "--prompt-file", str(prompt_path), "--model", model, "--aspect", aspect]
+    """跨行程呼叫 hermes_image.py（理由見那支檔案的 docstring）。
+
+    2026-09-19：在 Windows 上這一步還要多跨一層作業系統邊界進 WSL2，見上面
+    `_WSL_DISTRO`／`_WSL_HERMES_PYTHON` 的說明。
+    """
+    if platform.system() == "Windows":
+        wsl_prompt_path = _windows_path_to_wsl(prompt_path)
+        wsl_script_path = _windows_path_to_wsl(Path(__file__).with_name("hermes_image.py"))
+        cmd = ["wsl.exe", "-d", _WSL_DISTRO, "-e", _WSL_HERMES_PYTHON, wsl_script_path,
+               "--prompt-file", wsl_prompt_path, "--model", model, "--aspect", aspect]
+    else:
+        py = _hermes_python()
+        if not py.exists():
+            raise SystemExit(f"找不到 Hermes 的直譯器：{py}\n"
+                             f"裝好 Hermes Agent，或用 HERMES_PYTHON 指定路徑。")
+        cmd = [str(py), str(Path(__file__).with_name("hermes_image.py")),
+               "--prompt-file", str(prompt_path), "--model", model, "--aspect", aspect]
+
     # 生圖 26–48 秒是常態，逾時要留足；卡住通常是 OAuth 過期，不是慢。
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    # encoding="utf-8" 一定要明講：text=True 不指定編碼時 Python 會用
+    # locale.getpreferredencoding()，這台機器（Windows，中文地區設定）預設是
+    # cp950，但 WSL2／Hermes 那端輸出的是 UTF-8（JSON 裡的中文 varied_label、
+    # 提示訊息等），cp950 解不動 UTF-8 的多位元組序列會直接丟
+    # UnicodeDecodeError，把整次生圖搞掛——這條路徑在原生 Linux／WSL2 上
+    # 因為系統預設編碼本來就是 UTF-8，不會踩到這個坑，只有 Windows 這條新路徑
+    # 會炸。errors="replace" 防止即使真的出現解不出來的位元組，也不要整個
+    # subprocess 呼叫直接報例外。
+    #
+    # 2026-09-19 真人測試發現並修正：光是 encoding="utf-8" 還不夠——問題不是
+    # Python 這端解碼失敗（那樣會看到乾淨的 U+FFFD replacement 字元），而是
+    # wsl.exe 自己在「輸出被重新導向／不是互動式終端」時，預設不會照原樣吐出
+    # WSL2 內部程式（hermes_image.py）印出的 UTF-8 位元組，而是先套用 Windows
+    # 主控台的地區編碼（這台機器是 cp950）做一次轉換，把原本正確的 UTF-8
+    # 多位元組序列在轉換過程中就已經轉壞——bytes 到 Python 手上時已經是錯的，
+    # errors="replace" 救不回已經被 wsl.exe 轉壞的位元組，只能救「Python 自己
+    # 解不動」的情況。現場實測直接執行 `wsl.exe --version`（不帶 WSL_UTF8）
+    # 印出來的中文是亂碼，帶 `WSL_UTF8=1` 之後就完全正常——這是 wsl.exe 官方
+    # 就有支援、只是預設關閉的環境變數，讓它在非互動模式下也一律吐原始 UTF-8，
+    # 不要套用主控台編碼轉換。只在 Windows／wsl.exe 這條路徑加這個環境變數，
+    # 原生 Linux／WSL2 內部執行的那個 branch 用不到，加了也無害。
+    env = os.environ.copy()
+    if platform.system() == "Windows":
+        env["WSL_UTF8"] = "1"
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300, env=env
+    )
     line = (proc.stdout or "").strip().splitlines()
     if not line:
         raise SystemExit(f"hermes_image.py 沒有輸出：\n{proc.stderr[-800:]}")
-    return json.loads(line[-1])
+    result = json.loads(line[-1])
+
+    # result["image"] 是 hermes_image.py 印出來的路徑——在 Windows 上這是 WSL2 內部的
+    # 絕對路徑，後面 main() 的 shutil.copy2() 是在 Windows 側執行，讀不到裸的 Linux
+    # 路徑，要先轉成 UNC 路徑。
+    if platform.system() == "Windows" and result.get("success") and result.get("image"):
+        result["image"] = str(_wsl_path_to_windows(_WSL_DISTRO, result["image"]))
+
+    return result
 
 
 def main() -> int:

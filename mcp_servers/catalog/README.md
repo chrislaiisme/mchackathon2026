@@ -41,12 +41,12 @@
 
 ```bash
 # 等級 A：沒有 GPU、沒裝 torch（只需要 [data,dev]）
-ENGINE02_ENCODER=hash ENGINE02_DEMO=1 \
+ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_ENCODER=hash ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 
 # 等級 B：真正的 demo 編碼器（先裝 torch，再 uv pip install -e ".[models]"；CPU 也能跑）
-ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
+ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
 ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
@@ -54,6 +54,13 @@ uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 **不設 `ENGINE02_ENCODER` 時預設是 `marqo-fashionSigLIP`，沒裝 torch 會啟動失敗**
 （`ModuleNotFoundError: No module named 'torch'`）。`ENGINE02_DEVICE` 預設 `auto`，不要寫死 `cuda`。
 `ENGINE02_OT=1`（OutfitTransformer）需要 `third_party/` 的權重，缺了會退回圖片相似度而不會失敗。
+
+> **2026-09-20，ENGINE01 負責人補上 `ENGINE02_CATALOG`**：上面兩個等級原本都沒帶這個變數，
+> 會落到 `engine02/api.py` 的預設值 `data/catalog/kagl`（5,000 件、比賽前的舊商品庫）。
+> `data/README.md` 步驟 5 另外準備了 `data/catalog/hm_filled`（9,870 件 H&M，那份文件明講
+> 「demo 建議用這個」），但只有那一處提到，這裡跟 `CLAUDE.md`／`.env.example` 一起校正成
+> 預設帶上它。第一次用要先跑 `python scripts/fetch_catalog_images.py --catalog
+> data/catalog/hm_filled` 補圖片（`items.parquet`／向量索引已經隨 repo 附上）。
 
 > **2026-09-19，ENGINE01 負責人實測發現並修正：兩個等級的 `ENGINE02_PUBLIC_BASE` 都要帶
 > `/engine02` 這段路徑**——原本兩邊都寫 `http://localhost:8002`（沒有 `/engine02`），

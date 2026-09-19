@@ -60,6 +60,56 @@ def test_intent_rank_injects_gender_into_intent_payload():
     assert sent_json["intent"]["gender"] == "女"
 
 
+def test_intent_rank_translates_frontend_english_gender_to_engine02_chinese():
+    # 2026-09-19 真人測試發現：前端 onboarding（GENDER_OPTIONS）存的是英文
+    # "Woman"/"Man"/"Non-binary"，但 ENGINE02 的 ZH_GENDER 表只認得中文詞，
+    # 兩邊詞彙沒對過，等於 gender 訊號一直沒真的送到——使用者選了 Woman，
+    # 還是被推薦男生商品。這裡確認 intent_rank() 有把英文轉成中文再送出去。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 0, "訊息", gender="Woman")
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["intent"]["gender"] == "女"
+
+
+def test_intent_rank_drops_gender_with_no_engine02_mapping():
+    # "Prefer not to say" 對不到任何 ENGINE02 認得的值，寧可完全不送這個
+    # 欄位，也不要硬塞一個查不到的字串進去。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 0, "訊息", gender="Prefer not to say")
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert "gender" not in sent_json["intent"]
+
+
+def test_intent_rank_threads_feedback_and_prev_intent_to_engine02():
+    # ENGINE02 /intent/rank 早就接受 feedback／prev_intent 兩個欄位，ENGINE01
+    # 這邊一直沒送——確認 intent_rank() 有把兩者原封不動塞進送出的 JSON。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    feedback = {"chosen_item_ids": ["a"], "rejected_item_ids": [], "choice_history": [], "design_weight_delta": {}}
+    prev_intent = {"item_type": "襯衫"}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 1, "訊息", feedback=feedback, prev_intent=prev_intent)
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["feedback"] == feedback
+    assert sent_json["prev_intent"] == prev_intent
+
+
+def test_intent_rank_omits_feedback_and_prev_intent_by_default():
+    # 沒有回饋歷史的第一輪（或還沒接上 ENGINE03 時）兩者都該是 None，
+    # 不是漏掉不送——ENGINE02 那邊的欄位本身是 Optional，None 是合法值。
+    payload = {"session_id": "x", "round": 0, "match_score": 0.0, "products": []}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        engine02_client.intent_rank(Intent(), "s1", 0, "訊息")
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["feedback"] is None
+    assert sent_json["prev_intent"] is None
+
+
 def test_intent_rank_connection_error_returns_none():
     with patch(
         "backend.engine01_intent.engine02_client.requests.post",

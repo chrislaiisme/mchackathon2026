@@ -40,8 +40,13 @@ class ConceptImageUnavailable(RuntimeError):
 def _run(script: Path, args: list[str]) -> dict[str, Any]:
     if not script.is_file():
         raise ConceptImageUnavailable(f"找不到 {script.relative_to(ROOT) if script.is_relative_to(ROOT) else script}")
+    # encoding="utf-8" 要明講：text=True 不指定編碼時吃 locale.getpreferredencoding()，
+    # Windows 中文地區設定預設是 cp950，但這兩支腳本的輸出（prompt、manifest 裡的
+    # varied_label_zh 等）常常帶中文——2026-09-19 在 generate_grid.py 內部呼叫
+    # hermes_image.py 那一層就踩過一次這個坑（UnicodeDecodeError 把整次生圖搞掛），
+    # 這裡是同一種 subprocess 呼叫模式，先一起補上，不要等它也真的炸過一次才修。
     proc = subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True,
-                          timeout=TIMEOUT, cwd=str(ROOT))
+                          encoding="utf-8", errors="replace", timeout=TIMEOUT, cwd=str(ROOT))
     if proc.returncode != 0:
         raise ConceptImageUnavailable(f"{script.name} 失敗：{(proc.stderr or proc.stdout)[-300:]}")
     try:

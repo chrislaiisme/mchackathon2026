@@ -8,16 +8,16 @@
 
 畫面／流程：`/login`（登入）→ `/onboarding`（偏好調查，三步）→ `/stylist`（主要對話＋推薦畫面）→ `/profile`、`/insights`。
 
-**串接狀態（逐項盤點，這次同步進度只動了前兩項）：**
+**串接狀態（2026-09-19 盤點，這欄位隨時間推進會過期，跟 [docs/status.md](status.md) 對照著看）：**
 
-| 功能 | 2026-09-19 之前 | 2026-09-19 之後 |
-|---|---|---|
-| 登入（`/login`） | 完全 mock：`localStorage` 存一個寫死的 `demoUser`，沒有真的 Google 按鈕，沒呼叫 `POST /auth/google` | **已改成真的接後端**：載入真正的 Google Identity Services、渲染官方登入按鈕，拿到 `credential` 後打 `POST /auth/google` 換真正的 `session_token`／`profile`（見 [`frontend/lib/services/auth.ts`](../frontend/lib/services/auth.ts)、[`frontend/components/intentweave/login-experience.tsx`](../frontend/components/intentweave/login-experience.tsx)）。已用假 session（跳過真實 Google 登入）驗證過 onboarding 那段接得通；**真正點擊 Google 按鈕、用真實帳號登入這一步需要使用者自己在瀏覽器裡完成一次**（AI agent 基於安全考量不會代為輸入 Google 帳密），且需要使用者先把 `http://localhost:3000` 加進 Google Cloud Console 的 Authorized JavaScript origins。 |
-| 偏好調查（`/onboarding`） | 只寫 `localStorage`，沒呼叫 `PUT /profile`，有 Skip 按鈕可以整個跳過 | **已改成真的接後端且必填**：完成才會呼叫 `PUT /profile`（見 [`frontend/lib/services/onboarding.ts`](../frontend/lib/services/onboarding.ts)），已端到端驗證過（`data/users/<sub>.json` 真的寫入 `age_range`／`gender`／`style_preferences`／`contexts`）。**Skip 按鈕已經拿掉**（2026-09-19 修正：onboarding 改成註冊時必填），後端 `PUT /profile` 也加了對應驗證擋住繞過前端的請求。後端 `UserProfile`／`ProfileUpdate` 這次補了 `gender`／`contexts` 兩個欄位，對齊前端 onboarding 實際蒐集的題目（原始介面契約沒有這兩個欄位）。 |
-| 推薦／檢索 | 前端完全沒有呼叫任何後端推薦端點 | **後端已經有真的 `POST /recommend` 可以接**：固定分兩區（上衣／下身，不是三區），每區最多 6 件，`requested` 旗標標示是使用者明確要的還是系統猜的預設；細節見 [interface-contract.md](interface-contract.md) 第 6 節。**前端還沒接**，仍是 mock（`stylist-experience.tsx` 的假推薦資料）。 |
-| 試穿／收藏／讚踩（`/stylist`） | 前端本地假資料，`virtualYouService.generateVirtualTryOn()` 只是模擬延遲後回傳同一張圖 | **維持不變，仍是 mock**——這次沒有動這塊，範圍見下面代辦 3/4/5 兩節。另外 main 上這次還多合併了一份 Hermes app 專用的平行前端 `web/`（跟 `frontend/` 幾乎是同一份程式碼的複本，指向 `bff/` 而不是 `backend/`）跟一個新的 `/dressing-room` 頁面（`frontend/app/dressing-room/`）——後者是一個收藏衣櫥＋虛擬形象試穿的畫面，UI 上明寫「Prototype preview. Real virtual try-on will connect here later.」，一樣是純前端 mock、沒有呼叫任何後端，跟這裡描述的代辦 3/4/5 是同一批還沒做完的功能，不是另外一條線。 |
-| 生圖／概念圖 | 完全沒有 `ConceptImage`／`concept_image` 概念 | **維持不變**，見代辦 3 那節的規格（已修正為兩分區，不是統一套裝圖）。 |
-| 收藏小屋 | 完全沒有（`/dressing-room` 頁面雖然存在但是純 mock，見上面試穿那列） | **維持不變**，見代辦 5 那節的規格。 |
+| 功能 | 現況 |
+|---|---|
+| 登入（`/login`） | **真的接後端**：載入真正的 Google Identity Services、渲染官方登入按鈕，拿到 `credential` 後打 `POST /auth/google` 換真正的 `session_token`／`profile`（見 [`frontend/lib/services/auth.ts`](../frontend/lib/services/auth.ts)、[`frontend/components/intentweave/login-experience.tsx`](../frontend/components/intentweave/login-experience.tsx)）。已用真實 Google 帳號登入驗證過。 |
+| 偏好調查（`/onboarding`） | **真的接後端且必填**：完成才會呼叫 `PUT /profile`（見 [`frontend/lib/services/onboarding.ts`](../frontend/lib/services/onboarding.ts)），已端到端驗證過（`data/users/<sub>.json` 真的寫入 `age_range`／`gender`／`style_preferences`／`contexts`）。Skip 按鈕已經拿掉。 |
+| 推薦／檢索 | **~~前端還沒接~~ 已經真的接上**（2026-09-19 稍早這裡還寫著沒接，當天稍晚就接上了，這是舊版文件會過期的一個實例）：`frontend/lib/services/stylist.ts` 的 `fetchIntentTurn()`／`fetchRecommendation()`／`fetchStyleMe()` 真的打 `POST /intent`／`POST /recommend`／`POST /style-me`，Top Pick 用 `/style-me` 做真配對，不是兩分區各自最高分硬湊。 |
+| 生成新單品／Design for Me | **新接上（dry-run 模式）**：`fetchConceptImage()` 打 `POST /concept-image`（ENGINE01 新增的端點，重用 `bff/images/concept.py::generate_concepts()`），按鈕按下去鎖住對話輸入框、顯示組好的 prompt 跟六格各自的變化描述。目前固定 `dry_run: true`（Hermes Agent 裝在 WSL2，Windows 側的 ENGINE01 還在接橋接，見 [docs/status.md](status.md)「生成模組」一節），還沒有真的生圖。 |
+| 試穿／收藏／讚踩（`/stylist`） | **仍是 mock**，而且落差比規格描述的更具體——完整落差表見 [docs/status.md](status.md)「前端」一節（單品收藏/不喜歡的元件是死碼、收藏跟打分不會存檔、整套 Like/NotLike 沒鎖住兩區都穿）。這份落差已經傳給前端負責人許綺文去修，下面代辦 4 保留原始規格，不在這裡重複。另外 main 上還有一份 Hermes app 專用的平行前端 `web/`（幾乎是 `frontend/` 的複本，指向 `bff/`）跟一個 `/dressing-room` 頁面，UI 上明寫「Prototype preview」，跟這裡是同一批還沒做完的功能。 |
+| 收藏小屋 | 完全沒有（`/dressing-room` 頁面雖然存在但是純 mock，見上面試穿那列），見代辦 5 那節的規格。 |
 
 ## 技術棧（更新：實際是 Next.js，不是原規劃的 Vite）
 
@@ -27,7 +27,7 @@ Next.js 16（App Router）＋ React 19，Tailwind v4 ＋ shadcn 元件。語音�
 
 - **登入**（`/login`）：見上面「目前實際狀態」。
 - **偏好調查**（`/onboarding`）：年齡／性別、風格（複選）、日常情境（複選）三步，**2026-09-19 起必填，不可略過**。
-- **主要對話畫面**（`/stylist`）：文字輸入＋語音輸入、推薦商品卡片（含 like/dislike 按鈕、Try On 按鈕）、虛擬形象區塊。目前這些互動全部是前端 mock，還沒有一個接到 ENGINE01/02/03 的真實資料。
+- **主要對話畫面**（`/stylist`）：文字輸入＋語音輸入、推薦商品卡片（含 like/dislike 按鈕、Try On 按鈕）、虛擬形象區塊。對話／推薦／Design for Me 已經接上 ENGINE01 的真實資料（見上面「串接狀態」）；卡片上的 like/dislike／打分／Try On／虛擬形象整套讚踩這些互動仍是前端 mock，細節落差見 [docs/status.md](status.md)。
 - **個人檔案**（`/profile`）、**Insights 儀表板**（`/insights`）：目前也都是 mock 資料。
 
 ## 溝通對象

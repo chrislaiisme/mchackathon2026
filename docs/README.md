@@ -1,6 +1,6 @@
 # docs/
 
-專案文件與架構圖。`engine01-intent` 分支上已有的 11 份文件（含 `interface-contract.md`、`hackathon-brief.md`、`system-architecture.svg`、`validation-flow.svg`）搬到這裡。
+專案文件與架構圖。**各模組現在做到哪裡、還缺什麼，先看 [status.md](status.md)**（2026-09-19 新增，每次大改動後應該回來更新）；這份 README 只是檔案清單，不是狀態追蹤。
 
 負責線：各線維護自己模組的文件；整體文件由線 4 維護
 

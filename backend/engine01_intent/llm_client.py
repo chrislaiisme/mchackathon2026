@@ -24,7 +24,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from backend.engine01_intent.prompts import INTENT_SYSTEM_PROMPT
 from backend.shared.schemas import ClarifyingQuestion, Intent
@@ -154,6 +154,123 @@ def extract_intent(message: str, current_intent: Intent) -> IntentExtraction:
 
     # 用 Pydantic 驗證＋解析成物件，格式不符 schema 的話這裡會直接丟例外。
     return IntentExtraction.model_validate_json(raw)
+
+
+class _ReasonRewriteItem(BaseModel):
+    # product_id 要求模型原樣抄一遍（不是靠陣列順序對應），因為 LLM 偶爾會
+    # 漏掉或調換順序，用 id 對應才不會把改寫後的理由貼到錯的商品卡上。
+    product_id: str
+    reason: str
+
+
+class _ReasonRewriteBatch(BaseModel):
+    items: list[_ReasonRewriteItem] = Field(default_factory=list)
+
+
+_REASON_REWRITE_PROMPT = """你是「一句話讀懂消費者」系統的推薦理由改寫員。
+
+任務：下面每一件商品原本的推薦理由是系統樣板句，可能夾雜內部分數或內部備註
+（例如「整體風格和你描述的相近（+1.44）」「為了有足夠結果，放寬了 season 條件」），
+使用者看了會覺得莫名其妙。把每一句改寫成一句話（20 字以內），像真人造型師會說的、
+使用者看得懂的自然中文——不要出現任何數字分數、百分比、或「放寬條件」「relaxed」
+這類系統內部用語。改寫要忠於原本理由的實際內容（原本講顏色符合，改寫後也要講顏色，
+不要無中生有加進原本沒有的資訊）。
+
+2026-09-20 補充：下面會附上這位使用者的風格輪廓（onboarding 填的長期偏好、這輪
+明確講的顏色／場合／季節／風格關鍵字）——**這不是給你判斷語氣用而已，是要你在
+改寫時具體點出來**，讓使用者覺得這句話真的是在跟「他」講話，不是隨便一句通用的
+造型師台詞。例如原本樣板句只講「風格相近」，如果使用者這輪講了要「約會」穿、
+偏好「簡約」，改寫時就該講成類似「簡約好看，約會穿剛好」，而不是空泛的
+「風格貼近你的喜好」——但一樣要忠於原本樣板句實際比對到的內容，不要無中生有
+說這件商品符合一個使用者其實沒講、樣板句也沒提到的屬性。
+
+規則：
+1. 每件商品的 product_id 要在輸出裡原樣抄一次，不要改動、不要漏掉任何一件。
+2. 只輸出結構化資料，不要輸出額外的說明文字。
+"""
+
+_REASON_SCHEMA_PATH = Path(tempfile.gettempdir()) / "engine01_reason_rewrite.schema.json"
+_REASON_SCHEMA_PATH.write_text(
+    json.dumps(_to_strict_schema(_ReasonRewriteBatch.model_json_schema())),
+    encoding="utf-8",
+)
+
+
+def rewrite_recommendation_reasons(
+    items: list[tuple[str, str]], context: str, profile_context: Optional[str] = None
+) -> Optional[dict[str, str]]:
+    """把一輪要顯示的 (product_id, 原始樣板理由) 清單，一次 `codex exec` 呼叫全部
+    改寫成自然語句，回傳 {product_id: 改寫後理由}。**這是顯示優化，不是關鍵路徑**——
+    任何失敗（codex 沒裝好、逾時、輸出格式不對）都回傳 None，呼叫端要保留原本的
+    樣板句繼續運作，不能讓 `/recommend` 因為這個失敗掛掉。刻意一次批次送所有理由、
+    只呼叫一次 `codex exec`，不是逐張卡片各呼叫一次——一輪最多十幾張卡，逐張呼叫
+    會變成十幾次 8-17 秒的等待，demo 現場等不起，也會把團隊共用的 Codex 額度燒很兇
+    （見 CLAUDE.md「ENGINE01 執行方式」）。
+
+    `profile_context`（2026-09-20 新增）：這位使用者的長期風格偏好（onboarding
+    填的）＋這輪結構化 Intent 的具體欄位（顏色／場合／季節／風格關鍵字），讓改寫
+    出來的句子能點名使用者自己的偏好，不是只靠 `context`（原始對話文字）籠統
+    判斷語氣——真人測試回饋原本的改寫「有點模板化，沒體現出使用者的特別性」，
+    根因是這個函式從來沒有把 Intent／UserProfile 的結構化欄位餵給 LLM，只給了
+    已經被壓扁成一句樣板句的 `reason` 跟原始對話字串。省略時維持舊行為。
+    """
+    if not items:
+        return {}
+
+    payload = "\n".join(f"- product_id={pid}：{reason}" for pid, reason in items)
+    profile_section = f"\n\n這位使用者的風格輪廓：\n{profile_context}" if profile_context else ""
+    prompt = (
+        f"{_REASON_REWRITE_PROMPT}\n\n"
+        f"使用者這輪在找的東西（給你判斷語氣用，不用逐字複述進理由裡）：\n{context}"
+        f"{profile_section}\n\n"
+        f"要改寫的理由：\n{payload}"
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = Path(tmp_dir) / "output.json"
+        cmd = [
+            _CODEX_BIN,
+            "exec",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--ephemeral",
+            "--disable",
+            "plugins",
+            "--disable",
+            "skill_search",
+            "-c",
+            f'model_reasoning_effort="{_CODEX_REASONING_EFFORT}"',
+            "--output-schema",
+            str(_REASON_SCHEMA_PATH),
+            "--output-last-message",
+            str(output_path),
+        ]
+        if _CODEX_MODEL:
+            cmd += ["-m", _CODEX_MODEL]
+        cmd.append(prompt)
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=_CODEX_TIMEOUT_SECONDS,
+            )
+            if result.returncode != 0:
+                return None
+            raw = output_path.read_text(encoding="utf-8").strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+
+    try:
+        batch = _ReasonRewriteBatch.model_validate_json(raw)
+    except (ValueError, ValidationError):
+        return None
+
+    return {item.product_id: item.reason for item in batch.items}
 
 
 def generate_freeform_text(prompt: str, timeout_seconds: Optional[float] = None) -> Optional[str]:
