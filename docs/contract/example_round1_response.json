@@ -1201,6 +1201,9 @@
     "grounded_terms": [],
     "exposure_excluded": 0,
     "exposure_cap_skipped": false,
+    "honoured_negations": [],
+    "retracted_constraints": [],
+    "substitutes": [],
     "input_warnings": []
   },
   "metrics": {
@@ -1219,12 +1222,12 @@
     0.0
   ],
   "timings_ms": {
-    "filter": 115.45,
+    "filter": 146.41,
     "bm25_docs_touched": 0.5134,
-    "retrieve": 1.5,
-    "fuse": 0.29,
-    "rerank": 2.09,
-    "counterfactual": 0.31,
-    "explain": 2.42
+    "retrieve": 1.93,
+    "fuse": 0.39,
+    "rerank": 2.94,
+    "counterfactual": 1.07,
+    "explain": 6.28
   }
 }

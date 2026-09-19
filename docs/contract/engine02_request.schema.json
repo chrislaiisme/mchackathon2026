@@ -505,6 +505,13 @@
       "title": "Design Weight Prior",
       "type": "object"
     },
+    "stated_design_steps": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Stated Design Steps",
+      "type": "object"
+    },
     "profile": {
       "anyOf": [
         {

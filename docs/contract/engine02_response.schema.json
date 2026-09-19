@@ -49,6 +49,32 @@
           "title": "Exposure Cap Skipped",
           "type": "boolean"
         },
+        "honoured_negations": {
+          "items": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "title": "Honoured Negations",
+          "type": "array"
+        },
+        "retracted_constraints": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Retracted Constraints",
+          "type": "array"
+        },
+        "substitutes": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Substitutes",
+          "type": "array"
+        },
         "input_warnings": {
           "items": {
             "type": "string"

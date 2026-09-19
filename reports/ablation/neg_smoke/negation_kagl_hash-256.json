@@ -1,0 +1,40 @@
+{
+ "setup": {
+  "catalog": "data/catalog/kagl",
+  "encoder": "hash-256",
+  "queries": 5,
+  "k": 5
+ },
+ "arms": {
+  "full_zclip3_noneg": {
+   "violation_rate": 0.16,
+   "empty_rate": 0.0,
+   "ndcg5": 0.8516,
+   "fired": 0.0
+  },
+  "full_zclip3": {
+   "violation_rate": 0.0,
+   "empty_rate": 0.0,
+   "ndcg5": 0.8801,
+   "fired": 1.0
+  }
+ },
+ "paired": {
+  "violation_rate": {
+   "delta": -0.16,
+   "ci": [
+    -0.2,
+    -0.08
+   ],
+   "p": 0.12664
+  },
+  "ndcg5": {
+   "delta": 0.0285,
+   "ci": [
+    0.0,
+    0.0856
+   ],
+   "p": 1.0
+  }
+ }
+}

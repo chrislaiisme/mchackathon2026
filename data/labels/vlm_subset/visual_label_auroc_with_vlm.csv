@@ -1,0 +1,8 @@
+element,scorer,auroc,ci95_lo,ci95_hi,n_pos,n_neg
+bold_pattern,VLM:Qwen3-VL-8B-Instruct,0.9425,0.8757735219691741,0.9865714285714287,20,40
+crisp_collar,VLM:Qwen3-VL-8B-Instruct,0.9820426487093153,0.9377033509454951,1.0,27,33
+glossy_fabric,VLM:Qwen3-VL-8B-Instruct,0.9041394335511983,0.8036263170791472,0.9774493371212121,9,51
+relaxed_fit,VLM:Qwen3-VL-8B-Instruct,0.7689969604863222,0.5959183673469388,0.9265696917064699,7,47
+soft_knit,VLM:Qwen3-VL-8B-Instruct,,,,0,60
+structured_shoulders,VLM:Qwen3-VL-8B-Instruct,,,,0,56
+visible_logo,VLM:Qwen3-VL-8B-Instruct,0.9808481532147743,0.9479094210310965,1.0,17,43

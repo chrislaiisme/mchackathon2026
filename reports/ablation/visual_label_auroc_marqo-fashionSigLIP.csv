@@ -1,0 +1,22 @@
+element,scorer,auroc,ci95_lo,ci95_hi,n_pos,n_neg
+bold_pattern,marqo-fashionSigLIP:descriptor (PRD),0.84625,0.7273899240855762,0.9410000839348666,20,40
+bold_pattern,marqo-fashionSigLIP:random_words,0.36375,0.22433520006839944,0.5175241963064294,20,40
+bold_pattern,marqo-fashionSigLIP:antonym+DN,0.89875,0.811949080017116,0.9649338235294118,20,40
+crisp_collar,marqo-fashionSigLIP:descriptor (PRD),0.9248035914702581,0.8529461279461279,0.9807715311004784,27,33
+crisp_collar,marqo-fashionSigLIP:random_words,0.1717171717171717,0.07923372885338345,0.27723063973063966,27,33
+crisp_collar,marqo-fashionSigLIP:antonym+DN,0.9663299663299664,0.9232796140332291,0.9955360867233434,27,33
+glossy_fabric,marqo-fashionSigLIP:descriptor (PRD),0.7538126361655774,0.5384502923976608,0.9228454415954416,9,51
+glossy_fabric,marqo-fashionSigLIP:random_words,0.5642701525054467,0.33957434126690506,0.7840040372670808,9,51
+glossy_fabric,marqo-fashionSigLIP:antonym+DN,0.7080610021786492,0.5249999999999999,0.8873007305194804,9,51
+relaxed_fit,marqo-fashionSigLIP:descriptor (PRD),0.8389057750759878,0.6430879446640316,0.985,7,47
+relaxed_fit,marqo-fashionSigLIP:random_words,0.6504559270516718,0.40269967916244515,0.8627450980392157,7,47
+relaxed_fit,marqo-fashionSigLIP:antonym+DN,0.8632218844984803,0.7124183006535948,0.9755151952085183,7,47
+soft_knit,marqo-fashionSigLIP:descriptor (PRD),,,,0,60
+soft_knit,marqo-fashionSigLIP:random_words,,,,0,60
+soft_knit,marqo-fashionSigLIP:antonym+DN,,,,0,60
+structured_shoulders,marqo-fashionSigLIP:descriptor (PRD),,,,0,56
+structured_shoulders,marqo-fashionSigLIP:random_words,,,,0,56
+structured_shoulders,marqo-fashionSigLIP:antonym+DN,,,,0,56
+visible_logo,marqo-fashionSigLIP:descriptor (PRD),0.9124487004103967,0.8174428436147186,0.9807407407407407,17,43
+visible_logo,marqo-fashionSigLIP:random_words,0.478796169630643,0.3211479360766046,0.6367298136645958,17,43
+visible_logo,marqo-fashionSigLIP:antonym+DN,0.9589603283173734,0.8908792321887035,1.0,17,43

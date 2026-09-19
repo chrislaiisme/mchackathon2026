@@ -42,9 +42,20 @@ Runtime：內嵌 Hermes Agent 的後端服務，對應 PRD 7.1 Agent Runtime Lay
 
 ### 四個服務一起跑
 
+先裝依賴（一次）。ENGINE 02 用 `pyproject.toml`；ENGINE 01／03 與串接層用根目錄的
+`requirements.txt`（`python-dotenv`、`google-auth` 只在那裡），**兩份都要裝**：
+
+```bash
+uv pip install -e ".[data,dev]"
+uv pip install -r requirements.txt
+```
+
+ENGINE 02 還要先建商品庫（`data/README.md` 步驟 1）；沒裝 torch 的話啟動時加 `ENGINE02_ENCODER=hash`。
+前端第一次要先 `cd web && npm install`。
+
 ```bash
 uvicorn bff.engine01_intent.main:app --port 8000     # ENGINE 01（需要 codex login）
-uvicorn mcp_servers.catalog.main:app --port 8002     # ENGINE 02（需要 catalog 索引）
+uvicorn mcp_servers.catalog.main:app --port 8002     # ENGINE 02（需要商品庫；無 torch 加 ENGINE02_ENCODER=hash）
 uvicorn bff.feedback.main:app       --port 8003      # ENGINE 03
 uvicorn bff.main:app                --port 8100      # 串接層
 cd web && npm run dev                                # 前端

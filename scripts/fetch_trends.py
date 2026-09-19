@@ -18,7 +18,7 @@ what it does not know, so the file round-trips.
 
 What this is NOT — and this is the whole point of the file:
   **not a ranking term.** `docs/engine02-design.md` §3.15 measured trend keywords inside the score
-  in 28 configurations and all 28 were worse (NDCG@5 −0.16 … −0.38). This writes a DISPLAY signal.
+  in 28 configurations and all 28 were worse (NDCG@5 -0.16 … -0.38). This writes a DISPLAY signal.
   The JSON says so in `affects_score: false`, and nothing here touches `arm.w_trend`.
 
 Login and terms (checked 2026-09-19, see docs/research/live-trend-sources.md):

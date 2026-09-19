@@ -1,0 +1,212 @@
+{
+  "source": "curated_lift",
+  "as_of": "2026-09-18",
+  "catalog": "kagl_polyvore",
+  "notes": [
+    "來源：人工策展穿搭（Polyvore outfit_ids）中過度出現的詞，對照整個商品庫的基準率",
+    "統計：Monroe et al. 2008 的 log-odds-ratio with informative Dirichlet prior",
+    "這不是趨勢預測，是「造型師在這份資料集裡常放進穿搭的詞」；資料集是 2010 年代快照"
+  ],
+  "terms": [
+    {
+      "term": "leather",
+      "score": 13.4072,
+      "df": 1701
+    },
+    {
+      "term": "clutch",
+      "score": 8.2562,
+      "df": 616
+    },
+    {
+      "term": "suede",
+      "score": 7.5829,
+      "df": 586
+    },
+    {
+      "term": "high",
+      "score": 7.559,
+      "df": 542
+    },
+    {
+      "term": "lace",
+      "score": 7.1274,
+      "df": 538
+    },
+    {
+      "term": "print",
+      "score": 7.0719,
+      "df": 501
+    },
+    {
+      "term": "neck",
+      "score": 6.6766,
+      "df": 406
+    },
+    {
+      "term": "shoulder",
+      "score": 6.6345,
+      "df": 547
+    },
+    {
+      "term": "mini",
+      "score": 6.4928,
+      "df": 524
+    },
+    {
+      "term": "denim",
+      "score": 6.4522,
+      "df": 466
+    },
+    {
+      "term": "sleeve",
+      "score": 6.399,
+      "df": 422
+    },
+    {
+      "term": "skinny",
+      "score": 5.8922,
+      "df": 382
+    },
+    {
+      "term": "cotton",
+      "score": 5.8628,
+      "df": 316
+    },
+    {
+      "term": "long",
+      "score": 5.6339,
+      "df": 395
+    },
+    {
+      "term": "ankle",
+      "score": 5.3851,
+      "df": 361
+    },
+    {
+      "term": "wool",
+      "score": 5.1636,
+      "df": 332
+    },
+    {
+      "term": "pumps",
+      "score": 5.085,
+      "df": 322
+    },
+    {
+      "term": "knit",
+      "score": 5.0289,
+      "df": 233
+    },
+    {
+      "term": "floral",
+      "score": 4.9572,
+      "df": 260
+    },
+    {
+      "term": "tote",
+      "score": 4.9391,
+      "df": 391
+    },
+    {
+      "term": "toe",
+      "score": 4.8995,
+      "df": 299
+    },
+    {
+      "term": "vintage",
+      "score": 4.8653,
+      "df": 217
+    },
+    {
+      "term": "faux",
+      "score": 4.85,
+      "df": 293
+    },
+    {
+      "term": "blouse",
+      "score": 4.8167,
+      "df": 289
+    },
+    {
+      "term": "crop",
+      "score": 4.7831,
+      "df": 285
+    },
+    {
+      "term": "yoins",
+      "score": 4.7409,
+      "df": 280
+    },
+    {
+      "term": "metallic",
+      "score": 4.6643,
+      "df": 206
+    },
+    {
+      "term": "cropped",
+      "score": 4.6639,
+      "df": 271
+    },
+    {
+      "term": "pre",
+      "score": 4.6466,
+      "df": 269
+    },
+    {
+      "term": "owned",
+      "score": 4.6466,
+      "df": 269
+    },
+    {
+      "term": "topshop",
+      "score": 4.6205,
+      "df": 266
+    },
+    {
+      "term": "strap",
+      "score": 4.613,
+      "df": 221
+    },
+    {
+      "term": "embroidered",
+      "score": 4.5215,
+      "df": 186
+    },
+    {
+      "term": "crossbody",
+      "score": 4.3884,
+      "df": 240
+    },
+    {
+      "term": "shein",
+      "score": 4.3884,
+      "df": 240
+    },
+    {
+      "term": "sheinside",
+      "score": 4.3792,
+      "df": 239
+    },
+    {
+      "term": "silk",
+      "score": 4.296,
+      "df": 188
+    },
+    {
+      "term": "waist",
+      "score": 4.296,
+      "df": 188
+    },
+    {
+      "term": "platform",
+      "score": 4.2864,
+      "df": 229
+    },
+    {
+      "term": "front",
+      "score": 4.2667,
+      "df": 177
+    }
+  ]
+}

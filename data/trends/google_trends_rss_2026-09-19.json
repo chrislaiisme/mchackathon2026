@@ -1,0 +1,32 @@
+{
+ "source": "live:google_trends_rss",
+ "as_of": "2026-09-19",
+ "catalog": null,
+ "notes": [
+  "來源：Google Trends 官方公開 RSS（TW），無金鑰、無登入，200",
+  "當日熱搜 10 則，落在本專案封閉詞彙內的有 0 則",
+  "這個端點是**全域熱搜**不是時尚熱搜：多數日子交集為 0，這是誠實的 0，不是失敗"
+ ],
+ "terms": [],
+ "affects_score": false,
+ "not_a_ranking_term": "這不是分數項。docs/engine02-design.md §3.15 量過 28 組「趨勢關鍵字進排序」，全部變差（NDCG@5 −0.16～−0.38）。這份檔案只餵 trends.trend_badges() 的展示標籤，以及後台需求面板。要進排序必須先有另一套帶時間軸的標準答案（§3.26）。",
+ "fetched_at": "2026-09-19T02:02:12+00:00",
+ "user_agent": "mchackathon2026-trend-sidecar/0.1 (academic hackathon, non-commercial; +https://github.com/Evan-Jiamg; ben940815@gmail.com)",
+ "login_used": false,
+ "endpoint": "https://trends.google.com/trending/rss?geo=TW",
+ "http_status": 200,
+ "official": true,
+ "trending_titles": [
+  "總統府",
+  "秋老虎",
+  "資料中心",
+  "游智彬",
+  "klasemen brentford vs chelsea",
+  "林憲銘",
+  "新聞",
+  "鋐寶科技股份有限公司",
+  "費城半導體",
+  "股災"
+ ],
+ "mapped": []
+}

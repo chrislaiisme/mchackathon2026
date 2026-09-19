@@ -10,6 +10,7 @@
     "retrieval_text": "men shirts for formal",
     "retrieval_text_normalized": null,
     "design_weight_prior": {},
+    "stated_design_steps": {},
     "profile": null,
     "constraints": {
       "category": {
@@ -232,8 +233,8 @@
       "quote": "太像上班族",
       "target": "formal_style",
       "before": 0,
-      "after": -1,
-      "note": "每步 0.25；上限 ±3"
+      "after": -2,
+      "note": "每步 0.25；一次回饋算 2 步；上限 ±3"
     },
     {
       "op": "choice",
@@ -256,6 +257,7 @@
     "retrieval_text": "men shirts for formal",
     "retrieval_text_normalized": null,
     "design_weight_prior": {},
+    "stated_design_steps": {},
     "profile": null,
     "constraints": {
       "category": {
@@ -327,7 +329,7 @@
     ],
     "feedback": {
       "design_adjust_steps": {
-        "formal_style": -1
+        "formal_style": -2
       },
       "chosen_item_ids": [
         "14731"
@@ -372,60 +374,66 @@
   "round_2_response_items": [
     {
       "rank": 1,
-      "item_id": "14731",
-      "title": "Arrow Men Solid Lavender Shirts",
-      "score": 4.2984,
+      "item_id": "14759",
+      "title": "Arrow Men Solid Brown Shirts",
+      "score": 4.6869,
       "reasons": [
-        "整體風格和你描述的相近（+3.36）",
-        "商品描述直接提到你要的關鍵字（+0.73）"
+        "整體風格和你描述的相近（+2.23）",
+        "避開正式感（+0.91），對應你想要的「怕顯得太用力」",
+        "商品描述直接提到你要的關鍵字（+0.73）",
+        "避開明顯 logo（+0.55），對應你想要的「怕顯得太用力、被信任」",
+        "素面簡約（+0.26），對應你想要的「怕顯得太用力」"
       ]
     },
     {
       "rank": 2,
-      "item_id": "14741",
-      "title": "Arrow Men Solid Lavender Shirts",
-      "score": 4.2984,
+      "item_id": "14752",
+      "title": "Arrow Men Solid Grey Shirts",
+      "score": 4.5895,
       "reasons": [
-        "整體風格和你描述的相近（+3.36）",
-        "商品描述直接提到你要的關鍵字（+0.73）"
+        "整體風格和你描述的相近（+2.23）",
+        "避開正式感（+0.91），對應你想要的「怕顯得太用力」",
+        "商品描述直接提到你要的關鍵字（+0.73）",
+        "避開明顯 logo（+0.55），對應你想要的「怕顯得太用力、被信任」",
+        "素面簡約（+0.26），對應你想要的「怕顯得太用力」"
       ]
     },
     {
       "rank": 3,
-      "item_id": "14759",
-      "title": "Arrow Men Solid Brown Shirts",
-      "score": 4.1997,
+      "item_id": "14742",
+      "title": "Arrow Men Solid Blue Shirts",
+      "score": 4.4963,
       "reasons": [
         "整體風格和你描述的相近（+2.23）",
+        "避開正式感（+0.91），對應你想要的「怕顯得太用力」",
         "商品描述直接提到你要的關鍵字（+0.73）",
-        "避開明顯 logo（+0.55），對應你想要的「怕顯得太用力、被信任」",
-        "避開正式感（+0.43），對應你想要的「你上一輪的回饋、怕顯得太用力」",
+        "避開明顯 logo（+0.56），對應你想要的「怕顯得太用力、被信任」",
         "素面簡約（+0.26），對應你想要的「怕顯得太用力」"
       ]
     },
     {
       "rank": 4,
-      "item_id": "14752",
-      "title": "Arrow Men Solid Grey Shirts",
-      "score": 4.1024,
+      "item_id": "14754",
+      "title": "Arrow Men Solid Blue Shirts",
+      "score": 4.4963,
       "reasons": [
         "整體風格和你描述的相近（+2.23）",
+        "避開正式感（+0.91），對應你想要的「怕顯得太用力」",
         "商品描述直接提到你要的關鍵字（+0.73）",
-        "避開明顯 logo（+0.55），對應你想要的「怕顯得太用力、被信任」",
-        "避開正式感（+0.43），對應你想要的「你上一輪的回饋、怕顯得太用力」",
+        "避開明顯 logo（+0.56），對應你想要的「怕顯得太用力、被信任」",
         "素面簡約（+0.26），對應你想要的「怕顯得太用力」"
       ]
     },
     {
       "rank": 5,
-      "item_id": "14742",
+      "item_id": "14760",
       "title": "Arrow Men Solid Blue Shirts",
-      "score": 4.0091,
+      "score": 4.4963,
       "reasons": [
         "整體風格和你描述的相近（+2.23）",
+        "避開正式感（+0.91），對應你想要的「怕顯得太用力」",
         "商品描述直接提到你要的關鍵字（+0.73）",
         "避開明顯 logo（+0.56），對應你想要的「怕顯得太用力、被信任」",
-        "避開正式感（+0.43），對應你想要的「你上一輪的回饋、怕顯得太用力」",
         "素面簡約（+0.26），對應你想要的「怕顯得太用力」"
       ]
     }
