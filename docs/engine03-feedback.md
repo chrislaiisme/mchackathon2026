@@ -2,15 +2,24 @@
 
 **負責人：待確認。`backend/engine03_feedback/` 目前是空的（只有 README 佔位），這份文件是 ENGINE01 負責人 2026-09-19 的規格提案，不是定案**——正式負責人接手後應該覆核每一條，尤其是下面「⚠️ 跟已存在的真實實作有落差」那一節，那份東西比這裡寫的更完整、更可信。
 
-## ⚠️ 2026-09-19 發現：已經有一份真實實作了，這份文件先不接它
+## ⚠️ 2026-09-19 更新：三套互不相容的實作同時存在，這份文件底下的提案不是要採用的那一套
 
-merge `origin/main` 時，從 ENGINE02 團隊自己的稽核文件（`docs/research/integration-map.md`）查到 **`origin/engine03-feedback` 分支（chrislaiisme 開的，commit `e697d8d`）有一份完整、已測試、有 README 的 ENGINE03 實作**（`backend/engine03_feedback/{contracts,prompts,service,main}.py` ＋ `examples/` ＋ `tests/`，833 行）。跟下面這份文件提案的規格有實質落差，最大的三點：
+**這個警告區塊之前的版本已經過期**——只提到最早、後來被 rebase 掉的 `origin/engine03-feedback`（commit `e697d8d`）。實際狀況是**三套 ENGINE03 契約同時存在於程式碼裡**，這才是使用者反映「分支有點混亂」的真正原因，不是單純的分支衝突。濃縮版見 [docs/status.md](status.md) 的「ENGINE03」一節，這裡是完整版：
 
-1. **自由文字其實會經過它**：`FeedbackInput.free_text`（使用者對這輪結果的評論，例如「不要黑色，希望休閒一點」）會送進 `POST /feedback`，由它自己的 structured-output LLM 呼叫（需要 `OPENAI_API_KEY`，純點擊沒有文字的 click-only 情況除外）轉成 `updated_intent` 跟一份 ENGINE02 的 operation 清單——不是下面這份文件提案的「自由文字一律先過 ENGINE01，ENGINE03 完全不碰」。
-2. **需要一個「orchestrator」組出完整上下文**：`Engine3Request` 除了 `current_intent`（ENGINE01）＋`feedback_inputs`（前端），還需要**上一輪完整的 `engine02_request`／`engine02_response`**＋`interaction`（點選／否決／排除／錨點等 UI 動作）——這個角色現在沒有人在做。
-3. **假設單一份平坦的 `Engine02Response`**，不是這次做的兩分區 `ZonedRecommendationResult`；回饋粒度是屬性層級的 `FeedbackInput.attribute_scores`，不是逐卡片的收藏／不喜歡。
+1. **`backend/shared/schemas.py` 的 `FeedbackInput`**——ENGINE01 最早定的介面契約（`attribute_scores`、`selected_option_id`），**沒有「不喜歡」的欄位**。下面本文的提案就是基於這一套設計的，見下面「跟真實實作的落差」。
+2. **`bff/feedback/main.py`（已經在 main 上）**——Hermes app 技術棧的 `bff/main.py` 的 `POST /feedback`（port 8003）現在打的就是這支。把前端送來的讚／倒讚轉成 `FeedbackInput` 送給 ENGINE02。**它自己的 docstring 承認限制**：`FeedbackInput` 沒有「不喜歡哪幾張卡」的欄位，所以倒讚只會進本地帳本，不會傳給 ENGINE02——這套現在能跑，但天生做不到「不喜歡」這個前端已經在做的明確需求。
+3. **`backend/engine03_feedback/`（PR [#14](https://github.com/chrislaiisme/mchackathon2026/pull/14)，分支 `engine3-feadback-new`，尚未 merge）**——決定性（**已經拿掉 LLM 跟 `OPENAI_API_KEY` 依賴**，跟這份文件寫作當下的認知不同，最新版是純規則式的分數門檻映射，不吃自由文字）、op-based（`chosen_item_id`／`rejected_item_ids`／`excluded_item_ids`／`anchor_item_ids`／attribute scores→設計軸調整），**這套才真的有「不喜歡」「永久排除」的概念**，剛好對上前端的需求。有 7 項測試，用 `git merge-tree` 確認過跟目前 main／engine01-intent 完全不衝突，可以直接乾淨 merge。
 
-跟使用者確認過：**今天不去合併、不去整合這個分支**，先如實記錄發現。這份文件底下維持原本的提案內容（沒有因為這個發現重寫），**正式負責人接手時，應該優先看那個分支的 `README.md`／`contracts.py`，而不是把這份文件當成規格來源**——那邊的設計更完整，這裡只是在還沒發現那個分支之前，先把整個迴圈的邊界想清楚。
+**決定性的一塊拼圖**：ENGINE02 其實已經準備好接第 3 套了。`engine02/api.py` 的 `POST /intent/rank`（ENGINE01 現在每一輪 `/recommend` 都在呼叫的端點）本來就同時接受 `intent`（這輪更新後的意圖）跟 `feedback`（如果裡面有 `"ops"` key，也就是 PR #14 `FeedbackRound` 的形狀，`engine02/api.py` 會自動呼叫 `apply_round()` 套用），還有 `prev_intent`（上一輪意圖，供對照評分）——也就是說**「ENGINE01 重新抽出的關鍵字」跟「ENGINE03 的回饋」可以在同一次 `/intent/rank` 呼叫裡一起送進去、一起影響這一輪的排序**，`engine02/intent_adapter.py::feedback_from_engine03()`（第 521 行起）甚至還特別防呆：收到 `ops` 形狀的 payload 會明確提示呼叫端改走這條路，不會誤吞。獨立的 `POST /handshake` 端點也是做同一件事（單獨套用一輪回饋，不順便排序），兩支都已經就緒，只是目前完全沒有呼叫端在用。
+
+**建議的下一步順序**：
+1. Merge PR #14（風險低，不衝突，有測試）。
+2. ENGINE01 新增呼叫 `backend/engine03_feedback`（跑起來是 port 8003）的 client，把結構化回饋（收藏／不喜歡／分項打分／整套 Like-NotLike）送過去，拿回 `FeedbackRound`。
+3. `session_store.py` 存住「上一輪的 `Engine02Request`／`Engine02Response`」＋「ENGINE03 回傳的 `FeedbackRound`」。
+4. `engine02_client.py::intent_rank()` 補 `feedback`／`prev_intent` 兩個參數，往下傳給 ENGINE02 的 `/intent/rank`。
+5. `bff/feedback/main.py` 只有團隊真的要切到 `bff/`／Hermes app 技術棧當 demo 主線時才需要退休／整併，目前不影響現在在跑的 demo 架構（前端直打 ENGINE01、ENGINE01 直打 ENGINE02），可以先不管。
+
+這是跨 ENGINE02／ENGINE03／前端三邊的整合決定，**決定還沒拍板，需要三邊負責人都看過這個結論再動手**，這份文件先如實記錄調查結果，不代表已經定案。下面本文維持原本的提案內容（第 2 套方案基於 `FeedbackInput` 設計，已知跟真的要採用的第 3 套不是同一回事），保留是因為它把整個迴圈的邊界想清楚了，正式定案時可以參考，但**正式負責人接手時應該優先看 `backend/engine03_feedback/README.md`／`contracts.py`，不要把下面這份提案當成規格來源**。
 
 ## 目標
 

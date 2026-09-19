@@ -72,7 +72,10 @@ agent/, bff/, mcp_servers/, web/, contracts/, evals/
                          包成 MCP 工具服務、web/ 是 frontend/ 的複本（改接 bff/）、
                          contracts/ 是共用 Pydantic schema 的複本。純新增，不影響
                          backend/、frontend/ 既有內容；正式 demo 從 integration/hermes-app
-                         分支跑，細節見 docs/migration-to-hermes-app.md。
+                         分支跑，細節見 docs/migration-to-hermes-app.md（2026-09-19 補充：
+                         這份文件只存在於 integration/hermes-app 分支，在 main／
+                         engine01-intent 這幾條分支上這個連結是死的，要看內容得切過去
+                         那條分支才讀得到）。
 ```
 
 **不要重新調整或刪除根目錄的 `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`。** 這些是給 Pinterest App 審核用的隱私權政策網站。GitHub Pages 實際上是從獨立的 `gh-pages` 分支發布的（`chrislaiisme.github.io/mchackathon2026/`），所以這些檔案留在 `main` 上目前只是歷史遺留——但沒跟團隊確認前不要刪，也絕對不要沒確認就 push 到 `gh-pages`。
@@ -142,6 +145,7 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 ## 想找更多細節的話
 
+- **各模組現在做到哪裡、還缺什麼的總覽表：[docs/status.md](docs/status.md)**（2026-09-19 新增，每次大改動後應該回來更新，不是寫一次就不管）。
 - 完整競賽簡報、評分標準、設計討論歷程：[docs/hackathon-brief.md](docs/hackathon-brief.md)
 - PRD 骨架：[docs/prd.md](docs/prd.md)
 - 各模組規格：`docs/engine01-intent.md`、`docs/engine03-feedback.md`、`docs/frontend.md`、`docs/pinterest-and-generation.md`。ENGINE02 已實作，正式規格在 [`docs/engine02-design.md`](docs/engine02-design.md)／[`docs/engine02-pipeline.md`](docs/engine02-pipeline.md)（`docs/engine02-retrieval.md` 只剩一個指向這兩份的導覽，內容本身已經過時）。
