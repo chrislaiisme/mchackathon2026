@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
 import { generateItemPair } from "@/lib/services/concept-image";
+import { OutfitPairError, pairOutfit, type OutfitPairing } from "@/lib/services/outfit-pair";
 import {
   createChatRecommendation,
   createStylistReply,
@@ -174,6 +175,7 @@ function RecommendationCard({
  */
 function GeneratedGroupCarousels({
   groups,
+  onPairOutfit,
   onTryOn,
   onFeedback,
   activeTryOnItemIds,
@@ -183,6 +185,11 @@ function GeneratedGroupCarousels({
   onToggleSaved,
 }: {
   groups: GeneratedGroup[];
+  /** 「AI 幫我搭」：上層補上 intent 與 session 去呼叫配對服務，失敗時 throw。 */
+  onPairOutfit: (
+    tops: FashionRecommendation[],
+    bottoms: FashionRecommendation[],
+  ) => Promise<OutfitPairing>;
   onTryOn: (item: FashionRecommendation) => void;
   onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
   activeTryOnItemIds: string[];
@@ -194,6 +201,11 @@ function GeneratedGroupCarousels({
   const { locale } = useI18n();
   const [indexBySlot, setIndexBySlot] = useState<Record<string, number>>({});
   const [ratings, setRatings] = useState<Record<string, number>>({});
+  // 配對結果只是這一輪的畫面狀態，跟翻到第幾件一樣留在這支元件裡：同一個對話可能
+  // 有好幾輪 Design for Me，各自的配對互不相干，放到上層反而要多一層 messageId 對照。
+  const [pairing, setPairing] = useState<OutfitPairing | null>(null);
+  const [pairBusy, setPairBusy] = useState(false);
+  const [pairError, setPairError] = useState<string | null>(null);
 
   // 左邊固定上衣、右邊固定下裝，不跟著後端回傳的順序跑。
   const ordered = (["top", "bottom"] as const)
@@ -204,11 +216,84 @@ function GeneratedGroupCarousels({
     return null;
   }
 
+  const tops = ordered.find((group) => group.slot === "top")?.items ?? [];
+  const bottoms = ordered.find((group) => group.slot === "bottom")?.items ?? [];
+
+  async function handlePairClick() {
+    if (pairBusy) {
+      return;
+    }
+    setPairBusy(true);
+    setPairError(null);
+    try {
+      const result = await onPairOutfit(tops, bottoms);
+      const topIndex = tops.findIndex((item) => item.id === result.topId);
+      const bottomIndex = bottoms.findIndex((item) => item.id === result.bottomId);
+      // 主要的回饋是兩個輪播各自翻到選中的那一件——直接看到兩件並排比讀一段文字快。
+      setIndexBySlot((state) => ({
+        ...state,
+        ...(topIndex >= 0 ? { top: topIndex } : {}),
+        ...(bottomIndex >= 0 ? { bottom: bottomIndex } : {}),
+      }));
+      setPairing(result);
+    } catch (error) {
+      // 就地顯示，輪播維持原樣：這一輪的試穿、愛心、收藏都還要能用。
+      console.error("[stylist] AI 幫我搭失敗：", error);
+      setPairError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setPairBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+          {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
+        </p>
+        {/* 兩邊都有東西才配得起來；只生出一邊時（另一邊生圖失敗）不給這顆按鈕。 */}
+        {tops.length > 0 && bottoms.length > 0 && (
+          <button
+            type="button"
+            onClick={handlePairClick}
+            disabled={pairBusy}
+            className="border-b border-border pb-1 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {pairBusy
+              ? locale === "zh-TW"
+                ? "配對中…"
+                : "Styling…"
+              : locale === "zh-TW"
+                ? "AI 幫我搭"
+                : "Style it for me"}
+          </button>
+        )}
+      </div>
+
+      {pairing && (
+        <div className="border-l border-primary pl-4 text-sm leading-6 text-foreground">
+          {/* 退場的組合不是 AI 挑的，照實講——講成 AI 的判斷會讓人以為第一件配第一件
+              有什麼道理。 */}
+          {pairing.source === "fallback" && (
+            <p className="text-muted-foreground">
+              {locale === "zh-TW"
+                ? "AI 沒回應，先給你一組保守的搭配："
+                : "The stylist did not answer — here is a safe pairing instead:"}
+            </p>
+          )}
+          <p>
+            {pairing.reason ||
+              (locale === "zh-TW" ? "第一件上衣配第一件下身。" : "The first top with the first bottom.")}
+          </p>
+        </div>
+      )}
+
+      {pairError && (
+        <p className="text-sm leading-6 text-destructive">
+          {locale === "zh-TW" ? `配對失敗：${pairError}` : `Pairing failed: ${pairError}`}
+        </p>
+      )}
+
       <div className="grid items-stretch gap-5 xl:grid-cols-2">
         {ordered.map((group) => {
           // 這一組只有幾件，index 取餘數以防萬一（例如某一邊生失敗只回了幾格）。
@@ -271,6 +356,7 @@ function MessageBlock({
   onRecommendationToggleSaved,
   onRecommendationSaveLook,
   onDesignForMe,
+  onPairOutfit,
   designBusy,
   savedItems,
   onToggleSavedItem,
@@ -294,6 +380,10 @@ function MessageBlock({
   onRecommendationToggleSaved: (messageId: string, itemId: string) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
+  onPairOutfit: (
+    tops: FashionRecommendation[],
+    bottoms: FashionRecommendation[],
+  ) => Promise<OutfitPairing>;
   designBusy?: boolean;
   savedItems: Record<string, boolean>;
   onToggleSavedItem: (itemId: string) => void;
@@ -370,6 +460,7 @@ function MessageBlock({
       {message.generatedGroups && message.generatedGroups.length > 0 && (
         <GeneratedGroupCarousels
           groups={message.generatedGroups}
+          onPairOutfit={onPairOutfit}
           onTryOn={onTryOn}
           onFeedback={onFeedback}
           activeTryOnItemIds={activeTryOnItemIds}
@@ -1941,7 +2032,13 @@ export function StylistExperience() {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      nextConversation = conversationService.update({ ...latest, engineSessionId: intentResult.session_id });
+      // lastIntent 跟著 engineSessionId 一起寫回對話——單靠 setLastIntent 的 React state
+      // 撐不過重新整理，Design for Me 會在重整後誤判成「還沒說需求」。
+      nextConversation = conversationService.update({
+        ...latest,
+        engineSessionId: intentResult.session_id,
+        lastIntent: intentResult.intent ?? null,
+      });
       nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
       persistConversation(nextConversation);
     } catch (error) {
@@ -2216,7 +2313,11 @@ export function StylistExperience() {
       return;
     }
 
-    if (!lastIntent) {
+    // 對話上持久化的 intent 優先——重新整理後 React state 的 lastIntent 會是 null，
+    // 但對話從 localStorage 讀回來時可能還留著上一輪的意圖。
+    const intent = activeConversation.lastIntent ?? lastIntent;
+
+    if (!intent) {
       persistConversation(
         conversationService.appendMessage(activeConversation, {
           id: `assistant-design-no-intent-${Date.now()}`,
@@ -2243,7 +2344,7 @@ export function StylistExperience() {
     }
 
     try {
-      const generated = await generateItemPair(lastIntent, activeConversation.engineSessionId, locale);
+      const generated = await generateItemPair(intent, activeConversation.engineSessionId, locale);
 
       const groups: GeneratedGroup[] = [];
       if (generated.topOrDress.length > 0) {
@@ -2287,6 +2388,29 @@ export function StylistExperience() {
     } finally {
       setIsGeneratingItems(false);
     }
+  }
+
+  /**
+   * 「AI 幫我搭」：從 Design for Me 生出來的六件上衣與六件下身裡挑一組最搭的。
+   *
+   * 這裡只負責補上這輪對話的 intent 與 session——按鈕的忙碌狀態、理由跟翻到第幾件
+   * 都是那一輪輪播自己的畫面狀態（見 GeneratedGroupCarousels）。失敗直接往上丟，
+   * 由按鈕就地顯示，不像 Design for Me 那樣再長出一則訊息：配對只是換一個看法，
+   * 失敗了對話不該多一段話。
+   */
+  async function handlePairOutfit(tops: FashionRecommendation[], bottoms: FashionRecommendation[]) {
+    // 跟 handleDesignForMe 同一個讀法：持久化在對話上的優先，React state 當備胎。
+    const intent = activeConversation?.lastIntent ?? lastIntent;
+
+    if (!intent) {
+      throw new OutfitPairError(
+        locale === "zh-TW"
+          ? "找不到這一輪的需求，重新說一次你想要什麼再試一次。"
+          : "No intent on this conversation — tell me what you are after and try again.",
+      );
+    }
+
+    return pairOutfit(intent, tops, bottoms, activeConversation?.engineSessionId);
   }
 
   function handleRecommendationNavigate(messageId: string, slot: "topOrDress" | "bottom", index: number) {
@@ -2473,6 +2597,7 @@ export function StylistExperience() {
               onRecommendationToggleSaved={handleRecommendationToggleSaved}
               onRecommendationSaveLook={handleRecommendationSaveLook}
               onDesignForMe={handleDesignForMe}
+              onPairOutfit={handlePairOutfit}
               designBusy={isGeneratingItems}
               savedItems={savedItemIds}
               onToggleSavedItem={(itemId) =>

@@ -128,6 +128,11 @@ export interface Conversation {
   // session（沿用 ENGINE01 的澄清問題把關與五題上限邏輯），而不是每則訊息都開新 session。
   // 選填是因為舊對話（合併 main 之前建立的、或還沒送出過第一句真訊息的）不會有這個欄位。
   engineSessionId?: string;
+  // 2026-09-19 新增：ENGINE01 抽出來的最新意圖，Design for Me 生成單品要靠它。
+  // 不能只放 React state——重新整理頁面後 state 會歸零，但對話是從 localStorage
+  // 讀回來的，兩者不同步就會出現「畫面上明明有推薦結果，按鈕卻說先說需求」的情況。
+  // 選填＋可為 null 是因為舊對話沒有這個欄位、或某輪 ENGINE01 沒回意圖。
+  lastIntent?: Record<string, unknown> | null;
 }
 
 export interface VirtualYouMeasurements {

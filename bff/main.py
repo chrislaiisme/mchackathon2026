@@ -11,6 +11,7 @@ demo 時要回答「這個結果怎麼來的」都靠它。
 from __future__ import annotations
 
 import os
+import sys
 import time
 from typing import Any, Literal, Optional
 
@@ -22,6 +23,7 @@ from pydantic import BaseModel, Field
 
 from bff.images.concept import (GENERATED_ROOT, ConceptImageUnavailable, generate_concept_pair,
                                 generate_concepts)
+from bff.images.outfit_pair import OutfitPairUnavailable, pair_outfit
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
 ENGINE02_URL = os.environ.get("ENGINE02_URL", "http://127.0.0.1:8002")
@@ -234,6 +236,69 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
         s.concept_image = {"image_url": out.get("grid_image"),
                            "prompt_used": out.get("prompt_used"), "response_id": None}
     return {"session_id": session_id, "round": round_no, "concepts": out, "activity": activity}
+
+
+class OutfitCandidate(BaseModel):
+    id: str = Field(..., min_length=1)
+    label: Optional[str] = None
+    """跟同一格其他候選的差別（varied_label），純展示用，判斷主要看 keywords。"""
+    keywords: Any = None
+    """`{欄位: 中文值}` 的 dict，或前端 `FashionRecommendation.attributes` 那種字串陣列——
+    兩種形狀 pair_outfit.py 都吃，這裡不用先轉一次。"""
+
+
+class OutfitPairRequest(BaseModel):
+    session_id: Optional[str] = None
+    intent: dict[str, Any] = Field(default_factory=dict)
+    tops: list[OutfitCandidate] = Field(..., min_length=1)
+    bottoms: list[OutfitCandidate] = Field(..., min_length=1)
+
+
+def _outfit_pair_fallback(tops: list[dict[str, Any]], bottoms: list[dict[str, Any]],
+                          note: str) -> dict[str, Any]:
+    """BFF 自己這層退場：只在 pair_outfit.py 連跑都跑不起來、或它回傳的 id 不在
+    請求的清單裡時才會用到（腳本自己內建的退場已經處理了 codex 失敗／逾時／
+    回傳不合法這幾種情況，正常不會落到這裡）。理由不編造判斷，只講清楚這組是
+    自動退回來的第一件配第一件，跟腳本自己 fallback 的用意一致。"""
+    print(f"[warn] /outfit-pair 走 BFF 層退場（{note}）", file=sys.stderr)
+    top, bottom = tops[0], bottoms[0]
+    label = lambda item: str(item.get("label") or item["id"])  # noqa: E731
+    return {"top_id": top["id"], "bottom_id": bottom["id"],
+            "reason": f"{label(top)}配{label(bottom)}，配對服務暫時無法使用，先給預設的第一組。",
+            "source": "fallback"}
+
+
+@app.post("/outfit-pair")
+def outfit_pair(body: OutfitPairRequest) -> dict[str, Any]:
+    """「AI 幫我搭」按鈕：從已生成的上衣與下身候選裡挑一組最搭的。
+
+    永遠回 200——按鈕按下去使用者要看到一組結果，不是一個錯誤畫面；請求本身不合法
+    （tops／bottoms 缺 id 或整份是空的）才會是 4xx，交給 pydantic 在進到這裡之前擋下。
+
+    兩層退場：`pair_outfit.py` 自己失敗／逾時／回傳不合法時內建退到 `tops[0]`／
+    `bottoms[0]`（退出碼仍是 0，見該腳本開頭註解）；這支腳本連跑都跑不起來
+    （找不到、逾時到來不及印出退場、stdout 壞掉），或它回傳的 id 不在這次請求的
+    清單裡，這裡再退一層，一樣是 `tops[0]`／`bottoms[0]`。
+    """
+    tops = [t.model_dump() for t in body.tops]
+    bottoms = [b.model_dump() for b in body.bottoms]
+    top_ids = {t["id"] for t in tops}
+    bottom_ids = {b["id"] for b in bottoms}
+
+    try:
+        result = pair_outfit(body.intent, tops, bottoms)
+    except OutfitPairUnavailable as exc:
+        return _outfit_pair_fallback(tops, bottoms, str(exc)[:150])
+    except Exception as exc:
+        return _outfit_pair_fallback(tops, bottoms, f"{type(exc).__name__}: {exc}"[:150])
+
+    if not isinstance(result, dict) or result.get("top_id") not in top_ids \
+            or result.get("bottom_id") not in bottom_ids or not str(result.get("reason") or "").strip():
+        return _outfit_pair_fallback(tops, bottoms, "回傳的配對不合法（id 不在清單裡或缺理由）")
+
+    source = result.get("source") if result.get("source") in ("llm", "fallback") else "fallback"
+    return {"top_id": result["top_id"], "bottom_id": result["bottom_id"],
+            "reason": result["reason"], "source": source}
 
 
 @app.get("/generated/{path:path}")
