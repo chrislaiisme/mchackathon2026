@@ -12,7 +12,7 @@ for pidfile in "$RUN_DIR"/*.pid; do
   if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
     # uvicorn / npm 會開子行程，整個 process group 一起收掉才不會留孤兒。
     kill -TERM -- "-$(ps -o pgid= "$pid" | tr -d ' ')" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
-    echo "  停掉 $name（pid $pid）"
+    echo "  停掉 ${name}（pid ${pid}）"
   fi
   rm -f "$pidfile"
 done
