@@ -330,7 +330,12 @@ def test_engine03_ops_are_applied_not_dropped(monkeypatch):
         nxt = b["next_request"]
         assert nxt["round"] == 2
         assert nxt["constraints"]["excluded_values"]["color"] == ["Black"]
-        assert nxt["feedback"]["design_adjust_steps"]["formal_style"] == -1
+        # one explicit complaint is worth ArmConfig.adjust_gain steps (§3.38): at gain 1 the
+        # median slate moved -0.019 z, which is no movement at all
+        from engine02.config import ARMS
+
+        assert (nxt["feedback"]["design_adjust_steps"]["formal_style"]
+                == -ARMS["full_zclip3"].adjust_gain)
         assert len(nxt["feedback"]["choice_history"]) == 1
         # an element we do not have is reported, never silently dropped
         assert any("no_such_element" in str(op) for op in b["rejected_ops"]), b["rejected_ops"]
@@ -383,3 +388,24 @@ def test_engine03_ops_are_applied_by_retrieve_without_a_second_call(monkeypatch)
         assert not [p for p in r2["products"]
                     if str(p["attributes"].get("color", "")).lower() == "black"]
         assert not [p for p in r2["products"] if p["product_id"] in ids[:2]]
+
+
+def test_the_complaint_gain_is_a_measured_choice_with_a_control(monkeypatch):
+    """§3.38: at gain 1 one complaint moves the median slate -0.019 z, at gain 2 it moves -0.167 z.
+    The old behaviour is kept as an arm so the comparison stays runnable."""
+    from engine02.config import ARMS
+    from engine02.contracts import Engine02Request
+    from engine02.handshake import FeedbackRound, apply_round
+
+    assert ARMS["full_zclip3"].adjust_gain == 2
+    assert ARMS["full_zclip3_gain1"].adjust_gain == 1
+
+    req = Engine02Request(session_id="g", retrieval_text="shirt")
+    fb = FeedbackRound(session_id="g", round=1,
+                       ops=[{"op": "adjust", "element": "formal_style", "step": -1}])
+    loud = apply_round(req, None, fb, gain=2)
+    quiet = apply_round(req, None, fb, gain=1)
+    assert loud.request.feedback.design_adjust_steps["formal_style"] == -2
+    assert quiet.request.feedback.design_adjust_steps["formal_style"] == -1
+    # the ledger has to say how hard it pushed, or the number is unexplainable on a card
+    assert any("2 步" in str(e.model_dump()) for e in loud.ledger), loud.ledger

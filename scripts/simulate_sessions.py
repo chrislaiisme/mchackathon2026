@@ -54,11 +54,42 @@ def sentence(rng: random.Random, item: str, occ: str, colour: str | None,
     return "，".join(parts)
 
 
+
+def make_axis_expression(engine, arm: str):
+    """Mean c(i, axis) of the shown items, in catalog z units — defined for every item."""
+    import numpy as np
+
+    from engine02.config import ARMS
+
+    c_mat = np.asarray(engine.design_matrix(ARMS[arm]), dtype=np.float64)
+    mu = c_mat.mean(axis=0)
+    sd = np.where(c_mat.std(axis=0) > 1e-9, c_mat.std(axis=0), 1.0)
+    ids = engine.kansei.element_ids
+    folded = dict(getattr(engine.kansei, "folded", {}) or {})
+
+    def expression(body, axis: str) -> float | None:
+        canon = folded.get(axis, axis)
+        if canon not in ids:
+            return None
+        j = ids.index(canon)
+        sign = -1.0 if axis in folded else 1.0
+        pos = [engine.catalog.pos(p["product_id"]) for p in body["products"]]
+        pos = [q for q in pos if q is not None]
+        if not pos:
+            return None
+        z = (c_mat[pos, j] - mu[j]) / sd[j]
+        return float(sign * np.mean(z))
+
+    return expression
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--n", type=int, default=60)
     ap.add_argument("--top-k", type=int, default=5)
     ap.add_argument("--budget-rate", type=float, default=0.5, help="share of shoppers who state one")
+    ap.add_argument("--step", type=int, default=-1,
+                    help="how hard one complaint pushes the axis (ENGINE 03 sends -1)")
     ap.add_argument("--out", default="reports/server/simulation")
     a = ap.parse_args()
 
@@ -85,6 +116,10 @@ def main() -> None:
     with TestClient(e02_app) as e02:
         health = e02.get("/health").json()
         print(f"catalog={health['catalog']} n={health['n_items']} encoder={health['encoder']}\n")
+        from engine02.api import engine as _engine
+
+        arm_name = os.environ.get("ENGINE02_ARM", "full_zclip3")
+        expression = make_axis_expression(_engine(), arm_name)
 
         for i in range(a.n):
             item = rng.choice(ITEMS)
@@ -107,8 +142,12 @@ def main() -> None:
 
             # the shopper reacts: they pick one, and they say the thing they dislike
             fb = {"session_id": sid, "round": 1,
-                  "ops": [{"op": "choice", "shown_item_ids": shown, "chosen_item_id": shown[0]},
-                          {"op": "adjust", "element": hate_axis, "step": -1, "quote": hate_word}]}
+                  "ops": [{"op": "choice", "shown_item_ids": shown, "chosen_item_id": shown[0]}]}
+            # ENGINE 03's contract allows only ±1, so a stronger push is expressed by
+            # repeating the op — which is what apply_round accumulates anyway
+            for _ in range(abs(a.step)):
+                fb["ops"].append({"op": "adjust", "element": hate_axis,
+                                  "step": -1 if a.step < 0 else 1, "quote": hate_word})
             r2 = e02.post("/retrieve", json={"session_id": sid, "round": 2, "message": hate_word,
                                              "intent": intent, "prev_intent": intent,
                                              "feedback": fb, "top_k": a.top_k})
@@ -118,16 +157,12 @@ def main() -> None:
             b2 = r2.json()
             ids2 = [p["product_id"] for p in b2["products"]]
 
-            # did the axis they complained about actually move?
-            def axis_mean(body) -> float | None:
-                vals = []
-                for it in body["engine02"]["items"]:
-                    for c in it["contributions"]:
-                        if c["term"] == f"design:{hate_axis}":
-                            vals.append(c["contribution"])
-                return sum(vals) / len(vals) if vals else None
-
-            before, after = axis_mean(b1), axis_mean(b2)
+            # Did the clothes change in the direction they asked for? Measure the axis on the
+            # ITEMS (c(i,d) in catalog z units), not on the contributions: a contribution only
+            # exists when that axis carries weight, so round 1 has no entry for the axis they are
+            # about to complain about and the comparison silently drops most sessions.
+            before = expression(b1, hate_axis)
+            after = expression(b2, hate_axis)
             prices = [float(p["attributes"]["price"]) for p in b2["products"]
                       if p["attributes"].get("price")]
             rep2 = b2["engine02"]["constraint_report"]
@@ -163,8 +198,13 @@ def main() -> None:
     print(f"第二輪與第一輪不同          : {share(lambda r: r['changed']):.1%}")
     print(f"前 5 名重疊率（越低越有反應）: {share(lambda r: r['overlap']):.1%}")
     if moved:
+        import numpy as _np
+
         right = sum(1 for r in moved if r["axis_moved_right_way"]) / len(moved)
-        print(f"被抱怨的那條軸往正確方向動  : {right:.1%}  (n={len(moved)})")
+        delta = _np.array([r["axis_after"] - r["axis_before"] for r in moved])
+        print(f"被抱怨的那條軸往正確方向動  : {right:.1%}  (n={len(moved)}, step={a.step})")
+        print(f"  該軸平均位移（負值=如願）  : {delta.mean():+.3f} z  "
+              f"(中位 {_np.median(delta):+.3f})")
     budgeted = [r for r in ok if r["budget"]]
     if budgeted:
         viol = sum(r["over_budget"] for r in budgeted)

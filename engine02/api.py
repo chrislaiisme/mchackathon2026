@@ -477,7 +477,8 @@ def handshake(body: HandshakeRequest) -> dict:
             prev_resp = Engine02Response.model_validate(body.prev_response)
         except ValidationError:
             prev_resp = None           # a partial previous response is not worth failing over
-    result = apply_round(body.prev_request, prev_resp, fb, kansei=e.kansei)
+    result = apply_round(body.prev_request, prev_resp, fb, kansei=e.kansei,
+                         gain=ARMS[os.environ.get('ENGINE02_ARM', 'full_zclip3')].adjust_gain)
     return {"next_request": result.request.model_dump(mode="json"),
             "ledger": [entry.model_dump() for entry in result.ledger],
             "rejected_ops": result.rejected_ops}
@@ -539,7 +540,8 @@ def intent_rank(body: IntentRankRequest) -> dict:
         except ValidationError as exc:
             raise HTTPException(422, {"error": "feedback looked like a FeedbackRound but is not valid",
                                       "detail": exc.errors(include_url=False)})
-        applied = apply_round(req, None, fr, kansei=e.kansei)
+        applied = apply_round(req, None, fr, kansei=e.kansei,
+                              gain=ARMS[arm].adjust_gain)
         req, ledger, rejected = applied.request, applied.ledger, applied.rejected_ops
         req.round, req.options.top_k = body.round, body.top_k
 
