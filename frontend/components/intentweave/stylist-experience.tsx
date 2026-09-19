@@ -44,6 +44,7 @@ import type {
   VirtualYouProfile,
   VisualChoice,
 } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function RecommendationCard({
   item,
@@ -555,20 +556,51 @@ function CompleteOutfitCard({
   const garmentLine = outfit.items.bottom
     ? `${outfit.items.topOrDress.name} + ${outfit.items.bottom.name}`
     : outfit.items.topOrDress.name;
+  const hasBottom = Boolean(outfit.items.bottom) && !isDress(outfit.items.topOrDress);
+  const imagePanels = [
+    {
+      id: outfit.items.topOrDress.id,
+      label: isDress(outfit.items.topOrDress) ? "Dress" : "Top",
+      eyebrow: "Complete Look",
+      name: outfit.items.topOrDress.name,
+      imageUrl: outfit.items.topOrDress.imageUrl,
+    },
+    ...(hasBottom && outfit.items.bottom
+      ? [
+          {
+            id: outfit.items.bottom.id,
+            label: "Bottom",
+            eyebrow: "Stylist's Pick",
+            name: outfit.items.bottom.name,
+            imageUrl: outfit.items.bottom.imageUrl,
+          },
+        ]
+      : []),
+  ];
 
   return (
     <div className="md:pl-[100px]">
       <article className="overflow-hidden border border-border bg-card">
-        <div
-          className="fashion-image relative h-[360px] bg-muted sm:h-[440px]"
-          style={{ backgroundImage: `url(${outfit.imageUrl || outfit.items.topOrDress.imageUrl})` }}
-          aria-label={outfit.name}
-        >
-          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-foreground/35 to-transparent" aria-hidden="true" />
-          <div className="absolute left-5 top-5 text-primary-foreground drop-shadow-sm">
-            <p className="text-xs uppercase tracking-[0.22em]">Complete Look</p>
-            <p className="mt-2 text-lg">Stylist&apos;s Pick</p>
-          </div>
+        <div className={cn("grid border-b border-border", hasBottom ? "sm:grid-cols-2" : "grid-cols-1")}>
+          {imagePanels.map((panel) => (
+            <div
+              key={panel.id}
+              className="fashion-image relative h-[320px] bg-muted sm:h-[440px]"
+              style={{ backgroundImage: `url(${panel.imageUrl})` }}
+              aria-label={panel.name}
+            >
+              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-foreground/35 to-transparent" aria-hidden="true" />
+              <div className="absolute left-5 top-5 text-primary-foreground drop-shadow-sm">
+                <p className="text-xs uppercase tracking-[0.22em]">{panel.eyebrow}</p>
+                <p className="mt-2 text-lg">{panel.label}</p>
+              </div>
+              <div className="absolute bottom-5 left-5 right-5">
+                <p className="inline border border-white/45 bg-card/80 px-3 py-2 text-xs text-foreground shadow-sm backdrop-blur-md">
+                  {panel.name}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="space-y-5 p-5 sm:p-6">
