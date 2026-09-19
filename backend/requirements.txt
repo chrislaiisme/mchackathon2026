@@ -14,6 +14,9 @@ fastapi
 uvicorn[standard]
 pydantic>=2
 python-dotenv
+# FastAPI 的 UploadFile／Form 解析 multipart/form-data 需要這個，2026-09-19 加
+# POST /uploads/image（圖片上傳端點，見 backend/engine01_intent/main.py）才發現漏裝。
+python-multipart
 
 # Auth (ENGINE01) -- verifies Google Identity Services ID tokens; our own
 # session tokens are HMAC-signed with the stdlib, no JWT library needed.

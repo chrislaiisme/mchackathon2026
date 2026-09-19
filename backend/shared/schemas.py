@@ -36,9 +36,14 @@ class UserProfile(BaseModel):
     email: str
     name: Optional[str] = None
     picture: Optional[str] = None
-    # 下面兩個是登入後可略過的偏好調查欄位，沒填就是 None／空陣列。
+    # 下面四個是登入後可略過的偏好調查欄位，沒填就是 None／空陣列。
     age_range: Optional[str] = None
     style_preferences: list[str] = Field(default_factory=list)
+    # gender／contexts 是 2026-09-19 為了對齊前端 IntentWeave（Next.js）
+    # onboarding 畫面實際蒐集的欄位才加的，原始設計裡沒有——前端 onboarding 已經
+    # 有這兩題（性別、使用情境），後端要能接住，不然 PUT /profile 會丟掉這兩個值。
+    gender: Optional[str] = None
+    contexts: list[str] = Field(default_factory=list)
     onboarding_completed: bool = False
     created_at: str
     """ISO 8601 timestamp."""
@@ -48,10 +53,12 @@ class ProfileUpdate(BaseModel):
     """Partial update for PUT /profile. Every field is optional so a user
     clicking "skip" can just send onboarding_completed=True with nothing else."""
 
-    # 三個欄位都選填：前端只送有要更新的欄位，其餘留 None，
+    # 五個欄位都選填：前端只送有要更新的欄位，其餘留 None，
     # 後端（main.py 的 put_profile）看到 None 就跳過、不覆蓋原本的值。
     age_range: Optional[str] = None
     style_preferences: Optional[list[str]] = None
+    gender: Optional[str] = None
+    contexts: Optional[list[str]] = None
     onboarding_completed: Optional[bool] = None
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from typing import Literal, Optional
 
 from backend.shared.schemas import Intent
 
@@ -22,6 +23,13 @@ class SessionState:
     session_id: str
     intent: Intent = field(default_factory=Intent)
     round: int = 0
+    # 這輪解析出來的參考圖網址（使用者上傳優先，沒上傳就用 Pinterest 板子比對）。
+    # 刻意只留在這個內部狀態裡、不透過 IntentResponse 回傳給前端：使用者自己
+    # 上傳的圖前端本來就知道網址，不用後端回傳；Pinterest 比對到的圖依規則
+    # 不能顯示在畫面上，只能留給將來呼叫 ENGINE02 時內部使用（見
+    # docs/pinterest-and-generation.md、docs/interface-contract.md 待確認事項）。
+    reference_image_url: Optional[str] = None
+    reference_image_source: Literal["user_upload", "pinterest", "none"] = "none"
 
 
 # 純記憶體字典，key 是 (user_id, session_id) 這組 tuple，代表「哪個使用者的哪個對話串」，
