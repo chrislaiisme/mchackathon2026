@@ -12,6 +12,7 @@ interface StoredVirtualYouProfile {
   userId: string;
   hasCustomPhoto: boolean;
   hasExtractedPerson: boolean;
+  hasCurrentTryOn?: boolean;
   selectedDefaultModelUrl?: string;
   isDefaultModel: boolean;
   measurements: VirtualYouMeasurements;
@@ -138,6 +139,10 @@ function extractedPersonKey(userId: string) {
   return `${userId}:extracted-person`;
 }
 
+function currentTryOnKey(userId: string) {
+  return `${userId}:current-try-on`;
+}
+
 async function putPhoto(key: string, photo: Blob) {
   await withPhotoStore("readwrite", (store) => store.put(photo, key));
 }
@@ -155,6 +160,7 @@ async function deleteVirtualYouPhotos(userId: string) {
     deletePhoto(userId),
     deletePhoto(originalPhotoKey(userId)),
     deletePhoto(extractedPersonKey(userId)),
+    deletePhoto(currentTryOnKey(userId)),
   ]);
 }
 
@@ -240,6 +246,13 @@ export interface TryOnResult {
   provider: "mock" | "remote";
 }
 
+export interface RunVirtualTryOnResult {
+  generatedImage: Blob;
+  generatedImageUrl: string;
+  outfitName: string;
+  provider: "mock" | "remote";
+}
+
 function base64ToBlob(base64: string, type: string) {
   const binary = window.atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -286,7 +299,10 @@ export const virtualYouService = {
     }
 
     try {
-      const photo = (await getPhoto(extractedPersonKey(userId))) || (await getPhoto(userId));
+      const photo =
+        (profile.hasCurrentTryOn ? await getPhoto(currentTryOnKey(userId)) : undefined) ||
+        (await getPhoto(extractedPersonKey(userId))) ||
+        (await getPhoto(userId));
 
       if (!photo) {
         return toRuntimeProfile(profile, defaultVirtualYouImage, "Your saved Virtual You photo could not be found.");
@@ -324,6 +340,7 @@ export const virtualYouService = {
       userId,
       hasCustomPhoto: Boolean(photo || existing?.hasCustomPhoto),
       hasExtractedPerson: Boolean(photo || existing?.hasExtractedPerson),
+      hasCurrentTryOn: false,
       isDefaultModel: false,
       measurements,
       processingMode: processed?.provider || existing?.processingMode || "mock",
@@ -356,11 +373,13 @@ export const virtualYouService = {
 
     await putPhoto(originalPhotoKey(userId), originalUserImage);
     await putPhoto(extractedPersonKey(userId), extractedPersonImage);
+    await deletePhoto(currentTryOnKey(userId)).catch(() => undefined);
 
     const next: StoredVirtualYouProfile = {
       userId,
       hasCustomPhoto: true,
       hasExtractedPerson: true,
+      hasCurrentTryOn: false,
       isDefaultModel: false,
       measurements: profiles[userId]?.measurements || {},
       processingMode: "generated",
@@ -381,6 +400,7 @@ export const virtualYouService = {
       userId,
       hasCustomPhoto: false,
       hasExtractedPerson: false,
+      hasCurrentTryOn: false,
       selectedDefaultModelUrl: defaultVirtualYouImage,
       isDefaultModel: true,
       measurements: {},
@@ -399,9 +419,9 @@ export const virtualYouService = {
     writeMetadata(profiles);
   },
 
-  async extractPerson(originalUserImage: File): Promise<ExtractPersonResult> {
+  async extractPerson(originalUserImage: Blob, filename = "create-you-source.jpg"): Promise<ExtractPersonResult> {
     const formData = new FormData();
-    formData.append("image", originalUserImage, originalUserImage.name || "create-you-source.jpg");
+    formData.append("image", originalUserImage, filename);
 
     const response = await fetch("/api/virtual-you/extract", {
       method: "POST",
@@ -441,52 +461,140 @@ export const virtualYouService = {
     };
   },
 
-  async generateVirtualTryOn(profile: VirtualYouProfile | null, outfits: FashionRecommendation[]): Promise<TryOnResult> {
-    if (outfits.length === 0) {
-      throw new Error("try_on_requires_outfit");
+  async saveCurrentTryOn({
+    userId,
+    currentTryOnImage,
+    personBoundingBox,
+  }: {
+    userId: string;
+    currentTryOnImage: Blob;
+    personBoundingBox: NonNullable<VirtualYouProfile["personBoundingBox"]>;
+  }) {
+    const profiles = await readMetadata();
+    const existing = profiles[userId];
+
+    if (!existing) {
+      throw new Error("virtual_you_profile_missing");
     }
 
+    await putPhoto(currentTryOnKey(userId), currentTryOnImage);
+
+    const next: StoredVirtualYouProfile = {
+      ...existing,
+      hasCurrentTryOn: true,
+      personBoundingBox,
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeMetadata({ ...profiles, [userId]: next });
+    return this.get(userId);
+  },
+
+  async getTryOnSourceImage(profile: VirtualYouProfile | null) {
     const virtualYouImageUrl = profile?.modelImageUrl || defaultVirtualYouImage;
-    let personImage = await fetchImageBlob(virtualYouImageUrl);
-    let provider: "mock" | "remote" = "remote";
 
-    // 試穿 worker 一次只接受一件衣物。穿整套時，把前一件的輸出作為下一件的
-    // personImage，避免舊實作永遠只送 wearableItems[0]、漏掉下身。
-    for (const outfit of outfits) {
-      const garmentImage = await fetchImageBlob(outfit.imageUrl).catch(() => null);
-      const formData = new FormData();
-      formData.append("personImage", personImage, "virtual-you.png");
-      formData.append("garmentImageUrl", outfit.imageUrl);
+    if (profile?.hasExtractedPerson) {
+      const personImage = (await getPhoto(extractedPersonKey(profile.userId))) || (await getPhoto(profile.userId));
 
-      if (garmentImage) {
-        formData.append("garmentImage", garmentImage, "garment.jpg");
+      if (!personImage) {
+        throw new Error("virtual_you_source_missing");
       }
 
-      formData.append("category", tryOnCategory(outfit));
-      formData.append("garmentId", outfit.id);
-      formData.append("garmentName", outfit.name);
-
-      const response = await fetch("/api/virtual-you/try-on", { method: "POST", body: formData });
-      const result = (await response.json().catch(() => null)) as
-        | { imageBase64?: string; provider?: "mock" | "remote"; error?: string }
-        | null;
-
-      if (!response.ok || !result?.imageBase64) {
-        throw new Error(result?.error || "try_on_failed");
-      }
-
-      personImage = base64ToBlob(result.imageBase64, "image/png");
-      provider = result.provider || "remote";
+      return personImage;
     }
+
+    return fetchImageBlob(virtualYouImageUrl);
+  },
+
+  async generateVirtualTryOnFromPerson(
+    personImage: Blob,
+    outfit: FashionRecommendation,
+    virtualYouImageUrl = defaultVirtualYouImage,
+  ): Promise<TryOnResult> {
+    const garmentImage = await fetchImageBlob(outfit.imageUrl).catch(() => null);
+    const formData = new FormData();
+
+    formData.append("personImage", personImage, "virtual-you.png");
+    formData.append("garmentImageUrl", outfit.imageUrl);
+
+    if (garmentImage) {
+      formData.append("garmentImage", garmentImage, "garment.jpg");
+    }
+
+    formData.append("category", tryOnCategory(outfit));
+    formData.append("garmentId", outfit.id);
+    formData.append("garmentName", outfit.name);
+
+    const response = await fetch("/api/virtual-you/try-on", {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as
+      | { imageBase64?: string; provider?: "mock" | "remote"; error?: string }
+      | null;
+
+    if (!response.ok || !result?.imageBase64) {
+      throw new Error(result?.error || "try_on_failed");
+    }
+
+    if (result.provider === "mock") {
+      throw new Error("try_on_provider_mock");
+    }
+
+    const generatedImage = base64ToBlob(result.imageBase64, "image/png");
+    const generatedImageUrl = URL.createObjectURL(generatedImage);
+    return {
+      id: `${result.provider || "remote"}-try-on-${Date.now()}`,
+      generatedImage,
+      generatedImageUrl,
+      virtualYouImageUrl,
+      outfitImageUrl: outfit.imageUrl,
+      outfitName: outfit.name,
+      provider: result.provider || "remote",
+    };
+  },
+
+  async generateVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): Promise<TryOnResult> {
+    return this.generateVirtualTryOnFromPerson(
+      await this.getTryOnSourceImage(profile),
+      outfit,
+      profile?.modelImageUrl || defaultVirtualYouImage,
+    );
+  },
+
+  async runVirtualTryOn(profile: VirtualYouProfile | null, garments: FashionRecommendation[]): Promise<RunVirtualTryOnResult> {
+    if (garments.length === 0) {
+      throw new Error("try_on_no_garments");
+    }
+
+    let workingPersonImage = await this.getTryOnSourceImage(profile);
+    let lastResult: TryOnResult | null = null;
+
+    for (const garment of garments) {
+      if (lastResult?.generatedImageUrl) {
+        URL.revokeObjectURL(lastResult.generatedImageUrl);
+      }
+
+      lastResult = await this.generateVirtualTryOnFromPerson(
+        workingPersonImage,
+        garment,
+        profile?.modelImageUrl || defaultVirtualYouImage,
+      );
+      workingPersonImage = lastResult.generatedImage;
+    }
+
+    if (!lastResult) {
+      throw new Error("try_on_missing_result");
+    }
+
+    const { extractedPersonImage } = await this.extractPerson(workingPersonImage, "try-on-result.png");
+    URL.revokeObjectURL(lastResult.generatedImageUrl);
 
     return {
-      id: `${provider}-try-on-${Date.now()}`,
-      generatedImage: personImage,
-      generatedImageUrl: URL.createObjectURL(personImage),
-      virtualYouImageUrl,
-      outfitImageUrl: outfits.map((outfit) => outfit.imageUrl).join(","),
-      outfitName: outfits.map((outfit) => outfit.name).join(" + "),
-      provider,
+      generatedImage: extractedPersonImage,
+      generatedImageUrl: URL.createObjectURL(extractedPersonImage),
+      outfitName: garments.map((garment) => garment.name).join(" + "),
+      provider: lastResult.provider,
     };
   },
 

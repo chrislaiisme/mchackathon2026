@@ -1945,7 +1945,10 @@ export function StylistExperience() {
         token,
       );
     } catch (error) {
-      console.error("[stylist] 送出上一輪回饋失敗（不影響本輪對話）：", error);
+      // Feedback 是下一輪排序的輔助訊號。舊版快取可能含有已不再屬於這輪
+      // session 的生成 item id；後端會安全地拒絕它，但不應讓 Next dev overlay
+      // 把這個已處理的情況誤顯示成應用程式崩潰。
+      console.warn("[stylist] 送出上一輪回饋已略過（不影響本輪對話）：", error);
     }
   }
 
@@ -2262,7 +2265,7 @@ export function StylistExperience() {
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
-      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems);
+      const preview = await virtualYouService.runVirtualTryOn(virtualYou, wearableItems);
       replaceActiveTryOnImage(preview.generatedImageUrl);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");

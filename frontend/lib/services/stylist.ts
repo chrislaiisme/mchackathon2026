@@ -196,7 +196,12 @@ export function adaptConceptZonesToChatRecommendation(
   };
 }
 
-export class StylistApiError extends Error {}
+export class StylistApiError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = "StylistApiError";
+  }
+}
 
 function authHeaders(token: string): HeadersInit {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -430,7 +435,14 @@ export async function submitFeedback(
   });
 
   if (!response.ok) {
-    throw new StylistApiError(`POST /feedback 失敗（HTTP ${response.status}）`);
+    const detail = await response
+      .json()
+      .then((body: unknown) => (typeof body === "object" && body !== null && "detail" in body ? String(body.detail) : ""))
+      .catch(() => "");
+    throw new StylistApiError(
+      `POST /feedback 失敗（HTTP ${response.status}）${detail ? `：${detail}` : ""}`,
+      response.status,
+    );
   }
 
   return (await response.json()) as BackendFeedbackResponse;
@@ -442,6 +454,14 @@ export async function submitFeedback(
 // （source="generated" 的今天整批由後端跳過，見 main.py::post_feedback()）。
 function isGeneratedItemId(itemId: string): boolean {
   return itemId.startsWith("generated:") || /^(top-|bottom-)?concept-\d+$/.test(itemId);
+}
+
+// 早期前端以 concept-<n> 自行組 id；現在 ENGINE01 會從本輪 manifest 回傳
+// session scoped 的 generated:<session>:... id。舊瀏覽器快取的對話仍可能帶著
+// 前者，送回後端既無法驗證、也不應套用到本輪，因此只略過它的回饋，不放寬
+// 後端對未知 item id 的安全檢查。
+function isLegacyGeneratedItemId(itemId: string): boolean {
+  return /^(top-|bottom-)?concept-\d+$/.test(itemId);
 }
 
 // 這一輪實際展示過的商品 id → 屬於哪一區——整套喜歡（OutfitFeedbackRequest）
@@ -462,6 +482,10 @@ export function adaptPreferencesToFeedbackRequest(
   const itemFeedbacks: BackendItemFeedback[] = [];
 
   for (const itemId of Object.keys(zoneByItemId)) {
+    if (isLegacyGeneratedItemId(itemId)) {
+      continue;
+    }
+
     const favorited = Boolean(preferenceState.savedItems[itemId]);
     const disliked = Boolean(preferenceState.dislikedItems[itemId]);
     const ratings = preferenceState.itemRatings[itemId];
@@ -493,6 +517,9 @@ export function adaptPreferencesToFeedbackRequest(
       continue;
     }
     if (entry.itemIds.some((id) => !zoneByItemId[id])) {
+      continue;
+    }
+    if (entry.itemIds.some(isLegacyGeneratedItemId)) {
       continue;
     }
     const topItemId = entry.itemIds.find((id) => zoneByItemId[id] === "top");
