@@ -21,7 +21,7 @@ from typing import Literal, Optional
 
 import requests
 
-from backend.engine01_intent import engine02_client, zones
+from backend.engine01_intent import engine02_client, llm_client, zones
 from backend.engine01_intent.query_text import intent_to_query_text
 from backend.shared.schemas import Intent, ProductCard, UserProfile, ZonedRecommendationResult, ZoneSlate
 
@@ -197,3 +197,38 @@ def _assemble_single_item_result(
         outfit_requested=False,
         zones=zone_slates,
     )
+
+
+def apply_natural_language_reasons(
+    result: ZonedRecommendationResult, context: str
+) -> ZonedRecommendationResult:
+    """把 `result` 裡每張卡片的樣板推薦理由，批次改寫成自然語句（見
+    `llm_client.rewrite_recommendation_reasons()` 的說明）。呼叫端（`main.py`
+    的 `/recommend`）在回傳前套用這一層——刻意獨立成一個後製步驟，不是塞進
+    `build_zoned_recommendation()` 裡，因為那支函式有好幾個提早 return 的分支
+    （有參考圖／整套／單品），改寫邏輯只需要在最後統一套用一次，跟檢索組裝的
+    控制流程分開比較不容易改壞。
+
+    這一層是顯示優化：`rewrite_recommendation_reasons()` 任何原因失敗都回傳
+    `None`，這裡原封不動回傳 `result`（原本的樣板理由），不會讓 `/recommend`
+    因為改寫失敗而掛掉。
+    """
+    items = [
+        (card.product_id, card.reason)
+        for slate in result.zones
+        for card in slate.products
+        if card.reason
+    ]
+    rewritten = llm_client.rewrite_recommendation_reasons(items, context)
+    if not rewritten:
+        return result
+
+    for slate in result.zones:
+        for index, card in enumerate(slate.products):
+            new_reason = rewritten.get(card.product_id)
+            if new_reason:
+                slate.products[index] = card.model_copy(
+                    update={"reason": new_reason, "explanation_source": "llm_rewrite"}
+                )
+
+    return result
