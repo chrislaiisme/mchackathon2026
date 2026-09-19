@@ -32,7 +32,7 @@
 | ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `bff/engine01_intent/` |
 | ENGINE02 | 檢索與排序 | FashionCLIP ＋ BM25 hybrid search、reranker、Polyvore Outfits Dataset | `mcp_servers/catalog/` |
 | ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `bff/feedback/` |
-| 生成模組 | 每輪一張概念圖 | OpenAI Responses API 的 `image_generation` tool | `bff/images/` |
+| 生成模組 | 每輪一張概念圖＋虛擬形象試穿 | OpenAI Responses API 的 `image_generation` tool | `bff/images/` |
 | Pinterest | 趨勢訊號餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `mcp_servers/trends/` |
 | 前端 | UI | React + Vite | `web/` |
 | 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `evals/` |
