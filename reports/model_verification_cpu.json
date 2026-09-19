@@ -1,0 +1,1209 @@
+{
+  "models": {
+    "fashion-clip": {
+      "name": "fashion-clip",
+      "repo": "patrickjohncyh/fashion-clip",
+      "kind": "embedding",
+      "licence": "MIT",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 0.48,
+      "rss_before_load_mb": 236.2,
+      "backend": "hf_clip",
+      "load_s": 8.99,
+      "rss_after_load_mb": 1058.2,
+      "params": 151277313,
+      "img_ms_per_item": 33.27,
+      "txt_ms_per_item": 5.23,
+      "embedding_dim": 512,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.8333,
+        "R@5": 0.9792,
+        "MRR": 0.8983,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.2871,
+        "dress_imgs_mean_cos_not_a_dress": 0.2538,
+        "dress_imgs_frac_not_ge_pos": 0.0,
+        "nondress_imgs_mean_cos_a_dress": 0.1941,
+        "nondress_imgs_mean_cos_not_a_dress": 0.1554
+      },
+      "peak_rss_mb": 1115.3,
+      "wall_s": 12.8
+    },
+    "marqo-fashionCLIP": {
+      "name": "marqo-fashionCLIP",
+      "repo": "Marqo/marqo-fashionCLIP",
+      "kind": "embedding",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 107.87,
+      "rss_before_load_mb": 259.4,
+      "backend": "open_clip",
+      "load_s": 11.37,
+      "rss_after_load_mb": 1105.0,
+      "params": 149620737,
+      "img_ms_per_item": 133.64,
+      "txt_ms_per_item": 23.92,
+      "embedding_dim": 512,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.8333,
+        "R@5": 0.9583,
+        "MRR": 0.8901,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.1946,
+        "dress_imgs_mean_cos_not_a_dress": 0.1718,
+        "dress_imgs_frac_not_ge_pos": 0.0,
+        "nondress_imgs_mean_cos_a_dress": 0.0636,
+        "nondress_imgs_mean_cos_not_a_dress": 0.0528
+      },
+      "peak_rss_mb": 1654.4,
+      "wall_s": 129.1
+    },
+    "marqo-fashionSigLIP": {
+      "name": "marqo-fashionSigLIP",
+      "repo": "Marqo/marqo-fashionSigLIP",
+      "kind": "embedding",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 149.09,
+      "rss_before_load_mb": 261.5,
+      "backend": "open_clip",
+      "load_s": 15.85,
+      "rss_after_load_mb": 1112.6,
+      "params": 203155970,
+      "img_ms_per_item": 125.29,
+      "txt_ms_per_item": 42.76,
+      "embedding_dim": 768,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.8542,
+        "R@5": 0.9792,
+        "MRR": 0.911,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.0584,
+        "dress_imgs_mean_cos_not_a_dress": 0.053,
+        "dress_imgs_frac_not_ge_pos": 0.2,
+        "nondress_imgs_mean_cos_a_dress": -0.0174,
+        "nondress_imgs_mean_cos_not_a_dress": -0.0057
+      },
+      "peak_rss_mb": 1969.1,
+      "wall_s": 175.6
+    },
+    "zooclaw-fashionsiglip2": {
+      "name": "zooclaw-fashionsiglip2",
+      "repo": "srpone/zooclaw-fashionsiglip2",
+      "kind": "embedding",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "notes": "card: AutoModel/AutoProcessor (SiglipModel arch, 384px, fine-tuned from siglip2-base-patch16-384)",
+      "download_s": 254.22,
+      "rss_before_load_mb": 257.7,
+      "backend": "hf_siglip",
+      "load_s": 15.28,
+      "rss_after_load_mb": 1982.1,
+      "params": 375479810,
+      "img_ms_per_item": 459.29,
+      "txt_ms_per_item": 42.04,
+      "embedding_dim": 768,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.7917,
+        "R@5": 0.9792,
+        "MRR": 0.8786,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.084,
+        "dress_imgs_mean_cos_not_a_dress": 0.0808,
+        "dress_imgs_frac_not_ge_pos": 0.2,
+        "nondress_imgs_mean_cos_a_dress": 0.0327,
+        "nondress_imgs_mean_cos_not_a_dress": 0.0377
+      },
+      "peak_rss_mb": 2242.6,
+      "wall_s": 299.0
+    },
+    "siglip2-base-patch16-224": {
+      "name": "siglip2-base-patch16-224",
+      "repo": "google/siglip2-base-patch16-224",
+      "kind": "embedding",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 202.86,
+      "rss_before_load_mb": 250.2,
+      "backend": "hf_siglip",
+      "load_s": 18.68,
+      "rss_after_load_mb": 1518.1,
+      "params": 375187970,
+      "img_ms_per_item": 139.57,
+      "txt_ms_per_item": 38.02,
+      "embedding_dim": 768,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.8333,
+        "R@5": 0.9792,
+        "MRR": 0.9097,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.1027,
+        "dress_imgs_mean_cos_not_a_dress": 0.1031,
+        "dress_imgs_frac_not_ge_pos": 0.4,
+        "nondress_imgs_mean_cos_a_dress": 0.0334,
+        "nondress_imgs_mean_cos_not_a_dress": 0.0416
+      },
+      "peak_rss_mb": 1834.4,
+      "wall_s": 233.1
+    },
+    "clip-vit-base-patch32": {
+      "name": "clip-vit-base-patch32",
+      "repo": "openai/clip-vit-base-patch32",
+      "kind": "embedding",
+      "licence": "MIT (openai/CLIP repo; HF card has no licence tag, card says deployed use out of scope)",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 70.27,
+      "rss_before_load_mb": 257.3,
+      "backend": "hf_clip",
+      "load_s": 10.24,
+      "rss_after_load_mb": 497.3,
+      "params": 151277313,
+      "img_ms_per_item": 32.36,
+      "txt_ms_per_item": 5.06,
+      "embedding_dim": 512,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.7917,
+        "R@5": 0.9167,
+        "MRR": 0.8583,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.2616,
+        "dress_imgs_mean_cos_not_a_dress": 0.2509,
+        "dress_imgs_frac_not_ge_pos": 0.0,
+        "nondress_imgs_mean_cos_a_dress": 0.1924,
+        "nondress_imgs_mean_cos_not_a_dress": 0.2009
+      },
+      "peak_rss_mb": 1034.6,
+      "wall_s": 83.8
+    },
+    "laion-CLIP-ViT-B-16": {
+      "name": "laion-CLIP-ViT-B-16",
+      "repo": "laion/CLIP-ViT-B-16-laion2B-s34B-b88K",
+      "kind": "embedding",
+      "licence": "MIT (card: any deployed use out of scope)",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 55.97,
+      "rss_before_load_mb": 258.5,
+      "backend": "open_clip",
+      "load_s": 9.82,
+      "rss_after_load_mb": 1104.6,
+      "params": 149620737,
+      "img_ms_per_item": 123.64,
+      "txt_ms_per_item": 21.79,
+      "embedding_dim": 512,
+      "sanity": {
+        "task": "text->image retrieval over 48 Polyvore pairs",
+        "R@1": 0.8125,
+        "R@5": 0.9375,
+        "MRR": 0.8753,
+        "random_R@1": 0.0208,
+        "random_R@5": 0.1042
+      },
+      "negation_probe": {
+        "n_dress_images": 5,
+        "dress_categories": [
+          "Day Dresses"
+        ],
+        "dress_imgs_mean_cos_a_dress": 0.2115,
+        "dress_imgs_mean_cos_not_a_dress": 0.1844,
+        "dress_imgs_frac_not_ge_pos": 0.0,
+        "nondress_imgs_mean_cos_a_dress": 0.1052,
+        "nondress_imgs_mean_cos_not_a_dress": 0.0842
+      },
+      "peak_rss_mb": 1654.0,
+      "wall_s": 74.9
+    },
+    "bge-reranker-v2-m3": {
+      "name": "bge-reranker-v2-m3",
+      "repo": "BAAI/bge-reranker-v2-m3",
+      "kind": "reranker",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 0.66,
+      "rss_before_load_mb": 217.0,
+      "load_s": 13.63,
+      "dtype": "model default",
+      "rss_after_load_mb": 2973.4,
+      "params": 567755777,
+      "probe_ms_per_pair": 63.2,
+      "projected_full_s": 24.3,
+      "pair_ms": 58.9,
+      "sanity": {
+        "task": "rerank captions for 8 title-derived queries",
+        "docs_per_query": 48,
+        "reduced_to_8_docs_due_to_budget": false,
+        "MRR": 1.0,
+        "MRR_ties_pessimistic": 1.0,
+        "R@1": 1.0,
+        "random_MRR": 0.0929,
+        "per_query": [
+          {
+            "query": "knit long sleeve dress",
+            "true_item": "100002074_1",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.984,
+            "max_other": 0.0411
+          },
+          {
+            "query": "pocket blazer",
+            "true_item": "100010727_1",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.6863,
+            "max_other": 0.0697
+          },
+          {
+            "query": "trimmed cotton shirt",
+            "true_item": "100010727_8",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9784,
+            "max_other": 0.0644
+          },
+          {
+            "query": "girl polka dot backpack",
+            "true_item": "100050716_3",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9923,
+            "max_other": 0.3097
+          },
+          {
+            "query": "pleat shift tunic",
+            "true_item": "100060207_1",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9078,
+            "max_other": 0.0019
+          },
+          {
+            "query": "love sweatshirt",
+            "true_item": "100077218_1",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9766,
+            "max_other": 0.013
+          },
+          {
+            "query": "moto vintage boyfriend jeans",
+            "true_item": "100077218_8",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9912,
+            "max_other": 0.3208
+          },
+          {
+            "query": "skinny bodycon mini dress",
+            "true_item": "100089693_1",
+            "rank": 1,
+            "rank_pessimistic": 1,
+            "n_docs": 48,
+            "true_score": 0.9582,
+            "max_other": 0.0146
+          }
+        ]
+      },
+      "peak_rss_mb": 3027.3,
+      "wall_s": 38.9
+    },
+    "Qwen3-Reranker-0.6B": {
+      "name": "Qwen3-Reranker-0.6B",
+      "repo": "Qwen/Qwen3-Reranker-0.6B",
+      "kind": "reranker",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 100.26,
+      "rss_before_load_mb": 240.3,
+      "load_s": 14.89,
+      "dtype": "bfloat16",
+      "rss_after_load_mb": 1733.6,
+      "params": 595776512,
+      "probe_ms_per_pair": 2992.1,
+      "projected_full_s": 1149.0,
+      "pair_ms": 2441.6,
+      "sanity": {
+        "task": "rerank captions for 8 title-derived queries",
+        "docs_per_query": 8,
+        "reduced_to_8_docs_due_to_budget": true,
+        "MRR": 1.0,
+        "R@1": 1.0,
+        "random_MRR": 0.3397,
+        "per_query": [
+          {
+            "query": "knit long sleeve dress",
+            "true_item": "100002074_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 8.625,
+            "max_other": -6.625,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pocket blazer",
+            "true_item": "100010727_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 5.6875,
+            "max_other": -6.0,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "trimmed cotton shirt",
+            "true_item": "100010727_8",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 7.75,
+            "max_other": -8.5,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "girl polka dot backpack",
+            "true_item": "100050716_3",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 8.875,
+            "max_other": -7.1875,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pleat shift tunic",
+            "true_item": "100060207_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 9.6875,
+            "max_other": -6.5625,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "love sweatshirt",
+            "true_item": "100077218_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 7.5625,
+            "max_other": -2.9375,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "moto vintage boyfriend jeans",
+            "true_item": "100077218_8",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 9.3125,
+            "max_other": 2.5,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "skinny bodycon mini dress",
+            "true_item": "100089693_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 10.0,
+            "max_other": -8.0,
+            "rank_pessimistic_lower_bound": 1
+          }
+        ],
+        "MRR_ties_pessimistic": 1.0,
+        "ties_note": "recomputed post hoc from per_query (only ties with the max distractor are observable)"
+      },
+      "peak_rss_mb": 1870.0,
+      "wall_s": 302.0
+    },
+    "outfit-transformer": {
+      "name": "outfit-transformer",
+      "repo": "github.com/owj0421/outfit-transformer",
+      "kind": "compat",
+      "licence": "MIT (code); checkpoint licence not stated",
+      "device": "cpu",
+      "status": "ok",
+      "checkpoints_found": [
+        "checkpoints\\compatibillity_clip_best.pth",
+        "checkpoints\\complementary_clip_best.pth"
+      ],
+      "checkpoint": "checkpoints\\compatibillity_clip_best.pth",
+      "shim": "cv2 stubbed (imported but unused in model code)",
+      "rss_before_load_mb": 451.9,
+      "load_s": 4.4,
+      "rss_after_load_mb": 2057.9,
+      "missing_keys": 0,
+      "unexpected_keys": 0,
+      "config": {
+        "padding": "longest",
+        "max_length": 16,
+        "truncation": true,
+        "item_enc_text_model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "item_enc_dim_per_modality": 128,
+        "item_enc_norm_out": true,
+        "aggregation_method": "concat",
+        "transformer_n_head": 16,
+        "transformer_d_ffn": 2024,
+        "transformer_n_layers": 6,
+        "transformer_dropout": 0.3,
+        "transformer_norm_out": false,
+        "d_embed": 128,
+        "item_enc_clip_model_name": "patrickjohncyh/fashion-clip"
+      },
+      "params": 201516145,
+      "sanity": {
+        "task": "compatibility score (sigmoid): every real outfit in the 48-row sample vs same-size random mixes",
+        "n_real": 10,
+        "n_random_mix": 10,
+        "AUC_real_vs_mix": 0.77,
+        "sets": [
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100002074_1 | Day Dresses",
+              "100002074_2 | Boots",
+              "100002074_3 | Handbags",
+              "100002074_4 | Sunglasses",
+              "100002074_5 | Floral Decor",
+              "100002074_7 | Coats"
+            ],
+            "score": 0.9956,
+            "ms": 400.7
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100010727_1 | Blazers",
+              "100010727_2 | Skinny Jeans",
+              "100010727_4 | Watches",
+              "100010727_5 | Sunglasses",
+              "100010727_6 | Accessories",
+              "100010727_7 | Accessories",
+              "100010727_8 | Men's Shirts"
+            ],
+            "score": 0.9868,
+            "ms": 410.6
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100029003_1 | Day Dresses",
+              "100029003_2 | Handbags",
+              "100029003_3 | Sunglasses"
+            ],
+            "score": 0.0038,
+            "ms": 220.4
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100050716_1 | Rompers",
+              "100050716_2 | Sandals",
+              "100050716_3 | Backpacks",
+              "100050716_5 | Food & Drink"
+            ],
+            "score": 0.3104,
+            "ms": 254.4
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100056647_1 | Dining Chairs",
+              "100056647_3 | Accent Tables",
+              "100056647_4 | Toys",
+              "100056647_7 | Font"
+            ],
+            "score": 0.8274,
+            "ms": 240.6
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100060207_1 | Day Dresses",
+              "100060207_2 | Pumps",
+              "100060207_3 | Bags",
+              "100060207_4 | Necklaces",
+              "100060207_5 | Bracelets & Bangles",
+              "100060207_6 | Earrings"
+            ],
+            "score": 1.0,
+            "ms": 333.9
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100077218_1 | Sweatshirts",
+              "100077218_2 | Blouses",
+              "100077218_3 | Tops",
+              "100077218_4 | Tops",
+              "100077218_5 | Sweaters",
+              "100077218_7 | Boyfriend Jeans",
+              "100077218_8 | Boyfriend Jeans"
+            ],
+            "score": 1.0,
+            "ms": 416.2
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100079699_1 | Day Dresses",
+              "100079699_3 | Makeup",
+              "100079699_5 | Eyeliner",
+              "100079699_7 | Face Makeup",
+              "100079699_8 | Fragrance"
+            ],
+            "score": 0.0549,
+            "ms": 313.9
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100089693_1 | Day Dresses",
+              "100089693_2 | Pumps",
+              "100089693_3 | Clutches"
+            ],
+            "score": 0.9485,
+            "ms": 204.0
+          },
+          {
+            "kind": "real_outfit",
+            "items": [
+              "100095342_1 | Blouses",
+              "100095342_2 | Vests",
+              "100095342_3 | Boyfriend Jeans"
+            ],
+            "score": 0.1507,
+            "ms": 204.1
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100077218_4 | Tops",
+              "100095342_2 | Vests",
+              "100002074_4 | Sunglasses",
+              "100029003_2 | Handbags",
+              "100056647_3 | Accent Tables",
+              "100050716_2 | Sandals"
+            ],
+            "score": 0.0005,
+            "ms": 351.1
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100056647_4 | Toys",
+              "100029003_1 | Day Dresses",
+              "100010727_7 | Accessories",
+              "100095342_1 | Blouses",
+              "100089693_3 | Clutches",
+              "100077218_3 | Tops",
+              "100079699_7 | Face Makeup"
+            ],
+            "score": 0.0007,
+            "ms": 398.4
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100089693_2 | Pumps",
+              "100010727_4 | Watches",
+              "100060207_5 | Bracelets & Bangles"
+            ],
+            "score": 0.3851,
+            "ms": 222.5
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100050716_3 | Backpacks",
+              "100089693_1 | Day Dresses",
+              "100079699_8 | Fragrance",
+              "100095342_1 | Blouses"
+            ],
+            "score": 0.179,
+            "ms": 247.9
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100010727_5 | Sunglasses",
+              "100077218_8 | Boyfriend Jeans",
+              "100002074_3 | Handbags",
+              "100056647_3 | Accent Tables"
+            ],
+            "score": 0.6386,
+            "ms": 247.9
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100060207_2 | Pumps",
+              "100010727_8 | Men's Shirts",
+              "100050716_5 | Food & Drink",
+              "100056647_1 | Dining Chairs",
+              "100089693_1 | Day Dresses",
+              "100095342_2 | Vests"
+            ],
+            "score": 0.0059,
+            "ms": 338.8
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100089693_3 | Clutches",
+              "100079699_5 | Eyeliner",
+              "100010727_8 | Men's Shirts",
+              "100029003_3 | Sunglasses",
+              "100056647_3 | Accent Tables",
+              "100077218_8 | Boyfriend Jeans",
+              "100002074_5 | Floral Decor"
+            ],
+            "score": 0.0298,
+            "ms": 401.2
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100089693_2 | Pumps",
+              "100056647_4 | Toys",
+              "100079699_8 | Fragrance",
+              "100002074_2 | Boots",
+              "100095342_2 | Vests"
+            ],
+            "score": 0.9881,
+            "ms": 300.2
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100029003_1 | Day Dresses",
+              "100050716_3 | Backpacks",
+              "100095342_2 | Vests"
+            ],
+            "score": 0.0285,
+            "ms": 198.9
+          },
+          {
+            "kind": "random_mix",
+            "items": [
+              "100010727_2 | Skinny Jeans",
+              "100095342_1 | Blouses",
+              "100029003_1 | Day Dresses"
+            ],
+            "score": 0.1302,
+            "ms": 199.1
+          }
+        ],
+        "mean_real": 0.6278,
+        "mean_random_mix": 0.2386
+      },
+      "ms_per_set": 295.2,
+      "peak_rss_mb": 2094.6,
+      "wall_s": 18.8
+    },
+    "Qwen3-VL-Reranker-8B": {
+      "name": "Qwen3-VL-Reranker-8B",
+      "repo": "Qwen/Qwen3-VL-Reranker-8B",
+      "kind": "reranker",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "gpu_only_untested",
+      "weights_gb": 17.53,
+      "card_params": "8B (card)",
+      "card_context": "32k",
+      "card_layers": 36,
+      "est_vram_bf16_gb": 20.2,
+      "note": "Not loaded on CPU by design (16 GB RAM). Rerun with --device cuda on the RTX 4090.",
+      "peak_rss_mb": 215.8,
+      "wall_s": 1.0
+    },
+    "Qwen3-Reranker-0.6B-fp32": {
+      "name": "Qwen3-Reranker-0.6B-fp32",
+      "repo": "Qwen/Qwen3-Reranker-0.6B",
+      "kind": "reranker",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 0.53,
+      "rss_before_load_mb": 217.4,
+      "load_s": 13.3,
+      "dtype": "float32",
+      "rss_after_load_mb": 2858.5,
+      "params": 595776512,
+      "probe_ms_per_pair": 352.7,
+      "projected_full_s": 135.4,
+      "pair_ms": 333.3,
+      "sanity": {
+        "task": "rerank captions for 8 title-derived queries",
+        "docs_per_query": 48,
+        "reduced_to_8_docs_due_to_budget": false,
+        "MRR": 1.0,
+        "R@1": 1.0,
+        "random_MRR": 0.0929,
+        "per_query": [
+          {
+            "query": "knit long sleeve dress",
+            "true_item": "100002074_1",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 8.545,
+            "max_other": -1.9451,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pocket blazer",
+            "true_item": "100010727_1",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 5.5643,
+            "max_other": -4.3142,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "trimmed cotton shirt",
+            "true_item": "100010727_8",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 7.8167,
+            "max_other": 0.2535,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "girl polka dot backpack",
+            "true_item": "100050716_3",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 8.9337,
+            "max_other": -5.7782,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pleat shift tunic",
+            "true_item": "100060207_1",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 9.4917,
+            "max_other": -2.4095,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "love sweatshirt",
+            "true_item": "100077218_1",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 7.5806,
+            "max_other": -2.9795,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "moto vintage boyfriend jeans",
+            "true_item": "100077218_8",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 9.2053,
+            "max_other": 3.7243,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "skinny bodycon mini dress",
+            "true_item": "100089693_1",
+            "rank": 1,
+            "n_docs": 48,
+            "true_score": 9.9948,
+            "max_other": -2.8417,
+            "rank_pessimistic_lower_bound": 1
+          }
+        ],
+        "MRR_ties_pessimistic": 1.0,
+        "ties_note": "recomputed post hoc from per_query (only ties with the max distractor are observable)"
+      },
+      "peak_rss_mb": 3152.3,
+      "wall_s": 146.3
+    },
+    "Qwen3-1.7B": {
+      "name": "Qwen3-1.7B",
+      "repo": "Qwen/Qwen3-1.7B",
+      "kind": "llm",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 331.42,
+      "rss_before_load_mb": 438.4,
+      "load_s": 8.39,
+      "rss_after_load_mb": 813.0,
+      "dtype": "bfloat16",
+      "params": 1720574976,
+      "prompt_tokens": 188,
+      "new_tokens": 28,
+      "prefill_s": 14.67,
+      "generate_s": 16.31,
+      "tokens_per_s": 1.72,
+      "decode_tokens_per_s": 16.41,
+      "sampling": "card non-thinking defaults: T=0.7 top_p=0.8 top_k=20, seed 0",
+      "output": "適合夏天約會的簡約針織洋裝，長袖設計適應盛夏，風格輕鬆休閒。",
+      "sanity": {
+        "task": "zh-TW one-sentence paraphrase of fixed JSON rationale",
+        "output": "適合夏天約會的簡約針織洋裝，長袖設計適應盛夏，風格輕鬆休閒。"
+      },
+      "peak_rss_mb": 3715.0,
+      "wall_s": 392.8
+    },
+    "Qwen3-VL-Reranker-2B": {
+      "name": "Qwen3-VL-Reranker-2B",
+      "repo": "Qwen/Qwen3-VL-Reranker-2B",
+      "kind": "reranker",
+      "licence": "Apache-2.0",
+      "device": "cpu",
+      "status": "ok",
+      "download_s": 346.99,
+      "rss_before_load_mb": 244.2,
+      "load_s": 17.05,
+      "dtype": "bfloat16",
+      "rss_after_load_mb": 4659.4,
+      "params": 2127532032,
+      "probe_ms_per_pair": 18954.6,
+      "projected_full_s": 7278.6,
+      "pair_ms": 21641.0,
+      "sanity": {
+        "task": "rerank images for 8 title-derived queries",
+        "docs_per_query": 8,
+        "reduced_to_8_docs_due_to_budget": true,
+        "MRR": 0.9375,
+        "R@1": 0.875,
+        "random_MRR": 0.3397,
+        "per_query": [
+          {
+            "query": "knit long sleeve dress",
+            "true_item": "100002074_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 0.0625,
+            "max_other": -1.25,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pocket blazer",
+            "true_item": "100010727_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 0.4375,
+            "max_other": 0.3125,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "trimmed cotton shirt",
+            "true_item": "100010727_8",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 0.125,
+            "max_other": -0.5625,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "girl polka dot backpack",
+            "true_item": "100050716_3",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": 0.625,
+            "max_other": -1.6875,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "pleat shift tunic",
+            "true_item": "100060207_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": -0.25,
+            "max_other": -0.3125,
+            "rank_pessimistic_lower_bound": 1
+          },
+          {
+            "query": "love sweatshirt",
+            "true_item": "100077218_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": -0.3125,
+            "max_other": -0.3125,
+            "rank_pessimistic_lower_bound": 2
+          },
+          {
+            "query": "moto vintage boyfriend jeans",
+            "true_item": "100077218_8",
+            "rank": 2,
+            "n_docs": 8,
+            "true_score": -0.0625,
+            "max_other": 0.0625,
+            "rank_pessimistic_lower_bound": 2
+          },
+          {
+            "query": "skinny bodycon mini dress",
+            "true_item": "100089693_1",
+            "rank": 1,
+            "n_docs": 8,
+            "true_score": -0.25,
+            "max_other": -1.1875,
+            "rank_pessimistic_lower_bound": 1
+          }
+        ],
+        "MRR_ties_pessimistic": 0.875,
+        "ties_note": "recomputed post hoc from per_query (only ties with the max distractor are observable)"
+      },
+      "peak_rss_mb": 4845.7,
+      "wall_s": 1937.6
+    },
+    "jina-reranker-m0": {
+      "name": "jina-reranker-m0",
+      "repo": "jinaai/jina-reranker-m0",
+      "kind": "reranker",
+      "licence": "CC BY-NC 4.0 (NON-COMMERCIAL - flag)",
+      "device": "cpu",
+      "status": "failed",
+      "download_s": 407.22,
+      "rss_before_load_mb": 245.0,
+      "load_s": 37.47,
+      "dtype": "bfloat16",
+      "rss_after_load_mb": 3227.5,
+      "params": 2211347969,
+      "probe_ms_per_pair": 32807.5,
+      "projected_full_s": 12598.1,
+      "pair_ms": 34240.2,
+      "sanity": {
+        "task": "rerank images for 8 title-derived queries",
+        "docs_per_query": 8,
+        "reduced_to_8_docs_due_to_budget": true,
+        "MRR": 0.2211,
+        "R@1": 0.0,
+        "random_MRR": 0.3397,
+        "per_query": [
+          {
+            "query": "knit long sleeve dress",
+            "true_item": "100002074_1",
+            "rank": 5,
+            "n_docs": 8,
+            "true_score": 0.0496,
+            "max_other": 0.249,
+            "rank_pessimistic_lower_bound": 5
+          },
+          {
+            "query": "pocket blazer",
+            "true_item": "100010727_1",
+            "rank": 7,
+            "n_docs": 8,
+            "true_score": 0.0415,
+            "max_other": 0.3242,
+            "rank_pessimistic_lower_bound": 7
+          },
+          {
+            "query": "trimmed cotton shirt",
+            "true_item": "100010727_8",
+            "rank": 4,
+            "n_docs": 8,
+            "true_score": 0.0645,
+            "max_other": 0.1191,
+            "rank_pessimistic_lower_bound": 4
+          },
+          {
+            "query": "girl polka dot backpack",
+            "true_item": "100050716_3",
+            "rank": 5,
+            "n_docs": 8,
+            "true_score": 0.0311,
+            "max_other": 0.4766,
+            "rank_pessimistic_lower_bound": 5
+          },
+          {
+            "query": "pleat shift tunic",
+            "true_item": "100060207_1",
+            "rank": 6,
+            "n_docs": 8,
+            "true_score": 0.0408,
+            "max_other": 0.1611,
+            "rank_pessimistic_lower_bound": 6
+          },
+          {
+            "query": "love sweatshirt",
+            "true_item": "100077218_1",
+            "rank": 2,
+            "n_docs": 8,
+            "true_score": 0.1572,
+            "max_other": 0.3555,
+            "rank_pessimistic_lower_bound": 2
+          },
+          {
+            "query": "moto vintage boyfriend jeans",
+            "true_item": "100077218_8",
+            "rank": 7,
+            "n_docs": 8,
+            "true_score": 0.014,
+            "max_other": 0.1982,
+            "rank_pessimistic_lower_bound": 7
+          },
+          {
+            "query": "skinny bodycon mini dress",
+            "true_item": "100089693_1",
+            "rank": 6,
+            "n_docs": 8,
+            "true_score": 0.0284,
+            "max_other": 0.4297,
+            "rank_pessimistic_lower_bound": 6
+          }
+        ],
+        "MRR_ties_pessimistic": 0.2211,
+        "ties_note": "recomputed post hoc from per_query (only ties with the max distractor are observable)"
+      },
+      "peak_rss_mb": 4698.7,
+      "wall_s": 2955.2,
+      "fix_attempt_card_transformers_path": {
+        "method": "card transformers path: AutoModel(dtype=auto, trust_remote_code) + compute_score(doc_type='image', max_length=2048)",
+        "load_s": 20.1,
+        "dtype": "torch.bfloat16",
+        "queries": [
+          {
+            "query": "knit long sleeve dress",
+            "docs": [
+              "100002074_1",
+              "100002074_4",
+              "100050716_2",
+              "100060207_2"
+            ],
+            "scores": [
+              0.5273,
+              0.0747,
+              0.5234,
+              0.0806
+            ],
+            "true_rank": 1,
+            "ms_per_pair": 32768.1
+          },
+          {
+            "query": "girl polka dot backpack",
+            "docs": [
+              "100050716_3",
+              "100002074_5",
+              "100010727_1",
+              "100010727_5"
+            ],
+            "scores": [
+              0.5781,
+              0.1748,
+              0.1885,
+              0.0244
+            ],
+            "true_rank": 1,
+            "ms_per_pair": 31462.0
+          }
+        ],
+        "result": "same MISSING-weights report; 2/2 true items ranked 1st on 4 docs but with near-ties (0.527 vs 0.523) from a randomly initialised LM - not a valid pass. Real fix would be a separate venv with transformers<5 (card: >=4.47.3); not done to keep the shared venv intact."
+      },
+      "error": "Loads without exception under transformers 5.17 / sentence-transformers 6.0.1, but the language-model weights are NOT loaded: load report lists model.language_model.layers.{0..27}.*, embed_tokens and norm as MISSING (newly initialised) and old keys as UNEXPECTED (Qwen2-VL checkpoint key layout vs transformers v5 module names). Scores are therefore meaningless: CrossEncoder path MRR 0.221 < random 0.340 on 8 queries x 8 images."
+    }
+  },
+  "env": {
+    "date": "2026-09-17 01:56:59",
+    "device": "cpu",
+    "python": "3.12.6",
+    "torch": "2.14.0+cpu",
+    "transformers": "5.17.0",
+    "cpu": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD",
+    "cpu_threads": 16,
+    "ram_gb": 15.2,
+    "torch_threads": 8,
+    "open_clip": "3.3.0",
+    "sentence_transformers": "6.0.1"
+  },
+  "sample": {
+    "source": "Marqo/polyvore first 48 rows",
+    "cache": "E:\\mchackathon2026\\data\\verify_sample",
+    "n": 48,
+    "rerank_queries": [
+      {
+        "item": "100002074_1",
+        "query": "knit long sleeve dress"
+      },
+      {
+        "item": "100010727_1",
+        "query": "pocket blazer"
+      },
+      {
+        "item": "100010727_8",
+        "query": "trimmed cotton shirt"
+      },
+      {
+        "item": "100050716_3",
+        "query": "girl polka dot backpack"
+      },
+      {
+        "item": "100060207_1",
+        "query": "pleat shift tunic"
+      },
+      {
+        "item": "100077218_1",
+        "query": "love sweatshirt"
+      },
+      {
+        "item": "100077218_8",
+        "query": "moto vintage boyfriend jeans"
+      },
+      {
+        "item": "100089693_1",
+        "query": "skinny bodycon mini dress"
+      }
+    ]
+  }
+}

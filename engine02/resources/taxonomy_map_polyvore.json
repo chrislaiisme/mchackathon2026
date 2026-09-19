@@ -1,0 +1,4531 @@
+{
+ "taxonomy_version": "taxonomy_v1",
+ "source": "polyvore",
+ "field": "subcategory (= Polyvore site category)",
+ "catalogs": [
+  "polyvore",
+  "polyvore_big",
+  "kagl_polyvore"
+ ],
+ "statuses": {
+  "mapped": "L2 node",
+  "mapped_l1": "generic source label; L1 node only",
+  "collection": "cross-cutting collection only",
+  "non_apparel": "not clothing/accessory/beauty",
+  "unmapped": "clothing-related but no garment type (generic or age-group bucket)"
+ },
+ "entries": {
+  "Accent Chairs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 11
+    },
+    "polyvore_big": {
+     "other": 45
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Accent Tables": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 21
+    },
+    "polyvore_big": {
+     "other": 72
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Accessories": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "accessory": 9
+    },
+    "polyvore_big": {
+     "accessory": 88
+    }
+   },
+   "reason": "泛用配件",
+   "implied_coarse": "accessory"
+  },
+  "Activewear": {
+   "node": "coll.activewear",
+   "status": "collection",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 5
+    }
+   },
+   "reason": "Polyvore 泛用運動類（運動內衣、跑步背心、慢跑褲混雜）只能對到橫切集合",
+   "implied_coarse": null
+  },
+  "Activewear Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "outerwear": 3
+    },
+    "kagl_polyvore": {
+     "outerwear": 3
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Activewear Pants": {
+   "node": "bottoms.track_pants",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 5
+    },
+    "polyvore_big": {
+     "bottom": 49
+    },
+    "kagl_polyvore": {
+     "bottom": 49
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Activewear Shorts": {
+   "node": "bottoms.shorts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 6
+    },
+    "kagl_polyvore": {
+     "bottom": 6
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Activewear Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 1
+    },
+    "kagl_polyvore": {
+     "bottom": 1
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Activewear Tank Tops": {
+   "node": "tops.active_tops",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 6
+    },
+    "kagl_polyvore": {
+     "top": 6
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Activewear Tops": {
+   "node": "tops.active_tops",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 3
+    },
+    "kagl_polyvore": {
+     "top": 3
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Ankle Booties": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 111
+    },
+    "polyvore_big": {
+     "shoes": 696
+    },
+    "kagl_polyvore": {
+     "shoes": 696
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Aprons": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Athletic Shoes": {
+   "node": "shoes.athletic",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 13
+    },
+    "kagl_polyvore": {
+     "shoes": 13
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Baby": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 41
+    }
+   },
+   "reason": "嬰兒桶",
+   "implied_coarse": null
+  },
+  "Baby Bedding": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Backpacks": {
+   "node": "bags.backpacks",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 19
+    },
+    "polyvore_big": {
+     "bag": 240
+    },
+    "kagl_polyvore": {
+     "bag": 240
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Bags": {
+   "node": "bags",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "bag": 10
+    },
+    "polyvore_big": {
+     "bag": 51
+    },
+    "kagl_polyvore": {
+     "bag": 51
+    }
+   },
+   "reason": "泛用包",
+   "implied_coarse": "bag"
+  },
+  "Bags & Cases": {
+   "node": "bags",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "bag": 2
+    },
+    "polyvore_big": {
+     "bag": 19
+    },
+    "kagl_polyvore": {
+     "bag": 19
+    }
+   },
+   "reason": "泛用包",
+   "implied_coarse": "bag"
+  },
+  "Bakeware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bar Cabinets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bar Tools": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 10
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bath & Body": {
+   "node": "beauty.bath_body",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 7
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bath Accessories": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bath Rugs & Mats": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bath Towels": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 9
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Beach Towels": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 8
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Beauty Accessories": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Beauty Products": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "other": 14
+    },
+    "polyvore_big": {
+     "other": 90
+    }
+   },
+   "reason": "泛用美妝",
+   "implied_coarse": "other"
+  },
+  "Bed Accessories": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bed Pillows": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Beds": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 20
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Belts": {
+   "node": "accessories.belts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 23
+    },
+    "polyvore_big": {
+     "accessory": 106
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Benches": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Bikini Bottoms": {
+   "node": "swimwear.bikinis",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 15
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bikini Tops": {
+   "node": "swimwear.bikinis",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 29
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bikinis": {
+   "node": "swimwear.bikinis",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 28
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Blankets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 40
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Blazers": {
+   "node": "outerwear.blazers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 26
+    },
+    "polyvore_big": {
+     "outerwear": 136
+    },
+    "kagl_polyvore": {
+     "outerwear": 136
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Blouses": {
+   "node": "tops.blouses",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 62
+    },
+    "polyvore_big": {
+     "top": 395
+    },
+    "kagl_polyvore": {
+     "top": 395
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Blow Dryers & Irons": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 8
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Blush": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 13
+    },
+    "polyvore_big": {
+     "other": 45
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Body Art": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 24
+    }
+   },
+   "reason": "紋身貼",
+   "implied_coarse": "other"
+  },
+  "Body Cleansers": {
+   "node": "beauty.bath_body",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 35
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Body Moisturizers": {
+   "node": "beauty.bath_body",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 29
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Bookcases": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Books": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 25
+    }
+   },
+   "reason": "書籍",
+   "implied_coarse": null
+  },
+  "Bootcut Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 2
+    },
+    "polyvore_big": {
+     "bottom": 14
+    },
+    "kagl_polyvore": {
+     "bottom": 14
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 24
+    },
+    "polyvore_big": {
+     "shoes": 173
+    },
+    "kagl_polyvore": {
+     "shoes": 173
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Bow Ties": {
+   "node": "accessories.ties",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 4
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Boyfriend Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 11
+    },
+    "polyvore_big": {
+     "bottom": 69
+    },
+    "kagl_polyvore": {
+     "bottom": 69
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Boys": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 9
+    }
+   },
+   "reason": "童裝年齡層桶",
+   "implied_coarse": null
+  },
+  "Bracelets & Bangles": {
+   "node": "jewelry.bracelets",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 102
+    },
+    "polyvore_big": {
+     "jewelry": 637
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Bras": {
+   "node": "intimates.bras",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 56
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Briefcases": {
+   "node": "bags.work_laptop",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bag": 5
+    },
+    "kagl_polyvore": {
+     "bag": 5
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Brooches": {
+   "node": "jewelry.brooches",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 1
+    },
+    "polyvore_big": {
+     "jewelry": 52
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Brushes & Combs": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 16
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Cabinets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Camisoles": {
+   "node": "tops.tanks_camis",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 7
+    },
+    "kagl_polyvore": {
+     "top": 7
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Candles & Candleholders": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 45
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Capri & Cropped Pants": {
+   "node": "bottoms.capris",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 1
+    },
+    "polyvore_big": {
+     "bottom": 82
+    },
+    "kagl_polyvore": {
+     "bottom": 82
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Cardigans": {
+   "node": "tops.cardigans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 23
+    },
+    "polyvore_big": {
+     "top": 142
+    },
+    "kagl_polyvore": {
+     "top": 142
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Ceiling Lights": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 9
+    },
+    "polyvore_big": {
+     "other": 38
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Chairs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Charms & Pendants": {
+   "node": "jewelry.necklaces",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 3
+    },
+    "polyvore_big": {
+     "jewelry": 34
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Cheek Bronzer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 13
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Cheek Makeup": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Chemises": {
+   "node": "intimates.undershirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Children's Bedding": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Children's Decor": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Children's Furniture": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Cleaning": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Clocks": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 26
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Clogs": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 4
+    },
+    "kagl_polyvore": {
+     "shoes": 4
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Clothing": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 39
+    },
+    "polyvore_big": {
+     "other": 286
+    }
+   },
+   "reason": "泛用『服飾』：抽樣標題含西裝外套、毛衣洋裝、跑步外套、背心，無單一部位",
+   "implied_coarse": null
+  },
+  "Clutches": {
+   "node": "bags.clutches",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 68
+    },
+    "polyvore_big": {
+     "bag": 663
+    },
+    "kagl_polyvore": {
+     "bag": 663
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Coats": {
+   "node": "outerwear.coats",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 64
+    },
+    "polyvore_big": {
+     "outerwear": 615
+    },
+    "kagl_polyvore": {
+     "outerwear": 615
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Cocktail Dresses": {
+   "node": "dresses.party_dresses",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 43
+    },
+    "polyvore_big": {
+     "dress": 287
+    },
+    "kagl_polyvore": {
+     "dress": 287
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Comforters": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Concealer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 13
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Cookbooks": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Cookware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Costumes": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 11
+    }
+   },
+   "reason": "變裝服",
+   "implied_coarse": null
+  },
+  "Cover-ups": {
+   "node": "swimwear.cover_ups",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Cuff Links": {
+   "node": "jewelry.cufflinks",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "jewelry": 3
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Curtain Rods": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Curtains": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Cutlery": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Day Dresses": {
+   "node": "dresses.dresses",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 47
+    },
+    "polyvore_big": {
+     "dress": 660
+    },
+    "kagl_polyvore": {
+     "dress": 660
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Deodorant": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Desk Lamps": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Desks": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Dining Chairs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 6
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Dining Tables": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 8
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Dinnerware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 7
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Dressers": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 7
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Dresses": {
+   "node": "dresses.dresses",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 9
+    },
+    "polyvore_big": {
+     "dress": 96
+    },
+    "kagl_polyvore": {
+     "dress": 96
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Drinkware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 58
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Duvet Covers": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Earrings": {
+   "node": "jewelry.earrings",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 112
+    },
+    "polyvore_big": {
+     "jewelry": 947
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Electronics": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 39
+    }
+   },
+   "reason": "電子產品",
+   "implied_coarse": null
+  },
+  "Eye Care": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 11
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eye Makeup": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 11
+    },
+    "polyvore_big": {
+     "other": 79
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eyeglasses": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 4
+    },
+    "polyvore_big": {
+     "accessory": 68
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Eyelash Curlers": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eyeliner": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 22
+    },
+    "polyvore_big": {
+     "other": 90
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eyeshadow": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 31
+    },
+    "polyvore_big": {
+     "other": 198
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Eyewear": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 2
+    },
+    "polyvore_big": {
+     "accessory": 7
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Face Care": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 17
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Cleansers": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Makeup": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 32
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Masks": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 10
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Moisturizers": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 9
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Face Powder": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 40
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "False Eyelashes": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 25
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "File Cabinets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Fireplace Accessories": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Flared Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 18
+    },
+    "kagl_polyvore": {
+     "bottom": 18
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Flats": {
+   "node": "shoes.flats",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 27
+    },
+    "polyvore_big": {
+     "shoes": 191
+    },
+    "kagl_polyvore": {
+     "shoes": 191
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Flatware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Flip Flops": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 3
+    },
+    "polyvore_big": {
+     "shoes": 22
+    },
+    "kagl_polyvore": {
+     "shoes": 22
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Floor Lamps": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 17
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Floral Decor": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 24
+    },
+    "polyvore_big": {
+     "other": 143
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Font": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 8
+    },
+    "polyvore_big": {
+     "other": 49
+    }
+   },
+   "reason": "Polyvore 拼貼用文字圖",
+   "implied_coarse": null
+  },
+  "Food & Drink": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 51
+    }
+   },
+   "reason": "食品",
+   "implied_coarse": null
+  },
+  "Food Storage Containers": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 8
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Foundation": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 45
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Fragrance": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 33
+    },
+    "polyvore_big": {
+     "other": 242
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Frames": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 14
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Furniture": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Gift Sets & Kits": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 11
+    }
+   },
+   "reason": "美妝禮盒",
+   "implied_coarse": "other"
+  },
+  "Girls": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 24
+    }
+   },
+   "reason": "童裝年齡層桶",
+   "implied_coarse": null
+  },
+  "Gloves": {
+   "node": "accessories.gloves",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 10
+    },
+    "polyvore_big": {
+     "accessory": 60
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Gowns": {
+   "node": "dresses.gowns",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 11
+    },
+    "polyvore_big": {
+     "dress": 90
+    },
+    "kagl_polyvore": {
+     "dress": 90
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Hair Accessories": {
+   "node": "accessories.hair",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 29
+    },
+    "polyvore_big": {
+     "accessory": 194
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Hair Color": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 10
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Hair Conditioner": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Hair Shampoo": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Hair Styling Tools": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 70
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Haircare": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 16
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Hammocks & Swings": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Handbags": {
+   "node": "bags.handbags",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 76
+    },
+    "polyvore_big": {
+     "bag": 506
+    },
+    "kagl_polyvore": {
+     "bag": 506
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Handkerchiefs": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 1
+    }
+   },
+   "reason": "手帕",
+   "implied_coarse": "accessory"
+  },
+  "Hats": {
+   "node": "accessories.hats",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 42
+    },
+    "polyvore_big": {
+     "accessory": 409
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Health": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "保健",
+   "implied_coarse": null
+  },
+  "Holiday Decorations": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 95
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Home Decor": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 19
+    },
+    "polyvore_big": {
+     "other": 135
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Home Fragrance": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Home Improvement": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 5
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Hoodies": {
+   "node": "tops.sweatshirts_hoodies",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 2
+    },
+    "polyvore_big": {
+     "top": 59
+    },
+    "kagl_polyvore": {
+     "top": 59
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Hosiery": {
+   "node": "accessories.hosiery",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 2
+    },
+    "polyvore_big": {
+     "accessory": 2
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Intimates": {
+   "node": "intimates",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 7
+    }
+   },
+   "reason": "泛用內著（抽樣標題含褲襪、cami，雜訊高）",
+   "implied_coarse": "other"
+  },
+  "Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 57
+    },
+    "polyvore_big": {
+     "outerwear": 491
+    },
+    "kagl_polyvore": {
+     "outerwear": 491
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 12
+    },
+    "polyvore_big": {
+     "bottom": 113
+    },
+    "kagl_polyvore": {
+     "bottom": 113
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Jewelry": {
+   "node": "jewelry",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "jewelry": 8
+    },
+    "polyvore_big": {
+     "jewelry": 91
+    }
+   },
+   "reason": "泛用飾品",
+   "implied_coarse": "jewelry"
+  },
+  "Jewelry Storage": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Jumpsuits": {
+   "node": "dresses.jumpsuits_rompers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 2
+    },
+    "polyvore_big": {
+     "dress": 20
+    },
+    "kagl_polyvore": {
+     "dress": 20
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Juniors": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "青少年尺碼桶",
+   "implied_coarse": null
+  },
+  "Kids": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 22
+    }
+   },
+   "reason": "童裝/年齡層桶，非部位（抽樣含太陽眼鏡、後背包）",
+   "implied_coarse": null
+  },
+  "Kitchen & Dining": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 32
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Kitchen Gadgets & Tools": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 14
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Kitchen Linens": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Knee High Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 4
+    },
+    "polyvore_big": {
+     "shoes": 69
+    },
+    "kagl_polyvore": {
+     "shoes": 69
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Knee Length Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 37
+    },
+    "polyvore_big": {
+     "bottom": 434
+    },
+    "kagl_polyvore": {
+     "bottom": 434
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Leggings": {
+   "node": "bottoms.leggings",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 21
+    },
+    "polyvore_big": {
+     "bottom": 119
+    },
+    "kagl_polyvore": {
+     "bottom": 119
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Lighting": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Lip Gloss": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 21
+    },
+    "polyvore_big": {
+     "other": 82
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Makeup": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 53
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Pencils": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Stain": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lip Treatments": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 54
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Lipstick": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 39
+    },
+    "polyvore_big": {
+     "other": 272
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Loafers & Moccasins": {
+   "node": "shoes.loafers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 4
+    },
+    "polyvore_big": {
+     "shoes": 55
+    },
+    "kagl_polyvore": {
+     "shoes": 55
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Long Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 10
+    },
+    "polyvore_big": {
+     "bottom": 75
+    },
+    "kagl_polyvore": {
+     "bottom": 75
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Luggage": {
+   "node": "bags.travel",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 5
+    },
+    "polyvore_big": {
+     "bag": 40
+    },
+    "kagl_polyvore": {
+     "bag": 40
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Makeup": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 8
+    },
+    "polyvore_big": {
+     "other": 92
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Makeup Brushes": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 56
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Makeup Primer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Makeup Remover": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Makeup Tools": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Manicure Tools": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Mascara": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 24
+    },
+    "polyvore_big": {
+     "other": 109
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Maternity": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "孕婦裝桶，非部位",
+   "implied_coarse": null
+  },
+  "Media": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "reason": "媒體",
+   "implied_coarse": null
+  },
+  "Men's Accessories": {
+   "node": "accessories",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 3
+    }
+   },
+   "reason": "泛用配件",
+   "implied_coarse": "accessory"
+  },
+  "Men's Activewear Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "outerwear": 1
+    },
+    "kagl_polyvore": {
+     "outerwear": 1
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Men's Activewear Pants": {
+   "node": "bottoms.track_pants",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 3
+    },
+    "kagl_polyvore": {
+     "bottom": 3
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Activewear Tops": {
+   "node": "tops.active_tops",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 1
+    },
+    "kagl_polyvore": {
+     "top": 1
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Athletic Shoes": {
+   "node": "shoes.athletic",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 3
+    },
+    "kagl_polyvore": {
+     "shoes": 3
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Backpacks": {
+   "node": "bags.backpacks",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bag": 12
+    },
+    "kagl_polyvore": {
+     "bag": 12
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Men's Bags": {
+   "node": "bags",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "bag": 1
+    },
+    "polyvore_big": {
+     "bag": 9
+    },
+    "kagl_polyvore": {
+     "bag": 9
+    }
+   },
+   "reason": "泛用包",
+   "implied_coarse": "bag"
+  },
+  "Men's Belts": {
+   "node": "accessories.belts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 12
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 13
+    },
+    "kagl_polyvore": {
+     "shoes": 13
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Bracelets": {
+   "node": "jewelry.bracelets",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "jewelry": 16
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Men's Briefcases": {
+   "node": "bags.work_laptop",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bag": 2
+    },
+    "kagl_polyvore": {
+     "bag": 2
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Men's Casual Pants": {
+   "node": "bottoms.trousers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 25
+    },
+    "kagl_polyvore": {
+     "bottom": 25
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Casual Shirts": {
+   "node": "tops.shirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 25
+    },
+    "kagl_polyvore": {
+     "top": 25
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Clothing": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 20
+    }
+   },
+   "reason": "泛用『服飾』：抽樣標題含西裝外套、毛衣洋裝、跑步外套、背心，無單一部位",
+   "implied_coarse": null
+  },
+  "Men's Coats": {
+   "node": "outerwear.coats",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "outerwear": 9
+    },
+    "kagl_polyvore": {
+     "outerwear": 9
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Men's Deodorant": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Dress Pants": {
+   "node": "bottoms.trousers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 1
+    },
+    "polyvore_big": {
+     "bottom": 6
+    },
+    "kagl_polyvore": {
+     "bottom": 6
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Dress Shirts": {
+   "node": "tops.shirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 18
+    },
+    "kagl_polyvore": {
+     "top": 18
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Dress Shoes": {
+   "node": "shoes.dress_shoes",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 1
+    },
+    "polyvore_big": {
+     "shoes": 13
+    },
+    "kagl_polyvore": {
+     "shoes": 13
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Eyeglasses": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 3
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Fashion": {
+   "node": null,
+   "status": "unmapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 18
+    }
+   },
+   "reason": "泛用 Men's Fashion",
+   "implied_coarse": null
+  },
+  "Men's Flip Flops": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 1
+    },
+    "kagl_polyvore": {
+     "shoes": 1
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Fragrance": {
+   "node": "beauty.fragrance",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 19
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Gift Sets & Kits": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "美妝禮盒",
+   "implied_coarse": "other"
+  },
+  "Men's Gloves": {
+   "node": "accessories.gloves",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 4
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Grooming": {
+   "node": "beauty",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "男士理容",
+   "implied_coarse": "other"
+  },
+  "Men's Hair Care": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Hats": {
+   "node": "accessories.hats",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 2
+    },
+    "polyvore_big": {
+     "accessory": 27
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Hoodies": {
+   "node": "tops.sweatshirts_hoodies",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 3
+    },
+    "kagl_polyvore": {
+     "top": 3
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Jackets": {
+   "node": "outerwear.jackets",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 1
+    },
+    "polyvore_big": {
+     "outerwear": 37
+    },
+    "kagl_polyvore": {
+     "outerwear": 37
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Men's Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 1
+    },
+    "polyvore_big": {
+     "bottom": 41
+    },
+    "kagl_polyvore": {
+     "bottom": 41
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Key Rings & Chains": {
+   "node": "accessories.keychains",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 4
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Loafers & Moccasins": {
+   "node": "shoes.loafers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 3
+    },
+    "kagl_polyvore": {
+     "shoes": 3
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Messenger Bags": {
+   "node": "bags.shoulder_crossbody",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bag": 5
+    },
+    "kagl_polyvore": {
+     "bag": 5
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Men's Money Clips": {
+   "node": "bags.wallets",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 1
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Men's Necklaces": {
+   "node": "jewelry.necklaces",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "jewelry": 9
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Men's Oxfords": {
+   "node": "shoes.dress_shoes",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 1
+    },
+    "kagl_polyvore": {
+     "shoes": 1
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Pants": {
+   "node": "bottoms.trousers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 1
+    },
+    "kagl_polyvore": {
+     "bottom": 1
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Polos": {
+   "node": "tops.polos",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 1
+    },
+    "kagl_polyvore": {
+     "top": 1
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Rings": {
+   "node": "jewelry.rings",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "jewelry": 4
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Men's Sandals": {
+   "node": "shoes.sandals",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 3
+    },
+    "kagl_polyvore": {
+     "shoes": 3
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Scarves": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 10
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Shirts": {
+   "node": "tops.shirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 1
+    },
+    "polyvore_big": {
+     "top": 4
+    },
+    "kagl_polyvore": {
+     "top": 4
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Shoes": {
+   "node": "shoes",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "shoes": 1
+    },
+    "polyvore_big": {
+     "shoes": 17
+    },
+    "kagl_polyvore": {
+     "shoes": 17
+    }
+   },
+   "reason": "泛用鞋",
+   "implied_coarse": "shoes"
+  },
+  "Men's Shorts": {
+   "node": "bottoms.shorts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 1
+    },
+    "polyvore_big": {
+     "bottom": 6
+    },
+    "kagl_polyvore": {
+     "bottom": 6
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Men's Skincare": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Slippers": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 1
+    },
+    "kagl_polyvore": {
+     "shoes": 1
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Sneakers": {
+   "node": "shoes.sneakers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 38
+    },
+    "kagl_polyvore": {
+     "shoes": 38
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Men's Socks": {
+   "node": "accessories.socks",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 4
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Sportcoats & Blazers": {
+   "node": "outerwear.blazers",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "outerwear": 4
+    },
+    "kagl_polyvore": {
+     "outerwear": 4
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Men's Suits": {
+   "node": "sets.suits",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Sunglasses": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 1
+    },
+    "polyvore_big": {
+     "accessory": 21
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Sweaters": {
+   "node": "tops.sweaters",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 4
+    },
+    "kagl_polyvore": {
+     "top": 4
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Sweatshirts": {
+   "node": "tops.sweatshirts_hoodies",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 1
+    },
+    "kagl_polyvore": {
+     "top": 1
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's T-Shirts": {
+   "node": "tops.tshirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 46
+    },
+    "kagl_polyvore": {
+     "top": 46
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Tank Tops": {
+   "node": "tops.tanks_camis",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "top": 2
+    },
+    "kagl_polyvore": {
+     "top": 2
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Men's Tech Accessories": {
+   "node": "accessories.tech",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 12
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Umbrellas": {
+   "node": "accessories.umbrellas",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 1
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Underwear": {
+   "node": "intimates.underwear",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Men's Vests": {
+   "node": "outerwear.vests",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 1
+    },
+    "polyvore_big": {
+     "outerwear": 2
+    },
+    "kagl_polyvore": {
+     "outerwear": 2
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Men's Wallets": {
+   "node": "bags.wallets",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 21
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Men's Watches": {
+   "node": "accessories.watches",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 39
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Men's Watches & Jewelry": {
+   "node": "jewelry",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "jewelry": 2
+    },
+    "polyvore_big": {
+     "jewelry": 4
+    }
+   },
+   "reason": "手錶與飾品混合",
+   "implied_coarse": "jewelry"
+  },
+  "Men's Work Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "shoes": 5
+    },
+    "kagl_polyvore": {
+     "shoes": 5
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Messenger Bags": {
+   "node": "bags.shoulder_crossbody",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 6
+    },
+    "polyvore_big": {
+     "bag": 47
+    },
+    "kagl_polyvore": {
+     "bag": 47
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Mid Calf Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 7
+    },
+    "polyvore_big": {
+     "shoes": 35
+    },
+    "kagl_polyvore": {
+     "shoes": 35
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Mini Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 28
+    },
+    "polyvore_big": {
+     "bottom": 227
+    },
+    "kagl_polyvore": {
+     "bottom": 227
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Mirrors": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 20
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Nail Care": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 14
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Nail Polish": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 22
+    },
+    "polyvore_big": {
+     "other": 190
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Nail Treatments": {
+   "node": "beauty.nails",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 4
+    },
+    "polyvore_big": {
+     "other": 39
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Napkin Rings": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Necklaces": {
+   "node": "jewelry.necklaces",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 128
+    },
+    "polyvore_big": {
+     "jewelry": 917
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Nightstands": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Office Accessories": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 25
+    }
+   },
+   "reason": "辦公用品",
+   "implied_coarse": null
+  },
+  "Office Chairs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "One Piece Swimsuits": {
+   "node": "swimwear.one_piece",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 20
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Ottomans": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Benches": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Decor": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 24
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Lighting": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 9
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Loungers & Day Beds": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Stools": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoor Tables": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Outdoors": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 6
+    }
+   },
+   "reason": "戶外用品",
+   "implied_coarse": null
+  },
+  "Outerwear": {
+   "node": "outerwear",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "outerwear": 14
+    },
+    "polyvore_big": {
+     "outerwear": 57
+    },
+    "kagl_polyvore": {
+     "outerwear": 57
+    }
+   },
+   "reason": "泛用外套",
+   "implied_coarse": "outerwear"
+  },
+  "Over-The-Knee Boots": {
+   "node": "shoes.boots",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 2
+    },
+    "polyvore_big": {
+     "shoes": 44
+    },
+    "kagl_polyvore": {
+     "shoes": 44
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Oxfords": {
+   "node": "shoes.dress_shoes",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 5
+    },
+    "polyvore_big": {
+     "shoes": 51
+    },
+    "kagl_polyvore": {
+     "shoes": 51
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Pajamas": {
+   "node": "intimates.sleepwear",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 6
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Panties & Thongs": {
+   "node": "intimates.underwear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 35
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Pants": {
+   "node": "bottoms.trousers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 38
+    },
+    "polyvore_big": {
+     "bottom": 328
+    },
+    "kagl_polyvore": {
+     "bottom": 328
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Party Supplies": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "派對用品",
+   "implied_coarse": null
+  },
+  "Patio Furniture": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Patio Umbrellas": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Pets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 8
+    }
+   },
+   "reason": "寵物用品",
+   "implied_coarse": null
+  },
+  "Pumps": {
+   "node": "shoes.heels",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 84
+    },
+    "polyvore_big": {
+     "shoes": 669
+    },
+    "kagl_polyvore": {
+     "shoes": 669
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Quilts & Coverlets": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Rings": {
+   "node": "jewelry.rings",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "jewelry": 76
+    },
+    "polyvore_big": {
+     "jewelry": 568
+    }
+   },
+   "implied_coarse": "jewelry"
+  },
+  "Robes": {
+   "node": "intimates.robes",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Rompers": {
+   "node": "dresses.jumpsuits_rompers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "dress": 1
+    },
+    "polyvore_big": {
+     "dress": 35
+    },
+    "kagl_polyvore": {
+     "dress": 35
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Rugs": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 9
+    },
+    "polyvore_big": {
+     "other": 48
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Sandals": {
+   "node": "shoes.sandals",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 38
+    },
+    "polyvore_big": {
+     "shoes": 631
+    },
+    "kagl_polyvore": {
+     "shoes": 631
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Scarves": {
+   "node": "accessories.scarves",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 34
+    },
+    "polyvore_big": {
+     "accessory": 227
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Serveware": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 27
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Shapewear": {
+   "node": "intimates.shapewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 23
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Sharpeners": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "文具",
+   "implied_coarse": null
+  },
+  "Sheets & Pillowcases": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Shoes": {
+   "node": "shoes",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "shoes": 19
+    },
+    "polyvore_big": {
+     "shoes": 197
+    },
+    "kagl_polyvore": {
+     "shoes": 197
+    }
+   },
+   "reason": "泛用鞋",
+   "implied_coarse": "shoes"
+  },
+  "Shorts": {
+   "node": "bottoms.shorts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 55
+    },
+    "polyvore_big": {
+     "bottom": 359
+    },
+    "kagl_polyvore": {
+     "bottom": 359
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Shoulder Bags": {
+   "node": "bags.shoulder_crossbody",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 75
+    },
+    "polyvore_big": {
+     "bag": 906
+    },
+    "kagl_polyvore": {
+     "bag": 906
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Shower Curtains": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Sideboards": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Skincare": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Skinny Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 71
+    },
+    "polyvore_big": {
+     "bottom": 429
+    },
+    "kagl_polyvore": {
+     "bottom": 429
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Skirts": {
+   "node": "bottoms.skirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 11
+    },
+    "polyvore_big": {
+     "bottom": 67
+    },
+    "kagl_polyvore": {
+     "bottom": 67
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Slippers": {
+   "node": "shoes.slippers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 3
+    },
+    "polyvore_big": {
+     "shoes": 23
+    },
+    "kagl_polyvore": {
+     "shoes": 23
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Small Appliances": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Small Storage": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 3
+    },
+    "polyvore_big": {
+     "other": 27
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Sneakers": {
+   "node": "shoes.sneakers",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "shoes": 31
+    },
+    "polyvore_big": {
+     "shoes": 384
+    },
+    "kagl_polyvore": {
+     "shoes": 384
+    }
+   },
+   "implied_coarse": "shoes"
+  },
+  "Socks": {
+   "node": "accessories.socks",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 8
+    },
+    "polyvore_big": {
+     "accessory": 60
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sofas": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 8
+    },
+    "polyvore_big": {
+     "other": 40
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Sports & Outdoors": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 32
+    }
+   },
+   "reason": "運動戶外器材",
+   "implied_coarse": null
+  },
+  "Sports Accessories": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "運動器材（1 件）",
+   "implied_coarse": null
+  },
+  "Sports Bras": {
+   "node": "intimates.sports_bras",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 18
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Standing Fans": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Stationery": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 7
+    },
+    "polyvore_big": {
+     "other": 64
+    }
+   },
+   "reason": "文具",
+   "implied_coarse": null
+  },
+  "Stools": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Storage & Organization": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Storage & Shelves": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Straight Leg Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bottom": 5
+    },
+    "polyvore_big": {
+     "bottom": 30
+    },
+    "kagl_polyvore": {
+     "bottom": 30
+    }
+   },
+   "implied_coarse": "bottom"
+  },
+  "Styling Products": {
+   "node": "beauty.haircare",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 14
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Suits": {
+   "node": "sets.suits",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Sun Care": {
+   "node": "beauty.skincare",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 19
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Sunglasses": {
+   "node": "accessories.eyewear",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 44
+    },
+    "polyvore_big": {
+     "accessory": 484
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Suspenders": {
+   "node": "accessories.belts",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 2
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Sweaters": {
+   "node": "tops.sweaters",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 80
+    },
+    "polyvore_big": {
+     "top": 637
+    },
+    "kagl_polyvore": {
+     "top": 637
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Sweatshirts": {
+   "node": "tops.sweatshirts_hoodies",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 20
+    },
+    "polyvore_big": {
+     "top": 132
+    },
+    "kagl_polyvore": {
+     "top": 132
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Swimwear": {
+   "node": "swimwear",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore_big": {
+     "other": 1
+    }
+   },
+   "reason": "泛用泳裝",
+   "implied_coarse": "other"
+  },
+  "T-Shirts": {
+   "node": "tops.tshirts",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 50
+    },
+    "polyvore_big": {
+     "top": 376
+    },
+    "kagl_polyvore": {
+     "top": 376
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Table Lamps": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 6
+    },
+    "polyvore_big": {
+     "other": 29
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Table Linens": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 10
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Tables": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 3
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Tank Tops": {
+   "node": "tops.tanks_camis",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 49
+    },
+    "polyvore_big": {
+     "top": 304
+    },
+    "kagl_polyvore": {
+     "top": 304
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Teapots": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore_big": {
+     "other": 4
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Tech Accessories": {
+   "node": "accessories.tech",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 37
+    },
+    "polyvore_big": {
+     "accessory": 428
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Throw Pillows": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 8
+    },
+    "polyvore_big": {
+     "other": 63
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Ties": {
+   "node": "accessories.ties",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "accessory": 9
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Tights": {
+   "node": "accessories.hosiery",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 12
+    },
+    "polyvore_big": {
+     "accessory": 50
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Tinted Moisturizer": {
+   "node": "beauty.makeup",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Tops": {
+   "node": "tops",
+   "status": "mapped_l1",
+   "counts": {
+    "polyvore": {
+     "top": 80
+    },
+    "polyvore_big": {
+     "top": 723
+    },
+    "kagl_polyvore": {
+     "top": 723
+    }
+   },
+   "reason": "Polyvore 'Tops' 為泛用上衣",
+   "implied_coarse": "top"
+  },
+  "Tote Bags": {
+   "node": "bags.totes",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "bag": 34
+    },
+    "polyvore_big": {
+     "bag": 405
+    },
+    "kagl_polyvore": {
+     "bag": 405
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Toys": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 5
+    },
+    "polyvore_big": {
+     "other": 12
+    }
+   },
+   "reason": "玩具",
+   "implied_coarse": null
+  },
+  "Tunics": {
+   "node": "tops.tunics",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "top": 1
+    },
+    "polyvore_big": {
+     "top": 20
+    },
+    "kagl_polyvore": {
+     "top": 20
+    }
+   },
+   "implied_coarse": "top"
+  },
+  "Tweezers & Brow Tools": {
+   "node": "beauty.tools",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "other": 2
+    }
+   },
+   "implied_coarse": "other"
+  },
+  "Umbrellas": {
+   "node": "accessories.umbrellas",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 1
+    },
+    "polyvore_big": {
+     "accessory": 7
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Vases": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 24
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Vests": {
+   "node": "outerwear.vests",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "outerwear": 13
+    },
+    "polyvore_big": {
+     "outerwear": 67
+    },
+    "kagl_polyvore": {
+     "outerwear": 67
+    }
+   },
+   "implied_coarse": "outerwear"
+  },
+  "Wall Lights": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 2
+    },
+    "polyvore_big": {
+     "other": 7
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Wallets": {
+   "node": "bags.wallets",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 11
+    },
+    "polyvore_big": {
+     "accessory": 101
+    }
+   },
+   "implied_coarse": "bag"
+  },
+  "Wallpaper": {
+   "node": null,
+   "status": "non_apparel",
+   "counts": {
+    "polyvore": {
+     "other": 1
+    },
+    "polyvore_big": {
+     "other": 22
+    }
+   },
+   "reason": "居家/家具/廚房",
+   "implied_coarse": null
+  },
+  "Watches": {
+   "node": "accessories.watches",
+   "status": "mapped",
+   "counts": {
+    "polyvore": {
+     "accessory": 38
+    },
+    "polyvore_big": {
+     "accessory": 305
+    }
+   },
+   "implied_coarse": "accessory"
+  },
+  "Wedding Dresses": {
+   "node": "dresses.gowns",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "dress": 1
+    },
+    "kagl_polyvore": {
+     "dress": 1
+    }
+   },
+   "implied_coarse": "dress"
+  },
+  "Wide Leg Jeans": {
+   "node": "bottoms.jeans",
+   "status": "mapped",
+   "counts": {
+    "polyvore_big": {
+     "bottom": 2
+    },
+    "kagl_polyvore": {
+     "bottom": 2
+    }
+   },
+   "implied_coarse": "bottom"
+  }
+ }
+}

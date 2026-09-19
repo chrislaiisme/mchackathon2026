@@ -1,0 +1,46 @@
+[project]
+name = "engine02"
+version = "0.1.0"
+description = "ENGINE 02 — explainable retrieval and ranking for the 2026 梅竹黑客松 × 聚陽實業 brief"
+requires-python = ">=3.11"
+
+# The serving path with the `hash` encoder needs nothing else: BM25 is our own postings-list
+# implementation (engine02/sparse.py) and every catalog embedding is precomputed under
+# data/catalog/<name>/index/. torch is imported lazily inside engine02/models.py, so a machine
+# with only these packages can still start the API and answer /rank.
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "pydantic>=2.9",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyarrow>=17.0",
+    "pillow>=11.0",
+    "httpx>=0.27",          # fastapi.testclient, and scripts/api_check.py
+]
+
+[project.optional-dependencies]
+# The real demo configuration: marqo-fashionSigLIP for the dense side and the OutfitTransformer
+# head behind /complete-look. Install the torch build that matches the machine FIRST
+# (https://pytorch.org/get-started/locally/) — CPU works, it is only slower per query.
+models = [
+    "torch>=2.4",
+    "torchvision>=0.19",
+    "open_clip_torch>=2.26",
+    "transformers>=4.44",
+    "timm>=1.0",
+    "safetensors>=0.4",
+]
+dev = [
+    "pytest>=8.0",
+    "rank_bm25>=0.2.2",     # tests/test_sparse.py checks our BM25 against it, score for score
+    "scipy>=1.13",
+    "scikit-learn>=1.5",
+]
+
+[tool.setuptools]
+packages = ["engine02"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,320 @@
+{
+  "version": "kansei_v0_draft",
+  "_note": "DRAFT for wiring and tests only. PRD M3: GPT fills initial K values, humans correct them. Descriptors must stay visual and concrete (PRD M4).",
+  "step_size": 0.25,
+  "max_steps": 3,
+  "needs": {
+    "trustworthy": "被信任",
+    "energetic": "有精神",
+    "polished": "俐落專業",
+    "approachable": "親切好相處",
+    "relaxed": "輕鬆自在",
+    "avoid_tryhard": "怕顯得太用力",
+    "avoid_salesperson": "怕像業務",
+    "avoid_sloppy": "怕顯得邋遢"
+  },
+  "design_elements": [
+    {
+      "id": "structured_shoulders",
+      "label": "肩線挺",
+      "descriptors": [
+        "a jacket with structured padded shoulders",
+        "a tailored garment with a sharp shoulder line"
+      ],
+      "negative_descriptors": [
+        "a garment with soft dropped shoulders",
+        "an unstructured shoulder line"
+      ],
+      "applies_to": [
+        "top",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "matte_fabric",
+      "label": "霧面材質",
+      "descriptors": [
+        "a garment made of matte fabric with no shine",
+        "flat matte textile clothing"
+      ],
+      "negative_descriptors": [
+        "a shiny glossy satin garment",
+        "clothing with a lustrous sheen"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "glossy_fabric",
+      "label": "亮面材質",
+      "descriptors": [
+        "a shiny glossy satin garment",
+        "clothing with a lustrous sheen"
+      ],
+      "negative_descriptors": [
+        "a garment made of matte fabric with no shine",
+        "flat matte textile clothing"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "dark_tone",
+      "label": "低明度深色",
+      "descriptors": [
+        "dark colored clothing",
+        "a navy or charcoal garment"
+      ],
+      "negative_descriptors": [
+        "light pastel colored clothing",
+        "a white or beige garment"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "bright_color",
+      "label": "鮮豔色彩",
+      "descriptors": [
+        "brightly colored clothing",
+        "a vivid saturated color garment"
+      ],
+      "negative_descriptors": [
+        "muted neutral colored clothing",
+        "a grey or beige garment"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "visible_logo",
+      "label": "明顯 logo",
+      "descriptors": [
+        "clothing with a large visible logo print",
+        "a garment with big brand lettering"
+      ],
+      "negative_descriptors": [
+        "a plain garment with no logo",
+        "clothing without any lettering"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "minimal_design",
+      "label": "素面簡約",
+      "descriptors": [
+        "a plain minimalist garment without prints",
+        "simple solid color clothing"
+      ],
+      "negative_descriptors": [
+        "a garment with a bold loud pattern",
+        "clothing with a large graphic print"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "bold_pattern",
+      "label": "強烈圖案",
+      "descriptors": [
+        "a garment with a bold loud pattern",
+        "clothing with a large graphic print"
+      ],
+      "negative_descriptors": [
+        "a plain minimalist garment without prints",
+        "simple solid color clothing"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress",
+        "shoes",
+        "bag"
+      ]
+    },
+    {
+      "id": "relaxed_fit",
+      "label": "寬鬆版型",
+      "descriptors": [
+        "loose relaxed fit clothing",
+        "an oversized garment"
+      ],
+      "negative_descriptors": [
+        "slim tailored fit clothing",
+        "a fitted garment with clean lines"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "tailored_fit",
+      "label": "合身剪裁",
+      "descriptors": [
+        "slim tailored fit clothing",
+        "a fitted garment with clean lines"
+      ],
+      "negative_descriptors": [
+        "loose relaxed fit clothing",
+        "an oversized garment"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "formal_style",
+      "label": "正式感",
+      "descriptors": [
+        "formal business attire",
+        "a suit piece for the office"
+      ],
+      "negative_descriptors": [
+        "casual everyday wear",
+        "relaxed weekend clothing"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "casual_style",
+      "label": "休閒感",
+      "descriptors": [
+        "casual everyday wear",
+        "relaxed weekend clothing"
+      ],
+      "negative_descriptors": [
+        "formal business attire",
+        "a suit piece for the office"
+      ],
+      "applies_to": []
+    },
+    {
+      "id": "crisp_collar",
+      "label": "挺版領子",
+      "descriptors": [
+        "a shirt with a crisp stiff collar",
+        "a garment with a structured collar"
+      ],
+      "negative_descriptors": [
+        "a collarless garment",
+        "a shirt with a soft floppy collar"
+      ],
+      "applies_to": [
+        "top",
+        "outerwear",
+        "dress"
+      ]
+    },
+    {
+      "id": "soft_knit",
+      "label": "柔軟針織",
+      "descriptors": [
+        "a soft knit sweater texture",
+        "cozy knitted clothing"
+      ],
+      "negative_descriptors": [
+        "a stiff woven garment",
+        "crisp structured non-knit fabric"
+      ],
+      "applies_to": [
+        "top",
+        "bottom",
+        "outerwear",
+        "dress"
+      ]
+    }
+  ],
+  "K": {
+    "trustworthy": {
+      "structured_shoulders": 0.8,
+      "matte_fabric": 0.5,
+      "dark_tone": 0.6,
+      "visible_logo": -0.5,
+      "minimal_design": 0.5,
+      "bold_pattern": -0.4,
+      "tailored_fit": 0.5,
+      "crisp_collar": 0.5,
+      "glossy_fabric": -0.3
+    },
+    "energetic": {
+      "bright_color": 0.6,
+      "dark_tone": -0.3,
+      "tailored_fit": 0.2,
+      "casual_style": 0.2
+    },
+    "polished": {
+      "tailored_fit": 0.7,
+      "structured_shoulders": 0.5,
+      "minimal_design": 0.5,
+      "relaxed_fit": -0.4,
+      "crisp_collar": 0.4,
+      "formal_style": 0.4
+    },
+    "approachable": {
+      "soft_knit": 0.6,
+      "casual_style": 0.4,
+      "formal_style": -0.3,
+      "bright_color": 0.2,
+      "structured_shoulders": -0.2
+    },
+    "relaxed": {
+      "relaxed_fit": 0.7,
+      "casual_style": 0.6,
+      "soft_knit": 0.4,
+      "formal_style": -0.6,
+      "tailored_fit": -0.3
+    },
+    "avoid_tryhard": {
+      "formal_style": -0.6,
+      "glossy_fabric": -0.6,
+      "bold_pattern": -0.5,
+      "visible_logo": -0.5,
+      "minimal_design": 0.4,
+      "matte_fabric": 0.3
+    },
+    "avoid_salesperson": {
+      "formal_style": -0.5,
+      "crisp_collar": -0.3,
+      "structured_shoulders": -0.2,
+      "soft_knit": 0.3,
+      "casual_style": 0.3
+    },
+    "avoid_sloppy": {
+      "relaxed_fit": -0.4,
+      "tailored_fit": 0.4,
+      "crisp_collar": 0.3,
+      "casual_style": -0.2
+    }
+  }
+}
