@@ -15,8 +15,19 @@ from backend.shared.schemas import (
     Intent,
     ItemFeedbackRequest,
     OutfitFeedbackRequest,
+    OutfitItemRequest,
     UserProfile,
 )
+
+
+def _outfit(outfit_id: str, top_item_id: str, bottom_item_id: str, *, bottom_source: str = "catalog") -> OutfitFeedbackRequest:
+    return OutfitFeedbackRequest(
+        outfit_id=outfit_id,
+        items=[
+            OutfitItemRequest(zone="top", source="catalog", item_id=top_item_id),
+            OutfitItemRequest(zone="bottom", source=bottom_source, item_id=bottom_item_id),
+        ],
+    )
 
 _PROFILE = UserProfile(
     sub="feedback-test-user",
@@ -85,7 +96,7 @@ def test_unknown_outfit_item_id_returns_422():
     request = FeedbackRequest(
         session_id=state.session_id,
         round=1,
-        outfit_feedbacks=[OutfitFeedbackRequest(outfit_id="o1", top_item_id="a", bottom_item_id="b")],
+        outfit_feedbacks=[_outfit("o1", "a", "b")],
     )
 
     with pytest.raises(main.HTTPException) as exc_info:
@@ -118,7 +129,7 @@ def test_happy_path_stores_pending_feedback_and_trims_history():
         session_id=state.session_id,
         round=1,
         item_feedbacks=[ItemFeedbackRequest(item_id="a", favorited=True)],
-        outfit_feedbacks=[OutfitFeedbackRequest(outfit_id="o1", top_item_id="a", bottom_item_id="b")],
+        outfit_feedbacks=[_outfit("o1", "a", "b")],
     )
 
     with patch(
@@ -167,6 +178,45 @@ def test_generated_items_are_skipped_not_rejected_when_catalog_items_also_presen
         response = main.post_feedback(request, _PROFILE, authorization=None)
 
     assert response.skipped_generated_item_feedbacks == ["gen-1"]
+
+
+def test_mixed_source_outfit_is_skipped_not_partially_sent():
+    # 2026-09-19：整套裡有一件是 source="generated" 就整筆 outfit 跳過，不會只挑
+    # 資料庫那一件單獨送出去（半套的整套喜歡語意會失真）——design_attributes
+    # 詞彙映射還沒人跟 ENGINE02／生成模組負責人確認過。
+    state = _new_session_with_shown_items(["a"], round_=1)  # 只有 "a" 是資料庫商品
+    request = FeedbackRequest(
+        session_id=state.session_id,
+        round=1,
+        outfit_feedbacks=[_outfit("mixed-outfit", "a", "generated:s1:r1:cell-2", bottom_source="generated")],
+    )
+
+    with pytest.raises(main.HTTPException) as exc_info:
+        main.post_feedback(request, _PROFILE, authorization=None)
+
+    # 沒有其他任何回饋可送（catalog_feedbacks 跟 outfit_feedbacks 都是空的），
+    # 所以會落到「沒有可送出的回饋」那條 422，不是去查 shown_item_ids 噴錯。
+    assert exc_info.value.status_code == 422
+
+
+def test_mixed_source_outfit_is_reported_when_other_feedback_still_sends():
+    state = _new_session_with_shown_items(["a"], round_=1)
+    request = FeedbackRequest(
+        session_id=state.session_id,
+        round=1,
+        item_feedbacks=[ItemFeedbackRequest(item_id="a", favorited=True)],
+        outfit_feedbacks=[_outfit("mixed-outfit", "a", "generated:s1:r1:cell-2", bottom_source="generated")],
+    )
+
+    with patch(
+        "backend.engine01_intent.main.engine03_client.submit_feedback",
+        return_value={"engine02_feedback": _ENGINE02_FEEDBACK},
+    ) as mock_submit:
+        response = main.post_feedback(request, _PROFILE, authorization=None)
+
+    assert response.skipped_generated_outfit_feedbacks == ["mixed-outfit"]
+    sent_current_round = mock_submit.call_args.args[2]
+    assert sent_current_round["outfit_feedbacks"] == []  # 整筆被跳過，不是只送一半
 
 
 def test_engine03_unreachable_returns_502():

@@ -236,8 +236,31 @@ def _assemble_single_item_result(
     )
 
 
+def build_profile_context(intent: Intent, user_profile: UserProfile) -> str:
+    """把使用者的長期風格偏好（onboarding）＋這輪結構化 Intent 的具體欄位，組成
+    一段給 `llm_client.rewrite_recommendation_reasons()` 的『風格輪廓』文字。
+
+    2026-09-20 新增：之前改寫理由只給了樣板句本身跟原始對話字串，LLM 完全看不到
+    使用者 onboarding 填的長期偏好、也看不到這輪已經解析出的結構化顏色／場合／
+    季節／風格關鍵字——只能靠對話字串自己猜語氣，改出來的句子容易變成通用的
+    造型師台詞，體現不出「這個使用者」的特別性。只列出有值的欄位，不硬湊。
+    """
+    lines: list[str] = []
+    if user_profile.style_preferences:
+        lines.append(f"長期偏好風格：{'、'.join(user_profile.style_preferences)}")
+    if intent.colors:
+        lines.append(f"這輪要的顏色：{'、'.join(intent.colors)}")
+    if intent.occasion:
+        lines.append(f"這輪的場合：{intent.occasion}")
+    if intent.season:
+        lines.append(f"這輪的季節：{intent.season}")
+    if intent.style_keywords:
+        lines.append(f"這輪的風格關鍵字：{'、'.join(intent.style_keywords)}")
+    return "\n".join(lines)
+
+
 def apply_natural_language_reasons(
-    result: ZonedRecommendationResult, context: str
+    result: ZonedRecommendationResult, context: str, profile_context: str = ""
 ) -> ZonedRecommendationResult:
     """把 `result` 裡每張卡片的樣板推薦理由，批次改寫成自然語句（見
     `llm_client.rewrite_recommendation_reasons()` 的說明）。呼叫端（`main.py`
@@ -256,7 +279,7 @@ def apply_natural_language_reasons(
         for card in slate.products
         if card.reason
     ]
-    rewritten = llm_client.rewrite_recommendation_reasons(items, context)
+    rewritten = llm_client.rewrite_recommendation_reasons(items, context, profile_context or None)
     if not rewritten:
         return result
 

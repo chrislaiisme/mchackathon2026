@@ -176,6 +176,14 @@ _REASON_REWRITE_PROMPT = """你是「一句話讀懂消費者」系統的推薦�
 這類系統內部用語。改寫要忠於原本理由的實際內容（原本講顏色符合，改寫後也要講顏色，
 不要無中生有加進原本沒有的資訊）。
 
+2026-09-20 補充：下面會附上這位使用者的風格輪廓（onboarding 填的長期偏好、這輪
+明確講的顏色／場合／季節／風格關鍵字）——**這不是給你判斷語氣用而已，是要你在
+改寫時具體點出來**，讓使用者覺得這句話真的是在跟「他」講話，不是隨便一句通用的
+造型師台詞。例如原本樣板句只講「風格相近」，如果使用者這輪講了要「約會」穿、
+偏好「簡約」，改寫時就該講成類似「簡約好看，約會穿剛好」，而不是空泛的
+「風格貼近你的喜好」——但一樣要忠於原本樣板句實際比對到的內容，不要無中生有
+說這件商品符合一個使用者其實沒講、樣板句也沒提到的屬性。
+
 規則：
 1. 每件商品的 product_id 要在輸出裡原樣抄一次，不要改動、不要漏掉任何一件。
 2. 只輸出結構化資料，不要輸出額外的說明文字。
@@ -189,7 +197,7 @@ _REASON_SCHEMA_PATH.write_text(
 
 
 def rewrite_recommendation_reasons(
-    items: list[tuple[str, str]], context: str
+    items: list[tuple[str, str]], context: str, profile_context: Optional[str] = None
 ) -> Optional[dict[str, str]]:
     """把一輪要顯示的 (product_id, 原始樣板理由) 清單，一次 `codex exec` 呼叫全部
     改寫成自然語句，回傳 {product_id: 改寫後理由}。**這是顯示優化，不是關鍵路徑**——
@@ -198,14 +206,23 @@ def rewrite_recommendation_reasons(
     只呼叫一次 `codex exec`，不是逐張卡片各呼叫一次——一輪最多十幾張卡，逐張呼叫
     會變成十幾次 8-17 秒的等待，demo 現場等不起，也會把團隊共用的 Codex 額度燒很兇
     （見 CLAUDE.md「ENGINE01 執行方式」）。
+
+    `profile_context`（2026-09-20 新增）：這位使用者的長期風格偏好（onboarding
+    填的）＋這輪結構化 Intent 的具體欄位（顏色／場合／季節／風格關鍵字），讓改寫
+    出來的句子能點名使用者自己的偏好，不是只靠 `context`（原始對話文字）籠統
+    判斷語氣——真人測試回饋原本的改寫「有點模板化，沒體現出使用者的特別性」，
+    根因是這個函式從來沒有把 Intent／UserProfile 的結構化欄位餵給 LLM，只給了
+    已經被壓扁成一句樣板句的 `reason` 跟原始對話字串。省略時維持舊行為。
     """
     if not items:
         return {}
 
     payload = "\n".join(f"- product_id={pid}：{reason}" for pid, reason in items)
+    profile_section = f"\n\n這位使用者的風格輪廓：\n{profile_context}" if profile_context else ""
     prompt = (
         f"{_REASON_REWRITE_PROMPT}\n\n"
-        f"使用者這輪在找的東西（給你判斷語氣用，不用逐字複述進理由裡）：\n{context}\n\n"
+        f"使用者這輪在找的東西（給你判斷語氣用，不用逐字複述進理由裡）：\n{context}"
+        f"{profile_section}\n\n"
         f"要改寫的理由：\n{payload}"
     )
 

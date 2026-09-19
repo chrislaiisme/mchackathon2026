@@ -174,12 +174,27 @@ class ItemFeedbackRequest(BaseModel):
     # 的回饋今天整批跳過，見 main.py::post_feedback()。
 
 
+class OutfitItemRequest(BaseModel):
+    # 2026-09-19 修正：欄位形狀改成跟團隊另一份「Frontend → BFF 回饋 JSON 規格」
+    # 文件的 outfit_feedbacks[].items[] 一致（zone／source／item_id 三欄，不是
+    # 原本 top_item_id／bottom_item_id 兩個扁平欄位）——那份規格明確允許整套裡
+    # 一件資料庫商品配一件生成商品，前端如果照那份規格寫，不應該因為打的是
+    # ENGINE01 而要重寫一次資料形狀。
+    zone: Literal["top", "bottom"]
+    source: Literal["catalog", "generated"] = "catalog"
+    item_id: str
+
+
 class OutfitFeedbackRequest(BaseModel):
-    # 只支援 source="catalog" 的整套喜歡——對應 ENGINE03 OutfitFeedback.favorited
-    # 寫死 Literal[True]，沒有「整套不喜歡」這個概念，backend 本身沒做這一半。
+    # 只支援「喜歡」——對應 ENGINE03 OutfitFeedback.favorited 寫死 Literal[True]，
+    # 沒有「整套不喜歡」這個概念，backend 本身沒做這一半。
     outfit_id: str
-    top_item_id: str
-    bottom_item_id: str
+    favorited: Literal[True] = True
+    items: list[OutfitItemRequest] = Field(min_length=2, max_length=2)
+    """一定剛好兩件，一件 top 一件 bottom——驗證邏輯見 main.py::post_feedback()。
+    generated 那一件今天一律跳過整筆 outfit（見 post_feedback() 的說明），
+    不是因為規格不允許，是 design_attributes 詞彙映射還沒有人跟 ENGINE02／
+    生成模組負責人確認過，不能自己瞎猜著送。"""
 
 
 class FeedbackRequest(BaseModel):
@@ -200,6 +215,10 @@ class FeedbackResponse(BaseModel):
     """source="generated" 的單品回饋今天整批跳過，這裡誠實列出被跳過的 item_id，
     不是默默丟掉裝作沒發生——見 docs 記錄的已知落差（design_attributes 詞彙映射
     需要跨負責人確認）。"""
+    skipped_generated_outfit_feedbacks: list[str] = Field(default_factory=list)
+    """整套裡有任何一件是 source="generated" 就整筆 outfit 跳過（同一個落差，
+    不是只挑資料庫那一件單獨送——半套的「整套喜歡」語意會失真），這裡列出
+    被跳過的 outfit_id。"""
 
 
 # ── ENGINE02／生成模組的輸出（ENGINE01 這邊先定義好介面，實際邏輯不在這裡）──

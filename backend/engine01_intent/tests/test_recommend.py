@@ -7,7 +7,14 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from backend.engine01_intent import recommend
-from backend.shared.schemas import Intent, ProductCard, RetrievalResult, UserProfile
+from backend.shared.schemas import (
+    Intent,
+    ProductCard,
+    RetrievalResult,
+    UserProfile,
+    ZonedRecommendationResult,
+    ZoneSlate,
+)
 
 _PROFILE = UserProfile(
     sub="user123",
@@ -233,3 +240,42 @@ def test_dress_zone_leaves_other_zone_match_score_at_default():
     assert zones_by_name["top"].match_score == 0.7
     assert zones_by_name["bottom"].match_score == 0.0
     assert zones_by_name["bottom"].products == []
+
+
+def test_build_profile_context_includes_style_preferences_and_intent_fields():
+    # 2026-09-20：改寫推薦理由的 LLM 呼叫原本完全看不到 onboarding 長期偏好跟
+    # 這輪結構化 Intent，只能靠原始對話字串籠統判斷語氣——這支函式把兩者組成
+    # 一段文字，讓改寫出來的句子能點名使用者自己的偏好。
+    intent = Intent(colors=["黑色"], occasion="上班", season="秋天", style_keywords=["簡約", "俐落"])
+    context = recommend.build_profile_context(intent, _PROFILE)
+
+    assert "簡約" in context  # 來自 UserProfile.style_preferences
+    assert "黑色" in context
+    assert "上班" in context
+    assert "秋天" in context
+    assert "俐落" in context
+
+
+def test_build_profile_context_omits_empty_fields():
+    # 沒有值的欄位不該出現在輸出裡（不要硬湊出一堆空白欄位餵給 LLM）。
+    intent = Intent()
+    profile = UserProfile(
+        sub="u2", email="u2@example.com", onboarding_completed=True, created_at="2026-09-19T00:00:00+00:00"
+    )
+    context = recommend.build_profile_context(intent, profile)
+
+    assert context == ""
+
+
+def test_apply_natural_language_reasons_passes_profile_context_through():
+    result = ZonedRecommendationResult(
+        session_id="s1", round=1, outfit_requested=False,
+        zones=[ZoneSlate(zone="top", requested=True, products=[_card("a", "top")])],
+    )
+
+    with patch(
+        "backend.engine01_intent.recommend.llm_client.rewrite_recommendation_reasons", return_value=None
+    ) as mock_rewrite:
+        recommend.apply_natural_language_reasons(result, "context text", "profile text")
+
+    assert mock_rewrite.call_args.args[2] == "profile text"

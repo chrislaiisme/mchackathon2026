@@ -256,8 +256,14 @@ def post_recommend(
     # ENGINE02 沒有 OPENAI_API_KEY 時，reason 是樣板句，會露出內部分數／備註
     # （例如「整體風格和你描述的相近（+1.44）」）——比照 style_me.py 既有的
     # LLM 改寫模式，批次（一次 codex exec 呼叫）把這輪要顯示的理由都改寫成
-    # 自然語句，失敗就原樣返回樣板句，不擋主流程。
-    result = recommend.apply_natural_language_reasons(result, " ".join(state.message_history))
+    # 自然語句，失敗就原樣返回樣板句，不擋主流程。2026-09-20：多帶一份
+    # profile_context（onboarding 長期偏好＋這輪結構化 Intent），讓改寫出來的
+    # 句子能點名使用者自己的偏好，不是只靠原始對話字串籠統判斷語氣。
+    result = recommend.apply_natural_language_reasons(
+        result,
+        " ".join(state.message_history),
+        recommend.build_profile_context(state.intent, user),
+    )
 
     # 2026-09-19 新增：記下這輪兩分區攤平後實際展示過的商品 id，/feedback
     # 驗證要用——不能信瀏覽器自己講的它看過什麼。這支端點原本完全沒有把
@@ -316,17 +322,27 @@ def post_feedback(
         )
 
     outfit_feedbacks: list[dict[str, Any]] = []
+    skipped_generated_outfits: list[str] = []
     for outfit_feedback in request.outfit_feedbacks:
-        for item_id in (outfit_feedback.top_item_id, outfit_feedback.bottom_item_id):
-            if item_id not in state.shown_item_ids:
-                raise HTTPException(422, f"item_id {item_id!r} 不是這輪展示過的商品")
+        # 整套裡只要有一件是 source="generated"，整筆 outfit 都跳過（不是只挑
+        # 資料庫那一件單獨送）——「半套的整套喜歡」語意會失真，而且
+        # design_attributes 詞彙映射還沒人跟 ENGINE02／生成模組負責人確認過，
+        # 不能自己瞎猜著送，見 backend/shared/schemas.py::OutfitFeedbackRequest。
+        if any(item.source == "generated" for item in outfit_feedback.items):
+            skipped_generated_outfits.append(outfit_feedback.outfit_id)
+            continue
+
+        for item in outfit_feedback.items:
+            if item.item_id not in state.shown_item_ids:
+                raise HTTPException(422, f"item_id {item.item_id!r} 不是這輪展示過的商品")
+
         outfit_feedbacks.append(
             {
                 "outfit_id": outfit_feedback.outfit_id,
                 "favorited": True,
                 "items": [
-                    {"zone": "top", "source": "catalog", "item_id": outfit_feedback.top_item_id},
-                    {"zone": "bottom", "source": "catalog", "item_id": outfit_feedback.bottom_item_id},
+                    {"zone": item.zone, "source": item.source, "item_id": item.item_id}
+                    for item in outfit_feedback.items
                 ],
             }
         )
@@ -362,6 +378,7 @@ def post_feedback(
         generated_attribute_evidence=result.get("generated_attribute_evidence") or [],
         outfit_evidence=result.get("outfit_evidence") or [],
         skipped_generated_item_feedbacks=skipped_generated,
+        skipped_generated_outfit_feedbacks=skipped_generated_outfits,
     )
 
 
@@ -470,7 +487,7 @@ def post_concept_image(
             raise HTTPException(502, f"生成單品失敗：{exc}")
 
         zone_results = {primary_zone: primary_result, other_zone: other_result}
-        return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run)
+        return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run, user)
 
     if not intent.outfit_requested:
         # 沒有品項、也不是整套請求——現在還沒設計這種情況該生什麼，先明確擋掉，
@@ -501,7 +518,7 @@ def post_concept_image(
     except ConceptImageUnavailable as exc:
         raise HTTPException(502, f"生成單品失敗：{exc}")
 
-    return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run)
+    return _assemble_concept_zone_response(state, zone_results, state.message_history, request.dry_run, user)
 
 
 def _generate_concepts_for_zone(
@@ -550,6 +567,7 @@ def _assemble_concept_zone_response(
     zone_results: dict[str, dict[str, Any]],
     message_history: list[str],
     dry_run: bool,
+    user_profile: UserProfile,
 ) -> dict[str, Any]:
     """統一組裝 /concept-image 的兩分區回應——Top Pick 理由沿用既有邏輯
     （上衣格、下身格各自第一格位置性配對，套用跟 /recommend 一樣的自然語句
@@ -563,8 +581,12 @@ def _assemble_concept_zone_response(
                 f"上衣：{top_cells[0].get('prompt_fragment') or ''}；"
                 f"下身：{bottom_cells[0].get('prompt_fragment') or ''}"
             )
+            # 2026-09-20：跟 /recommend 的 apply_natural_language_reasons() 一樣
+            # 多帶 profile_context，生圖的 Top Pick 理由也不該只是通用台詞。
             rewritten = llm_client.rewrite_recommendation_reasons(
-                [("top-pick", draft)], " ".join(message_history)
+                [("top-pick", draft)],
+                " ".join(message_history),
+                recommend.build_profile_context(state.intent, user_profile),
             )
             top_pick_reason = (rewritten or {}).get("top-pick")
 
