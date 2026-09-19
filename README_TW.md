@@ -50,15 +50,41 @@ codex login             # 一次性設定，ENGINE01 需要
 
 # ENGINE01
 pip install -r backend/requirements.txt
-uvicorn backend.engine01_intent.main:app --reload
-
-# 前端
-cd frontend && npm install && npm run dev
 ```
 
 **ENGINE02 有自己獨立的環境**（repo 根目錄的 `pyproject.toml`，用 `uv` 安裝——確切指令跟為什麼不共用 `backend/requirements.txt` 見 [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md)），跑在自己的獨立服務、另一個 port 上。
 
 每個 `backend/` 底下的模組都有自己的 `README.md`，裡面有各自的執行／測試說明。
+
+### 怎麼開各個服務（2026-09-19，實測過的組合）
+
+下面每一項都是一個要一直開著的獨立 terminal。ENGINE02 要先開（ENGINE01 會直接打它），其餘順序不拘。
+
+```powershell
+# Terminal 1 — ENGINE02（port 8002，真實商品庫）
+$env:ENGINE02_DEMO="1"; $env:ENGINE02_PUBLIC_BASE="http://localhost:8002/engine02"
+.venv-engine02\Scripts\python.exe -m uvicorn mcp_servers.catalog.main:app --port 8002
+
+# Terminal 2 — ENGINE01（port 8000）
+.venv\Scripts\python.exe -m uvicorn backend.engine01_intent.main:app --port 8000
+
+# Terminal 3 — 前端（port 3000）
+cd frontend
+npm run dev
+
+# Terminal 4 — 語音輸入（選用，只有按麥克風才需要）
+.venv\Scripts\python.exe -m uvicorn backend.whisper_transcription.main:app --host 127.0.0.1 --port 9000
+
+# Terminal 5 — 虛擬試穿（選用，只有「Try On」功能需要）
+$env:VIRTUAL_TRY_ON_PROVIDER="codex"
+.venv\Scripts\python.exe -m uvicorn backend.virtual_you.main:app --host 127.0.0.1 --port 8081
+```
+
+補充：
+- `ENGINE02_PUBLIC_BASE` 一定要帶 `/engine02` 路徑段——`mcp_servers.catalog.main:app` 是把整包 API 掛在這個前綴底下的，沒帶這段組出來的商品圖網址會 404。
+- 前端 `frontend/.env.local`（不會進 git）要對應補上：ENGINE01 用的 `NEXT_PUBLIC_API_BASE_URL`，虛擬試穿（Terminal 5）用的 `PERSON_EXTRACTION_SERVICE_URL`／`VIRTUAL_TRY_ON_SERVICE_URL`——沒設這兩個，試穿功能會自動退回 mock（直接回傳原圖）。
+- 虛擬試穿服務第一次呼叫 `/extract` 會下載一個約 973MB 的去背模型（`rembg` 的 `birefnet-portrait`）；語音服務第一次呼叫 `/transcribe` 會下載 Whisper `small` 模型——這兩個都建議提早 warm up，不要等到 demo 現場才第一次觸發下載。
+- ENGINE02 的商品目錄是服務啟動時讀一次、存進記憶體，不是每次請求都重讀——底層資料有更新的話要重啟 Terminal 1 才會生效；ENGINE01 不會快取 ENGINE02 的任何資料，不用跟著改。
 
 ## 交付項目清單（依競賽簡報）
 
