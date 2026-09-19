@@ -1,0 +1,9 @@
+# Hermes profile config — owned by Line 4.
+# Following the hermes-manager convention, provider and model are NOT hard-coded here;
+# each installer sets their own.
+#
+# Known pitfalls:
+# - Do not set image_gen.use_gateway: true. It overrides image_gen.provider and routes
+#   image generation to the Nous gateway.
+# - The image generation plugin must be enabled (plugins.enabled includes
+#   image_gen/openai-codex or image_gen/openai), otherwise no provider is registered.

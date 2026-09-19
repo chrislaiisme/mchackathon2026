@@ -209,7 +209,7 @@ def _remove_value(slot: Slot, value: str) -> bool:
 
 
 def apply_round(prev_req: Engine02Request, prev_resp: Engine02Response | None, fb: FeedbackRound,
-                kansei=None, max_steps: int = 3) -> HandshakeResult:
+                kansei=None, max_steps: int = 3, gain: int = 2) -> HandshakeResult:
     """Build the next `Engine02Request` from the previous one plus one round of ENGINE 03 ops.
 
     Pure function: `prev_req` is not mutated. Unknown design elements / attributes are reported in
@@ -258,9 +258,12 @@ def apply_round(prev_req: Engine02Request, prev_resp: Engine02Response | None, f
                 continue
             steps = req.feedback.design_adjust_steps
             before = steps.get(op.element, 0)
-            after = max(-max_steps, min(max_steps, before + int(op.step)))
+            # one explicit complaint moves the median slate by -0.019 z at gain 1 and -0.167 z at
+            # gain 2 (§3.38, 60 simulated shoppers); ENGINE 03 can only send ±1 so the gain is ours
+            after = max(-max_steps, min(max_steps, before + int(op.step) * int(gain)))
             steps[op.element] = after
-            note = f"每步 {getattr(kansei, 'step_size', 0.25)}；上限 ±{max_steps}"
+            note = (f"每步 {getattr(kansei, 'step_size', 0.25)}；一次回饋算 {gain} 步；"
+                    f"上限 ±{max_steps}")
             if after == before:
                 note += "（已達上限，未變動）"
             ledger.append(LedgerEntry(op="adjust", quote=op.quote, target=op.element,

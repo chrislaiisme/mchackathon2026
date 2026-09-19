@@ -1,0 +1,3 @@
+請直接呼叫 image_generate 工具，將附加圖片作為 reference image 執行編輯，不要重新描述或只回覆文字。完成後請回報產出檔案路徑。
+
+Using the provided reference image exactly as the base: change only the base fabric color from baby pink to lavender purple. Keep every other detail completely unchanged — the princess-cake silhouette, all rose-pink bows and their scalloped edges and trailing ribbon tails, the white lace trim throughout, the corset-style ribbon lacing through three bows on the front bodice, the white puff sleeves with lace cuffs, the white Peter Pan collar with ruffled lace edge, the three-tier skirt structure with heart-motif scalloped lace and the embroidered lace tier, the knee length, and the left-right symmetry. Do not change composition, camera angle, or add/remove any element.

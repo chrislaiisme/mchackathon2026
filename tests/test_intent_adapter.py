@@ -181,7 +181,7 @@ def test_a_specific_colour_word_is_not_flattened_to_its_family():
 
 
 def test_the_framework_service_layer_runs(monkeypatch):
-    """`backend/engine02_retrieval` is the seam the team's framework actually depends on."""
+    """`mcp_servers/catalog` is the seam the team's framework actually depends on."""
     monkeypatch.setenv("ENGINE02_ENCODER", "hash")
     monkeypatch.setenv("ENGINE02_LLM", "none")
     monkeypatch.setenv("ENGINE02_DEMO", "1")
@@ -298,3 +298,114 @@ def test_our_own_feedback_shape_still_passes_through(monkeypatch):
                          "excluded_item_ids": [shown[1]]}}).json()
         ids = [p["product_id"] for p in r["products"]]
         assert shown[1] not in ids, "an excluded item came back"
+
+
+def test_engine03_ops_are_applied_not_dropped(monkeypatch):
+    """ENGINE 03 runs in its own process, so 'call apply_round in-process' was never an option.
+
+    Without POST /handshake every op it emits vanishes at the boundary: the request still
+    succeeds and the cards still look reasonable, which is the worst way to lose feedback.
+    """
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        first = client.post("/rank", json={"session_id": "h", "retrieval_text": "white shirt",
+                                           "options": {"top_k": 5}}).json()
+        ids = [i["item_id"] for i in first["items"]]
+        fb = {"session_id": "h", "round": 1, "utterance": "太像上班族了",
+              "ops": [{"op": "exclude", "attribute": "color", "value": "Black", "quote": "不要黑色"},
+                      {"op": "adjust", "element": "formal_style", "step": -1},
+                      {"op": "choice", "shown_item_ids": ids, "chosen_item_id": ids[0]},
+                      {"op": "adjust", "element": "no_such_element", "step": 1}]}
+        r = client.post("/handshake", json={
+            "prev_request": {"session_id": "h", "retrieval_text": "white shirt"},
+            "prev_response": first, "feedback": fb})
+        assert r.status_code == 200, r.text[:200]
+        b = r.json()
+        nxt = b["next_request"]
+        assert nxt["round"] == 2
+        assert nxt["constraints"]["excluded_values"]["color"] == ["Black"]
+        # one explicit complaint is worth ArmConfig.adjust_gain steps (§3.38): at gain 1 the
+        # median slate moved -0.019 z, which is no movement at all
+        from engine02.config import ARMS
+
+        assert (nxt["feedback"]["design_adjust_steps"]["formal_style"]
+                == -ARMS["full_zclip3"].adjust_gain)
+        assert len(nxt["feedback"]["choice_history"]) == 1
+        # an element we do not have is reported, never silently dropped
+        assert any("no_such_element" in str(op) for op in b["rejected_ops"]), b["rejected_ops"]
+
+        # and the produced request is directly rankable
+        r2 = client.post("/rank", json=nxt)
+        assert r2.status_code == 200
+        assert not [i for i in r2.json()["items"] if str(i.get("color", "")).lower() == "black"]
+
+
+def test_a_feedback_round_sent_to_retrieve_is_not_silently_ignored(monkeypatch):
+    """If ENGINE 03 posts its FeedbackRound to /retrieve by mistake, say so."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        b = client.post("/retrieve", json={
+            "session_id": "x", "round": 2, "intent": {"item_type": "襯衫"},
+            "feedback": {"session_id": "x", "round": 1,
+                         "ops": [{"op": "exclude", "attribute": "color", "value": "Black"}]}}).json()
+        warnings = b["engine02"]["unresolved_from_intent"]
+        assert any("handshake" in w.lower() for w in warnings), warnings
+
+
+def test_engine03_ops_are_applied_by_retrieve_without_a_second_call(monkeypatch):
+    """ENGINE 03 returns a FeedbackRound; the orchestrator should not have to know that."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        r1 = client.post("/retrieve", json={"session_id": "ops", "round": 1,
+                                            "intent": {"item_type": "襯衫"}}).json()
+        ids = [p["product_id"] for p in r1["products"]]
+        r2 = client.post("/retrieve", json={
+            "session_id": "ops", "round": 2, "intent": {"item_type": "襯衫"},
+            "feedback": {"ops": [
+                {"op": "exclude", "attribute": "color", "value": "Black", "quote": "不要黑色"},
+                {"op": "adjust", "element": "formal_style", "step": -1},
+                {"op": "exclude_item", "item_ids": ids[:2]}]}}).json()
+        assert [e["op"] for e in r2["engine02"]["feedback_ledger"]] == \
+            ["exclude", "adjust", "exclude_item"]
+        assert not [p for p in r2["products"]
+                    if str(p["attributes"].get("color", "")).lower() == "black"]
+        assert not [p for p in r2["products"] if p["product_id"] in ids[:2]]
+
+
+def test_the_complaint_gain_is_a_measured_choice_with_a_control(monkeypatch):
+    """§3.38: at gain 1 one complaint moves the median slate -0.019 z, at gain 2 it moves -0.167 z.
+    The old behaviour is kept as an arm so the comparison stays runnable."""
+    from engine02.config import ARMS
+    from engine02.contracts import Engine02Request
+    from engine02.handshake import FeedbackRound, apply_round
+
+    assert ARMS["full_zclip3"].adjust_gain == 2
+    assert ARMS["full_zclip3_gain1"].adjust_gain == 1
+
+    req = Engine02Request(session_id="g", retrieval_text="shirt")
+    fb = FeedbackRound(session_id="g", round=1,
+                       ops=[{"op": "adjust", "element": "formal_style", "step": -1}])
+    loud = apply_round(req, None, fb, gain=2)
+    quiet = apply_round(req, None, fb, gain=1)
+    assert loud.request.feedback.design_adjust_steps["formal_style"] == -2
+    assert quiet.request.feedback.design_adjust_steps["formal_style"] == -1
+    # the ledger has to say how hard it pushed, or the number is unexplainable on a card
+    assert any("2 步" in str(e.model_dump()) for e in loud.ledger), loud.ledger

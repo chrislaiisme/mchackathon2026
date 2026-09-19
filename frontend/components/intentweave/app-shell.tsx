@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Settings, UserCircle } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Shirt, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
 import { authService } from "@/lib/services/auth";
@@ -147,6 +147,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     <UserCircle className="size-4" />
                     {t.nav.profile}
+                  </Link>
+                  <Link
+                    href="/dressing-room"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <Shirt className="size-4" />
+                    {t.nav.dressingRoom}
                   </Link>
                   <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
                     <Settings className="size-4" />
