@@ -28,5 +28,10 @@ requests
 # backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
 openai>=1.40
 
+# Local speech-to-text service. Defaults to Whisper small on CPU with int8
+# quantization; see backend/whisper_transcription/README.md.
+faster-whisper
+python-multipart
+
 # ENGINE01 -- offline test harness
 pytest

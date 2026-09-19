@@ -980,7 +980,7 @@ export function StylistExperience() {
           details: result?.details,
         });
 
-        if (result?.error === "missing_api_key") {
+        if (result?.error === "whisper_unavailable") {
           setVoiceError(t.stylist.voiceConfigError);
         } else if (
           result?.error === "invalid_audio" ||
@@ -988,10 +988,6 @@ export function StylistExperience() {
           result?.error === "transcription_empty"
         ) {
           setVoiceError(t.stylist.voiceInvalidAudioError);
-        } else if (result?.error === "openai_rate_limited") {
-          setVoiceError(t.stylist.voiceRateLimitError);
-        } else if (result?.error === "openai_quota_exceeded") {
-          setVoiceError(t.stylist.voiceQuotaError);
         } else {
           setVoiceError(t.stylist.voiceTranscriptionError);
         }
