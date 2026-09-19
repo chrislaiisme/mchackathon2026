@@ -1,0 +1,367 @@
+import type { FashionRecommendation, VirtualYouMeasurements, VirtualYouProfile } from "@/lib/types";
+
+const VIRTUAL_YOU_KEY = "intentweave.virtualYou";
+const VIRTUAL_YOU_DB = "intentweave.virtualYou.photos";
+const VIRTUAL_YOU_PHOTO_STORE = "photos";
+const VIRTUAL_YOU_DB_VERSION = 1;
+
+export const defaultVirtualYouImage =
+  "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&q=80";
+
+interface StoredVirtualYouProfile {
+  userId: string;
+  hasCustomPhoto: boolean;
+  hasExtractedPerson: boolean;
+  selectedDefaultModelUrl?: string;
+  isDefaultModel: boolean;
+  measurements: VirtualYouMeasurements;
+  processingMode: "mock" | "generated";
+  personBoundingBox?: VirtualYouProfile["personBoundingBox"];
+  updatedAt: string;
+}
+
+type LegacyVirtualYouProfile = Partial<StoredVirtualYouProfile> & {
+  modelImageUrl?: string;
+  sourceImageUrl?: string;
+};
+
+function isBrowser() {
+  return typeof window !== "undefined";
+}
+
+function isDataUrl(value: unknown): value is string {
+  return typeof value === "string" && value.startsWith("data:");
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const [header, data] = dataUrl.split(",");
+  const mime = header.match(/data:([^;]+)/)?.[1] || "application/octet-stream";
+  const binary = window.atob(data || "");
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: mime });
+}
+
+function toStoredProfile(userId: string, profile: LegacyVirtualYouProfile): StoredVirtualYouProfile {
+  const hasLegacyCustomPhoto = isDataUrl(profile.modelImageUrl) || isDataUrl(profile.sourceImageUrl);
+  const selectedDefaultModelUrl =
+    profile.selectedDefaultModelUrl ||
+    (profile.isDefaultModel && typeof profile.modelImageUrl === "string" && !isDataUrl(profile.modelImageUrl)
+      ? profile.modelImageUrl
+      : undefined);
+
+  return {
+    userId,
+    hasCustomPhoto: Boolean(profile.hasCustomPhoto || hasLegacyCustomPhoto),
+    hasExtractedPerson: Boolean(profile.hasExtractedPerson || profile.hasCustomPhoto || hasLegacyCustomPhoto),
+    selectedDefaultModelUrl,
+    isDefaultModel: Boolean(profile.isDefaultModel),
+    measurements: profile.measurements || {},
+    processingMode: profile.processingMode || "mock",
+    personBoundingBox: profile.personBoundingBox,
+    updatedAt: profile.updatedAt || new Date().toISOString(),
+  };
+}
+
+function readRawProfiles(): Record<string, LegacyVirtualYouProfile> {
+  if (!isBrowser()) {
+    return {};
+  }
+
+  const raw = window.localStorage.getItem(VIRTUAL_YOU_KEY);
+
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw) as Record<string, LegacyVirtualYouProfile>;
+  } catch {
+    window.localStorage.removeItem(VIRTUAL_YOU_KEY);
+    return {};
+  }
+}
+
+function writeMetadata(profiles: Record<string, StoredVirtualYouProfile>) {
+  window.localStorage.setItem(VIRTUAL_YOU_KEY, JSON.stringify(profiles));
+  window.dispatchEvent(new Event("intentweave-virtual-you-change"));
+}
+
+function openPhotoDb() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    if (!isBrowser() || !("indexedDB" in window)) {
+      reject(new Error("IndexedDB is not available in this browser."));
+      return;
+    }
+
+    const request = window.indexedDB.open(VIRTUAL_YOU_DB, VIRTUAL_YOU_DB_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+
+      if (!db.objectStoreNames.contains(VIRTUAL_YOU_PHOTO_STORE)) {
+        db.createObjectStore(VIRTUAL_YOU_PHOTO_STORE);
+      }
+    };
+    request.onerror = () => reject(request.error || new Error("Unable to open IndexedDB."));
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+async function withPhotoStore<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>) {
+  const db = await openPhotoDb();
+
+  return new Promise<T>((resolve, reject) => {
+    const transaction = db.transaction(VIRTUAL_YOU_PHOTO_STORE, mode);
+    const store = transaction.objectStore(VIRTUAL_YOU_PHOTO_STORE);
+    const request = action(store);
+
+    request.onerror = () => reject(request.error || new Error("Unable to access Virtual You photo storage."));
+    request.onsuccess = () => resolve(request.result);
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => {
+      db.close();
+      reject(transaction.error || new Error("Unable to access Virtual You photo storage."));
+    };
+  });
+}
+
+function originalPhotoKey(userId: string) {
+  return `${userId}:original`;
+}
+
+function extractedPersonKey(userId: string) {
+  return `${userId}:extracted-person`;
+}
+
+async function putPhoto(key: string, photo: Blob) {
+  await withPhotoStore("readwrite", (store) => store.put(photo, key));
+}
+
+async function getPhoto(key: string) {
+  return withPhotoStore<Blob | undefined>("readonly", (store) => store.get(key));
+}
+
+async function deletePhoto(key: string) {
+  await withPhotoStore("readwrite", (store) => store.delete(key));
+}
+
+async function deleteVirtualYouPhotos(userId: string) {
+  await Promise.all([
+    deletePhoto(userId),
+    deletePhoto(originalPhotoKey(userId)),
+    deletePhoto(extractedPersonKey(userId)),
+  ]);
+}
+
+async function migrateLegacyProfiles() {
+  const rawProfiles = readRawProfiles();
+  const migrated: Record<string, StoredVirtualYouProfile> = {};
+  let changed = false;
+
+  await Promise.all(
+    Object.entries(rawProfiles).map(async ([userId, profile]) => {
+      const stored = toStoredProfile(userId, profile);
+      const legacyPhoto = isDataUrl(profile.modelImageUrl)
+        ? profile.modelImageUrl
+        : isDataUrl(profile.sourceImageUrl)
+          ? profile.sourceImageUrl
+          : null;
+
+      if (legacyPhoto) {
+        changed = true;
+
+        try {
+          const legacyBlob = dataUrlToBlob(legacyPhoto);
+          await putPhoto(originalPhotoKey(userId), legacyBlob);
+          await putPhoto(extractedPersonKey(userId), legacyBlob);
+          stored.hasCustomPhoto = true;
+          stored.hasExtractedPerson = true;
+          stored.isDefaultModel = false;
+          stored.selectedDefaultModelUrl = undefined;
+        } catch {
+          stored.hasCustomPhoto = false;
+          stored.hasExtractedPerson = false;
+        }
+      }
+
+      if ("modelImageUrl" in profile || "sourceImageUrl" in profile) {
+        changed = true;
+      }
+
+      migrated[userId] = stored;
+    }),
+  );
+
+  if (changed) {
+    writeMetadata(migrated);
+  }
+
+  return migrated;
+}
+
+async function readMetadata() {
+  const migrated = await migrateLegacyProfiles();
+  return Object.keys(migrated).length ? migrated : (readRawProfiles() as Record<string, StoredVirtualYouProfile>);
+}
+
+function toRuntimeProfile(profile: StoredVirtualYouProfile, modelImageUrl: string, storageError?: string): VirtualYouProfile {
+  return {
+    ...profile,
+    modelImageUrl,
+    storageError,
+  };
+}
+
+export interface MockTryOnPreview {
+  id: string;
+  generatedImageUrl: string;
+  virtualYouImageUrl: string;
+  outfitImageUrl: string;
+  outfitName: string;
+  provider: "mock";
+}
+
+export const virtualYouService = {
+  async get(userId: string) {
+    const profile = (await readMetadata())[userId];
+
+    if (!profile) {
+      return null;
+    }
+
+    if (!profile.hasExtractedPerson) {
+      return toRuntimeProfile(profile, profile.selectedDefaultModelUrl || defaultVirtualYouImage);
+    }
+
+    try {
+      const photo = (await getPhoto(extractedPersonKey(userId))) || (await getPhoto(userId));
+
+      if (!photo) {
+        return toRuntimeProfile(profile, defaultVirtualYouImage, "Your saved Virtual You photo could not be found.");
+      }
+
+      return toRuntimeProfile(profile, URL.createObjectURL(photo));
+    } catch {
+      return toRuntimeProfile(profile, defaultVirtualYouImage, "Your saved Virtual You photo could not be loaded.");
+    }
+  },
+
+  createMockVirtualYou(photo: Blob) {
+    return {
+      photo,
+      provider: "mock" as const,
+      notes: [
+        "Preserve identity and facial cues",
+        "Preserve body proportions",
+        "Apply light photoreal editorial styling",
+      ],
+    };
+  },
+
+  async save(userId: string, photo: Blob | null, measurements: VirtualYouMeasurements) {
+    const existing = (await readMetadata())[userId];
+    const profiles = await readMetadata();
+    const processed = photo ? this.createMockVirtualYou(photo) : null;
+
+    if (processed) {
+      await putPhoto(originalPhotoKey(userId), processed.photo);
+      await putPhoto(extractedPersonKey(userId), processed.photo);
+    }
+
+    const next: StoredVirtualYouProfile = {
+      userId,
+      hasCustomPhoto: Boolean(photo || existing?.hasCustomPhoto),
+      hasExtractedPerson: Boolean(photo || existing?.hasExtractedPerson),
+      isDefaultModel: false,
+      measurements,
+      processingMode: processed?.provider || existing?.processingMode || "mock",
+      personBoundingBox: existing?.personBoundingBox,
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeMetadata({ ...profiles, [userId]: next });
+    return this.get(userId);
+  },
+
+  async saveExtractedPerson({
+    userId,
+    originalUserImage,
+    extractedPersonImage,
+    personBoundingBox,
+  }: {
+    userId: string;
+    originalUserImage: Blob;
+    extractedPersonImage: Blob;
+    personBoundingBox: NonNullable<VirtualYouProfile["personBoundingBox"]>;
+  }) {
+    console.log("[CreateYou] Persisting extracted person asset", {
+      originalUserImageSize: originalUserImage.size,
+      extractedPersonImageSize: extractedPersonImage.size,
+      personBoundingBox,
+    });
+
+    const profiles = await readMetadata();
+
+    await putPhoto(originalPhotoKey(userId), originalUserImage);
+    await putPhoto(extractedPersonKey(userId), extractedPersonImage);
+
+    const next: StoredVirtualYouProfile = {
+      userId,
+      hasCustomPhoto: true,
+      hasExtractedPerson: true,
+      isDefaultModel: false,
+      measurements: profiles[userId]?.measurements || {},
+      processingMode: "generated",
+      personBoundingBox,
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeMetadata({ ...profiles, [userId]: next });
+    console.log("[CreateYou] Extracted person asset saved");
+    return this.get(userId);
+  },
+
+  async useDefault(userId: string) {
+    const profiles = await readMetadata();
+    await deleteVirtualYouPhotos(userId);
+
+    const next: StoredVirtualYouProfile = {
+      userId,
+      hasCustomPhoto: false,
+      hasExtractedPerson: false,
+      selectedDefaultModelUrl: defaultVirtualYouImage,
+      isDefaultModel: true,
+      measurements: {},
+      processingMode: "mock",
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeMetadata({ ...profiles, [userId]: next });
+    return this.get(userId);
+  },
+
+  async reset(userId: string) {
+    const profiles = await readMetadata();
+    delete profiles[userId];
+    await deleteVirtualYouPhotos(userId);
+    writeMetadata(profiles);
+  },
+
+  generateVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): MockTryOnPreview {
+    const virtualYouImageUrl = profile?.modelImageUrl || defaultVirtualYouImage;
+
+    return {
+      id: `mock-try-on-${Date.now()}`,
+      generatedImageUrl: virtualYouImageUrl,
+      virtualYouImageUrl,
+      outfitImageUrl: outfit.imageUrl,
+      outfitName: outfit.name,
+      provider: "mock",
+    };
+  },
+};
