@@ -273,8 +273,8 @@ function MessageBlock({
 }
 
 interface CreateYouApiErrorDetails {
-  openaiStatus?: number;
-  openaiBody?: string;
+  extractionStatus?: number;
+  extractionBody?: string;
   message?: string;
 }
 
@@ -327,17 +327,6 @@ class CreateYouError extends Error {
 
 function getCreateYouErrorCode(error: unknown) {
   return error instanceof CreateYouError ? error.message : error instanceof Error ? error.message : "image_processing_failed";
-}
-
-function base64ToBlob(base64: string, type = "image/png") {
-  const binary = window.atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type });
 }
 
 function getItemSlot(item: FashionRecommendation): "topOrDress" | "bottom" {
@@ -786,31 +775,19 @@ function ConversationRecommendation({
 
 async function removeBackground(originalUserImage: File) {
   console.log("[CreateYou] Starting segmentation/background removal");
-  const formData = new FormData();
-  formData.append("image", originalUserImage, originalUserImage.name || "create-you-source.jpg");
+  const { extractedPersonImage: personMask } = await virtualYouService.extractPerson(originalUserImage).catch((error) => {
+    console.error("[CreateYou] Backend extraction failed", error);
+    const details =
+      error instanceof Error && "details" in error && typeof error.details === "object"
+        ? (error.details as CreateYouApiErrorDetails)
+        : undefined;
 
-  console.log("[CreateYou] Calling backend: /api/virtual-you/extract");
-  const response = await fetch("/api/virtual-you/extract", {
-    method: "POST",
-    body: formData,
+    throw new CreateYouError(error instanceof Error ? error.message : "background_removal_failed", details);
   });
-  console.log("[CreateYou] Backend response status:", response.status);
 
-  const result = (await response.json().catch((error) => {
-    console.error("[CreateYou] Failed to parse backend response", error);
-    return null;
-  })) as { imageBase64?: string; error?: string; details?: CreateYouApiErrorDetails } | null;
-
-  if (!response.ok || !result?.imageBase64) {
-    console.error("[CreateYou] Backend extraction failed", result);
-    throw new CreateYouError(result?.error || "background_removal_failed", result?.details);
-  }
-
-  const personMask = base64ToBlob(result.imageBase64, "image/png");
   console.log("[CreateYou] Segmentation result:", {
     type: personMask.type,
     size: personMask.size,
-    imageBase64Length: result.imageBase64.length,
   });
 
   return personMask;
@@ -1384,6 +1361,7 @@ export function StylistExperience() {
   const recordingTimerRef = useRef<number | null>(null);
   const shouldFollowRef = useRef(true);
   const virtualYouObjectUrlRef = useRef<string | null>(null);
+  const tryOnObjectUrlRef = useRef<string | null>(null);
 
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
   const activeTryOnItems = useMemo(
@@ -1391,15 +1369,7 @@ export function StylistExperience() {
     [tryOnState],
   );
   const activeTryOnItemIds = useMemo(() => activeTryOnItems.map((item) => item.id), [activeTryOnItems]);
-  const activeTryOnOverlays = useMemo<TryOnOverlay[]>(
-    () =>
-      activeTryOnItems.map((item) => ({
-        id: item.id,
-        imageUrl: item.imageUrl,
-        slot: getItemSlot(item),
-      })),
-    [activeTryOnItems],
-  );
+  const activeTryOnOverlays = useMemo<TryOnOverlay[]>(() => [], []);
   const primaryActiveTryOnItemId = activeTryOnItemIds[activeTryOnItemIds.length - 1] || null;
 
   const replaceVirtualYou = useCallback((nextProfile: VirtualYouProfile | null) => {
@@ -1414,6 +1384,18 @@ export function StylistExperience() {
     setVirtualYou(nextProfile);
     setVirtualYouStorageError(nextProfile?.storageError ? t.virtualYou.loadError : "");
   }, [t.virtualYou.loadError]);
+
+  const replaceActiveTryOnImage = useCallback((nextImageUrl: string | null) => {
+    const previousObjectUrl = tryOnObjectUrlRef.current;
+    const nextObjectUrl = nextImageUrl?.startsWith("blob:") ? nextImageUrl : null;
+
+    if (previousObjectUrl && previousObjectUrl !== nextObjectUrl) {
+      URL.revokeObjectURL(previousObjectUrl);
+    }
+
+    tryOnObjectUrlRef.current = nextObjectUrl;
+    setActiveTryOnImage(nextImageUrl);
+  }, []);
 
   const refreshConversations = useCallback(async () => {
     const user = authService.getSession();
@@ -1461,6 +1443,10 @@ export function StylistExperience() {
 
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
+      }
+
+      if (tryOnObjectUrlRef.current) {
+        URL.revokeObjectURL(tryOnObjectUrlRef.current);
       }
     };
   }, [refreshConversations]);
@@ -1900,7 +1886,7 @@ export function StylistExperience() {
       const virtualYouAssets = await uploadUserPhoto(file);
       replaceVirtualYou(await saveCreateYou(virtualYouAssets));
       setTryOnState({ topOrDress: null, bottom: null });
-      setActiveTryOnImage(null);
+      replaceActiveTryOnImage(null);
       setStyledMessage(null);
       setTryOnStatus("idle");
       setTryOnError("");
@@ -1917,7 +1903,12 @@ export function StylistExperience() {
         setCreateYouError(t.virtualYou.extractionConfigError);
       } else if (code === "invalid_image") {
         setCreateYouError(t.virtualYou.invalidImageError);
-      } else if (code === "openai_request_failed" || code === "openai_response_missing_image") {
+      } else if (
+        code === "extraction_request_failed" ||
+        code === "extraction_response_missing_image" ||
+        code === "openai_request_failed" ||
+        code === "openai_response_missing_image"
+      ) {
         setCreateYouError(t.virtualYou.openAiExtractionError);
       } else if (code === "no_person_detected") {
         setCreateYouError(t.virtualYou.noPersonDetected);
@@ -1961,7 +1952,7 @@ export function StylistExperience() {
 
     if (wearableItems.length === 0) {
       setTryOnState(nextState);
-      setActiveTryOnImage(null);
+      replaceActiveTryOnImage(null);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
       setTryOnError("");
@@ -1971,18 +1962,18 @@ export function StylistExperience() {
     setTryOnStatus("generating");
     setTryOnError("");
     setTryOnState(nextState);
-    setActiveTryOnImage(null);
+    replaceActiveTryOnImage(null);
     setStyledMessage(null);
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
-      const preview = virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
-      setActiveTryOnImage(preview.generatedImageUrl);
+      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
+      replaceActiveTryOnImage(preview.generatedImageUrl);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
     } catch {
       setTryOnState({ topOrDress: null, bottom: null });
-      setActiveTryOnImage(null);
+      replaceActiveTryOnImage(null);
       setStyledMessage(null);
       setTryOnStatus("error");
       setTryOnError(t.virtualYou.tryOnError);

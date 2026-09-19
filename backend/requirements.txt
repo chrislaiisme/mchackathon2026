@@ -23,6 +23,7 @@ python-multipart
 # requests is google-auth's HTTP transport, not pulled in automatically.
 google-auth
 requests
+pillow
 
 # ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
 # backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
@@ -31,7 +32,10 @@ openai>=1.40
 # Local speech-to-text service. Defaults to Whisper small on CPU with int8
 # quantization; see backend/whisper_transcription/README.md.
 faster-whisper
-python-multipart
+
+# Virtual You / Create You — local background removal service.
+rembg
+onnxruntime
 
 # ENGINE01 -- offline test harness
 pytest

@@ -1,8 +1,7 @@
 export const runtime = "nodejs";
 
-const OPENAI_IMAGE_EDIT_URL = "https://api.openai.com/v1/images/edits";
-const IMAGE_EDIT_MODEL = "gpt-image-1";
 const isDevelopment = process.env.NODE_ENV !== "production";
+const DEFAULT_EXTRACTION_SERVICE_URL = "http://127.0.0.1:8081/extract";
 
 function errorResponse(error: string, status: number, details?: Record<string, unknown>) {
   return Response.json(
@@ -15,15 +14,10 @@ function errorResponse(error: string, status: number, details?: Record<string, u
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const extractionServiceUrl = process.env.PERSON_EXTRACTION_SERVICE_URL || DEFAULT_EXTRACTION_SERVICE_URL;
 
   console.log("[CreateYou API] Request received");
-  console.log("[CreateYou API] OPENAI_API_KEY exists:", Boolean(apiKey));
-
-  if (!apiKey) {
-    console.error("[CreateYou API] Missing OPENAI_API_KEY");
-    return errorResponse("missing_api_key", 503);
-  }
+  console.log("[CreateYou API] Extraction service:", extractionServiceUrl);
 
   try {
     const formData = await request.formData();
@@ -37,71 +31,69 @@ export async function POST(request: Request) {
       return errorResponse("invalid_image", 400);
     }
 
+    const baseImageFormData = new FormData();
+    baseImageFormData.append("image", image, image.name || "create-you-source.png");
+
     console.log("[CreateYou API] Image received", {
       name: image.name,
       type: image.type,
       size: image.size,
     });
 
-    const extractionFormData = new FormData();
-    extractionFormData.append("model", IMAGE_EDIT_MODEL);
-    extractionFormData.append("image", image, image.name || "create-you-source.png");
-    extractionFormData.append("background", "transparent");
-    extractionFormData.append("output_format", "png");
-    extractionFormData.append("size", "1024x1536");
-    extractionFormData.append(
-      "prompt",
-      [
-        "Detect the primary human subject in this photo.",
-        "Remove all scenery, furniture, sky, ground, buildings, and other background objects.",
-        "Return only the person on a transparent background as a realistic fashion-editorial cutout.",
-        "Preserve the person's face, hair, body proportions, pose, limbs, shoes, clothing silhouette, and attached accessories.",
-        "Do not add a background, caption, frame, mannequin, cartoon style, or 3D avatar styling.",
-      ].join(" "),
-    );
-
-    console.log("[CreateYou API] Calling OpenAI", {
-      endpoint: OPENAI_IMAGE_EDIT_URL,
-      model: IMAGE_EDIT_MODEL,
-    });
-
-    const response = await fetch(OPENAI_IMAGE_EDIT_URL, {
+    console.log("[CreateYou API] Calling extraction service");
+    const response = await fetch(extractionServiceUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: extractionFormData,
+      body: baseImageFormData,
     });
 
-    console.log("[CreateYou API] OpenAI status:", response.status);
+    console.log("[CreateYou API] Extraction service status:", response.status);
 
     if (!response.ok) {
       const responseText = await response.text().catch(() => "");
-      console.error("[CreateYou API] OpenAI request failed", {
+      let parsedBody: unknown = null;
+
+      try {
+        parsedBody = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        parsedBody = null;
+      }
+
+      console.error("[CreateYou API] Extraction service failed", {
+        url: extractionServiceUrl,
         status: response.status,
         body: responseText.slice(0, 1200),
+        parsedBody,
       });
-      return errorResponse("openai_request_failed", 502, {
-        openaiStatus: response.status,
-        openaiBody: responseText.slice(0, 1200),
-      });
-    }
-
-    const result = (await response.json()) as { data?: Array<{ b64_json?: unknown }> };
-    const imageBase64 = result.data?.find((item) => typeof item.b64_json === "string")?.b64_json;
-
-    if (typeof imageBase64 !== "string") {
-      console.error("[CreateYou API] OpenAI response missing image data", {
-        hasData: Array.isArray(result.data),
-        dataLength: result.data?.length || 0,
-      });
-      return errorResponse("openai_response_missing_image", 502, {
-        hasData: Array.isArray(result.data),
-        dataLength: result.data?.length || 0,
+      return errorResponse("extraction_request_failed", 502, {
+        extractionStatus: response.status,
+        extractionUrl: extractionServiceUrl,
+        extractionBody: responseText.slice(0, 1200),
+        extractionParsedBody: parsedBody,
+        hint:
+          response.status === 422
+            ? "FastAPI rejected the multipart form. Verify PERSON_EXTRACTION_SERVICE_URL points to /extract and the endpoint expects field name image."
+            : undefined,
       });
     }
 
-    console.log("[CreateYou API] OpenAI response received", {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const result = (await response.json()) as { imageBase64?: unknown };
+      const imageBase64 = result.imageBase64;
+
+      if (typeof imageBase64 !== "string") {
+        console.error("[CreateYou API] Extraction response missing image data");
+        return errorResponse("extraction_response_missing_image", 502);
+      }
+
+      return Response.json({ imageBase64 });
+    }
+
+    const imageBytes = Buffer.from(await response.arrayBuffer());
+    const imageBase64 = imageBytes.toString("base64");
+
+    console.log("[CreateYou API] Extraction response received", {
       imageBase64Length: imageBase64.length,
     });
 
