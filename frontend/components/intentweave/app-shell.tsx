@@ -24,6 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const isLogin = pathname === "/login";
+  const isOnboarding = pathname === "/onboarding";
 
   useEffect(() => {
     function syncSession() {
@@ -51,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.replace("/login");
   }
 
-  if (isLogin) {
+  if (isLogin || isOnboarding) {
     return <main className="min-h-screen">{children}</main>;
   }
 

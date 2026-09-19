@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/lib/services/auth";
+import { onboardingService } from "@/lib/services/onboarding";
 
 function GoogleIcon() {
   return (
@@ -37,7 +38,7 @@ export function LoginExperience() {
 
   useEffect(() => {
     if (authService.getSession()) {
-      router.replace("/stylist");
+      router.replace(onboardingService.isCompleted() ? "/stylist" : "/onboarding");
     }
   }, [router]);
 
@@ -53,7 +54,7 @@ export function LoginExperience() {
     setIsSigningIn(true);
     window.setTimeout(() => {
       authService.signInWithGoogle();
-      router.replace("/stylist");
+      router.replace(onboardingService.isCompleted() ? "/stylist" : "/onboarding");
     }, 420);
   }
 

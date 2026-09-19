@@ -9,6 +9,7 @@ import { useI18n } from "@/components/intentweave/i18n-provider";
 import { createStylistReply } from "@/lib/mock/stylist";
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
+import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
 import {
   defaultVirtualYouImage,
   virtualYouService,
@@ -570,6 +571,7 @@ function CreateYouSection({
 function StylePanel({
   signals,
   feedbackCount,
+  styleProfile,
   virtualYou,
   createYouProcessing,
   createYouError,
@@ -583,6 +585,7 @@ function StylePanel({
 }: {
   signals: PreferenceSignal[];
   feedbackCount: number;
+  styleProfile: OnboardingProfile | null;
   virtualYou: VirtualYouProfile | null;
   createYouProcessing: boolean;
   createYouError: string;
@@ -595,7 +598,9 @@ function StylePanel({
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
 }) {
   const { t } = useI18n();
-  const topSignals = signals.filter((signal) => signal.direction !== "down").slice(0, 4);
+  const topSignals = styleProfile?.styles.length
+    ? styleProfile.styles.slice(0, 4).map((style) => ({ label: style }))
+    : signals.filter((signal) => signal.direction !== "down").slice(0, 4);
   const message =
     feedbackCount > 0
       ? t.stylist.likedSignals
@@ -795,6 +800,7 @@ export function StylistExperience() {
   const [voiceElapsedSeconds, setVoiceElapsedSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
   const [virtualYou, setVirtualYou] = useState<VirtualYouProfile | null>(null);
+  const [styleProfile, setStyleProfile] = useState<OnboardingProfile | null>(null);
   const [virtualYouModalOpen, setVirtualYouModalOpen] = useState(false);
   const [virtualYouStorageError, setVirtualYouStorageError] = useState("");
   const [createYouProcessing, setCreateYouProcessing] = useState(false);
@@ -850,6 +856,7 @@ export function StylistExperience() {
 
     setConversations(list);
     setActiveId(nextActiveId);
+    setStyleProfile(onboardingService.getProfile());
     replaceVirtualYou(await virtualYouService.get(user.id));
   }, [replaceVirtualYou, router]);
 
@@ -865,11 +872,13 @@ export function StylistExperience() {
     window.addEventListener("intentweave-conversations-change", handleChange);
     window.addEventListener("intentweave-auth-change", handleChange);
     window.addEventListener("intentweave-virtual-you-change", handleChange);
+    window.addEventListener("intentweave-onboarding-change", handleChange);
 
     return () => {
       window.removeEventListener("intentweave-conversations-change", handleChange);
       window.removeEventListener("intentweave-auth-change", handleChange);
       window.removeEventListener("intentweave-virtual-you-change", handleChange);
+      window.removeEventListener("intentweave-onboarding-change", handleChange);
 
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
@@ -1423,6 +1432,7 @@ export function StylistExperience() {
       <StylePanel
         signals={signals}
         feedbackCount={Object.keys(feedback).length}
+        styleProfile={styleProfile}
         virtualYou={virtualYou}
         createYouProcessing={createYouProcessing}
         createYouError={createYouError}
