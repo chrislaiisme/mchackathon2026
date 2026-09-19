@@ -13,14 +13,14 @@ const AGE_OPTIONS = ["18-24", "25-34", "35-44", "45+"];
 const GENDER_OPTIONS = ["Woman", "Man", "Non-binary", "Prefer not to say"];
 const CONTEXT_OPTIONS = ["Work", "School", "Going out", "Dates", "Travel", "Active"];
 const STYLE_OPTIONS = [
-  { name: "Minimal", gradient: "from-stone-100 via-stone-200 to-zinc-100" },
-  { name: "Casual", gradient: "from-sky-50 via-stone-100 to-indigo-100" },
-  { name: "Streetwear", gradient: "from-zinc-200 via-neutral-100 to-violet-100" },
-  { name: "Elegant", gradient: "from-[#f9f4ee] via-[#eee6df] to-[#f4edf8]" },
-  { name: "Sporty", gradient: "from-[#eef5ee] via-[#f5f6f1] to-[#e9eef8]" },
-  { name: "Romantic", gradient: "from-rose-50 via-[#f8f1f5] to-[#efe8f8]" },
-  { name: "Vintage", gradient: "from-[#f3ede4] via-[#eee3d5] to-[#f8f5ef]" },
-  { name: "Y2K", gradient: "from-[#edf5ff] via-[#f7efff] to-[#f5f7fb]" },
+  { name: "Minimal", gradient: "from-stone-100 via-stone-200 to-zinc-100", imageUrl: "/onboarding/styles/minimal.png" },
+  { name: "Casual", gradient: "from-sky-50 via-stone-100 to-indigo-100", imageUrl: "/onboarding/styles/casual.png" },
+  { name: "Streetwear", gradient: "from-zinc-200 via-neutral-100 to-violet-100", imageUrl: "/onboarding/styles/streetwear.png" },
+  { name: "Elegant", gradient: "from-[#f9f4ee] via-[#eee6df] to-[#f4edf8]", imageUrl: "/onboarding/styles/elegant.png" },
+  { name: "Sporty", gradient: "from-[#eef5ee] via-[#f5f6f1] to-[#e9eef8]", imageUrl: "/onboarding/styles/sporty.png" },
+  { name: "Romantic", gradient: "from-rose-50 via-[#f8f1f5] to-[#efe8f8]", imageUrl: "/onboarding/styles/romantic.png" },
+  { name: "Vintage", gradient: "from-[#f3ede4] via-[#eee3d5] to-[#f8f5ef]", imageUrl: "/onboarding/styles/vintage.png" },
+  { name: "Y2K", gradient: "from-[#edf5ff] via-[#f7efff] to-[#f5f7fb]", imageUrl: "/onboarding/styles/y2k.png" },
 ];
 
 const initialProfile: OnboardingProfile = {
@@ -59,16 +59,21 @@ function SelectionButton({
 function StyleCard({
   name,
   gradient,
+  imageUrl,
   selected,
   disabled,
   onClick,
 }: {
   name: string;
   gradient: string;
+  imageUrl?: string;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = Boolean(imageUrl && !imageFailed);
+
   return (
     <button
       type="button"
@@ -81,10 +86,25 @@ function StyleCard({
       )}
     >
       <div className={cn("relative aspect-[4/5] bg-gradient-to-br", gradient)}>
-        <div className="absolute inset-4 border border-white/60 bg-white/15" />
-        <div className="absolute bottom-5 left-5 h-20 w-12 border border-white/70 bg-white/20" />
-        <div className="absolute right-5 top-5 h-24 w-16 border border-foreground/10 bg-card/25" />
-        <div className="absolute inset-0 bg-background/0 transition duration-500 group-hover:scale-[1.02]" />
+        {hasImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 size-full object-cover transition duration-500 group-hover:scale-[1.02]"
+            onError={() => setImageFailed(true)}
+          />
+        )}
+        {hasImage && <div className="absolute inset-0 bg-gradient-to-t from-background/18 to-transparent" />}
+        {!hasImage && (
+          <>
+            <div className="absolute inset-4 border border-white/60 bg-white/15" />
+            <div className="absolute bottom-5 left-5 h-20 w-12 border border-white/70 bg-white/20" />
+            <div className="absolute right-5 top-5 h-24 w-16 border border-foreground/10 bg-card/25" />
+          </>
+        )}
+        <div className="absolute inset-0 bg-background/0 transition duration-500" />
         {selected && (
           <span className="absolute right-3 top-3 inline-flex size-7 items-center justify-center border border-primary bg-card text-primary">
             <Check className="size-4" />
@@ -247,6 +267,7 @@ function StylePreferenceStep({
               key={style.name}
               name={style.name}
               gradient={style.gradient}
+              imageUrl={style.imageUrl}
               selected={selected}
               disabled={!selected && profile.styles.length >= 4}
               onClick={() => toggleStyle(style.name)}

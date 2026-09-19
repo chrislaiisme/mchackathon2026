@@ -45,7 +45,8 @@ export function LoginExperience() {
 
   useEffect(() => {
     if (authService.getSession()) {
-      router.replace(onboardingService.isCompleted() ? "/stylist" : "/onboarding");
+      const user = authService.getSession();
+      router.replace(user && onboardingService.isCompleted(user.id) ? "/stylist" : "/onboarding");
     }
   }, [router]);
 
@@ -61,8 +62,8 @@ export function LoginExperience() {
       setIsSigningIn(true);
       setAuthError(null);
       try {
-        await authService.signInWithGoogle(response.credential);
-        router.replace(onboardingService.isCompleted() ? "/stylist" : "/onboarding");
+        const user = await authService.signInWithGoogle(response.credential);
+        router.replace(onboardingService.isCompleted(user.id) ? "/stylist" : "/onboarding");
       } catch (error) {
         console.error("[login] Google 登入後呼叫後端失敗：", error);
         setAuthError("登入失敗，請確認 ENGINE01 後端服務是否已啟動，或稍後再試一次。");
