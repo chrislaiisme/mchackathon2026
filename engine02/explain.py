@@ -35,7 +35,8 @@ def template_reasons(
     # the pipeline has already decided (and capped) which terms are displayed
     need_labels = {**need_labels, "feedback_adjust": "你上一輪的回饋",
                    "external_prior": "外部趨勢／企劃偏好（非你本人的輸入）",
-                   "profile_prior": "你開場挑的偏好"}
+                   "profile_prior": "你開場挑的偏好",
+                   "stated_design": "你這句話裡說的"}
     cited = [c for c in contribs if c.cited and c.contribution > 0]
     cited.sort(key=lambda c: -c.contribution)
     reasons, facts = [], []
@@ -49,7 +50,19 @@ def template_reasons(
             # "lacks d and d is unwanted" — the sentence must say which
             avoids = c.weight < 0
             phrase = f"避開{label}" if avoids else label
-            text = f"{phrase}（+{c.contribution:.2f}）" + (f"，對應你想要的「{serves}」" if serves else "")
+            # the meta-sources are not needs, so "對應你想要的「你這句話裡說的」" reads as nonsense;
+            # they are provenance and the sentence should say where the weight came from
+            sources = [n for n, v in top_needs
+                       if v > 0 and n in ("stated_design", "feedback_adjust", "profile_prior",
+                                          "external_prior")]
+            needs_only = "、".join(need_labels.get(n, n) for n, v in top_needs
+                                   if v > 0 and n not in sources)
+            tail = ""
+            if needs_only:
+                tail = f"，對應你想要的「{needs_only}」"
+            elif sources:
+                tail = f"（{need_labels.get(sources[0], sources[0])}）"
+            text = f"{phrase}（+{c.contribution:.2f}）" + tail
             facts.append({"type": "design", "label": label, "direction": "avoids" if avoids else "has",
                           "contribution": round(c.contribution, 2),
                           "serves_needs": [need_labels.get(n, n) for n, v in top_needs if v > 0]})
