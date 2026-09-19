@@ -163,6 +163,9 @@ export function conceptCellsToRecommendations(
       attributes: Object.values(cell.keywords),
       priceBand: "",
       confidence: 0,
+      // 這些是生出來的，商品庫裡沒有。前端靠這個旗標決定圖片用 contain 不裁切
+      // （白底平拍圖，cover 會把袖子褲管切掉）、以及卡片標「非商品庫」而不是 % match。
+      generated: true,
       ...(zone ? { itemType: zone } : {}),
     }));
 }

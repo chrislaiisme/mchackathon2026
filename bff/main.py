@@ -21,8 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, model_validator
 
-from bff.images.concept import (GENERATED_ROOT, ConceptImageUnavailable, generate_concept_pair,
-                                generate_concepts)
+from bff.images.concept import GENERATED_ROOT, ConceptImageUnavailable, generate_concepts
 from bff.images.outfit_pair import OutfitPairUnavailable, pair_outfit
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
@@ -108,36 +107,6 @@ def _shown_item_ids(retrieval: dict[str, Any]) -> list[str]:
             if value not in ids:
                 ids.append(value)
     return ids
-
-
-def _register_pair(s: Session, slots: dict[str, Any]) -> dict[str, Any]:
-    """TOP／BOTTOM 兩組一起登記。
-
-    不能直接對兩組各呼叫一次 _register_generated_items：那支用 cell index 組 id，
-    兩組的 index 都是 1..6 會整組互撞，而且它每次都覆寫 shown_generated_item_ids，
-    後登記的會把前一組蓋掉。這裡把 slot 放進 id 並累加兩組的清單。
-    """
-    shown: list[str] = []
-    for slot, out in (slots or {}).items():
-        if not isinstance(out, dict) or "error" in out:
-            continue
-        for cell in out.get("cells") or []:
-            index = cell.get("index")
-            if index is None:
-                continue
-            item_id = f"generated:{s.session_id}:r{s.round}:{slot}-cell-{index}"
-            cell["generated_item_id"] = item_id
-            cell["source"] = "generated"
-            s.generated_items[item_id] = {
-                "item_id": item_id,
-                "round": s.round,
-                "slot": slot,
-                "image_url": cell.get("image_url"),
-                "design_attributes": dict(cell.get("design_attributes") or {}),
-            }
-            shown.append(item_id)
-    s.shown_generated_item_ids = shown
-    return slots
 
 
 def _register_generated_items(s: Session, generated: dict[str, Any]) -> dict[str, Any]:
@@ -341,8 +310,6 @@ class ConceptImageRequest(BaseModel):
     """生圖模型，省略用 generate_grid.py 的預設。"""
     dry_run: bool = False
     """只組 prompt 與 manifest，不生圖、不花額度。開發時先用這個。"""
-    pair: bool = False
-    """True = TOP 與 BOTTOM 各生一張六格（並行），回傳 slots；False = 只生 intent 那一類。"""
 
 
 @app.post("/concept-image")
@@ -367,15 +334,10 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
 
     activity: list[dict[str, Any]] = []
     t0 = time.time()
-    step = "images.concepts.pair" if body.pair else "images.concepts"
+    step = "images.concepts"
     try:
-        if body.pair:
-            slots = generate_concept_pair(session_id, round_no, intent,
-                                          cells=body.cells, model=body.model, dry_run=body.dry_run)
-        else:
-            slots = None
-            out = generate_concepts(session_id, round_no, intent,
-                                    cells=body.cells, model=body.model, dry_run=body.dry_run)
+        out = generate_concepts(session_id, round_no, intent,
+                                cells=body.cells, model=body.model, dry_run=body.dry_run)
     except ConceptImageUnavailable as exc:
         activity.append({"step": step, "ms": int((time.time() - t0) * 1000),
                          "ok": False, "error": str(exc)[:200]})
@@ -389,11 +351,6 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
     # 這些 id 才知道使用者按讚的是哪一格、那一格變動了什麼屬性。前端直接帶 intent
     # 進來的那條路沒有 session 可以登記，跳過即可——那條路本來就不走回饋迴路。
     session = None if body.intent else _SESSIONS.get(session_id)
-
-    if body.pair:
-        if session is not None and not body.dry_run:
-            slots = _register_pair(session, slots)
-        return {"session_id": session_id, "round": round_no, "slots": slots, "activity": activity}
 
     if session is not None:
         if not body.dry_run:

@@ -22,7 +22,6 @@ import re
 import subprocess
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Optional
 
@@ -137,98 +136,6 @@ def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
         # 版面不等分但格數正確時會是 True；六格仍然可用，只是不是等分版面。
         "layout_forced": forced,
     }
-
-
-# --- TOP / BOTTOM 兩件一起生 -------------------------------------------------
-
-# ENGINE 01 的 intent 只講一個 item_type。使用者按 Design for Me 要的是「上身跟
-# 下身都給我幾件 AI 的選擇」，所以另外那一格用一個通用品項補上——這兩個詞在
-# engine02 的分類體系裡分別對到 tops / bottoms 這兩個最上層節點。
-SLOT_FALLBACK_ITEM_TYPE = {"top": "上衣", "bottom": "褲子"}
-
-
-def slot_of(item_type: Optional[str]) -> Optional[str]:
-    """「牛仔褲」→ "bottom"。翻不出來回 None。
-
-    走 agent/scripts 的 english_item_type（背後是 engine02 的分類體系），不要自己
-    另外寫一張同義詞表——那樣會跟檢索那條線講不同的話。
-    """
-    if not item_type:
-        return None
-    scripts = str(ROOT / "agent" / "scripts")
-    if scripts not in sys.path:
-        sys.path.insert(0, scripts)
-    try:
-        from grid_common import english_item_type  # type: ignore[import-not-found]
-        _, node_id = english_item_type(item_type)
-    except Exception:
-        return None
-    if not node_id:
-        return None
-    return {"tops": "top", "bottoms": "bottom", "dresses": "dress"}.get(node_id.split(".")[0])
-
-
-def plan_slots(intent: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    """要生哪幾個 slot、各自用什麼 intent。
-
-    使用者說的那一類保持原樣（連同顏色、材質、版型一起帶著），另一類換成通用品項。
-    洋裝是自成一格的品項，不需要再配一件下身，所以只生它自己。
-    """
-    own = slot_of(intent.get("item_type"))
-
-    if own == "dress":
-        # 洋裝在前端跟上衣共用同一個輪播（topOrDressCandidates）。
-        return {"top": intent}
-
-    plan: dict[str, dict[str, Any]] = {}
-    for slot in ("top", "bottom"):
-        plan[slot] = intent if slot == own else _companion_intent(intent, SLOT_FALLBACK_ITEM_TYPE[slot])
-    return plan
-
-
-# 使用者說「深色的寬鬆牛仔褲」時，深色／牛仔布／寬鬆講的是那件褲子，不是要配的上衣。
-# 這些欄位只跟被點名的那件單品有關，換到另一格就要丟掉，否則會生出「深色牛仔布上衣」。
-_GARMENT_SPECIFIC_FIELDS = ("colors", "material", "fit", "pattern", "collar", "length", "notes")
-
-
-def _companion_intent(intent: dict[str, Any], item_type: str) -> dict[str, Any]:
-    """另一格要用的 intent：換品項，保留場合／季節／風格這種整套共用的脈絡。"""
-    companion = {k: v for k, v in intent.items() if k not in _GARMENT_SPECIFIC_FIELDS}
-    companion["item_type"] = item_type
-    companion["inferred_fields"] = list(intent.get("inferred_fields") or [])
-    return companion
-
-
-def generate_concept_pair(session_id: str, round_no: int, intent: dict[str, Any],
-                          cells: int = 6, model: Optional[str] = None,
-                          dry_run: bool = False) -> dict[str, Any]:
-    """TOP 與 BOTTOM 各一張六格拼圖，兩張同時發出去。
-
-    一張要 26–48 秒，串著跑就是兩分鐘，現場撐不住；兩張並行大約等於一張的時間。
-    用執行緒而不是 async 是因為底下是 subprocess.run，等的時候本來就放掉 GIL。
-
-    其中一邊失敗不讓整個請求掛掉——另一邊的六件仍然可用，失敗的那格回 error。
-    """
-    plan = plan_slots(intent)
-
-    with ThreadPoolExecutor(max_workers=len(plan)) as pool:
-        futures = {
-            slot: pool.submit(generate_concepts, session_id, round_no, slot_intent,
-                              cells, model, dry_run, slot)
-            for slot, slot_intent in plan.items()
-        }
-        out: dict[str, Any] = {}
-        for slot, future in futures.items():
-            try:
-                out[slot] = future.result()
-            except ConceptImageUnavailable as exc:
-                out[slot] = {"error": str(exc)[:300]}
-            except Exception as exc:
-                out[slot] = {"error": f"{type(exc).__name__}: {exc}"[:300]}
-
-    if all("error" in slot_out for slot_out in out.values()):
-        raise ConceptImageUnavailable("；".join(str(v.get("error")) for v in out.values()))
-    return out
 
 
 def _counts_match(message: str) -> bool:

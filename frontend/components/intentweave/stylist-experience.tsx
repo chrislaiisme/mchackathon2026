@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
-import { generateItemPair } from "@/lib/services/concept-image";
 import { OutfitPairError, pairOutfit, type OutfitPairing } from "@/lib/services/outfit-pair";
 import {
   createChatRecommendation,
@@ -37,6 +36,8 @@ import {
   adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
+  fetchConceptImage,
+  conceptCellsToRecommendations,
   fetchIntentTurn,
   fetchRecommendation,
   fetchRecommendationReasonRewrite,
@@ -2715,19 +2716,31 @@ export function StylistExperience() {
     };
   }
 
+  /**
+   * Design for Me：商品庫裡沒有想要的，就讓 AI 生幾件出來。
+   *
+   * 走 ENGINE 01 的 /concept-image（不是生圖 BFF 的 8100）。2026-09-20 兩條線
+   * 合成一套之後就只剩這一條：ENGINE 01 那支已經做了分區（zones.resolve_zone_for_item_type
+   * 認得連身裙——連身裙只生上身那一區，不會硬湊一件下身）、兩區並行生成、
+   * 而且把每一格登記進 session，ENGINE 03 的回饋要靠那些 id 才知道使用者按讚的
+   * 是哪一格。這些我在 BFF 那邊都沒有或做得比較差，所以 BFF 的 pair 模式退場。
+   *
+   * 呈現維持這條分支的樣子：兩個並排輪播（左上身、右下身）自成一輪對話，
+   * 不用 Top Pick／Try More 殼——那個殼是給「商品庫撈到的一套」用的，
+   * 生成的東西是一批可比較的選項，攤成兩欄比較符合它的用途。
+   */
   async function handleDesignForMe(messageId: string) {
     if (!activeConversation || isGeneratingItems) {
       return;
     }
 
-    // 對話上持久化的 intent 優先——重新整理後 React state 的 lastIntent 會是 null，
-    // 但對話從 localStorage 讀回來時可能還留著上一輪的意圖。
-    const intent = activeConversation.lastIntent ?? lastIntent;
+    const sessionId = activeConversation.engineSessionId;
+    const token = authService.getSessionToken();
 
-    if (!intent) {
+    if (!sessionId || !token) {
       persistConversation(
         conversationService.appendMessage(activeConversation, {
-          id: `assistant-design-no-intent-${Date.now()}`,
+          id: `assistant-design-no-session-${Date.now()}`,
           role: "assistant",
           text:
             locale === "zh-TW"
@@ -2751,22 +2764,25 @@ export function StylistExperience() {
     }
 
     try {
-      const generated = await generateItemPair(intent, activeConversation.engineSessionId, locale);
+      const result = await fetchConceptImage(sessionId, token, { dryRun: false });
 
-      const groups: GeneratedGroup[] = [];
-      if (generated.topOrDress.length > 0) {
-        groups.push({
-          slot: "top",
-          label: locale === "zh-TW" ? "上身" : "Top",
-          items: generated.topOrDress,
-        });
-      }
-      if (generated.bottom.length > 0) {
-        groups.push({
-          slot: "bottom",
-          label: locale === "zh-TW" ? "下身" : "Bottom",
-          items: generated.bottom,
-        });
+      // 連身裙時 zones.bottom.cells 是空陣列（不是欄位缺失），下面過濾掉空的那一組，
+      // 畫面就只會出現一個輪播——這正是 main 分區邏輯要的行為。
+      const groups: GeneratedGroup[] = ([
+        { slot: "top", label: locale === "zh-TW" ? "上身" : "Top" },
+        { slot: "bottom", label: locale === "zh-TW" ? "下身" : "Bottom" },
+      ] as const)
+        .map(({ slot, label }) => ({
+          slot,
+          label,
+          items: conceptCellsToRecommendations(result.zones[slot], slot),
+        }))
+        .filter((group) => group.items.length > 0);
+
+      if (groups.length === 0) {
+        throw new StylistApiError(
+          locale === "zh-TW" ? "這次沒有切出任何可用的單品" : "No usable pieces came back this time",
+        );
       }
 
       persistConversation(
@@ -2784,7 +2800,7 @@ export function StylistExperience() {
         }),
       );
     } catch (error) {
-      console.error("[stylist] Design for Me 生成失敗：", error);
+      console.error("[stylist] 呼叫 ENGINE01 /concept-image 失敗：", error);
       persistConversation(
         conversationService.appendMessage(latestConversation(), {
           id: `assistant-design-error-${Date.now()}`,
@@ -2800,14 +2816,7 @@ export function StylistExperience() {
     }
   }
 
-  /**
-   * 「AI 幫我搭」：從 Design for Me 生出來的六件上衣與六件下身裡挑一組最搭的。
-   *
-   * 這裡只負責補上這輪對話的 intent 與 session——按鈕的忙碌狀態、理由跟翻到第幾件
-   * 都是那一輪輪播自己的畫面狀態（見 GeneratedGroupCarousels）。失敗直接往上丟，
-   * 由按鈕就地顯示，不像 Design for Me 那樣再長出一則訊息：配對只是換一個看法，
-   * 失敗了對話不該多一段話。
-   */
+  /** 「AI 幫我搭」：補上這一輪的意圖與 session，其餘交給配對服務。 */
   async function handlePairOutfit(tops: FashionRecommendation[], bottoms: FashionRecommendation[]) {
     // 跟 handleDesignForMe 同一個讀法：持久化在對話上的優先，React state 當備胎。
     const intent = activeConversation?.lastIntent ?? lastIntent;

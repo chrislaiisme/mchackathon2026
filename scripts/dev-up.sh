@@ -102,8 +102,12 @@ start engine02 "$ENGINE02_PORT" /health \
       "$PY" -m uvicorn mcp_servers.catalog.main:app --host 127.0.0.1 --port "$ENGINE02_PORT"
 
 # ENGINE 03（回饋）
+# ENGINE 03（回饋）。用 backend/engine03_feedback，不是 bff/feedback——2026-09-20
+# 合併 main 之後，ENGINE 01 會透過 ENGINE03_BASE_URL 直接呼叫它做回饋迴路
+# （backend/engine01_intent/engine03_client.py），起錯那支的話 ENGINE 01 會打到
+# 一個介面相近但不是同一套的服務，錯誤不會立刻出現、只會讓權重調整默默失效。
 start engine03 "$ENGINE03_PORT" /health \
-  env "$PY" -m uvicorn bff.feedback.main:app --host 127.0.0.1 --port "$ENGINE03_PORT"
+  env "$PY" -m uvicorn backend.engine03_feedback.main:app --host 127.0.0.1 --port "$ENGINE03_PORT"
 
 # ENGINE 01（意圖）。前端直接打這支的 /intent 跟 /recommend，所以 CORS 要放行
 # 前端的來源。ENGINE02_BASE_URL 指的是「ENGINE02 的根」，不要帶 /engine02——
@@ -114,6 +118,7 @@ start engine01 "$ENGINE01_PORT" /health \
       GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}" \
       CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-http://localhost:3000}" \
       ENGINE02_BASE_URL="http://localhost:$ENGINE02_PORT" \
+      ENGINE03_BASE_URL="http://localhost:$ENGINE03_PORT" \
       PINTEREST_ACCESS_TOKEN="${PINTEREST_ACCESS_TOKEN:-}" \
       PINTEREST_BOARD_NAME="${PINTEREST_BOARD_NAME:-}" \
       "$PY" -m uvicorn backend.engine01_intent.main:app --host 127.0.0.1 --port "$ENGINE01_PORT"
