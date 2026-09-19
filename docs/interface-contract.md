@@ -176,14 +176,42 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 - **參考圖／視覺特徵串接**：有參考圖（使用者上傳或 Pinterest 比對到的）時，改呼叫 ENGINE02 的 `POST /visual-search`（base64 圖片＋非空 `retrieval_text`）決定主分區結果。**兩個重要限制要記住**：(1) ENGINE02 自己的研究文件（`docs/research/visual-search-gaps.md` 缺口 #1）記錄一個已知 bug——`retrieval_text` 是空字串時查詢向量會被稀釋成「80% 通用詞彙＋20% 照片」，`query_text.py` 一定帶非空文字繞開它，不是等 ENGINE02 修好；(2) `/visual-search` 回的是 ENGINE02 原始排序結果，不是 `/intent/rank` 那樣經過完整可解釋性轉換的形狀，所以這條路徑組出來的 `ProductCard.reason` 只有一句固定說明（`explanation_source="visual_search"`），沒有逐項貢獻拆解——這是真實的能力落差。
 - **核心欄位把關**：呼叫 `/recommend` 之前，前端預期 `POST /intent` 的 `clarifying_questions` 已經變空（核心欄位都問完，或已經問滿 5 題預算，見 `backend/engine01_intent/gating.py`），但後端不強制擋這件事。
 - **onboarding 資料併入**：`UserProfile.gender` 一律塞進送出給 ENGINE02 的 `intent` dict（`engine02/intent_adapter.py:288-291` 有處理這個 key）；`style_keywords` 這輪是空的時候，退回 `UserProfile.style_preferences` 當這次送出去的值，不寫回 session；`age_range` 沒有對應的 ENGINE02 掛勾，這次不傳。
-- **更好的下一步方向，這次沒有時間做**：ENGINE02 新增的 `POST /complete-look` ＋ `engine02/outfit_budget.py`（多選背包演算法）可以做到「給預算，直接規劃一套含上衣/下身/外套/鞋的完整穿搭」，比現在「兩分區各自代表性品項各查一次」更貼近使用者要套裝時的真實需求，之後接手的人可以考慮換過去。
+- **還沒接的下一步方向**：ENGINE02 的 `engine02/outfit_budget.py`（多選背包演算法，`/complete-look` 的 `budget` 參數會用到）可以做到「給預算，直接規劃一套含上衣/下身/外套/鞋的完整穿搭」，比現在「兩分區各自代表性品項各查一次」更貼近使用者要套裝時的真實需求，`POST /recommend` 目前沒有用到這個能力（`POST /style-me`，見下面 §6a，有實際接上 `/complete-look`，但沒有用到 `budget` 參數），之後接手的人可以考慮換過去。
+
+## 6a. 「幫你搭」（`POST /style-me`，2026-09-19 已實作）
+
+使用者明確要求「不能隨機配，要有理由」。這支端點給一件使用者已經在畫面上看到的商品（`anchor_product_id`＋`anchor_zone`，錨點在哪一區前端自己標明，不會另外查），回傳「錨點的另一區」一件有理由的搭配建議。
+
+```json
+{
+  "session_id": "abc123",
+  "round": 2,
+  "zone": "bottom",
+  "complement": {
+    "product_id": "...",
+    "image_url": "...",
+    "title": "...",
+    "score": 0.91,
+    "reason": "顏色跟你選的上衣很搭",
+    "explanation_source": "complete_look"
+  }
+}
+```
+
+實作在 `backend/engine01_intent/style_me.py`，依序嘗試兩條路：
+
+1. **ENGINE02 的 `POST /complete-look`**（`engine02_client.complete_look()`）：拿錨點商品去查真正依相容性排序過的互補商品，`reason` 直接是 ENGINE02 算出來的（`engine02/service.py::_slate_reason()`，根據 contributions／category_score／price 組字），`explanation_source="complete_look"`。HTTP 層的 `n_categories` 沒辦法直接指定「我要 bottom 分類」，這裡固定要 8 個（等於 ENGINE02 粗分類的數量）換取目標分區幾乎一定出現在回傳的 slates 裡，再用 `zones.zone_of()` 挑出來。
+2. **錨點不在 ENGINE02 商品庫**（最典型的情況：錨點其實是生圖，生成模組還沒做出來，但這條路將來一定會發生——ENGINE02 完全沒有生圖的相容性資料，`/complete-look` 會回 400）：退回代表性品項查詢（沿用 `/recommend` 同一套 `zones.default_category_for_zone()`＋`engine02_client.intent_rank()`），理由交給 `llm_client.generate_freeform_text()`（`codex exec`，跟 ENGINE01 抽取意圖同一套零成本機制，純文字輸出、不用 `--output-schema`）生一句，帶入目前 `Intent`（顏色／風格關鍵字／場合／季節）跟這幾輪對話文字當上下文，`explanation_source="llm_fallback"`。LLM 也失敗（`codex` 沒裝、逾時）就用固定文案「依你的風格偏好推薦這個搭配」，不會讓端點掛掉。
+3. 兩條路都拿不到任何候選商品（該分區在商品庫裡真的沒有東西）→ 回 404，不是空的 200。
+
+**標記提案，尚未經 ENGINE02／前端負責人確認欄位命名。**
 
 ## 7. 待其他負責人落地的規格（前端／ENGINE02／ENGINE03，尚未寫進 `schemas.py`）
 
 2026-09-19 使用者確認了三項規格（詳細背景見 [frontend.md](frontend.md) 代辦事項 3／4／5），這裡先記錄需要新增的欄位草案，**命名跟型別都還沒定案，要跟相關負責人確認後才落地到 `backend/shared/schemas.py`**：
 
 - **生圖獨立觸發（代辦 3）**：目前 `RetrievalResult.concept_image` 的假設是「跟這一輪的推薦商品同時並行產出、一起回傳」。新規格是使用者要主動按按鈕才觸發生圖，且生圖期間對話框要鎖定。這代表生圖可能需要拆成一支獨立的請求／端點，而不是掛在同一輪的 `RetrievalResult` 裡自動夾帶——確切怎麼調整，需要生成模組負責人／前端負責人一起確認。
-- **每張卡片的回饋（代辦 4）**：`FeedbackInput` 目前是「整輪一份」，沒有欄位指出這是對哪一張 `ProductCard`（或哪一張 `concept_image`）的回饋。草案方向：`ProductCard` 需要加 `favorited: bool`／`disliked: bool` 這類欄位（或者回饋改成前端只送「使用者實際做過動作」的項目、每項都帶一個卡片識別碼，而不是像現在整輪送一份）；試穿的 LIKE IT／NOT FOR ME 是另一種獨立訊號，不是細項打分，可能需要 `FeedbackInput.target` 增加一個新值（例如 `"tryon"`）或另外開一個更簡單的 model（不需要 `AttributeScore` 那麼細的結構，就是一個布林值）。**沒有任何動作的卡片不應該出現在送出的回饋資料裡**（配合 [engine03-feedback.md](engine03-feedback.md) 新增的「未互動不計權重」規則）。
+- **每張卡片的回饋（代辦 4）**：`FeedbackInput` 目前是「整輪一份」，沒有欄位指出這是對哪一張 `ProductCard`（或哪一張 `concept_image`）的回饋。草案方向：`ProductCard` 需要加 `favorited: bool`／`disliked: bool` 這類欄位（或者回饋改成前端只送「使用者實際做過動作」的項目、每項都帶一個卡片識別碼，而不是像現在整輪送一份）；試穿的 LIKE IT／NOT FOR ME 是另一種獨立訊號，不是細項打分，可能需要 `FeedbackInput.target` 增加一個新值（例如 `"tryon"`）或另外開一個更簡單的 model（不需要 `AttributeScore` 那麼細的結構，就是一個布林值）。**沒有任何動作的卡片不應該出現在送出的回饋資料裡**（配合 [engine03-feedback.md](engine03-feedback.md) 新增的「未互動不計權重」規則）。**2026-09-19 補充規則：只有虛擬形象穿上「一整套」（上衣區＋下身區都試穿上了）才能按 LIKE IT／NOT FOR ME，只穿單一單品沒有這兩個按鈕**——所以這個 tryon 訊號的資料形狀至少要帶 `top_product_id`＋`bottom_product_id` 兩個 id（不是單一 `product_id`），前端也要在只穿一件的狀態下把這兩個按鈕藏起來，不是禁用。
 - **收藏小屋（代辦 5）**：目前的 model 裡沒有「使用者收藏了哪些商品／概念圖」這個持久清單的容身之處——`UserProfile` 是使用者設定，`SessionState`（ENGINE01 內部，不是共用 schema）是單一對話的暫存狀態，收藏清單性質上比較像前者（per-user、跨 session 持久），但要不要併進 `UserProfile` 還是另開一個 model，留給前端／ENGINE01 負責人一起談。分類可以直接沿用 ENGINE02 既有的 `category`/`subcategory`／taxonomy 欄位；生成出來的概念圖沒有這個欄位，需要額外設計怎麼打分類標籤。
 
 ## 給其他引擎負責人的待確認事項
