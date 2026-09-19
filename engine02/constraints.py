@@ -37,6 +37,8 @@ class FilterResult:
     mask: np.ndarray
     applied: dict[str, list[str]]
     relaxed: list[str] = field(default_factory=list)
+    # contradictions we had to resolve to avoid an unexplainable empty result (§3.37)
+    retracted: list[dict] = field(default_factory=list)
 
 
 def _norm(s) -> str | None:
@@ -65,6 +67,41 @@ def _slot_mask(col: pd.Series, values: list[str], allow_unknown: bool, also: pd.
     if allow_unknown:
         ok |= norm.isna().to_numpy(copy=True)
     return ok
+
+
+
+def resolve_contradictions(c: HardConstraints) -> tuple[HardConstraints, list[dict]]:
+    """A value that is both required and excluded empties the pool. Decide, and say so.
+
+    The relaxation ladder cannot rescue this: it relaxes ("color", "season", "occasion", "budget")
+    while these are applied under require_<attr> / not_<attr>, so a contradiction is the one way to
+    reach zero results with an empty `relaxed` list and no warning -- a blank screen the system
+    cannot explain. The later statement (the requirement) wins; the retraction is returned so the
+    response can tell the user their two statements disagreed.
+    """
+    retracted: list[dict] = []
+    if not c.required_values or not c.excluded_values:
+        return c, retracted
+    out = c.model_copy(deep=True)
+    for attr, req in (out.required_values or {}).items():
+        wanted = {str(v).strip().lower() for v in req}
+        excl = out.excluded_values.get(attr) or []
+        keep = [v for v in excl if str(v).strip().lower() not in wanted]
+        dropped = [v for v in excl if str(v).strip().lower() in wanted]
+        if dropped:
+            if keep:
+                out.excluded_values[attr] = keep
+            else:
+                out.excluded_values.pop(attr, None)
+            retracted.append({
+                "attribute": attr,
+                "retracted_exclusion": dropped,
+                "kept_requirement": list(req),
+                "why": (f"你先前說不要 {'、'.join(map(str, dropped))}，本輪又指定要 "
+                        f"{'、'.join(map(str, req))}；兩者同時成立會沒有任何商品，"
+                        f"所以本輪以較新的指定為準，並取消那條排除"),
+            })
+    return out, retracted
 
 
 def build_mask(
@@ -135,6 +172,9 @@ def filter_with_relaxation(
     excluded_positions: list[int] | None = None,
     ladder: tuple[tuple[str, str], ...] = DEFAULT_LADDER,
 ) -> FilterResult:
+    # a value that is both required and excluded empties the pool, and the ladder below
+    # cannot reach it (its rungs are colour/season/occasion/budget, not require_/not_)
+    c, retracted = resolve_contradictions(c)
     state: dict[str, str] = {}
     mask, applied = build_mask(items, c, state, excluded_positions)
     relaxed: list[str] = []
@@ -148,7 +188,7 @@ def filter_with_relaxation(
         mask, applied = build_mask(items, c, state, excluded_positions)
         if int(mask.sum()) > before:  # only report steps that actually widened the pool
             relaxed.append(f"{slot}:{action}")
-    return FilterResult(mask=mask, applied=applied, relaxed=relaxed)
+    return FilterResult(mask=mask, applied=applied, relaxed=relaxed, retracted=retracted)
 
 
 def satisfies(items: pd.DataFrame, pos: int, c: HardConstraints) -> bool:

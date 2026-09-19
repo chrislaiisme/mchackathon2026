@@ -522,9 +522,11 @@ class Engine02:
                 grounded_terms=([{"your_words": a, "catalog_words": b} for a, b in grounded_pairs]
                                 + [{"your_words": a, "catalog_words": b} for a, b in color_rewrites]),
                 honoured_negations=negations, substitutes=substitutes,
+                retracted_constraints=list(getattr(fr, 'retracted', []) or []),
                 input_warnings=input_warnings(
                     req, known_needs=self.kansei.need_ids,
-                    known_elements=[e.id for e in self.kansei.elements]) + (
+                    known_elements=[e.id for e in self.kansei.elements])
+                + [r["why"] for r in (getattr(fr, "retracted", []) or [])] + (
                     [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
                      f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
                     if bm25_gate_note else []),

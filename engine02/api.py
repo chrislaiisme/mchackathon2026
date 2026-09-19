@@ -213,17 +213,47 @@ def _record_demand(req: Engine02Request) -> None:
     if buf is None:
         buf = STATE["demand"] = deque(maxlen=int(os.environ.get("ENGINE02_DEMAND_LOG", "500")))
     c = req.constraints
+    # Every source that reaches beta, not just the two we happened to log first. The ones that
+    # were missing are the explicit ones: what the user typed this round (stated_design_steps,
+    # e.g. 「版型要修身」) and what their choices taught the preference model
+    # (design_weight_delta). A manufacturer's dashboard that cannot see a stated silhouette
+    # preference is missing the signal it exists to report.
+    steps: dict[str, float] = {k: float(v) for k, v in req.feedback.design_adjust_steps.items()}
+    for source in (req.stated_design_steps or {}, req.feedback.design_weight_delta or {},
+                   req.design_weight_prior or {}):
+        for k, v in source.items():
+            steps[k] = steps.get(k, 0.0) + float(v)
     buf.append((
         {n.need_id: n.prob for n in req.needs},
-        dict(req.feedback.design_adjust_steps),
+        steps,
         ((c.category.values[0] if c.category.values else None),
          (c.color.values[0] if c.color.values else None)),
         time.time(),  # so the panel can say "demand in this session changed", with a real window
     ))
 
 
+
+def _category_mask(spec: str | None):
+    """`?categories=top,outerwear` → a boolean mask over the catalog, or None for everything."""
+    if not spec:
+        return None
+    import numpy as np
+
+    items = engine().catalog.items
+    if "category" not in items.columns:
+        return None
+    want = {c.strip().lower() for c in spec.split(",") if c.strip()}
+    col = items["category"].astype(str).str.lower().to_numpy()
+    mask = np.isin(col, list(want))
+    if not mask.any():
+        raise HTTPException(400, f"no catalog item has category in {sorted(want)}; "
+                                 f"see GET /vocabulary")
+    return mask
+
+
 @app.get("/gap/elements")
-def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
+def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5,
+                 categories: str | None = None) -> dict:
     """Design-element demand (from the queries this server served) vs catalog supply.
 
     What a garment maker can act on: an element many requests wanted that little of the catalog
@@ -235,8 +265,15 @@ def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     buf = list(STATE.get("demand", []))
     labels = {e.id: e.label for e in engine().kansei.elements}
-    rep = element_gap(engine(), [(p, s) for p, s, *_ in buf], arm, threshold, labels)
-    return rep.model_dump()
+    mask = _category_mask(categories)
+    rep = element_gap(engine(), [(p, s) for p, s, *_ in buf], arm, threshold, labels,
+                      mask=mask)
+    out = rep.model_dump()
+    # the denominator is part of the claim: without it "12% of the catalog" is unreadable
+    out["supply_scope"] = {"categories": categories or "all",
+                           "n_items": int(mask.sum()) if mask is not None
+                           else len(engine().catalog)}
+    return out
 
 
 @app.get("/gap/elements/change")
@@ -710,7 +747,7 @@ def concept_image_nearest(body: ConceptImageRequest) -> dict:
 
 
 @app.get("/needs/supply")
-def needs_supply(arm: str = "full", threshold: float = 0.5) -> dict:
+def needs_supply(arm: str = "full", threshold: float = 0.5, categories: str | None = None) -> dict:
     """PRD §6.7 supply side Sup(n): the share of the catalog that expresses each hidden need.
 
     ENGINE 03 owns demand D(occasion, n) and the Gap product; this half needs c(i,d).
@@ -719,8 +756,11 @@ def needs_supply(arm: str = "full", threshold: float = 0.5) -> dict:
 
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
-    return {"arm": arm, "threshold": threshold, "n_items": len(engine().catalog),
-            "supply": need_supply(engine(), arm, threshold)}
+    mask = _category_mask(categories)
+    return {"arm": arm, "threshold": threshold,
+            "n_items": int(mask.sum()) if mask is not None else len(engine().catalog),
+            "supply_scope": categories or "all",
+            "supply": need_supply(engine(), arm, threshold, mask=mask)}
 
 
 @app.get("/trends")
