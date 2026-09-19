@@ -407,11 +407,32 @@ export const virtualYouService = {
       method: "POST",
       body: formData,
     });
-    const result = (await response.json().catch(() => null)) as { imageBase64?: string; error?: string; details?: unknown } | null;
+    const responseText = await response.text().catch(() => "");
+    let result: { imageBase64?: string; error?: string; details?: unknown } | null = null;
+
+    if (responseText) {
+      try {
+        result = JSON.parse(responseText) as { imageBase64?: string; error?: string; details?: unknown };
+      } catch {
+        result = null;
+      }
+    }
 
     if (!response.ok || !result?.imageBase64) {
-      const error = new Error(result?.error || "background_removal_failed");
+      const debugPayload = {
+        status: response.status,
+        statusText: response.statusText,
+        error: result?.error,
+        details: result?.details,
+        body: responseText.slice(0, 1200),
+      };
+      const detailSummary =
+        typeof result?.details === "object" && result.details !== null
+          ? JSON.stringify(result.details).slice(0, 600)
+          : responseText.slice(0, 600);
+      const error = new Error(result?.error || `background_removal_failed_${response.status}: ${detailSummary}`);
       (error as Error & { details?: unknown }).details = result?.details;
+      console.error("[CreateYou] Extraction API returned no image", JSON.stringify(debugPayload, null, 2));
       throw error;
     }
 

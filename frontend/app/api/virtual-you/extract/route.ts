@@ -50,13 +50,29 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const responseText = await response.text().catch(() => "");
+      let parsedBody: unknown = null;
+
+      try {
+        parsedBody = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        parsedBody = null;
+      }
+
       console.error("[CreateYou API] Extraction service failed", {
+        url: extractionServiceUrl,
         status: response.status,
         body: responseText.slice(0, 1200),
+        parsedBody,
       });
       return errorResponse("extraction_request_failed", 502, {
         extractionStatus: response.status,
+        extractionUrl: extractionServiceUrl,
         extractionBody: responseText.slice(0, 1200),
+        extractionParsedBody: parsedBody,
+        hint:
+          response.status === 422
+            ? "FastAPI rejected the multipart form. Verify PERSON_EXTRACTION_SERVICE_URL points to /extract and the endpoint expects field name image."
+            : undefined,
       });
     }
 

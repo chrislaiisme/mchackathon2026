@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IntentWeave Frontend
 
-## Getting Started
+Next.js frontend for the IntentWeave demo. It contains the Dressing Room, Create You, Virtual You, and Try On UI.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- npm
+- The Virtual You FastAPI service running on `127.0.0.1:8081` for Create You and real Try On
+
+## Setup
+
+Install dependencies from this directory:
+
+```bash
+npm install
+```
+
+Create or update `frontend/.env.local`:
+
+```bash
+PERSON_EXTRACTION_SERVICE_URL=http://127.0.0.1:8081/extract
+VIRTUAL_TRY_ON_SERVICE_URL=http://127.0.0.1:8081/try-on
+```
+
+Restart the Next.js dev server after changing `.env.local`.
+
+## Run
+
+Start the frontend:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Virtual You Backend
 
-## Learn More
+The frontend talks to the local FastAPI service through these Next.js routes:
 
-To learn more about Next.js, take a look at the following resources:
+- `POST /api/virtual-you/extract`
+- `POST /api/virtual-you/try-on`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Start the backend from the repo root:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+VIRTUAL_TRY_ON_PROVIDER=codex \
+CODEX_BIN=/Users/chiwenhsu/.local/bin/codex \
+CODEX_TRY_ON_TIMEOUT=180 \
+.venv/bin/python -m uvicorn backend.virtual_you.main:app --host 127.0.0.1 --port 8081
+```
 
-## Deploy on Vercel
+Check the backend:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl http://127.0.0.1:8081/healthz
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Expected for real Try On:
+
+```json
+{
+  "ok": true,
+  "try_on_provider": "codex"
+}
+```
+
+## Demo Flow
+
+1. Upload a full-body photo in Create You.
+2. The frontend sends it to `/api/virtual-you/extract`.
+3. Next.js forwards it to FastAPI `/extract`.
+4. FastAPI removes the background and returns a transparent person PNG.
+5. The frontend stores the original and extracted person image in browser IndexedDB.
+6. Click Try On on a garment.
+7. The frontend sends the current Virtual You image and garment image to `/api/virtual-you/try-on`.
+8. Next.js forwards the request to FastAPI `/try-on`.
+9. FastAPI runs Codex image generation, removes the generated background, and returns a PNG.
+10. The Virtual You display swaps to the generated try-on image.
+
+## Important Environment Notes
+
+- `PERSON_EXTRACTION_SERVICE_URL` is read by the Next.js extraction route.
+- `VIRTUAL_TRY_ON_SERVICE_URL` is read by the Next.js try-on route.
+- `VIRTUAL_TRY_ON_PROVIDER=codex` must be set on the FastAPI process, not only in `frontend/.env.local`.
+- If `VIRTUAL_TRY_ON_SERVICE_URL` is missing, the frontend route uses the mock fallback and returns the original person image.
+- If FastAPI is not started with `VIRTUAL_TRY_ON_PROVIDER=codex`, `/try-on` will not use Codex.
+
+## Troubleshooting
+
+If Try On returns the original person image:
+
+- Confirm `frontend/.env.local` has `VIRTUAL_TRY_ON_SERVICE_URL=http://127.0.0.1:8081/try-on`.
+- Restart `npm run dev`.
+- Confirm `curl http://127.0.0.1:8081/healthz` shows `"try_on_provider": "codex"`.
+- Watch the FastAPI terminal for `Codex try-on subprocess args=...`.
+
+If Create You fails with `No module named 'onnxruntime'`:
+
+- Start FastAPI with the project virtualenv:
+
+```bash
+.venv/bin/python -m uvicorn backend.virtual_you.main:app --host 127.0.0.1 --port 8081
+```
+
+If Try On fails quickly:
+
+- Check the FastAPI terminal logs.
+- The backend logs the Codex subprocess args, exit code, and stderr/stdout tail.
+- Do not log or paste full image base64 payloads.
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
+

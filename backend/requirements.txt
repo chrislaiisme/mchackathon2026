@@ -21,6 +21,7 @@ python-dotenv
 google-auth
 requests
 python-multipart
+pillow
 
 # ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
 # backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
@@ -28,6 +29,7 @@ openai>=1.40
 
 # Virtual You / Create You — local background removal service.
 rembg
+onnxruntime
 
 # ENGINE01 -- offline test harness
 pytest
