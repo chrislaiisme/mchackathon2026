@@ -408,6 +408,20 @@ function RecommendationCarousel({
   disabledReason?: string;
 }) {
   const { t } = useI18n();
+
+  if (items.length === 0) {
+    // 這一區沒有候選商品——資料庫那邊連身裙的下身區本來就會故意留空
+    // （zones.py 的 is_dress() 規則），生圖那邊理論上兩區都會有六格，但
+    // 單一格生成失敗、被 slice_grid.py 的版面檢查擋下時也可能整區變空。
+    // 兩種情況都不該讓 `items[index]` 直接炸掉，秀一個空狀態卡片就好。
+    return (
+      <article className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground sm:min-h-[360px] xl:min-h-[400px]">
+        <p className="text-xs uppercase tracking-[0.22em]">{title}</p>
+        <p>{disabledReason || "No options for this zone."}</p>
+      </article>
+    );
+  }
+
   const item = items[index];
   const isTryOnActive = activeTryOnItemIds.includes(item.id);
 
@@ -763,9 +777,17 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id]}
+          rating={
+            state.ratings[
+              state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex]?.id ?? ""
+            ]
+          }
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id])}
+          saved={Boolean(
+            state.savedItems[
+              state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex]?.id ?? ""
+            ],
+          )}
           onToggleSaved={onToggleSaved}
         />
         <RecommendationCarousel
@@ -778,9 +800,17 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id]}
+          rating={
+            state.ratings[
+              state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex]?.id ?? ""
+            ]
+          }
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id])}
+          saved={Boolean(
+            state.savedItems[
+              state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex]?.id ?? ""
+            ],
+          )}
           onToggleSaved={onToggleSaved}
           disabledReason={dressActive ? "A dress is active as the complete outfit." : undefined}
         />
