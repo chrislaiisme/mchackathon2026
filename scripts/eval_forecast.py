@@ -88,14 +88,37 @@ def main() -> None:
         print(f"{mname:<18} {np.nanmean(vals):10.3f} {np.nanmedian(vals):8.3f} "
               f"{wins:>4}/{int(ok.sum()):<4} {cmp_:>20}")
 
-    best = min((m for m in models if m != "seasonal_naive"),
-               key=lambda m: rows[m]["mean_mase"])
-    verdict = ("沒有任何模型贏過季節性天真基準——誠實的結論是直接用基準，"
-               "而故事是這個回測本身"
-               if rows[best]["mean_mase"] >= rows["seasonal_naive"]["mean_mase"] else
-               f"{best} 平均 MASE {rows[best]['mean_mase']:.3f} < 季節性天真 "
-               f"{rows['seasonal_naive']['mean_mase']:.3f}")
-    print(f"\n判定：{verdict}")
+    # The baseline that matters is the one that actually wins, not the one that flatters us.
+    # On attention series seasonal naive is usually the WEAKEST baseline (acf(52) is far below
+    # acf(1)), so beating it says very little on its own.
+    baselines = ("naive", "seasonal_naive", "drift")
+    strongest = min(baselines, key=lambda m: rows[m]["mean_mase"])
+    candidates = [m for m in models if m not in baselines]
+    best = min(candidates, key=lambda m: rows[m]["mean_mase"])
+    bvals = np.array([per_series[t][strongest] for t in per_series], dtype=np.float64)
+    cvals = np.array([per_series[t][best] for t in per_series], dtype=np.float64)
+    ok2 = np.isfinite(bvals) & np.isfinite(cvals)
+    p_strong = paired_permutation_test(cvals[ok2], bvals[ok2], n_perm=20000)
+    lo2, hi2 = bootstrap_ci(cvals[ok2] - bvals[ok2])
+    wins2 = int(np.sum(cvals[ok2] < bvals[ok2]))
+
+    print(f"\n最強的基準是 {strongest}（平均 MASE {rows[strongest]['mean_mase']:.3f}），"
+          f"不是季節性天真（{rows['seasonal_naive']['mean_mase']:.3f}）")
+    if rows[best]["mean_mase"] >= rows[strongest]["mean_mase"]:
+        verdict = (f"沒有任何模型贏過最強基準 {strongest}——誠實的結論是直接用它，"
+                   f"而故事是這個回測本身")
+    else:
+        verdict = (f"{best} 平均 MASE {rows[best]['mean_mase']:.3f} < 最強基準 {strongest} "
+                   f"{rows[strongest]['mean_mase']:.3f}"
+                   f"（差 {cvals[ok2].mean() - bvals[ok2].mean():+.3f}，"
+                   f"CI [{lo2:+.3f},{hi2:+.3f}]，{wins2}/{int(ok2.sum())} 條，p={p_strong:.4f}）")
+    print(f"判定：{verdict}")
+    rows["_strongest_baseline"] = {"name": strongest,
+                                   "mean_mase": rows[strongest]["mean_mase"],
+                                   "best_model": best,
+                                   "delta": float(cvals[ok2].mean() - bvals[ok2].mean()),
+                                   "ci": [lo2, hi2], "wins": wins2,
+                                   "n_series": int(ok2.sum()), "p": p_strong}
 
     # the per-series table matters: an average hides the series where the method fails
     print(f"\n{'term':<16} {'seasonal_naive':>14} {'best model':>18} {'best MASE':>10}")

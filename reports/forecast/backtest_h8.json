@@ -58,6 +58,19 @@
    "wins_vs_seasonal_naive": 18,
    "n_series": 19,
    "p_vs_seasonal_naive": 9.99950002499875e-05
+  },
+  "_strongest_baseline": {
+   "name": "naive",
+   "mean_mase": 0.6934128226295139,
+   "best_model": "combination",
+   "delta": -0.1104476855558344,
+   "ci": [
+    -0.17188401673739834,
+    -0.0548010790760879
+   ],
+   "wins": 16,
+   "n_series": 19,
+   "p": 0.0014999250037498126
   }
  },
  "per_series": {
@@ -233,5 +246,5 @@
    "combination": 0.6558833184776651
   }
  },
- "verdict": "combination 平均 MASE 0.583 < 季節性天真 0.879"
+ "verdict": "combination 平均 MASE 0.583 < 最強基準 naive 0.693（差 -0.110，CI [-0.172,-0.055]，16/19 條，p=0.0015）"
 }
