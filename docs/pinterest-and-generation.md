@@ -13,14 +13,16 @@ Pinterest API v5 的 Trial access 只能讀寫／搜尋連結帳號自己的 pin
 除了上面「趨勢訊號」這個離線／整體排序用途之外，2026-09-19 起 Pinterest 板子多了第二個用途：**每一輪 `POST /intent` 的參考圖 fallback**。解析順序：
 
 1. **使用者這一輪有上傳參考圖** → 直接用使用者上傳的圖（見 [engine01-intent.md](engine01-intent.md) 的圖片上傳端點）。
-2. **使用者沒上傳** → 用這一輪更新後的 `Intent`（顏色／品項／風格關鍵字／場合……）去比對團隊策展的板子（`https://www.pinterest.com/pinyucs15/intentweave-references/`，板子名稱透過 `PINTEREST_BOARD_NAME` 環境變數設定，預設就是 `intentweave-references`），比對邏輯是簡單的關鍵字子字串比對（見 [`backend/pinterest/client.py`](../backend/pinterest/client.py)），命中就用比對到的那張 pin 的圖。
+2. **使用者沒上傳** → 用這一輪更新後的 `Intent`（顏色／品項／風格關鍵字／場合……）去比對團隊策展的板子（`https://www.pinterest.com/pinyucs15/intentweave-references/`，**板子的顯示名稱是「IntentWeave References」**——注意跟網址 slug `intentweave-references` 不一樣，`PINTEREST_BOARD_NAME` 環境變數要填顯示名稱；比對邏輯也會把連字號／空白正規化，兩種寫法都吃得到），比對邏輯是關鍵字子字串比對＋一個小型中英對照表（板子上的 pin 是英文策展內容，純中文比對命中率是 0%，見 [`backend/pinterest/client.py`](../backend/pinterest/client.py)），命中就用比對到的那張 pin 的圖。**已對真實 API／真實板子驗證過**，過程中發現並修掉上面這兩個問題。
 3. **兩者都沒有** → 不帶任何參考圖，繼續往下跑，不擋 `/intent` 的主流程。
 
-**這張圖依照上面已經定案的規則，只能給 ENGINE02 內部當參考特徵／生成 prompt 素材，不會顯示在使用者畫面上**——這條規則這次新用途也一樣適用，2026-09-19 有跟使用者確認過維持不顯示。目前這個解析結果只存在 ENGINE01 內部的 session 狀態（`backend/engine01_intent/session_store.py` 的 `reference_image_url`／`reference_image_source`），還沒有正式接進 ENGINE02 的 `POST /retrieve`——ENGINE01 目前根本還沒有程式碼在呼叫 ENGINE02，這條串接、以及要不要把這個欄位放進共用的 `Intent` model，都還要跟 ENGINE02 負責人確認命名（見 [interface-contract.md](interface-contract.md) 待確認事項）。
+**這張圖依照上面已經定案的規則，只能給 ENGINE02 內部當參考特徵／生成 prompt 素材，不會顯示在使用者畫面上**——這條規則這次新用途也一樣適用，2026-09-19 有跟使用者確認過維持不顯示。**2026-09-19 起已經正式接進 ENGINE02**：`POST /recommend` 有參考圖時會呼叫 ENGINE02 的 `POST /visual-search`（base64 圖片＋文字），不是透過 `Intent` model 傳遞，細節見 [interface-contract.md](interface-contract.md) 第 6 節；在那之前的解析結果一樣先存在 ENGINE01 內部的 session 狀態（`backend/engine01_intent/session_store.py` 的 `reference_image_url`／`reference_image_source`）。
 
 ## 概念圖生成
 
 OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的 `Intent` 轉成一段抽象的 prompt（顏色／剪裁／場合／材質——避免點名真實品牌或設計師，畢竟是在出題企業的評審面前 demo）。多輪銜接用 `previous_response_id`，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生。範例程式碼在 [hackathon-brief.md](hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
+
+**2026-09-19 規格修正：生圖跟資料庫推薦一樣拆成上衣／下身兩張獨立圖片，不是生成一張統一的套裝合照。** 原本討論過「生圖統一生成一整套」，後來使用者修正成要跟 `POST /recommend` 的兩分區展示邏輯一致——這樣兩張圖才能各自獨立試穿、也才能套進 [frontend.md](frontend.md) 代辦事項 3 新增的「我們幫你搭」按鈕（隨機從已生成／已推薦的上衣＋下身裡各挑一件）。這代表生圖至少要跑兩次生成呼叫（一次上衣、一次下身），`previous_response_id` 的銜接邏輯要分別對上衣鏈跟下身鏈各自維護，不是一條鏈。
 
 **Live** demo 要跑幾輪完全由使用者回饋決定（絕不是模型自己判斷要不要停）。**離線驗證迴圈**則固定跑 2–4 輪，用 FashionCLIP 相似度當硬性的量化停止依據——見 [validation-plan.md](validation-plan.md)。
 
@@ -40,4 +42,4 @@ OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的
 
 ## 依賴
 
-`OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用，2026-09-19 起也被 ENGINE01 的單輪參考圖解析使用）、`PINTEREST_BOARD_NAME`（要比對的板子名稱，預設 `intentweave-references`）——都在 `.env.example` 裡。
+`OPENAI_API_KEY`（生成用）、`PINTEREST_ACCESS_TOKEN`（讀 Pinterest 用，2026-09-19 起也被 ENGINE01 的單輪參考圖解析使用，已對真實 API 驗證過）、`PINTEREST_BOARD_NAME`（要比對的板子顯示名稱，預設 `IntentWeave References`——注意是顯示名稱不是網址 slug）——都在 `.env.example` 裡。

@@ -152,7 +152,33 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 - `concept_image` 是**選填**——生成模組還沒做出來之前，ENGINE02 單獨測試時填不出這個欄位，回 `null` 是合法的。
 - `reason_contributions`／`explanation_source` 是選填欄位（2026-09-19 因應 ENGINE02 的實作加進來）：ENGINE02 的排序是逐項加總算出 `score` 的，`reason_contributions` 把每一項的貢獻量都列出來，加總會等於 `score`，這個分解本身就是可解釋性的核心證據，不是另外生成的說明文字。沒有這個資訊的引擎（或還沒實作的模組）可以留空陣列，不影響既有欄位。
 
-## 6. 待其他負責人落地的規格（前端／ENGINE02／ENGINE03，尚未寫進 `schemas.py`）
+## 6. 兩分區推薦（`POST /recommend`，2026-09-19 已實作）
+
+補上 ENGINE01 之前完全沒有程式碼呼叫 ENGINE02 這個缺口。整合端點是 ENGINE02 負責人在交接文件（HackMD）裡指名的 `POST /intent/rank`（"the single touchpoint for ENGINE01 team"），透過既有介接層掛在 `{ENGINE02_BASE_URL}/engine02/intent/rank`——跟 `backend/engine02_retrieval/main.py` 的 `POST /retrieve` 呼叫的是同一套 `engine02/intent_adapter.py` 邏輯、回傳同一個 `RetrievalResult` 形狀，兩者功能等價，這次選 `/intent/rank` 是照 ENGINE02 負責人的直接指示。
+
+實作在 `backend/engine01_intent/`：`zones.py`（兩分區對照表跟預設品項）、`engine02_client.py`（`intent_rank()`／`visual_search()` 兩支 HTTP client，防禦性寫法，失敗一律回 `None`）、`query_text.py`（把 `Intent` 組成 `visual_search` 要的 `retrieval_text`）、`recommend.py`（`build_zoned_recommendation()` orchestration）。
+
+```json
+{
+  "session_id": "abc123",
+  "round": 2,
+  "outfit_requested": false,
+  "zones": [
+    {"zone": "bottom", "requested": false, "products": []},
+    {"zone": "top", "requested": true, "products": [ "...ProductCard[]，最多 6 件..." ]}
+  ]
+}
+```
+
+- **`ZoneSlate`／`ZonedRecommendationResult`（ENGINE01 提案，尚未經 ENGINE02／前端負責人確認欄位命名）**：`zone` 只有 `"top"`／`"bottom"` 兩種（使用者這次的要求，不是三分區）；`requested` 標示這區是不是使用者這輪明確要的（單品命中的那區、或整套請求時的兩區），`false` 代表是代進代表性品項猜的預設，不是查詢失敗。
+- **兩分區對照表**（`zones.py::zone_of()`）：ENGINE02 `legacy_coarse` 的 9 分類裡，只有 `bottom` 歸下身區，其餘（`top`／`outerwear`／`dress`／`shoes`／`bag`／`accessory`／`jewelry`／`other`）一律歸上衣區——刻意簡化的暫定慣例，之後要更細緻分類要跟前端／ENGINE02 負責人一起談。
+- **連身裙規則**（`zones.py::is_dress()`）：`category == "dress"` 時歸上衣區顯示，下身區整個留空（`requested=false, products=[]`），不會再代查一次。
+- **參考圖／視覺特徵串接**：有參考圖（使用者上傳或 Pinterest 比對到的）時，改呼叫 ENGINE02 的 `POST /visual-search`（base64 圖片＋非空 `retrieval_text`）決定主分區結果。**兩個重要限制要記住**：(1) ENGINE02 自己的研究文件（`docs/research/visual-search-gaps.md` 缺口 #1）記錄一個已知 bug——`retrieval_text` 是空字串時查詢向量會被稀釋成「80% 通用詞彙＋20% 照片」，`query_text.py` 一定帶非空文字繞開它，不是等 ENGINE02 修好；(2) `/visual-search` 回的是 ENGINE02 原始排序結果，不是 `/intent/rank` 那樣經過完整可解釋性轉換的形狀，所以這條路徑組出來的 `ProductCard.reason` 只有一句固定說明（`explanation_source="visual_search"`），沒有逐項貢獻拆解——這是真實的能力落差。
+- **核心欄位把關**：呼叫 `/recommend` 之前，前端預期 `POST /intent` 的 `clarifying_questions` 已經變空（核心欄位都問完，或已經問滿 5 題預算，見 `backend/engine01_intent/gating.py`），但後端不強制擋這件事。
+- **onboarding 資料併入**：`UserProfile.gender` 一律塞進送出給 ENGINE02 的 `intent` dict（`engine02/intent_adapter.py:288-291` 有處理這個 key）；`style_keywords` 這輪是空的時候，退回 `UserProfile.style_preferences` 當這次送出去的值，不寫回 session；`age_range` 沒有對應的 ENGINE02 掛勾，這次不傳。
+- **更好的下一步方向，這次沒有時間做**：ENGINE02 新增的 `POST /complete-look` ＋ `engine02/outfit_budget.py`（多選背包演算法）可以做到「給預算，直接規劃一套含上衣/下身/外套/鞋的完整穿搭」，比現在「兩分區各自代表性品項各查一次」更貼近使用者要套裝時的真實需求，之後接手的人可以考慮換過去。
+
+## 7. 待其他負責人落地的規格（前端／ENGINE02／ENGINE03，尚未寫進 `schemas.py`）
 
 2026-09-19 使用者確認了三項規格（詳細背景見 [frontend.md](frontend.md) 代辦事項 3／4／5），這裡先記錄需要新增的欄位草案，**命名跟型別都還沒定案，要跟相關負責人確認後才落地到 `backend/shared/schemas.py`**：
 
@@ -164,5 +190,5 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 
 - `weight_adjustments` 的 `field` 要不要固定成一個 enum，還是維持自由文字、對應 `Intent`／排序訊號的名稱——目前是自由格式，如果 ENGINE02/03 需要更嚴格的比對再收緊。
 - `AttributeScore.score` 和 `RetrievalResult.match_score` 的單位／範圍——目前都是 0–1 的浮點數，請確認這樣是否適合 ENGINE03 實際的權重運算方式。
-- `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：虛擬形象試穿的 LIKE IT／NOT FOR ME 回饋（見上面第 6 節、[pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）2026-09-19 已經定案走簡單的二選一，不是細項打分——`"tryon"` 這個值該怎麼設計（沿用 `FeedbackInput` 加值，還是另開更簡單的 model）還沒定案。
-- **參考圖欄位（2026-09-19 新增，代辦事項 2）**：ENGINE01 現在會解析出一張參考圖網址（使用者上傳或 Pinterest 板子比對，見 [pinterest-and-generation.md](pinterest-and-generation.md)），目前只留在 ENGINE01 內部的 session 狀態，還沒有正式欄位可以透過 `POST /retrieve` 交給 ENGINE02——ENGINE01 目前也還沒有程式碼在呼叫 ENGINE02。要不要放進共用的 `Intent` model（例如加一個 `reference_image_url` 欄位）、欄位怎麼命名，需要 ENGINE02 負責人確認。這張圖只能給 ENGINE02 內部參考，不能透過任何回應欄位讓前端顯示出來。
+- `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：虛擬形象試穿的 LIKE IT／NOT FOR ME 回饋（見上面第 7 節、[pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）2026-09-19 已經定案走簡單的二選一，不是細項打分——`"tryon"` 這個值該怎麼設計（沿用 `FeedbackInput` 加值，還是另開更簡單的 model）還沒定案。
+- **參考圖欄位——已經找到接的方法，不再是空白待辦**：ENGINE01 現在會解析出一張參考圖（使用者上傳或 Pinterest 板子比對，見 [pinterest-and-generation.md](pinterest-and-generation.md)），`POST /recommend` 呼叫時會直接送進 ENGINE02 的 `POST /visual-search`（base64 圖片），不是透過 `Intent` model 的欄位傳遞，所以不需要在共用 schema 加欄位——細節見上面第 6 節。這張圖只能給 ENGINE02 內部參考，不會透過任何回應欄位讓前端顯示出來。

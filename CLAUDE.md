@@ -22,7 +22,7 @@
 
 兩條迴圈共用同一套 ENGINE 01–03 程式碼：
 
-- **Live 流程**（真人使用者／評審，在瀏覽器上操作）：[docs/system-architecture.svg](docs/system-architecture.svg)。使用者一句話 → ENGINE 01（結構化意圖）→ ENGINE 02（檢索）和生成模組**同時並行**執行，兩者吃同一組意圖 → 結果並排呈現 → 使用者回饋 → ENGINE 03 → 下一輪。跑到使用者滿意為止，不是固定兩輪。**2026-09-19 更新：這個「同時並行」的假設被前端代辦事項修正過**——預設每輪只用 ENGINE02 的資料集推薦，生圖改成使用者按一個獨立按鈕才觸發（觸發期間對話框鎖定），不是每輪自動夾帶，細節見 [docs/frontend.md](docs/frontend.md) 代辦事項 3、[docs/interface-contract.md](docs/interface-contract.md) 第 6 節。
+- **Live 流程**（真人使用者／評審，在瀏覽器上操作）：[docs/system-architecture.svg](docs/system-architecture.svg)。使用者一句話 → ENGINE 01（結構化意圖）→ ENGINE 02（檢索）和生成模組**同時並行**執行，兩者吃同一組意圖 → 結果並排呈現 → 使用者回饋 → ENGINE 03 → 下一輪。跑到使用者滿意為止，不是固定兩輪。**2026-09-19 更新：這個「同時並行」的假設被前端代辦事項修正過**——預設每輪只用 ENGINE02 的資料集推薦，生圖改成使用者按一個獨立按鈕才觸發（觸發期間對話框鎖定），不是每輪自動夾帶，細節見 [docs/frontend.md](docs/frontend.md) 代辦事項 3、[docs/interface-contract.md](docs/interface-contract.md) 第 6 節。**ENGINE01 現在真的會呼叫 ENGINE02 了**（`POST /recommend` → ENGINE02 的 `POST /intent/rank`／`POST /visual-search`），推薦結果固定分「上衣／下身」兩分區，不是三分區或單一清單，見同一節。
 - **驗證流程**（只在開發階段用，不會出現在正式 demo 畫面）：[docs/validation-flow.svg](docs/validation-flow.svg)。一個帶著隱藏目標圖片人設的模擬 LLM 使用者，跑 2–4 輪對付同一套 ENGINE 01–03 程式碼；FashionCLIP 對目標圖片的 cosine similarity 就是量化的收斂指標，用來在簡報裡佐證「回饋迴圈真的有效」。
 
 三個引擎、一個生成模組、一條趨勢訊號串接：
@@ -64,6 +64,15 @@ frontend/                Next.js 16 + React 19（IntentWeave；原規劃是 Reac
                          實際蓋出來換了技術棧，見「環境備註」跟 docs/frontend.md）
 validation/              模擬使用者驗證迴圈腳本
 scripts/                 開發輔助腳本（例如下載資料集），也有 ENGINE02 的評測／工具腳本
+agent/, bff/, mcp_servers/, web/, contracts/, evals/
+                         2026-09-19 team 決議把整個專案建成 Hermes Agent 應用（PRD 第 7 章）
+                         之後，main 上新增的平行技術棧：agent/ 是 Hermes profile 打包、
+                         bff/ 是內嵌 Hermes Agent 的 runtime（backend/engine01_intent/ 的
+                         複本，遲早會取代 codex exec 呼叫方式）、mcp_servers/ 把 engine02/
+                         包成 MCP 工具服務、web/ 是 frontend/ 的複本（改接 bff/）、
+                         contracts/ 是共用 Pydantic schema 的複本。純新增，不影響
+                         backend/、frontend/ 既有內容；正式 demo 從 integration/hermes-app
+                         分支跑，細節見 docs/migration-to-hermes-app.md。
 ```
 
 **不要重新調整或刪除根目錄的 `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`。** 這些是給 Pinterest App 審核用的隱私權政策網站。GitHub Pages 實際上是從獨立的 `gh-pages` 分支發布的（`chrislaiisme.github.io/mchackathon2026/`），所以這些檔案留在 `main` 上目前只是歷史遺留——但沒跟團隊確認前不要刪，也絕對不要沒確認就 push 到 `gh-pages`。
@@ -88,7 +97,9 @@ scripts/                 開發輔助腳本（例如下載資料集），也有 
 
 這些 token 花費是算在團隊**共用**的 ChatGPT 方案 Codex 額度上——跟現場兩天大家用 Claude Code／Codex 輔助寫程式是同一個額度池。ENGINE01 每輪對話都要呼叫一次，累積起來不是小數目，尤其接近 demo 時段要多留意。如果之後真的變成問題（額度用完，或現場每輪等 8–17 秒太慢），修法是把 `backend/engine01_intent/llm_client.py` 裡 `extract_intent()` 的實作換回直接呼叫 OpenAI API——函式簽名和呼叫它的地方都不用動。
 
-任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。不需要另外裝 Hermes Agent——`codex exec --output-schema` 本身就有原生的 JSON schema 限制輸出功能，這正是查證當下 Hermes 自己的 one-shot 模式還沒有的東西（上游有一個開放中的 feature request）。Hermes Agent 在這個專案裡的角色就停在這裡（ENGINE01 的模型呼叫備選方案），不是使用者面對的對話框架——`POST /intent` 本身透過 session 狀態重複呼叫，已經是完整的「使用者跟 AI 對話」迴圈了，不需要再疊一層 Hermes 上去當 webapp 的對話引擎。
+任何要跑 ENGINE01 的機器，前提是：裝好 `codex` CLI，並且用 `codex login` 登入過一次（完全不需要 `OPENAI_API_KEY`）。
+
+**2026-09-19 更新，上一段的結論已經被團隊決議取代**：先前這裡寫「不需要另外裝 Hermes Agent」，但團隊在 2026-09-18 正式決議整個專案要以 **Hermes Agent 應用**的形式建置與交付（PRD 第 7 章，見 [`docs/migration-to-hermes-app.md`](docs/migration-to-hermes-app.md)）。`main` 上已經合併了一整條平行的 Hermes app 技術棧（`agent/`、`bff/`、`mcp_servers/`、`web/`、`contracts/`、`evals/`，見下面「Repo 結構」），**正式 demo 會從 `integration/hermes-app` 分支跑，不是從 `main` 直接跑**。這批新資料夾是純新增，完全沒有動到 `backend/`／`frontend/` 任何既有檔案，各條分支照常在原本的位置開發，遷移分支會定期重新合併大家推的新 commit——不需要自己動手把程式碼搬過去。遷移計畫第 2 階段（`bff/` 內嵌 Hermes Agent、取代 ENGINE01 自己接的 `codex exec`）還沒做，代表 `codex exec` 這個機制遲早會被拿掉換成內嵌的 Hermes Agent，不是永久架構。
 
 ## Google OAuth Client ID（ENGINE01 登入用，免費，跟上面的 P0 花費問題無關）
 
@@ -115,17 +126,19 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 ## 負責人對照
 
 - ENGINE01（需求理解）：這個工作目錄的擁有者。
-- ENGINE02（檢索與排序）：分支 `engine02-research` 的負責人，姓名還沒同步進這份文件，確定後補上。
+- ENGINE02（檢索與排序）：Evan-Jiamg（git commit 紀錄，2026-09-19 確認，也是 Hermes app 遷移分支的作者）。
+- 前端：許綺文（git commit 紀錄，2026-09-19 確認）。
 - Pinterest 板子策展：品諭（依規劃文件）。
-- ENGINE03、前端、生成模組：文件裡還沒指定，確定後再補上。
+- ENGINE03、生成模組：文件裡還沒指定，確定後再補上。
 
 ## 環境備註
 
 - 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
 - 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。**ENGINE02 是這條規則明文的例外**（2026-09-19 整合進 main 時定案）：它有自己的 `pyproject.toml`（`numpy>=2` 等），用 `uv` 裝、跑自己的獨立服務，不吃 `backend/requirements.txt`。原因：它的依賴（`numpy>=2`、選用的 `models` extra 裡有 torch/transformers 這類重量級 ML 套件）跟原本占位猜測、後來確認用不到而移除的 `faiss-cpu` 會拉 `numpy<2` 產生版本衝突；而且它有 258 項測試是對著這個獨立環境驗證過的，硬塞進同一份 `requirements.txt` 只會製造沒有實質好處的風險。跑法見 [`backend/engine02_retrieval/README.md`](backend/engine02_retrieval/README.md)。
-- **前端：實際是 Next.js 16 + React 19（原規劃是 React + Vite，不用 Next.js／SSR——2026-09-19 前端負責人實際蓋出來的技術棧不一樣，這裡改成如實記錄，不是規劃有誤）。** 2026-09-19 現況：登入／onboarding 已經真的接上 ENGINE01 後端；試穿／收藏／生圖等其餘畫面還是前端本地 mock，尚未接上任何後端 API，細節與落差清單見 [docs/frontend.md](docs/frontend.md)。
+- **前端：實際是 Next.js 16 + React 19（原規劃是 React + Vite，不用 Next.js／SSR——2026-09-19 前端負責人實際蓋出來的技術棧不一樣，這裡改成如實記錄，不是規劃有誤）。** 2026-09-19 現況：登入／onboarding 已經真的接上 ENGINE01 後端（onboarding 同時改成必填，拿掉了原本的 Skip 捷徑）；試穿／收藏／生圖等其餘畫面還是前端本地 mock，尚未接上任何後端 API，細節與落差清單見 [docs/frontend.md](docs/frontend.md)。
 - 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設同時開 `http://localhost:5173`跟`http://localhost:3000`，因為實際前端 port 是 Next.js 的 3000），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
-- `backend/pinterest/client.py`（2026-09-19 新增）：`PINTEREST_ACCESS_TOKEN`／`PINTEREST_BOARD_NAME` 兩個環境變數，給 ENGINE01 的單輪參考圖 fallback 用，沒設定就直接跳過、不影響 `/intent`。使用者上傳的參考圖存在本機 `data/uploads/<sub>/`（掛在 `/files/...`，不是 `/uploads/...`——避免跟上傳端點本身的路徑 `/uploads/image` 衝突，見 `backend/engine01_intent/main.py` 的註解），已被 `.gitignore` 的 `data/` 規則排除。
+- `backend/pinterest/client.py`（2026-09-19 新增，已對真實 API／真實板子驗證過）：`PINTEREST_ACCESS_TOKEN`／`PINTEREST_BOARD_NAME` 兩個環境變數，給 ENGINE01 的單輪參考圖 fallback 用，沒設定就直接跳過、不影響 `/intent`。**`PINTEREST_BOARD_NAME` 要填 Pinterest 上的顯示名稱（例如「IntentWeave References」），不是網址 slug**——兩者不一樣，真實驗證時踩過這個坑。使用者上傳的參考圖存在本機 `data/uploads/<sub>/`（掛在 `/files/...`，不是 `/uploads/...`——避免跟上傳端點本身的路徑 `/uploads/image` 衝突，見 `backend/engine01_intent/main.py` 的註解），已被 `.gitignore` 的 `data/` 規則排除。
+- `ENGINE02_BASE_URL`（2026-09-19 新增，`POST /recommend` 用，預設 `http://localhost:8000`）：本機啟動 ENGINE02 的方式是 `ENGINE02_DEMO=1 ENGINE02_PUBLIC_BASE=http://localhost:8000 uvicorn mcp_servers.catalog.main:app --port 8000`（ENGINE02 負責人交接文件指定的方式；`mcp_servers/catalog/` 內容跟 `backend/engine02_retrieval/` 目前逐位元組相同，只是這次遷移之後走新路徑）。`ENGINE02_PUBLIC_BASE` 沒設對的話，ENGINE02 回傳的商品圖網址會是相對路徑，前端跨 origin 會直接 404。
 
 ## 想找更多細節的話
 

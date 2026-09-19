@@ -13,10 +13,11 @@
 | 功能 | 2026-09-19 之前 | 2026-09-19 之後 |
 |---|---|---|
 | 登入（`/login`） | 完全 mock：`localStorage` 存一個寫死的 `demoUser`，沒有真的 Google 按鈕，沒呼叫 `POST /auth/google` | **已改成真的接後端**：載入真正的 Google Identity Services、渲染官方登入按鈕，拿到 `credential` 後打 `POST /auth/google` 換真正的 `session_token`／`profile`（見 [`frontend/lib/services/auth.ts`](../frontend/lib/services/auth.ts)、[`frontend/components/intentweave/login-experience.tsx`](../frontend/components/intentweave/login-experience.tsx)）。已用假 session（跳過真實 Google 登入）驗證過 onboarding 那段接得通；**真正點擊 Google 按鈕、用真實帳號登入這一步需要使用者自己在瀏覽器裡完成一次**（AI agent 基於安全考量不會代為輸入 Google 帳密），且需要使用者先把 `http://localhost:3000` 加進 Google Cloud Console 的 Authorized JavaScript origins。 |
-| 偏好調查（`/onboarding`） | 只寫 `localStorage`，沒呼叫 `PUT /profile` | **已改成真的接後端**：完成或略過都會呼叫 `PUT /profile`（見 [`frontend/lib/services/onboarding.ts`](../frontend/lib/services/onboarding.ts)），已端到端驗證過（`data/users/<sub>.json` 真的寫入 `age_range`／`gender`／`style_preferences`／`contexts`）。後端 `UserProfile`／`ProfileUpdate` 這次補了 `gender`／`contexts` 兩個欄位，對齊前端 onboarding 實際蒐集的題目（原始介面契約沒有這兩個欄位）。 |
-| 試穿／收藏／讚踩（`/stylist`） | 前端本地假資料，`virtualYouService.generateVirtualTryOn()` 只是模擬延遲後回傳同一張圖 | **維持不變，仍是 mock**——這次沒有動這塊，範圍見下面代辦 3/4/5 兩節。 |
-| 生圖／概念圖 | 完全沒有 `ConceptImage`／`concept_image` 概念 | **維持不變**，見代辦 3 那節的規格。 |
-| 收藏小屋 | 完全沒有 | **維持不變**，見代辦 5 那節的規格。 |
+| 偏好調查（`/onboarding`） | 只寫 `localStorage`，沒呼叫 `PUT /profile`，有 Skip 按鈕可以整個跳過 | **已改成真的接後端且必填**：完成才會呼叫 `PUT /profile`（見 [`frontend/lib/services/onboarding.ts`](../frontend/lib/services/onboarding.ts)），已端到端驗證過（`data/users/<sub>.json` 真的寫入 `age_range`／`gender`／`style_preferences`／`contexts`）。**Skip 按鈕已經拿掉**（2026-09-19 修正：onboarding 改成註冊時必填），後端 `PUT /profile` 也加了對應驗證擋住繞過前端的請求。後端 `UserProfile`／`ProfileUpdate` 這次補了 `gender`／`contexts` 兩個欄位，對齊前端 onboarding 實際蒐集的題目（原始介面契約沒有這兩個欄位）。 |
+| 推薦／檢索 | 前端完全沒有呼叫任何後端推薦端點 | **後端已經有真的 `POST /recommend` 可以接**：固定分兩區（上衣／下身，不是三區），每區最多 6 件，`requested` 旗標標示是使用者明確要的還是系統猜的預設；細節見 [interface-contract.md](interface-contract.md) 第 6 節。**前端還沒接**，仍是 mock（`stylist-experience.tsx` 的假推薦資料）。 |
+| 試穿／收藏／讚踩（`/stylist`） | 前端本地假資料，`virtualYouService.generateVirtualTryOn()` 只是模擬延遲後回傳同一張圖 | **維持不變，仍是 mock**——這次沒有動這塊，範圍見下面代辦 3/4/5 兩節。另外 main 上這次還多合併了一份 Hermes app 專用的平行前端 `web/`（跟 `frontend/` 幾乎是同一份程式碼的複本，指向 `bff/` 而不是 `backend/`）跟一個新的 `/dressing-room` 頁面（`frontend/app/dressing-room/`）——後者是一個收藏衣櫥＋虛擬形象試穿的畫面，UI 上明寫「Prototype preview. Real virtual try-on will connect here later.」，一樣是純前端 mock、沒有呼叫任何後端，跟這裡描述的代辦 3/4/5 是同一批還沒做完的功能，不是另外一條線。 |
+| 生圖／概念圖 | 完全沒有 `ConceptImage`／`concept_image` 概念 | **維持不變**，見代辦 3 那節的規格（已修正為兩分區，不是統一套裝圖）。 |
+| 收藏小屋 | 完全沒有（`/dressing-room` 頁面雖然存在但是純 mock，見上面試穿那列） | **維持不變**，見代辦 5 那節的規格。 |
 
 ## 技術棧（更新：實際是 Next.js，不是原規劃的 Vite）
 
@@ -25,7 +26,7 @@ Next.js 16（App Router）＋ React 19，Tailwind v4 ＋ shadcn 元件。語音�
 ## 畫面／元件（實際畫面，比原規劃豐富）
 
 - **登入**（`/login`）：見上面「目前實際狀態」。
-- **偏好調查**（`/onboarding`）：年齡／性別、風格（複選）、日常情境（複選）三步，可略過。
+- **偏好調查**（`/onboarding`）：年齡／性別、風格（複選）、日常情境（複選）三步，**2026-09-19 起必填，不可略過**。
 - **主要對話畫面**（`/stylist`）：文字輸入＋語音輸入、推薦商品卡片（含 like/dislike 按鈕、Try On 按鈕）、虛擬形象區塊。目前這些互動全部是前端 mock，還沒有一個接到 ENGINE01/02/03 的真實資料。
 - **個人檔案**（`/profile`）、**Insights 儀表板**（`/insights`）：目前也都是 mock 資料。
 
@@ -33,14 +34,16 @@ Next.js 16（App Router）＋ React 19，Tailwind v4 ＋ shadcn 元件。語音�
 
 ENGINE01 的 FastAPI 後端，走 REST。目前只有登入／onboarding 兩條路徑真的串上；`/intent`、推薦、回饋、生圖都還沒有前端呼叫。確切的 JSON 格式見 [interface-contract.md](interface-contract.md)（`IntentRequest`/`IntentResponse`、`RetrievalResult`、`FeedbackInput`）。後端網址走 `NEXT_PUBLIC_API_BASE_URL`（`frontend/.env.local`，本機預設 `http://localhost:8000`，這個檔案不進 git）。
 
-## 代辦事項 3：生圖按鈕＋對話鎖定（規格已定案，待實作）
+## 代辦事項 3：兩分區展示＋生圖按鈕＋「幫你搭」＋對話鎖定（規格已定案，待實作）
 
-2026-09-19 使用者確認的規格：
+2026-09-19 使用者確認的規格（原本討論過三分區，後來修正為兩分區）：
 
+- 推薦結果固定分**兩區：上衣、下身**（不是三區）。每區最多 6 件，可左右切換；每件都能各自試穿／收藏／打分。後端 `POST /recommend` 已經照這個形狀做好，見 [interface-contract.md](interface-contract.md) 第 6 節——問套裝兩區都給，問單品只有查到的那區是「使用者要的」（`requested: true`），另一區也會有東西（依風格等資訊代猜的預設，`requested: false`），不會是空的；唯一例外是連身裙，下身區真的留空。
 - 每一輪預設**只用 ENGINE02 的資料集做推薦**，不會自動生圖。
-- 生圖是前端一個獨立按鈕，**使用者主動按下去才觸發**一次生成。
+- 生圖是前端一個獨立按鈕，**使用者主動按下去才觸發**一次生成，而且**也跟資料庫一樣拆成上衣／下身兩張獨立圖片**（不是生成一張統一的套裝合照），各自可以試穿——細節見 [pinterest-and-generation.md](pinterest-and-generation.md)。
+- **新增「我們幫你搭」按鈕**：按下去從當下已經拿到的上衣清單＋下身清單裡（不管來源是資料庫還是生圖）各隨機挑一件，組成一套讓虛擬形象 try on。這是純前端邏輯（從已經 fetch 回來的資料裡隨機挑），不需要呼叫新的後端端點。
 - 生圖進行中，對話輸入框要**鎖定**（不能繼續打字送出新的一句話），圖片生成完成、顯示出來之後才解鎖對話框。
-- 這跟目前 `docs/interface-contract.md` §5 `RetrievalResult.concept_image` 原本假設「每輪推薦跟生成同時並行、一起回傳」的模型不一樣——原本的假設是 ENGINE02 跟生成模組同一輪並行執行；這次改成生圖是額外、獨立、使用者觸發的動作，呼叫時機要跟 `/intent`／`/retrieve` 分開，需要生成模組負責人／前端負責人一起確認怎麼调整這個假設（例如生圖是不是應該是獨立的一支端點，而不是掛在同一輪的 `RetrievalResult` 裡）。
+- 這跟目前 `docs/interface-contract.md` §5 `RetrievalResult.concept_image` 原本假設「每輪推薦跟生成同時並行、一起回傳」的模型不一樣——原本的假設是 ENGINE02 跟生成模組同一輪並行執行；這次改成生圖是額外、獨立、使用者觸發的動作，呼叫時機要跟 `/intent`／`/recommend` 分開，需要生成模組負責人／前端負責人一起確認怎麼调整這個假設（例如生圖是不是應該是獨立的一支端點，而不是掛在同一輪的 `RetrievalResult` 裡）。
 
 ## 代辦事項 4：每張圖片的回饋（收藏／不喜歡／細項打分／試穿讚踩）（規格已定案，待實作）
 
