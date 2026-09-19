@@ -60,6 +60,33 @@ export interface Conversation {
   preferenceSignals: PreferenceSignal[];
 }
 
+export interface VirtualYouMeasurements {
+  heightCm?: string;
+  weightKg?: string;
+  waistCm?: string;
+  hipsCm?: string;
+  chestBustCm?: string;
+}
+
+export interface VirtualYouProfile {
+  userId: string;
+  modelImageUrl: string;
+  hasCustomPhoto: boolean;
+  hasExtractedPerson: boolean;
+  selectedDefaultModelUrl?: string;
+  isDefaultModel: boolean;
+  measurements: VirtualYouMeasurements;
+  processingMode: "mock" | "generated";
+  personBoundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  storageError?: string;
+  updatedAt: string;
+}
+
 export interface KpiMetric {
   label: string;
   value: string;
