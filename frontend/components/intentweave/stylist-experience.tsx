@@ -29,6 +29,7 @@ import {
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
+import { outfitKeyFromItems, preferenceService } from "@/lib/services/preferences";
 import {
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
@@ -46,6 +47,7 @@ import type {
   FashionRecommendation,
   OutfitRecommendation,
   PreferenceSignal,
+  UserPreferenceState,
   VirtualYouMeasurements,
   VirtualYouProfile,
   VisualChoice,
@@ -55,15 +57,23 @@ import { cn } from "@/lib/utils";
 function RecommendationCard({
   item,
   onFeedback,
+  onToggleSaved,
+  onRate,
   onTryOn,
   feedback,
+  saved,
+  rating,
   isTryOnActive,
   isTryOnLoading,
 }: {
   item: FashionRecommendation;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
+  onRate: (itemId: string, rating: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
   feedback?: "like" | "dislike";
+  saved: boolean;
+  rating?: number;
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
 }) {
@@ -113,21 +123,34 @@ function RecommendationCard({
             </Button>
             <Button
               size="icon-sm"
-              variant={feedback === "like" ? "default" : "outline"}
-              aria-label={`${t.stylist.like} ${item.name}`}
-              onClick={() => onFeedback(item.id, "like", item.name)}
+              variant={saved ? "default" : "outline"}
+              aria-label={`Save ${item.name}`}
+              onClick={() => onToggleSaved(item)}
             >
-              <Heart className="size-4" />
+              <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
             </Button>
             <Button
               size="icon-sm"
               variant={feedback === "dislike" ? "destructive" : "outline"}
               aria-label={`${t.stylist.dislike} ${item.name}`}
-              onClick={() => onFeedback(item.id, "dislike", item.name)}
+              onClick={() => onFeedback(item, "dislike")}
             >
               <ThumbsDown className="size-4" />
             </Button>
           </div>
+        </div>
+        <div className="flex gap-1" aria-label={`Rate ${item.name}`}>
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onRate(item.id, value)}
+              className="p-0.5 text-primary transition hover:scale-105"
+              aria-label={`${value} stars`}
+            >
+              <Star className={`size-4 ${rating && rating >= value ? "fill-current" : ""}`} />
+            </button>
+          ))}
         </div>
       </div>
     </article>
@@ -155,6 +178,7 @@ function MessageBlock({
   index,
   onChoice,
   onFeedback,
+  onToggleSaved,
   onTryOn,
   onTryOnOutfit,
   onRecommendationNavigate,
@@ -166,6 +190,7 @@ function MessageBlock({
   onDesignForMe,
   choicesDisabled,
   feedback,
+  preferenceState,
   activeTryOnItemIds,
   recommendationState,
   tryOnState,
@@ -174,18 +199,20 @@ function MessageBlock({
   message: ChatMessage;
   index: number;
   onChoice: (prompt: string) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
+  onToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onTryOn: (item: FashionRecommendation) => void;
   onTryOnOutfit: (outfit: OutfitRecommendation) => void;
   onRecommendationNavigate: (messageId: string, slot: "topOrDress" | "bottom", index: number) => void;
   onRecommendationTryMore: (messageId: string) => void;
   onRecommendationBackToTopPick: (messageId: string) => void;
   onRecommendationRate: (messageId: string, itemId: string, rating: number) => void;
-  onRecommendationToggleSaved: (messageId: string, itemId: string) => void;
+  onRecommendationToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
   choicesDisabled: boolean;
   feedback: Record<string, "like" | "dislike">;
+  preferenceState: UserPreferenceState;
   activeTryOnItemIds: string[];
   recommendationState?: RecommendationUiState;
   tryOnState: TryOnState;
@@ -240,7 +267,11 @@ function MessageBlock({
               key={item.id}
               item={item}
               feedback={feedback[item.id]}
+              saved={Boolean(preferenceState.savedItems[item.id])}
+              rating={preferenceState.itemRatings[item.id]}
               onFeedback={onFeedback}
+              onToggleSaved={(nextItem) => onToggleSaved(message.id, nextItem)}
+              onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
               onTryOn={onTryOn}
               isTryOnActive={activeTryOnItemIds.includes(item.id)}
               isTryOnLoading={tryOnStatus === "generating"}
@@ -262,8 +293,9 @@ function MessageBlock({
           tryOnState={tryOnState}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
+          preferenceState={preferenceState}
           onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
-          onToggleSaved={(itemId) => onRecommendationToggleSaved(message.id, itemId)}
+          onToggleSaved={(item) => onRecommendationToggleSaved(message.id, item)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
         />
@@ -279,12 +311,6 @@ interface CreateYouApiErrorDetails {
 }
 
 type TryOnStatus = "idle" | "generating" | "error";
-
-interface TryOnItemFeedback {
-  itemId: string;
-  feedback: "like" | "dislike";
-  timestamp: string;
-}
 
 interface TryOnState {
   topOrDress: FashionRecommendation | null;
@@ -303,11 +329,7 @@ interface StyledMessage {
   reason: string;
 }
 
-interface RecommendationUiState extends ChatRecommendation {
-  ratings: Record<string, number>;
-  savedItems: Record<string, boolean>;
-  savedLook: boolean;
-}
+type RecommendationUiState = ChatRecommendation;
 
 interface TranscriptionResponse {
   text?: string;
@@ -323,6 +345,16 @@ class CreateYouError extends Error {
     this.name = "CreateYouError";
     this.details = details;
   }
+}
+
+function createEmptyPreferenceState(): UserPreferenceState {
+  return {
+    savedItems: {},
+    dislikedItems: {},
+    itemRatings: {},
+    tryOnFeedback: {},
+    recentRecommendationRounds: [],
+  };
 }
 
 function getCreateYouErrorCode(error: unknown) {
@@ -364,9 +396,6 @@ function createRecommendationUiState(recommendation: ChatRecommendation, locale:
 
   return {
     ...normalizedRecommendation,
-    ratings: {},
-    savedItems: {},
-    savedLook: false,
   };
 }
 
@@ -391,14 +420,14 @@ function RecommendationCarousel({
   index: number;
   onNavigate: (nextIndex: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   activeTryOnItemIds: string[];
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
   rating?: number;
   onRate: (itemId: string, rating: number) => void;
   saved: boolean;
-  onToggleSaved: (itemId: string) => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
   disabledReason?: string;
 }) {
   const { t } = useI18n();
@@ -499,7 +528,7 @@ function RecommendationCarousel({
               type="button"
               size="icon-lg"
               variant={saved ? "default" : "outline"}
-              onClick={() => onToggleSaved(item.id)}
+              onClick={() => onToggleSaved(item)}
               aria-label={`Save ${item.name}`}
             >
               <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
@@ -508,7 +537,7 @@ function RecommendationCarousel({
               type="button"
               size="icon-lg"
               variant={feedback[item.id] === "dislike" ? "destructive" : "outline"}
-              onClick={() => onFeedback(item.id, "dislike", item.name)}
+              onClick={() => onFeedback(item, "dislike")}
               aria-label={`${t.stylist.dislike} ${item.name}`}
             >
               <ThumbsDown className="size-4" />
@@ -678,6 +707,7 @@ function ConversationRecommendation({
   tryOnState,
   tryOnStatus,
   feedback,
+  preferenceState,
   onRate,
   onToggleSaved,
   onSaveLook,
@@ -687,15 +717,16 @@ function ConversationRecommendation({
   onNavigate: (slot: "topOrDress" | "bottom", index: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
   onTryOnOutfit: (outfit: OutfitRecommendation) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   onTryMore: () => void;
   onBackToTopPick: () => void;
   activeTryOnItemIds: string[];
   tryOnState: TryOnState;
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
+  preferenceState: UserPreferenceState;
   onRate: (itemId: string, rating: number) => void;
-  onToggleSaved: (itemId: string) => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
 }) {
@@ -716,15 +747,15 @@ function ConversationRecommendation({
     return (
       <CompleteOutfitCard
         outfit={topPick}
-        rating={state.ratings[topPick.id]}
-        saved={state.savedLook}
-        disliked={feedback[topPick.id] === "dislike"}
+        rating={preferenceState.itemRatings[topPick.id]}
+        saved={topPickItemIds.length > 0 && topPickItemIds.every((itemId) => Boolean(preferenceState.savedItems[itemId]))}
+        disliked={feedback[topPick.id] === "dislike" || topPickItemIds.some((itemId) => feedback[itemId] === "dislike")}
         isTryOnActive={isTopPickTryOnActive}
         isTryOnLoading={tryOnStatus === "generating"}
         onTryOn={() => onTryOnOutfit(topPick)}
         onRate={(rating) => onRate(topPick.id, rating)}
         onToggleSaved={onSaveLook}
-        onDislike={() => onFeedback(topPick.id, "dislike", topPick.name)}
+        onDislike={() => onFeedback(topPick.items.topOrDress, "dislike")}
         onTryMore={onTryMore}
         onDesignForMe={onDesignForMe}
       />
@@ -747,9 +778,9 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id]}
+          rating={preferenceState.itemRatings[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id]}
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id])}
+          saved={Boolean(preferenceState.savedItems[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id])}
           onToggleSaved={onToggleSaved}
         />
         <RecommendationCarousel
@@ -762,9 +793,9 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id]}
+          rating={preferenceState.itemRatings[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id]}
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id])}
+          saved={Boolean(preferenceState.savedItems[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id])}
           onToggleSaved={onToggleSaved}
           disabledReason={dressActive ? "A dress is active as the complete outfit." : undefined}
         />
@@ -1017,6 +1048,7 @@ function CreateYouSection({
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  canShowTryOnFeedback,
   styledMessage,
 }: {
   profile: VirtualYouProfile | null;
@@ -1029,6 +1061,7 @@ function CreateYouSection({
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  canShowTryOnFeedback: boolean;
   styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
@@ -1093,7 +1126,7 @@ function CreateYouSection({
           <p className="mt-1 text-xs leading-5 text-muted-foreground">{styledMessage.reason}</p>
         </div>
       )}
-      {activeTryOnImage && tryOnStatus !== "generating" && (
+      {activeTryOnImage && canShowTryOnFeedback && tryOnStatus !== "generating" && (
         <TryOnFeedbackControls selected={activeTryOnFeedback} onSelect={onTryOnFeedback} />
       )}
     </section>
@@ -1114,6 +1147,7 @@ function StylePanel({
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  canShowTryOnFeedback,
   styledMessage,
 }: {
   signals: PreferenceSignal[];
@@ -1129,6 +1163,7 @@ function StylePanel({
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  canShowTryOnFeedback: boolean;
   styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
@@ -1175,6 +1210,7 @@ function StylePanel({
         tryOnError={tryOnError}
         activeTryOnFeedback={activeTryOnFeedback}
         onTryOnFeedback={onTryOnFeedback}
+        canShowTryOnFeedback={canShowTryOnFeedback}
         styledMessage={styledMessage}
       />
     </aside>
@@ -1349,7 +1385,7 @@ export function StylistExperience() {
   const [activeTryOnImage, setActiveTryOnImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] = useState<TryOnStatus>("idle");
   const [tryOnError, setTryOnError] = useState("");
-  const [itemFeedback, setItemFeedback] = useState<Record<string, TryOnItemFeedback>>({});
+  const [preferenceState, setPreferenceState] = useState<UserPreferenceState>(createEmptyPreferenceState);
   const [recommendationStateByMessageId, setRecommendationStateByMessageId] = useState<Record<string, RecommendationUiState>>({});
   const [styledMessage, setStyledMessage] = useState<StyledMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1370,7 +1406,7 @@ export function StylistExperience() {
   );
   const activeTryOnItemIds = useMemo(() => activeTryOnItems.map((item) => item.id), [activeTryOnItems]);
   const activeTryOnOverlays = useMemo<TryOnOverlay[]>(() => [], []);
-  const primaryActiveTryOnItemId = activeTryOnItemIds[activeTryOnItemIds.length - 1] || null;
+  const canShowTryOnFeedback = Boolean(tryOnState.topOrDress && (isDress(tryOnState.topOrDress) || tryOnState.bottom));
 
   const replaceVirtualYou = useCallback((nextProfile: VirtualYouProfile | null) => {
     const previousObjectUrl = virtualYouObjectUrlRef.current;
@@ -1418,6 +1454,7 @@ export function StylistExperience() {
     setConversations(list);
     setActiveId(nextActiveId);
     setStyleProfile(onboardingService.getProfile());
+    setPreferenceState(preferenceService.get(user.id));
     replaceVirtualYou(await virtualYouService.get(user.id));
   }, [replaceVirtualYou, router]);
 
@@ -1434,12 +1471,14 @@ export function StylistExperience() {
     window.addEventListener("intentweave-auth-change", handleChange);
     window.addEventListener("intentweave-virtual-you-change", handleChange);
     window.addEventListener("intentweave-onboarding-change", handleChange);
+    window.addEventListener(preferenceService.changeEvent, handleChange);
 
     return () => {
       window.removeEventListener("intentweave-conversations-change", handleChange);
       window.removeEventListener("intentweave-auth-change", handleChange);
       window.removeEventListener("intentweave-virtual-you-change", handleChange);
       window.removeEventListener("intentweave-onboarding-change", handleChange);
+      window.removeEventListener(preferenceService.changeEvent, handleChange);
 
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
@@ -1466,6 +1505,7 @@ export function StylistExperience() {
       setRecommendationStateByMessageId((current) => {
         let changed = false;
         const next = { ...current };
+        const user = authService.getSession();
 
         activeConversation.messages.forEach((message) => {
           if (message.role !== "assistant" || next[message.id]) {
@@ -1474,12 +1514,18 @@ export function StylistExperience() {
 
           if (message.recommendation) {
             next[message.id] = createRecommendationUiState(message.recommendation, locale);
+            if (user) {
+              preferenceService.registerRecommendationRound(user.id, message.id);
+            }
             changed = true;
             return;
           }
 
           if (message.recommendations?.length) {
             next[message.id] = createRecommendationUiState(createChatRecommendation(locale), locale);
+            if (user) {
+              preferenceService.registerRecommendationRound(user.id, message.id);
+            }
             changed = true;
           }
         });
@@ -1790,38 +1836,22 @@ export function StylistExperience() {
     sendPrompt(input);
   }
 
-  function handleFeedback(id: string, value: "like" | "dislike", itemName: string) {
-    if (!activeConversation || isGenerating) {
+  function preferenceContext(messageId?: string) {
+    return {
+      conversationId: activeConversation?.id,
+      messageId,
+      roundKey: messageId,
+    };
+  }
+
+  function handleFeedback(item: FashionRecommendation, value: "dislike") {
+    const user = authService.getSession();
+
+    if (!user || !activeConversation || isGenerating || value !== "dislike") {
       return;
     }
 
-    shouldFollowRef.current = true;
-    let nextConversation = conversationService.updateFeedback(activeConversation, id, value);
-    const feedbackText =
-      value === "like"
-        ? locale === "zh-TW"
-          ? `我喜歡 ${itemName}，想看類似方向。`
-          : `I like ${itemName}. Show me similar directions.`
-        : locale === "zh-TW"
-          ? `我不太喜歡 ${itemName}，請幫我調整。`
-          : `I do not love ${itemName}. Refine it.`;
-
-    nextConversation = conversationService.appendMessage(nextConversation, {
-      id: `user-feedback-${Date.now()}`,
-      role: "user",
-      text: feedbackText,
-    });
-    nextConversation = conversationService.appendMessage(nextConversation, {
-      id: `assistant-feedback-${Date.now()}`,
-      role: "assistant",
-      text: value === "like" ? t.assistant.feedbackLike : t.assistant.feedbackDislike,
-      quickChoices: [
-        { id: "similar", label: t.choices.showSimilar, prompt: locale === "zh-TW" ? "看類似款" : "Show me something similar" },
-        { id: "casual", label: t.choices.makeCasual, prompt: locale === "zh-TW" ? "更休閒一點" : "I like this, but make it more casual" },
-        { id: "color", label: t.choices.keepColor, prompt: locale === "zh-TW" ? "保留顏色但換輪廓" : "I like the color but not the silhouette" },
-      ],
-    });
-    persistConversation(nextConversation);
+    setPreferenceState(preferenceService.toggleDislikedItem(user.id, item, preferenceContext()));
   }
 
   async function saveVirtualYou(photo: File | null, measurements: VirtualYouMeasurements) {
@@ -2064,63 +2094,34 @@ export function StylistExperience() {
   }
 
   function handleRecommendationRate(messageId: string, itemId: string, rating: number) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+    const user = authService.getSession();
 
-      if (!state) {
-        return current;
-      }
+    if (!user) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          ratings: {
-            ...state.ratings,
-            [itemId]: rating,
-          },
-        },
-      };
-    });
+    setPreferenceState(preferenceService.toggleRating(user.id, itemId, rating));
   }
 
-  function handleRecommendationToggleSaved(messageId: string, itemId: string) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+  function handleRecommendationToggleSaved(messageId: string, item: FashionRecommendation) {
+    const user = authService.getSession();
 
-      if (!state) {
-        return current;
-      }
+    if (!user) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          savedItems: {
-            ...state.savedItems,
-            [itemId]: !state.savedItems[itemId],
-          },
-        },
-      };
-    });
+    setPreferenceState(preferenceService.toggleSavedItem(user.id, item, preferenceContext(messageId)));
   }
 
   function handleRecommendationSaveLook(messageId: string) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+    const user = authService.getSession();
+    const state = recommendationStateByMessageId[messageId];
 
-      if (!state) {
-        return current;
-      }
+    if (!user || !state?.topPick) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          savedLook: !state.savedLook,
-        },
-      };
-    });
+    setPreferenceState(preferenceService.toggleSavedOutfitItems(user.id, state.topPick, preferenceContext(messageId)));
   }
 
   function handleRecommendationTryMore(messageId: string) {
@@ -2160,22 +2161,31 @@ export function StylistExperience() {
   }
 
   function handleTryOnFeedback(feedbackValue: "like" | "dislike") {
-    if (!primaryActiveTryOnItemId) {
+    const user = authService.getSession();
+    const canRateTryOn = Boolean(tryOnState.topOrDress && (isDress(tryOnState.topOrDress) || tryOnState.bottom));
+
+    if (!user || !canRateTryOn) {
       return;
     }
 
-    setItemFeedback((current) => ({
-      ...current,
-      [primaryActiveTryOnItemId]: {
-        itemId: primaryActiveTryOnItemId,
-        feedback: feedbackValue,
-        timestamp: new Date().toISOString(),
-      },
-    }));
+    setPreferenceState(preferenceService.setTryOnFeedback(user.id, activeTryOnItems, feedbackValue, preferenceContext()));
   }
 
-  const feedback = activeConversation?.recommendationFeedback || {};
+  const feedback = useMemo(() => {
+    const next: Record<string, "like" | "dislike"> = {};
+
+    Object.keys(preferenceState.savedItems).forEach((itemId) => {
+      next[itemId] = "like";
+    });
+    Object.keys(preferenceState.dislikedItems).forEach((itemId) => {
+      next[itemId] = "dislike";
+    });
+
+    return next;
+  }, [preferenceState.dislikedItems, preferenceState.savedItems]);
   const signals = activeConversation?.preferenceSignals || [];
+  const activeTryOnOutfitKey = outfitKeyFromItems(activeTryOnItems);
+  const activeTryOnFeedback = activeTryOnOutfitKey ? preferenceState.tryOnFeedback[activeTryOnOutfitKey]?.feedback : undefined;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -2216,6 +2226,7 @@ export function StylistExperience() {
               index={index}
               onChoice={sendPrompt}
               onFeedback={handleFeedback}
+              onToggleSaved={handleRecommendationToggleSaved}
               onTryOn={handleTryOn}
               onTryOnOutfit={handleTryOnOutfit}
               onRecommendationNavigate={handleRecommendationNavigate}
@@ -2227,6 +2238,7 @@ export function StylistExperience() {
               onDesignForMe={handleDesignForMe}
               choicesDisabled={index !== activeConversation.messages.length - 1 || isGenerating}
               feedback={feedback}
+              preferenceState={preferenceState}
               activeTryOnItemIds={activeTryOnItemIds}
               recommendationState={recommendationStateByMessageId[message.id]}
               tryOnState={tryOnState}
@@ -2314,8 +2326,9 @@ export function StylistExperience() {
         activeTryOnOverlays={activeTryOnOverlays}
         tryOnStatus={tryOnStatus}
         tryOnError={tryOnError}
-        activeTryOnFeedback={primaryActiveTryOnItemId ? itemFeedback[primaryActiveTryOnItemId]?.feedback : undefined}
+        activeTryOnFeedback={activeTryOnFeedback}
         onTryOnFeedback={handleTryOnFeedback}
+        canShowTryOnFeedback={canShowTryOnFeedback}
         styledMessage={styledMessage}
       />
       <VirtualYouModal
