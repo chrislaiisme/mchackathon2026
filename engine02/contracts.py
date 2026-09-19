@@ -240,6 +240,23 @@ class ContextInput(BaseModel):
     # entertainment only, opt-in: {"zodiac": "leo"} or {"birth_year": 1998}
     lucky: dict | None = None
     surprise: bool = False                     # reserve one card for a bold-but-fitting "驚喜款"
+    # travel: where the shopper is coming FROM (city/lat/lon above = where the outfit is worn).
+    # A city name without coordinates is geocoded (engine02/context/geo.py).
+    origin_city: str | None = None
+    origin_lat: float | None = None
+    origin_lon: float | None = None
+    event_time: str | None = None              # "19:00" local time -> hourly forecast at that hour
+    transport: Literal["flight", "hsr", "train", "car", "scooter", "mrt", "walk", "bike"] | None = None
+
+
+class ItineraryEvent(BaseModel):
+    date: str                                  # ISO date
+    city: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    time: str | None = None                    # "19:00"
+    occasion: str | None = None                # free text or catalog occasion ("婚禮", "Formal")
+    note: str | None = None                    # "海邊晚餐", "爬山"
 
 
 Engine02Request.model_rebuild()

@@ -163,8 +163,10 @@ app = FastAPI(title="ENGINE 02 — retrieval, ranking, faithful explanation", ve
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 from .context_api import router as _context_router  # noqa: E402  (context, services, demand radar)
+from .inspiration_api import router as _inspiration_router  # noqa: E402  (runway/street/cosplay library)
 
 app.include_router(_context_router)
+app.include_router(_inspiration_router)
 
 
 def engine() -> Engine02:
@@ -499,6 +501,7 @@ class IntentRankRequest(BaseModel):
     prev_intent: dict | None = None     # last round's intent, to score this slate against it too
     top_k: int = 5
     arm: str | None = None
+    context: dict | None = None      # ContextInput: city/lat/lon/event_date/commute/mood/...
 
 
 @app.post("/intent/rank")
@@ -524,6 +527,15 @@ def intent_rank(body: IntentRankRequest) -> dict:
     except ValidationError as exc:
         raise HTTPException(422, {"error": "intent could not be converted to an Engine02Request",
                                   "detail": exc.errors(include_url=False)})
+    if body.context:
+        # the shopper's situation (weather, festival, commute, mood ...) rides along with the
+        # intent; malformed context is a 422 naming the field, never silently dropped
+        from engine02.contracts import ContextInput
+        try:
+            req.context = ContextInput(**body.context)
+        except ValidationError as exc:
+            raise HTTPException(422, {"error": "context is not a valid ContextInput",
+                                      "detail": exc.errors(include_url=False)})
     prev_req = None
     if body.prev_intent:
         prev_req, _ = intent_to_request(body.prev_intent, session_id=body.session_id,

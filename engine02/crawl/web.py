@@ -25,6 +25,10 @@ from .records import Record, normalize_url
 from .robots import Robots
 
 LOC = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.I)
+# URL shapes that are usually a single product / article / post. Breadth-first alone spent lativ's
+# whole 30-page budget on category pages (Disney, Dragon Ball, Ultraman ...) and found 1 product.
+DEFAULT_PREFER = [r"/products?/", r"/p/", r"/item", r"/goods", r"/market/n/\d+", r"/product-detail/",
+                  r"/gdsale/", r"/prod/", r"/article", r"/news/", r"/story/", r"/\d{6,}(/|$|\.html)"]
 
 
 @dataclass
@@ -34,6 +38,7 @@ class WebSourceConfig:
     allowed_domains: list[str] = field(default_factory=list)   # empty -> the start URLs' hosts
     follow: list[str] = field(default_factory=list)            # regex; empty -> every allowed link
     exclude: list[str] = field(default_factory=list)           # regex; never enqueued
+    prefer: list[str] = field(default_factory=lambda: list(DEFAULT_PREFER))  # fetched before listings
     sitemaps: list[str] = field(default_factory=list)
     use_robots_sitemaps: bool = False
     max_pages: int = 50
@@ -76,8 +81,21 @@ def run_web(cfg: WebSourceConfig, fetcher: Fetcher, robots: Robots | None = None
             return False
         return not follow or any(p.search(url) for p in follow)
 
-    frontier: deque[tuple[str, int]] = deque()
+    # two queues: pages that look like a single product/article first, listings after. The page
+    # budget is then spent on records, and listings are still crawled for discovery.
+    prefer = [re.compile(p) for p in cfg.prefer]
+    hi: deque[tuple[str, int]] = deque()
+    lo: deque[tuple[str, int]] = deque()
     queued: set[str] = set()
+
+    class _Frontier:
+        def __bool__(self):
+            return bool(hi or lo)
+
+        def popleft(self):
+            return hi.popleft() if hi else lo.popleft()
+
+    frontier = _Frontier()
 
     def enqueue(url: str, depth: int, seed: bool = False):
         n = normalize_url(url)
@@ -85,7 +103,7 @@ def run_web(cfg: WebSourceConfig, fetcher: Fetcher, robots: Robots | None = None
             return
         if seed or wanted(n):
             queued.add(n)
-            frontier.append((n, depth))
+            (hi if (seed or any(p.search(n) for p in prefer)) else lo).append((n, depth))
 
     for u in cfg.start_urls:
         enqueue(u, 0, seed=True)
@@ -177,7 +195,8 @@ def run_web(cfg: WebSourceConfig, fetcher: Fetcher, robots: Robots | None = None
                      price=page["price"], currency=page["currency"], image_urls=page["image_urls"],
                      published_at=page["published_at"], page_type=page["page_type"],
                      fetched_at=datetime.fromtimestamp(r.fetched_at, timezone.utc).isoformat(timespec="seconds"),
-                     field_origin=page["field_origin"])
+                     field_origin=page["field_origin"], category=page.get("category"), sku=page.get("sku"),
+                     availability=page.get("availability"), color=page.get("color"), gender=page.get("gender"))
         fp = rec.fingerprint()
         if key in seen_urls or fp in seen_prints:
             report["duplicates"] += 1

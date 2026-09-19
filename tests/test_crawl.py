@@ -122,6 +122,16 @@ def test_aggregate_offer_says_it_is_a_low_price():
     assert p["field_origin"]["currency"] == "jsonld:AggregateOffer.priceCurrency"
 
 
+def test_a_listing_with_several_products_is_not_a_product_record():
+    html = ('<script type="application/ld+json">[{"@type":"Product","name":"A","offers":{"price":"1"}},'
+            '{"@type":"Product","name":"B","offers":{"price":"2"}}]</script>')
+    p = extract(html, "http://x.test/browse")
+    assert p["page_type"] == "listing" and p["price"] is None and p["title"] != "A"
+    itemlist = ('<script type="application/ld+json">{"@type":"ItemList","itemListElement":'
+                '[{"@type":"Product","name":"A"}]}</script>')
+    assert extract(itemlist, "http://x.test/c")["page_type"] == "listing"
+
+
 def test_microdata_brand_text_survives_void_elements():
     html = ('<div itemscope itemtype="https://schema.org/Product"><img src="/a.jpg"><br>'
             '<span itemprop="brand">Mono<br>Label</span><meta itemprop="price" content="1500">'
@@ -143,6 +153,33 @@ def test_crawl_records_dedup_and_robots(shop, tmp_path):
     assert all(r.page_type in ("product", "article") for r in recs)     # the listing is not a record
     tee = next(r for r in recs if r.title == "Tee")
     assert tee.price is None and tee.brand is None                      # missing stays missing
+
+
+def test_product_pages_are_fetched_before_listings(tmp_path):
+    cats = "".join(f'<a href="/category/c{i}">c</a>' for i in range(20))
+    prods = "".join(f'<a href="/products/p{i}">p</a>' for i in range(5))
+    routes = {"/robots.txt": (404, {}, ""), "/list": (200, {}, f"<html><body>{cats}{prods}</body></html>")}
+    routes.update({f"/category/c{i}": (200, {}, f"<html><body>{cats}</body></html>") for i in range(20)})
+    routes.update({f"/products/p{i}": (200, {}, PRODUCT_JSONLD.replace("Wool coat", f"Coat {i}")) for i in range(5)})
+    s = Site(routes)
+    try:
+        recs, _, rep, _ = crawl(s, tmp_path, max_pages=6)
+        assert len(recs) == 5                    # budget went to products, not to 20 category pages
+    finally:
+        s.close()
+
+
+def test_non_ascii_urls_are_encoded_not_fatal(tmp_path):
+    assert normalize_url("https://shop.test/products/文青女孩 洋裝?utm_source=x") == \
+        "https://shop.test/products/%E6%96%87%E9%9D%92%E5%A5%B3%E5%AD%A9%20%E6%B4%8B%E8%A3%9D"
+    assert normalize_url("https://shop.test/a%2Fb") == "https://shop.test/a%2Fb"        # existing escape kept
+    s = Site({"/robots.txt": (404, {}, ""), "/list": (200, {}, '<a href="/products/文青洋裝">p</a>'),
+              "/products/%E6%96%87%E9%9D%92%E6%B4%8B%E8%A3%9D": (200, {}, PRODUCT_JSONLD)})
+    try:
+        recs, errs, rep, _ = crawl(s, tmp_path)
+        assert rep["status"] == "completed" and len(recs) == 1       # a raw Chinese link used to crash the run
+    finally:
+        s.close()
 
 
 def test_rate_limit_spaces_requests(shop, tmp_path):

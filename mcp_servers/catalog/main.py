@@ -32,7 +32,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -88,6 +88,7 @@ class RetrieveRequest(BaseModel):
     feedback: dict | None = None
     top_k: int = 5
     arm: str | None = None
+    context: dict | None = None      # ContextInput: city/lat/lon/event_date/commute/mood/...
 
 
 @app.post("/retrieve")
@@ -114,6 +115,15 @@ def retrieve(body: RetrieveRequest, request: Request) -> dict:
         body.intent, session_id=session_id, round=body.round, message=body.message,
         catalog_name=getattr(e.catalog, "name", None), catalog_items=e.catalog.items,
         top_k=body.top_k, arm=arm, feedback=body.feedback)
+    if body.context:
+        # the shopper's situation (weather, festival, commute, mood ...) rides along with the
+        # intent; malformed context is a 422 naming the field, never silently dropped
+        from engine02.contracts import ContextInput
+        try:
+            req.context = ContextInput(**body.context)
+        except ValidationError as exc:
+            raise HTTPException(422, {"error": "context is not a valid ContextInput",
+                                      "detail": exc.errors(include_url=False)})
     prev_req = None
     if body.prev_intent:
         prev_req, _ = intent_to_request(

@@ -172,3 +172,31 @@ def services_rent_or_buy(body: RentReq) -> dict:
         raise HTTPException(404, "unknown item")
     row = {k: (None if (isinstance(v, float) and v != v) else v) for k, v in items.iloc[pos].to_dict().items()}
     return advise(row, body.occasion, body.times_expected)
+
+
+class ItineraryReq(BaseModel):
+    events: list[dict]                           # [{date, city|lat/lon, time?, occasion?, note?}]
+    origin: dict | None = None                   # {city} or {lat, lon}
+    n_capsule: int = 10
+    budget: float | None = None
+    top_k: int = 5
+
+
+@router.post("/services/itinerary")
+def services_itinerary(body: ItineraryReq) -> dict:
+    """行程表 -> per-event weather/climate + a suggested /rank context and top items, plus one capsule."""
+    from .contracts import Engine02Options, Engine02Request
+    from .services.itinerary import plan_itinerary
+    from .api import STATE
+
+    svc = STATE.get("service")
+
+    def rank_fn(ctx):
+        if svc is None:
+            return []
+        req = Engine02Request(session_id="itinerary", retrieval_text="outfit", context=ctx,
+                              options=Engine02Options(top_k=body.top_k, explain_with_llm=False))
+        return svc.rank(req)
+
+    return plan_itinerary(body.events, _items(), origin=body.origin, n_capsule=body.n_capsule,
+                          budget=body.budget, rank_fn=rank_fn, top_k=body.top_k)

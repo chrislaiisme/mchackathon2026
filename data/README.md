@@ -81,6 +81,43 @@ python scripts/fetch_pinterest_trends.py   # 需要 PINTEREST_ACCESS_TOKEN
 Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore），**絕對不要 commit**。
 沒有 token 就只跑 Wikimedia 那支，預測功能一樣可用。
 
+### 5. H&M 現代商品庫（demo 建議用這個；選用）
+
+`data/catalog/hm_filled/` **已附在 repo 裡**：9,870 件 H&M（2018–2020）商品（一萬件裡 130 件被
+視覺模型判定是多件組、尺寸表或非服飾而剔除）。品類、顏色、性別是 H&M 的人工標註；季節、場合、
+版型、大膽度、風格是 GPU 上的 Qwen3-VL-8B 補的，`attr_source` 逐格寫明哪個欄位是誰填的
+（模型補的不可以拿來當評估標準答案）。模型和 H&M 人工標註的一致率：品類 94%、色系 81%。
+圖片向量 `index/img_marqo-fashionSigLIP.npy` 也附上（GPU 算好的，CPU 不用再算 15 分鐘）。
+圖片不附（第三方、體積大），用 `image_url` 一行重建，不需要帳號：
+
+```bash
+python scripts/fetch_catalog_images.py --catalog data/catalog/hm_filled
+ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
+  python -m uvicorn mcp_servers.catalog.main:app --port 8002
+```
+
+授權：H&M Kaggle 競賽條款「Non-Commercial Purposes & Academic Research」——黑客松 demo 可以，
+贊助商商用不行。重建整個流程（要 GPU）：`prepare_catalog_hm.py` → `vlm_fill_catalog.py` →
+`apply_vlm_fill.py`。細節：`data/catalog/hm_filled/README.md`。
+
+### 6. 爬蟲抓的台灣／國際電商商品（有真實價格；選用）
+
+`data/catalog/crawl_tw/` **已附在 repo 裡**：166 件，從 PChome 24h、SSENSE、iROO、Taiwanize、
+Cheesebeign、Plain-me、JKS、Whiterock 等 13 家店的商品頁抓的。標題、價格（新台幣）、品牌
+**只取頁面結構化資料寫的**，沒寫就留空；季節、場合、大膽度、風格同樣由 Qwen3-VL-8B 補。
+**每件都有價格**，所以預算篩選、租還是買在這個商品庫上才有意義。圖片同樣用
+`fetch_catalog_images.py --catalog data/catalog/crawl_tw` 重建。
+
+有 `boldness` 的商品庫（hm_filled、crawl_tw）「驚喜款」才會生效。
+
+### 7. 爬蟲原始資料集與靈感圖庫（已附，不用建）
+
+- `data/crawl_dataset/`：2026-09-19 一次完整爬取的 1,911 筆（38 個來源：電商商品頁 242、時尚媒體
+  文章 422、Wikimedia Commons 伸展台／街拍／cosplay 照片 800、Mastodon #ootd 貼文 447），
+  JSON + CSV，每個來源的狀態與停止原因在 `sources.json`。網頁會變，所以直接附上。
+- `data/inspiration/`：381 張伸展台／街拍／cosplay 照片（CC 授權，含作者與授權欄位，顯示時要標註），
+  已自動剔除海報、人群、演講、臉部特寫、泳裝內衣等。給「我想要這種感覺」用，**不會混進商品庫**。
+
 ## 不用自己建的東西
 
 `data/catalog/<name>/index/` 底下的 `.npy`（圖片向量、設計要素矩陣）**第一次啟動服務時會自動算好並快取**
@@ -127,6 +164,10 @@ Pinterest 那支要 token，放在 repo 根目錄的 `.env`（已被 gitignore�
 | `catalog/kagl_priced_fixture/` | 500 件 + **合成價格** | 步驟 3 |
 | `catalog/kagl_polyvore/` | 兩者合併 | `scripts/merge_catalogs.py` |
 | `catalog/amz_smoke/` | 15 件**真實**價格樣本（太小，不足以評估） | `scripts/prepare_catalog_priced.py`（Amazon Reviews 2023，公開；**但該資料集未宣告授權**，僅供研究）|
+| `catalog/hm_filled/` | H&M 9,870 件 + 視覺模型補欄位 + 圖片向量 | ✅ 已附（步驟 5）|
+| `catalog/crawl_tw/` | 爬蟲電商商品 166 件（真實價格）+ 視覺模型補欄位 | ✅ 已附（步驟 6）|
+| `crawl_dataset/` | 爬蟲原始紀錄 1,911 筆 | ✅ 已附（步驟 7）|
+| `inspiration/` | 靈感照片 381 張（CC 授權）+ 向量 | ✅ 已附（步驟 7）|
 | `trends/` | 趨勢時間序列 | 步驟 4 |
 | `context/weather.json` | 天氣情境 | `scripts/fetch_context.py` |
 | `verify_sample/` | Polyvore 前 48 筆抽樣 | 可重建（`meta.json` 記錄了來源與切片）|

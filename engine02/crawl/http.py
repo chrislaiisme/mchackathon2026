@@ -15,6 +15,7 @@ timeouts, 5xx that are not challenge pages. 404/410 are FetchError without retry
 from __future__ import annotations
 
 import email.utils
+import http.client
 import hashlib
 import json
 import re
@@ -233,6 +234,10 @@ class Fetcher:
                     self._sleep(2.0 * (attempt + 1))
                     attempt += 1
                     continue
+                raise FetchError(url, f"{type(e).__name__}: {e}")
+            except (UnicodeError, ValueError, http.client.HTTPException) as e:
+                # a malformed URL or a broken response is one bad page, not a reason to take the
+                # whole crawl process down (a raw non-ASCII URL once killed nine sources at once)
                 raise FetchError(url, f"{type(e).__name__}: {e}")
 
         if resp.content_type in ("text/html", "application/xhtml+xml", ""):

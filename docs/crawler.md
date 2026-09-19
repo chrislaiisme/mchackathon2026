@@ -74,6 +74,43 @@ De-duplication: URLs are normalised (fragment and tracking parameters such as `u
 `gclid`, `igshid` removed, query sorted) and the canonical URL is preferred; the same content under
 two URLs is caught by a title/text/first-image fingerprint.
 
+Page budget: links that look like a single product/article (`prefer`, default `/product(s)/`,
+`/market/n/`, `/article`, long numeric ids ...) are fetched before listing pages. Plain
+breadth-first spent lativ's whole 30-page budget on category pages and found 1 product.
+A page that describes several products (or an ItemList) is a **listing**: it is used for links and
+never recorded, so a record's URL always points at the product it describes.
+
+## Other sources
+
+| type | what | key needed |
+|---|---|---|
+| `commons` | Wikimedia Commons categories (runway, street fashion, cosplay) with licence + author per image | no |
+| `mastodon` | public hashtag timelines (`#ootd`, `#streetstyle`, `#穿搭` ...); sensitive / content-warning posts skipped | no |
+| `instagram_api` / `instagram_export` | see below | yours |
+
+## The shipped dataset
+
+`data/crawl_dataset/` (in git) is one full run of the example config on 2026-09-19: 1,911 records
+from 38 sources, with every source's status and stop reason in `sources.json` (README there).
+Several runs -- e.g. source groups crawled in parallel -- are merged with
+
+```bash
+python scripts/merge_crawl_runs.py --runs data/crawl/<run1> --runs data/crawl/<run2> --out data/crawl_dataset
+```
+
+(de-duplicated by URL, newest fetch wins, then by content fingerprint).
+
+## From crawl to catalog
+
+```bash
+python scripts/crawl_to_catalog.py --records data/crawl_dataset --out data/catalog/crawl_tw --download-images
+```
+
+Keeps product pages with an image, maps them to the catalog schema without guessing (price, brand,
+colour, gender only as the page states them; category from the page, else explicit title keywords,
+recorded as `title_rule`), and drops non-apparel (a Pinkoi doll bundle, a desk calendar) with the
+count in stats.json. Season / occasion are left for `scripts/vlm_fill_catalog.py`.
+
 ## Instagram
 
 Checked on 2026-09-19, not assumed:

@@ -4,6 +4,9 @@ Brand and price are taken ONLY from what a page declares for machines:
   JSON-LD (schema.org Product / Offer / AggregateOffer)  >  microdata (itemprop)  >  OpenGraph
   (product:price:amount, product:brand). A price in a sentence is not read: "from NT$990 in
   selected sizes" is not a product price, and parsing it would be exactly the guessing we refuse.
+Category, sku, availability, colour and gender likewise: JSON-LD Product.category / .sku /
+offers.availability / .color / .audience.suggestedGender (or audience.gender) > OpenGraph product:*
+tags; absent when the page does not state them.
 Text: JSON-LD articleBody > JSON-LD description > og:description > <meta name=description>.
 Every field records where it came from in `field_origin`, e.g. price <- "jsonld:AggregateOffer.lowPrice".
 """
@@ -152,6 +155,27 @@ def _offer_price(offers) -> tuple[str | None, str | None, str | None]:
     return None, None, None
 
 
+def _offer_availability(offers) -> str | None:
+    """schema.org availability as stated, shortened to its term ("https://schema.org/InStock" -> "InStock")."""
+    for o in (offers if isinstance(offers, list) else [offers]):
+        if isinstance(o, dict):
+            v = _str(o.get("availability"))
+            if v:
+                return v.rstrip("/").rsplit("/", 1)[-1]
+    return None
+
+
+def _audience_gender(aud) -> tuple[str | None, str | None]:
+    """(gender, origin) from Product.audience (PeopleAudience.suggestedGender, or audience.gender)."""
+    for a in (aud if isinstance(aud, list) else [aud]):
+        if isinstance(a, dict):
+            for key in ("suggestedGender", "gender"):
+                v = _str(a.get(key))
+                if v:
+                    return v.rstrip("/").rsplit("/", 1)[-1], f"jsonld:Product.audience.{key}"
+    return None, None
+
+
 def extract(html: str, url: str) -> dict:
     c = _Collector(url)
     try:
@@ -161,7 +185,8 @@ def extract(html: str, url: str) -> dict:
         pass
     meta = {k: v[0] for k, v in c.meta.items()}
     out: dict = {"title": None, "text": None, "brand": None, "price": None, "currency": None,
-                 "published_at": None, "page_type": "page", "image_urls": [], "field_origin": {}}
+                 "published_at": None, "page_type": "page", "image_urls": [], "field_origin": {},
+                 "category": None, "sku": None, "availability": None, "color": None, "gender": None}
     origin = out["field_origin"]
 
     def put(key, value, src):
@@ -176,9 +201,17 @@ def extract(html: str, url: str) -> dict:
         except (ValueError, TypeError):
             continue
     nodes = [n for d in docs for n in _nodes(d)]
-    product = next((n for n in nodes if _types(n) & PRODUCT_TYPES), None)
+    products = [n for n in nodes if _types(n) & PRODUCT_TYPES]
+    # A page that describes several products (or an ItemList) is a LISTING. Taking its first product
+    # produced a record whose URL was the listing page -- a card that links to the wrong place.
+    # Listings are for discovering links; their products are recorded from their own pages.
+    is_listing = len({(_str(p.get("name")), _str(p.get("sku"))) for p in products}) > 1 or \
+        any("itemlist" in _types(n) for n in nodes)
+    product = products[0] if (products and not is_listing) else None
     article = next((n for n in nodes if _types(n) & ARTICLE_TYPES), None)
     imgs: list[str] = []
+    if is_listing:
+        out["page_type"] = "listing"
     if product:
         out["page_type"] = "product"
         put("title", _str(product.get("name")), "jsonld:Product.name")
@@ -187,9 +220,15 @@ def extract(html: str, url: str) -> dict:
         put("price", p, o)
         put("currency", cur, (o.rsplit(".", 1)[0] + ".priceCurrency") if o else None)
         put("text", _str(product.get("description")), "jsonld:Product.description")
+        put("category", _str(product.get("category")), "jsonld:Product.category")
+        put("sku", _str(product.get("sku")), "jsonld:Product.sku")
+        put("availability", _offer_availability(product.get("offers")), "jsonld:Offer.availability")
+        put("color", _str(product.get("color")), "jsonld:Product.color")
+        g, g_origin = _audience_gender(product.get("audience"))
+        put("gender", g, g_origin)
         imgs += _images(product.get("image"), url)
     if article:
-        if not product:
+        if not product and not is_listing:
             out["page_type"] = "post" if "socialmediaposting" in _types(article) else "article"
         put("title", _str(article.get("headline") or article.get("name")), "jsonld:Article.headline")
         put("text", _str(article.get("articleBody")), "jsonld:Article.articleBody")
@@ -204,6 +243,13 @@ def extract(html: str, url: str) -> dict:
     put("currency", meta.get("product:price:currency") or meta.get("og:price:currency"),
         "og:product:price:currency")
     put("brand", meta.get("product:brand") or meta.get("og:brand"), "og:product:brand")
+    # Open Graph product object (Facebook catalog tags), each only when the page states it.
+    put("category", meta.get("product:category"), "og:product:category")
+    put("sku", meta.get("product:retailer_item_id"), "og:product:retailer_item_id")
+    avail = meta.get("product:availability") or meta.get("og:availability")
+    put("availability", avail.rstrip("/").rsplit("/", 1)[-1] if avail else None, "og:product:availability")
+    put("color", meta.get("product:color"), "og:product:color")
+    put("gender", meta.get("product:target_gender"), "og:product:target_gender")
     if out["page_type"] == "page" and meta.get("og:type", "").lower().startswith("product"):
         out["page_type"] = "product"
     elif out["page_type"] == "page" and meta.get("og:type", "").lower() == "article":

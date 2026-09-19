@@ -542,13 +542,7 @@ delay_s = 3.0
 # statuses with media_attachments; robots.txt allows /api/. Docs: "View public statuses containing the given
 # hashtag." / "Authentication may be required depending on instance settings." Rate limit: "300 times within
 # 5 minutes per IP address". Params: only_media=true, limit<=40, max_id paging.
-# [[sources]]
-# name = "mastodon_ootd"
-# type = "mastodon"                       # connector not implemented
-# instance = "https://mastodon.social"
-# hashtags = ["ootd", "fashion", "streetstyle", "穿搭"]
-# only_media = true
-# max_posts = 200
+# -> implemented: see the "mastodon_fashion" stanza at the end of this file.
 
 # ---- Bluesky (free app password) ----------------------------------------------------------------------
 # verified 2026-09-19: GET https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=%23ootd -> 403
@@ -613,3 +607,16 @@ delay_s = 3.0
 
 # ---- Instagram (already handled by engine02.crawl.instagram: IG_ACCESS_TOKEN + IG_USER_ID) ------------------
 # www.instagram.com/robots.txt "User-agent: *  Disallow: /" (re-verified 2026-09-19).
+
+# ---- Mastodon public hashtag timelines (no key) -------------------------------------------------------------
+# GET https://{instance}/api/v1/timelines/tag/{tag}?limit=40&only_media=true&max_id=... (docs.joinmastodon.org).
+# Documented limit: 300 requests / 5 min per IP. robots.txt is checked for the API path; sensitive posts and
+# posts with a content warning (spoiler_text) are skipped and counted in the report.
+[[sources]]
+name = "mastodon_fashion"
+type = "mastodon"
+instances = ["mastodon.social"]
+hashtags = ["ootd", "fashion", "streetstyle", "穿搭"]
+max_posts = 200
+only_media = true
+delay_s = 1.0

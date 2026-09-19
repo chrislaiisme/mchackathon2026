@@ -108,6 +108,12 @@ def main(argv=None) -> int:
                                 **{k: v for k, v in s.items() if k in keys})
             recs, errs = run_commons(src)
             rep = src.report
+        elif kind == "mastodon":
+            from .mastodon import run_mastodon
+            recs, errs, rep = run_mastodon(
+                name, s.get("instances") or ["mastodon.social"], s.get("hashtags", []),
+                max_posts=int(s.get("max_posts", 200)), only_media=bool(s.get("only_media", True)),
+                delay_s=float(s.get("delay_s", 1.0)), fetcher=fetcher, robots=robots)
         else:
             recs, errs, rep = [], [], {"name": name, "type": kind, "status": "not_run",
                                        "stop_reason": "unknown_source_type"}

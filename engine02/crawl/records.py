@@ -7,7 +7,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 # Query parameters that identify a click, not a page. Two URLs differing only in these are one page.
 TRACKING_PARAMS = {
@@ -31,6 +31,12 @@ class Record:
     page_type: str | None = None               # product | article | post | page
     fetched_at: str | None = None
     field_origin: dict[str, str] = field(default_factory=dict)  # field -> jsonld | og | microdata | ...
+    # Optional product facts, only when the page states them in structured data (never inferred).
+    category: str | None = None                # Product.category / og product:category, verbatim
+    sku: str | None = None
+    availability: str | None = None            # schema.org term, e.g. InStock / OutOfStock
+    color: str | None = None                   # verbatim, e.g. "深藍色" -- normalised downstream
+    gender: str | None = None                  # verbatim, e.g. "female" / "unisex"
 
     def fingerprint(self) -> str:
         """Content identity, to catch the same item served under two URLs."""
@@ -42,20 +48,37 @@ class Record:
         return asdict(self)
 
 
+def _ascii_path(path: str) -> str:
+    """IRI -> URI for the path: percent-encode only non-ASCII characters and spaces. Existing %xx
+    escapes are left alone (unquoting first would turn %2F into a real / and change the path).
+    A raw 「/products/文青女孩」 link crashed the whole crawl process in urllib before this."""
+    return "".join(c if (ord(c) < 128 and c != " ") else quote(c) for c in path)
+
+
 def normalize_url(url: str) -> str:
-    """Lowercase scheme/host, drop the fragment, default ports and tracking parameters, sort the rest."""
+    """Lowercase scheme/host, drop the fragment, default ports and tracking parameters, sort the rest,
+    and make the result plain ASCII (percent-encoded path, IDNA host) so any HTTP client accepts it."""
     p = urlsplit(url.strip())
     scheme = (p.scheme or "http").lower()
     host = (p.hostname or "").lower()
-    if p.port and not ((scheme == "http" and p.port == 80) or (scheme == "https" and p.port == 443)):
-        host = f"{host}:{p.port}"
+    try:
+        host = host.encode("idna").decode("ascii")
+    except UnicodeError:
+        pass
+    try:
+        port = p.port
+    except ValueError:                        # "http://x:abc/" -- keep going without a port
+        port = None
+    if port and not ((scheme == "http" and port == 80) or (scheme == "https" and port == 443)):
+        host = f"{host}:{port}"
     query = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True)
              if k.lower() not in TRACKING_PARAMS and not k.lower().startswith("utm_")]
-    return urlunsplit((scheme, host, p.path or "/", urlencode(sorted(query)), ""))
+    return urlunsplit((scheme, host, _ascii_path(p.path or "/"), urlencode(sorted(query)), ""))
 
 
 CSV_FIELDS = ["source", "url", "title", "text", "brand", "price", "currency", "image_urls",
-              "published_at", "account", "page_type", "fetched_at", "field_origin"]
+              "published_at", "account", "page_type", "fetched_at", "field_origin",
+              "category", "sku", "availability", "color", "gender"]
 
 
 def export(records: list[Record], out_dir: Path) -> dict[str, str]:

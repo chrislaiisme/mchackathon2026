@@ -21,8 +21,8 @@ import pandas as pd
 
 from .base import ContextSignal, DailyForecast
 
-MODULES = ("weather", "commute", "festival", "lucky", "personal")
-FORECAST_MODULES = {"weather", "commute"}
+MODULES = ("weather", "commute", "travel", "festival", "lucky", "personal")
+FORECAST_MODULES = {"weather", "commute", "travel"}
 DESIGN_GAMMA = 0.1           # a context design step moves a card at most this much per unit c(i,d)
 
 # term name -> card label, for the request being ranked right now (read by explain.template_reasons)
@@ -45,6 +45,20 @@ def build_signals(ctx, today: date | None = None, forecast=None,
     if allow_network is None:
         allow_network = os.environ.get("ENGINE02_DEMO") != "1"
     problems: list[dict] = []
+    # "札幌" with no coordinates: find them, so the weather works from a city name alone
+    if (ctx.lat is None or ctx.lon is None) and ctx.city:
+        try:
+            geo = importlib.import_module(".geo", __package__)
+            hit = None
+            if allow_network:
+                hit = geo.geocode(ctx.city)
+            else:
+                cache = geo._cache_path(ctx.city)
+                hit = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else None
+            if hit and hit.get("lat") is not None:
+                ctx = ctx.model_copy(update={"lat": float(hit["lat"]), "lon": float(hit["lon"])})
+        except Exception as e:                                   # noqa: BLE001
+            problems.append({"module": "geo", "error": repr(e)})
     fc = forecast
     fctx = ctx                                          # what the forecast-using modules see
     if fc is None and ctx.lat is not None and ctx.lon is not None:
