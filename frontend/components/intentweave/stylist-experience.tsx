@@ -35,6 +35,7 @@ import {
   adaptToClarifyingMessage,
   fetchIntentTurn,
   fetchRecommendation,
+  StylistApiError,
 } from "@/lib/services/stylist";
 import {
   defaultVirtualYouImage,
@@ -347,6 +348,23 @@ class CreateYouError extends Error {
     this.name = "CreateYouError";
     this.details = details;
   }
+}
+
+// 這個 catch 以前不管什麼錯都說「後端連不上」。實際上多數失敗是後端好端端回了
+// 200、但資料不合我們的預期（例如某一區沒有商品），把它講成連線問題會讓人往完全
+// 錯的方向查——2026-09-19 就因為這句話，花了很久才發現真正的原因是 ENGINE02 的
+// port 指錯。只有真的連不出去（fetch 自己丟的 TypeError）才講連線。
+function describeTurnFailure(error: unknown, locale: string): string {
+  if (error instanceof TypeError) {
+    return locale === "zh-TW"
+      ? "後端目前連不上，稍後再試一次，或確認 ENGINE01／ENGINE02 服務都已經啟動。"
+      : "Couldn't reach the backend just now — please try again, or check that ENGINE01/ENGINE02 are running.";
+  }
+
+  const detail =
+    error instanceof StylistApiError || error instanceof Error ? error.message : String(error);
+
+  return locale === "zh-TW" ? `這一輪沒有結果：${detail}` : `This turn came back empty: ${detail}`;
 }
 
 function getCreateYouErrorCode(error: unknown) {
@@ -1802,10 +1820,7 @@ export function StylistExperience() {
       nextConversation = conversationService.appendMessage(latest, {
         id: `ai-${Date.now()}`,
         role: "assistant",
-        text:
-          locale === "zh-TW"
-            ? "後端目前連不上，稍後再試一次，或確認 ENGINE01／ENGINE02 服務都已經啟動。"
-            : "Couldn't reach the backend just now — please try again, or check that ENGINE01/ENGINE02 are running.",
+        text: describeTurnFailure(error, locale),
       });
       persistConversation(nextConversation);
     } finally {
