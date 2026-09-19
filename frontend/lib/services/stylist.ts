@@ -12,7 +12,9 @@ interface BackendClarifyingOption {
   label: string;
 }
 
-interface BackendClarifyingQuestion {
+// 2026-09-19 匯出：stylist-experience.tsx 要把一輪裡「還沒顯示」的其餘題目
+// 存進本地佇列狀態（見 adaptToClarifyingMessage 下面的說明），所以需要這個型別。
+export interface BackendClarifyingQuestion {
   field: string;
   question: string;
   options: BackendClarifyingOption[];
@@ -53,6 +55,78 @@ interface BackendStyledComplement {
   round: number;
   zone: "top" | "bottom";
   complement: BackendProductCard;
+}
+
+// 2026-09-19 新增：「Design for Me」按鈕——ENGINE01 的 POST /concept-image（重用
+// bff/images/concept.py 的 generate_concepts()，見 backend/engine01_intent/main.py
+// 該端點上方的說明）。cells 只列出實際會用到的欄位；dry_run 模式下沒有 image_url，
+// 只有 prompt_used／keywords／varied_label 可以顯示，Hermes Agent 這套外部工具還沒
+// 裝好之前先靠這個驗證整條管線接不接得通（見 CLAUDE.md、跟使用者的討論記錄）。
+interface BackendConceptCell {
+  index: number;
+  keywords: Record<string, string>;
+  varied_label?: string | null;
+  prompt_fragment?: string | null;
+  image_url?: string | null;
+}
+
+interface BackendConceptImageResult {
+  session_id: string;
+  round: number;
+  concepts: {
+    dry_run?: boolean;
+    grid_image?: string | null;
+    prompt_used: string;
+    cells: BackendConceptCell[];
+  };
+}
+
+export async function fetchConceptImage(
+  sessionId: string,
+  token: string,
+  options?: { dryRun?: boolean },
+): Promise<BackendConceptImageResult> {
+  const response = await fetch(`${API_BASE_URL}/concept-image`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ session_id: sessionId, dry_run: options?.dryRun ?? false }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new StylistApiError(
+      (detail && (detail.detail as string)) || `POST /concept-image 失敗（HTTP ${response.status}）`,
+    );
+  }
+
+  return (await response.json()) as BackendConceptImageResult;
+}
+
+// 後端回傳的 image_url／grid_image 是相對路徑（例如 `/generated/...`），因為 ENGINE01
+// 是用 StaticFiles 掛載的（見 backend/engine01_intent/main.py 的 /generated 掛載點），
+// 前端渲染 <img> 要補上 API_BASE_URL 才能跨 origin 讀到圖。
+function toAbsoluteMediaUrl(path: string): string {
+  return path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+}
+
+// 把「生成新單品」回傳的六格，轉成既有的 FashionRecommendation 形狀——
+// ChatMessage.recommendations 本來就有一個會渲染讚／倒讚的元件在等這個資料
+// （RecommendationCard，見 stylist-experience.tsx），只是目前完全沒有人填值，
+// 這裡重用它，不用另外做一套生圖專屬的卡片元件。
+export function conceptCellsToRecommendations(
+  concepts: BackendConceptImageResult["concepts"],
+): FashionRecommendation[] {
+  return concepts.cells
+    .filter((cell) => Boolean(cell.image_url))
+    .map((cell) => ({
+      id: `concept-${cell.index}`,
+      name: cell.varied_label || `Option ${cell.index}`,
+      imageUrl: toAbsoluteMediaUrl(cell.image_url as string),
+      explanation: cell.prompt_fragment || concepts.prompt_used,
+      attributes: Object.values(cell.keywords),
+      priceBand: "",
+      confidence: 0,
+    }));
 }
 
 export class StylistApiError extends Error {}
@@ -154,11 +228,19 @@ function findZone(zones: BackendZoneSlate[], zone: "top" | "bottom"): BackendZon
   return zones.find((slate) => slate.zone === zone);
 }
 
-// 把第一個澄清問題轉成一則帶選項的助理訊息——quickChoices 被點擊時前端本來就會
-// 呼叫 sendPrompt(choice.prompt)，所以這裡的 prompt 直接填 label 就會自然送出下一輪 /intent。
-export function adaptToClarifyingMessage(questions: BackendClarifyingQuestion[]): ChatMessage {
-  const first = questions[0];
-  const quickChoices: GuidedChoice[] = first.options.map((option) => ({
+// 把一題澄清問題轉成一則帶選項的助理訊息。
+//
+// 2026-09-19 修正：這支原本吃整個 questions 陣列、只轉第一題（`questions[0]`），
+// 其餘題目直接被丟掉——但 ENGINE01 的 gating.py 在回傳前就已經把「這次保留的
+// 每一題」都記進 session 的 asked_core_fields（不是只記第一題），代表被丟掉的
+// 第二、三題那些核心欄位從此被標記成「已經問過」，永遠不會再被問到、也沒有
+// 真的被使用者回答過——這正是真人測試時「明明有固定要填的欄位，問題卻感覺
+// 沒問全」的根因。現在改成一次只轉一題，呼叫端（stylist-experience.tsx 的
+// sendPrompt）自己維護一個本地佇列，把同一輪其餘的題目依序秀出來、答案全部
+// 收集完才真的送出下一次 /intent，不然叫使用者對同一輪的每一題各等一次
+// 8–17 秒的 codex exec 往返太浪費（見 CLAUDE.md「ENGINE01 執行方式」）。
+export function adaptToClarifyingMessage(question: BackendClarifyingQuestion): ChatMessage {
+  const quickChoices: GuidedChoice[] = question.options.map((option) => ({
     id: option.id,
     label: option.label,
     prompt: option.label,
@@ -167,7 +249,7 @@ export function adaptToClarifyingMessage(questions: BackendClarifyingQuestion[])
   return {
     id: `ai-${Date.now()}`,
     role: "assistant",
-    text: first.question,
+    text: question.question,
     quickChoices,
   };
 }

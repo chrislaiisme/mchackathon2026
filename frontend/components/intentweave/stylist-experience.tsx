@@ -32,8 +32,12 @@ import { onboardingService, type OnboardingProfile } from "@/lib/services/onboar
 import {
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
+  conceptCellsToRecommendations,
+  fetchConceptImage,
   fetchIntentTurn,
   fetchRecommendation,
+  StylistApiError,
+  type BackendClarifyingQuestion,
 } from "@/lib/services/stylist";
 import {
   defaultVirtualYouImage,
@@ -266,6 +270,7 @@ function MessageBlock({
           onToggleSaved={(itemId) => onRecommendationToggleSaved(message.id, itemId)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
+          designForMeDisabled={choicesDisabled}
         />
       )}
     </section>
@@ -544,6 +549,7 @@ function CompleteOutfitCard({
   onDislike,
   onTryMore,
   onDesignForMe,
+  designForMeDisabled,
 }: {
   outfit: OutfitRecommendation;
   rating?: number;
@@ -557,6 +563,7 @@ function CompleteOutfitCard({
   onDislike: () => void;
   onTryMore: () => void;
   onDesignForMe: () => void;
+  designForMeDisabled: boolean;
 }) {
   const { t } = useI18n();
   const garmentLine = outfit.items.bottom
@@ -663,8 +670,13 @@ function CompleteOutfitCard({
               </Button>
             </div>
             <div className="flex gap-4">
-              <button type="button" onClick={onDesignForMe} className="border-b border-border pb-1 text-sm text-muted-foreground hover:border-primary hover:text-foreground">
-                Design for Me
+              <button
+                type="button"
+                onClick={onDesignForMe}
+                disabled={designForMeDisabled}
+                className="border-b border-border pb-1 text-sm text-muted-foreground hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {designForMeDisabled ? t.stylist.generating : "Design for Me"}
               </button>
               <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
                 Try More →
@@ -693,6 +705,7 @@ function ConversationRecommendation({
   onToggleSaved,
   onSaveLook,
   onDesignForMe,
+  designForMeDisabled,
 }: {
   state: RecommendationUiState;
   onNavigate: (slot: "topOrDress" | "bottom", index: number) => void;
@@ -709,6 +722,7 @@ function ConversationRecommendation({
   onToggleSaved: (itemId: string) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
+  designForMeDisabled: boolean;
 }) {
   const dressActive = isDress(tryOnState.topOrDress);
   const topPick = state.topPick;
@@ -738,6 +752,7 @@ function ConversationRecommendation({
         onDislike={() => onFeedback(topPick.id, "dislike", topPick.name)}
         onTryMore={onTryMore}
         onDesignForMe={onDesignForMe}
+        designForMeDisabled={designForMeDisabled}
       />
     );
   }
@@ -1359,6 +1374,12 @@ export function StylistExperience() {
   const [activeId, setActiveId] = useState<string>();
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  // 2026-09-19 新增：同一輪 ENGINE01 一次回傳多題澄清問題時（例如「一套商業套裝」
+  // 一次缺 colors／material／season 好幾個核心欄位），本地依序秀出剩下的題目、
+  // 答案先收集在這裡，全部答完才真的打一次 /intent——見 sendPrompt() 跟
+  // lib/services/stylist.ts 的 adaptToClarifyingMessage() 註解，兩邊要一起看。
+  const [pendingClarifyingQueue, setPendingClarifyingQueue] = useState<BackendClarifyingQuestion[]>([]);
+  const [pendingClarifyingAnswers, setPendingClarifyingAnswers] = useState<string[]>([]);
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceElapsedSeconds, setVoiceElapsedSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
@@ -1431,6 +1452,16 @@ export function StylistExperience() {
 
     if (nextActiveId && nextActiveId !== currentId) {
       conversationService.setCurrentId(nextActiveId);
+    }
+
+    if (currentId && nextActiveId && currentId !== nextActiveId) {
+      // 真的切換到別的對話了（不是「同一個對話又觸發了一次 refresh」，例如
+      // virtual-you／onboarding 變更也會走到這裡）——把「還沒問完的一批
+      // clarifying questions」佇列清掉，不然切過去之後點選項，答案會被誤當成
+      // 回答上一個對話裡那批還沒問完的題目（pendingClarifyingQueue 是跨對話
+      // 共用的 component state，不是存在個別 Conversation 物件裡）。
+      setPendingClarifyingQueue([]);
+      setPendingClarifyingAnswers([]);
     }
 
     setConversations(list);
@@ -1720,27 +1751,21 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
-  async function sendPrompt(prompt: string) {
-    const trimmed = prompt.trim();
-
-    if (!trimmed || !activeConversation || isGenerating) {
-      return;
-    }
-
-    shouldFollowRef.current = true;
-    let nextConversation = conversationService.appendMessage(activeConversation, {
-      id: `user-${Date.now()}`,
-      role: "user",
-      text: trimmed,
-      createdAt: new Date().toISOString(),
-    });
-
+  // 真的打 ENGINE01 /intent（→有澄清問題就組選擇題；沒有就接著 /recommend
+  // 組 Top Pick＋Try More）。`messageForBackend` 是實際要送給後端的一句話——
+  // 一般情況下就是使用者這輪打的字／點的選項；但如果這輪是在回答同一個
+  // clarifying-question 批次裡的最後一題，`sendPrompt()`（下面）會先把
+  // 這一批已經收集到的所有答案合併成一句話，才呼叫這支函式，所以這裡
+  // 不能假設 `messageForBackend` 一定等於使用者剛剛打的原始文字。
+  // `baseConversation` 是已經包含這一輪使用者訊息泡泡的對話物件（由呼叫端
+  // 決定要不要、以及怎麼組出使用者泡泡——見 sendPrompt()），這支函式只管
+  // 呼叫後端、把回應接到後面。
+  async function runIntentTurn(messageForBackend: string, baseConversation: Conversation) {
+    let nextConversation = baseConversation;
     persistConversation(nextConversation);
     setInput("");
     setIsGenerating(true);
 
-    // 2026-09-19：這裡原本是 window.setTimeout 假裝在想，換成真的呼叫 ENGINE01
-    // /intent（→有澄清問題就組選擇題；沒有就接著 /recommend 組 Top Pick＋Try More）。
     // token 理論上一定有（createNewSession 已經檔過未登入導去 /login），沒有就退回
     // 舊的 mock 回覆，不讓對話卡死。
     const token = authService.getSessionToken();
@@ -1749,30 +1774,43 @@ export function StylistExperience() {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      nextConversation = conversationService.appendMessage(latest, createStylistReply(trimmed, locale));
+      nextConversation = conversationService.appendMessage(latest, createStylistReply(messageForBackend, locale));
       persistConversation(nextConversation);
       setIsGenerating(false);
       return;
     }
 
     try {
-      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, trimmed, token);
+      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);
 
-      const assistantMessage: ChatMessage =
-        intentResult.clarifying_questions.length > 0
-          ? adaptToClarifyingMessage(intentResult.clarifying_questions)
-          : {
-              id: `ai-${Date.now()}`,
-              role: "assistant",
-              text:
-                locale === "zh-TW"
-                  ? "我有一套很適合你的方向，這是幫你搭好的一套。"
-                  : "I have a direction in mind — here's the outfit I'd start with.",
-              recommendation: await adaptToChatRecommendation(
-                await fetchRecommendation(intentResult.session_id, token),
-                token,
-              ),
-            };
+      let assistantMessage: ChatMessage;
+      if (intentResult.clarifying_questions.length > 0) {
+        // 2026-09-19 修正：這裡以前把整批 clarifying_questions 丟給
+        // adaptToClarifyingMessage()，但它只轉第一題、其餘題目直接消失——
+        // 而後端 gating.py 早就把「這次保留的每一題」都記成已經問過
+        // （不是只記第一題），造成那些被丟掉的題目對應的核心欄位永遠不會
+        // 再被問、也沒被使用者真的回答過。現在改成只顯示第一題，其餘的存進
+        // pendingClarifyingQueue，交給 sendPrompt() 依序秀出來、答完才送出
+        // 下一次 /intent（見該函式與 lib/services/stylist.ts 的註解）。
+        assistantMessage = adaptToClarifyingMessage(intentResult.clarifying_questions[0]);
+        setPendingClarifyingQueue(intentResult.clarifying_questions);
+        setPendingClarifyingAnswers([]);
+      } else {
+        setPendingClarifyingQueue([]);
+        setPendingClarifyingAnswers([]);
+        assistantMessage = {
+          id: `ai-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "我有一套很適合你的方向，這是幫你搭好的一套。"
+              : "I have a direction in mind — here's the outfit I'd start with.",
+          recommendation: await adaptToChatRecommendation(
+            await fetchRecommendation(intentResult.session_id, token),
+            token,
+          ),
+        };
+      }
 
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
@@ -1797,6 +1835,54 @@ export function StylistExperience() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  // 使用者實際打字送出、或點某個 quickChoice/visualChoice 按鈕都會走到這裡
+  // （`onChoice={sendPrompt}`，見下面 render 那段）。多數情況下就是直接組一個
+  // 使用者訊息泡泡、呼叫 runIntentTurn() 打後端；但如果目前正卡在一批多題
+  // 的 clarifying-question 佇列中間（pendingClarifyingQueue 非空——見
+  // runIntentTurn() 設定它的地方），這通常代表使用者剛回答的是佇列裡的
+  // 「目前顯示中」那一題，不能立刻打後端，要先在本地依序秀出佇列裡剩下
+  // 的題目，全部答完才把收集到的答案合併成一句話真正送出 /intent。
+  function sendPrompt(prompt: string) {
+    const trimmed = prompt.trim();
+
+    if (!trimmed || !activeConversation || isGenerating) {
+      return;
+    }
+
+    shouldFollowRef.current = true;
+    let nextConversation = conversationService.appendMessage(activeConversation, {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (pendingClarifyingQueue.length > 0) {
+      const accumulatedAnswers = [...pendingClarifyingAnswers, trimmed];
+      const remainingQueue = pendingClarifyingQueue.slice(1);
+
+      if (remainingQueue.length > 0) {
+        // 佇列裡還有題目沒問——秀出下一題，先不打後端。
+        nextConversation = conversationService.appendMessage(
+          nextConversation,
+          adaptToClarifyingMessage(remainingQueue[0]),
+        );
+        persistConversation(nextConversation);
+        setPendingClarifyingQueue(remainingQueue);
+        setPendingClarifyingAnswers(accumulatedAnswers);
+        return;
+      }
+
+      // 這是這批問題的最後一題，答案都收集齊了，合併成一句話真正送出去。
+      setPendingClarifyingQueue([]);
+      setPendingClarifyingAnswers([]);
+      void runIntentTurn(accumulatedAnswers.join(locale === "zh-TW" ? "；" : "; "), nextConversation);
+      return;
+    }
+
+    void runIntentTurn(trimmed, nextConversation);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -2032,22 +2118,70 @@ export function StylistExperience() {
     );
   }
 
-  function handleDesignForMe(messageId: string) {
-    if (!activeConversation) {
+  async function handleDesignForMe(messageId: string) {
+    if (!activeConversation || isGenerating || !activeConversation.engineSessionId) {
       return;
     }
 
-    const nextConversation = conversationService.appendMessage(activeConversation, {
-      id: `assistant-design-placeholder-${Date.now()}`,
-      role: "assistant",
-      text:
-        locale === "zh-TW"
-          ? "Design for Me 會在這裡連接個人化服裝設計生成。這個 prototype 先保留入口，不呼叫外部 AI。"
-          : "Design for Me will connect personalized fashion design generation here. For this prototype, the entry point is preserved without calling an external AI API.",
-    });
+    const token = authService.getSessionToken();
+    if (!token) {
+      return;
+    }
 
-    persistConversation(nextConversation);
-    handleRecommendationBackToTopPick(messageId);
+    // 生圖進行中鎖住對話輸入框（見 docs/frontend.md 代辦事項 3）：跟一般聊天
+    // 打字送出共用同一個 isGenerating 旗標，輸入框／送出鍵本來就是照這個 disable。
+    shouldFollowRef.current = true;
+    setIsGenerating(true);
+
+    try {
+      // 2026-09-19：Hermes Agent 已經確認裝在這台機器的 WSL2 裡、橋接測過真的能生圖
+      // （agent/scripts/generate_grid.py 的 _generate() 在 Windows 上會跨進 WSL2 呼叫），
+      // 這裡改成 dryRun: false，真的花額度生六件單品。
+      const result = await fetchConceptImage(activeConversation.engineSessionId, token, { dryRun: false });
+      const { concepts } = result;
+      const varietyLines = concepts.cells
+        .map((cell) => cell.varied_label)
+        .filter((label): label is string => Boolean(label))
+        .join("、");
+
+      const summary =
+        locale === "zh-TW"
+          ? concepts.dry_run
+            ? `（測試模式，還沒真的生圖）已經組好六格的生成 prompt，這六格會分別呈現：${varietyLines || "（尚未指定差異）"}。`
+            : "生成完成，六件新單品在下面，點一件試穿看看。"
+          : concepts.dry_run
+            ? `(Dry run — no image generated yet.) The six-cell prompt is ready. Cells will vary: ${varietyLines || "(not yet specified)"}.`
+            : "Done — six new pieces below, tap one to try it on.";
+
+      const latest =
+        conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
+        activeConversation;
+      const nextConversation = conversationService.appendMessage(latest, {
+        id: `assistant-design-${Date.now()}`,
+        role: "assistant",
+        text: summary,
+        recommendations: concepts.dry_run ? undefined : conceptCellsToRecommendations(concepts),
+      });
+      persistConversation(nextConversation);
+    } catch (error) {
+      console.error("[stylist] 呼叫 ENGINE01 /concept-image 失敗：", error);
+      const latest =
+        conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
+        activeConversation;
+      const message = error instanceof StylistApiError ? error.message : null;
+      const nextConversation = conversationService.appendMessage(latest, {
+        id: `assistant-design-error-${Date.now()}`,
+        role: "assistant",
+        text:
+          locale === "zh-TW"
+            ? `生成新單品失敗：${message ?? "請確認 ENGINE01 服務是否已啟動"}`
+            : `Couldn't generate new pieces: ${message ?? "please check ENGINE01 is running"}`,
+      });
+      persistConversation(nextConversation);
+    } finally {
+      setIsGenerating(false);
+      handleRecommendationBackToTopPick(messageId);
+    }
   }
 
   function handleRecommendationNavigate(messageId: string, slot: "topOrDress" | "bottom", index: number) {
