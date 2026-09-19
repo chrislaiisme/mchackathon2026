@@ -22,7 +22,7 @@ import os
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -154,3 +154,51 @@ def extract_intent(message: str, current_intent: Intent) -> IntentExtraction:
 
     # 用 Pydantic 驗證＋解析成物件，格式不符 schema 的話這裡會直接丟例外。
     return IntentExtraction.model_validate_json(raw)
+
+
+def generate_freeform_text(prompt: str, timeout_seconds: Optional[float] = None) -> Optional[str]:
+    """呼叫 `codex exec` 拿一段純文字回覆，**不帶** `--output-schema`（不需要
+    結構化輸出的場景用這支，例如「幫你搭」找不到 ENGINE02 相容性資料時的
+    備援理由，見 style_me.py）。跟 `extract_intent()` 共用同一套零成本機制
+    （吃 `codex login` 的訂閱額度，不用 `OPENAI_API_KEY`），但因為只是拿一句
+    話當備援用，逾時抓得比 `extract_intent()` 短，失敗直接回傳 `None`，
+    不像 `extract_intent()` 那樣丟例外——呼叫端本來就有更陽春的備援文案可以
+    退，不值得為了這句話讓整支 API 掛掉。
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        output_path = Path(tmp_dir) / "output.txt"
+        cmd = [
+            _CODEX_BIN,
+            "exec",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--ephemeral",
+            "--disable",
+            "plugins",
+            "--disable",
+            "skill_search",
+            "-c",
+            f'model_reasoning_effort="{_CODEX_REASONING_EFFORT}"',
+            "--output-last-message",
+            str(output_path),
+        ]
+        if _CODEX_MODEL:
+            cmd += ["-m", _CODEX_MODEL]
+        cmd.append(prompt)
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout_seconds or _CODEX_TIMEOUT_SECONDS,
+            )
+            if result.returncode != 0:
+                return None
+            text = output_path.read_text(encoding="utf-8").strip()
+            return text or None
+        except (OSError, subprocess.SubprocessError):
+            return None

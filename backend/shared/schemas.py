@@ -36,9 +36,14 @@ class UserProfile(BaseModel):
     email: str
     name: Optional[str] = None
     picture: Optional[str] = None
-    # 下面兩個是登入後可略過的偏好調查欄位，沒填就是 None／空陣列。
+    # 下面四個是登入後可略過的偏好調查欄位，沒填就是 None／空陣列。
     age_range: Optional[str] = None
     style_preferences: list[str] = Field(default_factory=list)
+    # gender／contexts 是 2026-09-19 為了對齊前端 IntentWeave（Next.js）
+    # onboarding 畫面實際蒐集的欄位才加的，原始設計裡沒有——前端 onboarding 已經
+    # 有這兩題（性別、使用情境），後端要能接住，不然 PUT /profile 會丟掉這兩個值。
+    gender: Optional[str] = None
+    contexts: list[str] = Field(default_factory=list)
     onboarding_completed: bool = False
     created_at: str
     """ISO 8601 timestamp."""
@@ -48,10 +53,12 @@ class ProfileUpdate(BaseModel):
     """Partial update for PUT /profile. Every field is optional so a user
     clicking "skip" can just send onboarding_completed=True with nothing else."""
 
-    # 三個欄位都選填：前端只送有要更新的欄位，其餘留 None，
+    # 五個欄位都選填：前端只送有要更新的欄位，其餘留 None，
     # 後端（main.py 的 put_profile）看到 None 就跳過、不覆蓋原本的值。
     age_range: Optional[str] = None
     style_preferences: Optional[list[str]] = None
+    gender: Optional[str] = None
+    contexts: Optional[list[str]] = None
     onboarding_completed: Optional[bool] = None
 
 
@@ -88,6 +95,12 @@ class Intent(BaseModel):
     fit: Optional[str] = None
     pattern: Optional[str] = None
     collar: Optional[str] = None
+    outfit_requested: bool = False
+    """2026-09-19 新增：使用者是不是要一整套穿搭（「一套」「整套」「幫我搭配」），
+    不是單一品項。True 時 item_type 可以維持 None——套裝請求本來就不是在問單一
+    品項，見 backend/engine01_intent/prompts.py 的抽取規則、zones.py 的兩分區
+    orchestration（ENGINE02 taxonomy 的「套裝」節點筆記本來就預期 ENGINE01 會
+    明確標示這件事，見 docs/interface-contract.md 第 6 節）。"""
     inferred_fields: list[str] = Field(default_factory=list)
     """Names of the fields above that GPT filled in by contextual inference
     (weather, season, etc.) rather than the user stating them. The frontend
@@ -220,3 +233,57 @@ class RetrievalResult(BaseModel):
     Live 流程應該每輪都會有值，這裡選填只是讓還沒做完的模組也能先跑。"""
     match_score: float
     """The on-stage "符合度分數" shown before/after feedback (e.g. 62% -> 89%)."""
+
+
+# ── 兩分區推薦（ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端負責人確認 ──
+# 欄位命名，見 docs/interface-contract.md 第 6 節）：POST /recommend 的回應
+# 形狀。跟上面的 RetrievalResult 是兩回事——RetrievalResult 是單一份平坦的
+# 商品清單，這裡是「上衣一份、下身一份」固定兩分區的展示邏輯，是 ENGINE01
+# 自己在既有的 ENGINE02 檢索能力之上組出來的，不是 ENGINE02 原生就有的形狀。
+
+
+class ZoneSlate(BaseModel):
+    zone: Literal["top", "bottom"]
+    requested: bool
+    """True＝使用者這輪明確要這個分區（單品命中的那區，或整套請求時的兩區）；
+    False＝使用者沒特別要求，是代進代表性品項猜的預設，見 zones.py。"""
+    products: list[ProductCard] = Field(default_factory=list)
+    """最多 6 件；連身裙情境下的下身區會是空列表且 requested=False（見 zones.py
+    的 is_dress 規則），不是查詢失敗。"""
+
+
+class ZonedRecommendationResult(BaseModel):
+    session_id: str
+    round: int
+    outfit_requested: bool
+    zones: list[ZoneSlate]
+
+
+class RecommendRequest(BaseModel):
+    session_id: str
+
+
+# ── 「幫你搭」（POST /style-me，ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端 ──
+# 負責人確認）：不是隨機配對，是拿一件錨點商品去問 ENGINE02 的
+# POST /complete-look 要真的相容性排序＋理由；錨點不在商品庫（例如生圖）時
+# 退回 LLM 生一句理由，見 backend/engine01_intent/style_me.py。
+
+
+class StyleMeRequest(BaseModel):
+    session_id: str
+    anchor_product_id: str
+    """使用者畫面上已經看到的一件商品／生圖 id，當搭配的起點。"""
+    anchor_zone: Literal["top", "bottom"]
+    """錨點是在哪一區——前端本來就知道（正在顯示哪一區），要求明講，
+    這裡不會另外呼叫 ENGINE02 去查這件商品屬於哪一區。"""
+
+
+class StyledComplement(BaseModel):
+    session_id: str
+    round: int
+    zone: Literal["top", "bottom"]
+    """這是「錨點的另一區」——跟 anchor_zone 相反那一區的搭配建議。"""
+    complement: ProductCard
+    """`complement.reason` 帶搭配理由：ENGINE02 `/complete-look` 算出來的真實
+    相容性理由，或錨點不在商品庫時的 LLM 備援理由（`explanation_source` 會
+    標明是 "complete_look" 還是 "llm_fallback"）。"""

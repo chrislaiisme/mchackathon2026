@@ -42,18 +42,26 @@
 ```bash
 # 等級 A：沒有 GPU、沒裝 torch（只需要 [data,dev]）
 ENGINE02_ENCODER=hash ENGINE02_DEMO=1 \
-ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 
 # 等級 B：真正的 demo 編碼器（先裝 torch，再 uv pip install -e ".[models]"；CPU 也能跑）
 ENGINE02_ENCODER=marqo-fashionSigLIP ENGINE02_DEMO=1 \
-ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
 
 **不設 `ENGINE02_ENCODER` 時預設是 `marqo-fashionSigLIP`，沒裝 torch 會啟動失敗**
 （`ModuleNotFoundError: No module named 'torch'`）。`ENGINE02_DEVICE` 預設 `auto`，不要寫死 `cuda`。
 `ENGINE02_OT=1`（OutfitTransformer）需要 `third_party/` 的權重，缺了會退回圖片相似度而不會失敗。
+
+> **2026-09-19，ENGINE01 負責人實測發現並修正：兩個等級的 `ENGINE02_PUBLIC_BASE` 都要帶
+> `/engine02` 這段路徑**——原本兩邊都寫 `http://localhost:8002`（沒有 `/engine02`），
+> 對著真實跑起來的服務＋真瀏覽器測過，商品圖網址會 404。這支 app 是用
+> `app.mount("/engine02", ...)` 掛的，`intent_adapter.py` 拿
+> `ENGINE02_PUBLIC_BASE + "/images/<id>"` 組圖片網址時沒有算進這段 mount 前綴，
+> 真正能連到的路徑是 `/engine02/images/<id>`，不是 `/images/<id>`。已經改成上面這樣，
+> 兩邊都測過確認能載出真圖。
 
 | 端點 | 用途 |
 |---|---|

@@ -1,30 +1,67 @@
 # ENGINE03 — 偏好回饋迴圈
 
-**負責人：待確認。** 這份是從 [hackathon-brief.md](hackathon-brief.md) 抄出來的骨架摘要——正式負責人接手後應該把這裡展開成真正的規格，不要直接把這份當成定案。
+**負責人：待確認。`backend/engine03_feedback/` 目前是空的（只有 README 佔位），這份文件是 ENGINE01 負責人 2026-09-19 的規格提案，不是定案**——正式負責人接手後應該覆核每一條，尤其是下面「⚠️ 跟已存在的真實實作有落差」那一節，那份東西比這裡寫的更完整、更可信。
+
+## ⚠️ 2026-09-19 發現：已經有一份真實實作了，這份文件先不接它
+
+merge `origin/main` 時，從 ENGINE02 團隊自己的稽核文件（`docs/research/integration-map.md`）查到 **`origin/engine03-feedback` 分支（chrislaiisme 開的，commit `e697d8d`）有一份完整、已測試、有 README 的 ENGINE03 實作**（`backend/engine03_feedback/{contracts,prompts,service,main}.py` ＋ `examples/` ＋ `tests/`，833 行）。跟下面這份文件提案的規格有實質落差，最大的三點：
+
+1. **自由文字其實會經過它**：`FeedbackInput.free_text`（使用者對這輪結果的評論，例如「不要黑色，希望休閒一點」）會送進 `POST /feedback`，由它自己的 structured-output LLM 呼叫（需要 `OPENAI_API_KEY`，純點擊沒有文字的 click-only 情況除外）轉成 `updated_intent` 跟一份 ENGINE02 的 operation 清單——不是下面這份文件提案的「自由文字一律先過 ENGINE01，ENGINE03 完全不碰」。
+2. **需要一個「orchestrator」組出完整上下文**：`Engine3Request` 除了 `current_intent`（ENGINE01）＋`feedback_inputs`（前端），還需要**上一輪完整的 `engine02_request`／`engine02_response`**＋`interaction`（點選／否決／排除／錨點等 UI 動作）——這個角色現在沒有人在做。
+3. **假設單一份平坦的 `Engine02Response`**，不是這次做的兩分區 `ZonedRecommendationResult`；回饋粒度是屬性層級的 `FeedbackInput.attribute_scores`，不是逐卡片的收藏／不喜歡。
+
+跟使用者確認過：**今天不去合併、不去整合這個分支**，先如實記錄發現。這份文件底下維持原本的提案內容（沒有因為這個發現重寫），**正式負責人接手時，應該優先看那個分支的 `README.md`／`contracts.py`，而不是把這份文件當成規格來源**——那邊的設計更完整，這裡只是在還沒發現那個分支之前，先把整個迴圈的邊界想清楚。
 
 ## 目標
 
 把一輪的回饋轉成能讓下一輪真的、可量化地變準的修正——這是整個比賽現場評測方式的核心引擎（評審出題 → 看結果 → 給回饋 → 出第二題 → 檢查系統是否真的變準）。簡報明確把「量化可驗證」列成這個引擎的評分重點之一。
 
+## 跟 ENGINE01／ENGINE02 的分工（這份文件的提案，跟上面真實分支的設計不一樣，見上面警語）
+
+使用者自己追問過這件事，這裡直接畫清楚兩條資料流，全程不交叉、只在 ENGINE02 那一步合流：
+
+```
+使用者打字／講話（這輪新的一句話）
+  └─→ ENGINE01（POST /intent，extract_intent()）→ 更新後的 Intent
+                                                        │
+使用者對上一輪結果的動作（收藏／不喜歡／分項打分／整套試穿讚踩）              │
+  └─→ ENGINE03（結構化輸入，不碰自由文字）→ weight_adjustments  │
+                                                        ▼        ▼
+                                      ENGINE02（POST /intent/rank：intent 欄位＋feedback 欄位一起送）
+```
+
+- **自由文字一律先經過 ENGINE01，這份提案裡沒有第二套獨立的自然語言拆解邏輯**：使用者這輪不管打字還是講話，前端都呼叫 `POST /intent`，用 ENGINE01 現有的 `extract_intent()` 更新同一組 `Intent` 欄位——避免同一件事在兩個引擎各做一次、還可能兜不起來。**這一點正是跟上面真實分支最大的分歧，還沒有定論，等正式負責人接手時要跟 ENGINE01/02 負責人一起拍板選哪一個方向。**
+- ENGINE03 收的是**結構化的使用者動作**：這一輪裡「使用者真的有做動作」的每張卡片（收藏／不喜歡／分項打分，只送有動作的，沒動作的完全不送，見下面「輸入」）＋整套試穿讚踩（`top_product_id`＋`bottom_product_id`＋讚／踩，只有整套試穿才有，見 [frontend.md](frontend.md) 代辦事項 4）＋目前的 `Intent`（唯讀上下文，讓 ENGINE03 知道使用者現在到底在找什麼，不是拿去重算）。
+- ENGINE03 只輸出 `weight_adjustments`（軟性加權，交給 ENGINE02 用），**不獨立產生新的 `updated_intent`**——`FeedbackResult.updated_intent` 這個既有欄位的定位是「回傳當下這輪 ENGINE01 已經算好的 Intent，給前端顯示用的一份 echo」，不是 ENGINE03 自己重新推算出來的。
+- **ENGINE03 不需要回傳任何東西給 ENGINE01**——迴圈靠 ENGINE02 收斂：`weight_adjustments` 透過 `POST /intent/rank` 既有的 `feedback` 欄位（`IntentRankRequest.feedback`，ENGINE02 那邊已經有 `engine02/handshake.py::apply_round` 在處理）交給 ENGINE02，下一輪 `/recommend` 呼叫時帶著這份 feedback 一起送出去；ENGINE01 全程只聽使用者自己打的新句子，不會被 ENGINE03 的輸出影響。
+
 ## 輸入
 
-自由文字回饋，加上分項評分（顏色／版型／圖案／領子），推薦商品跟生成概念圖**分開**打分，不是打一個總分。粒度更細，ENGINE03 才能調得更精準，前端也才能明確秀出使用者到底是對哪個屬性不滿意（強化「可解釋」）。
+自由文字回饋（見上一節，這份提案裡不會直接送進 ENGINE03），加上分項評分（顏色／版型／圖案／領子），推薦商品跟生成概念圖**分開**打分，不是打一個總分。粒度更細，ENGINE03 才能調得更精準，前端也才能明確秀出使用者到底是對哪個屬性不滿意（強化「可解釋」）。
+
+**規則（2026-09-19 補充，前端代辦事項 4 帶出來的要求）：每張圖片的收藏／不喜歡／分項打分／整套試穿讚踩全部都是選填，使用者對某張圖片完全沒有任何動作，這張圖片就不能算進這一輪的權重調整計算。** 不能把「使用者沒表態」當成「中立」或默認的某個分數去帶進運算，這樣會把「使用者沒空看」誤判成一種偏好訊號。實作上，ENGINE03 收到的每一輪回饋資料裡，只有使用者真的做過動作的項目才會出現，沒有動作的項目根本不會被送過來（而不是送一個空值/預設值再靠 ENGINE03 這邊過濾）。
+
+**整套試穿讚踩的額外限制（2026-09-19 補充）**：只有虛擬形象同時穿上上衣區＋下身區（一整套）才會有這筆資料，只穿單一單品不會產生這個訊號——前端那邊沒有按鈕可以按，自然不會送出來。
+
+確切的資料形狀（怎麼標示「這是對哪張卡片的哪個動作」）還沒有定案，草案見 [interface-contract.md](interface-contract.md) 第 7 節。
 
 ## 處理方式
 
-GPT structured output（chat completions，不用 LangChain）把自由文字＋分項評分轉成結構化的權重調整／意圖修正。
+GPT structured output（chat completions，不用 LangChain）把分項評分＋結構化動作轉成 `weight_adjustments`。
 
 ## 輸出
 
-更新後的 `Intent`，加上一份會觸發 ENGINE01／02／生成模組重跑下一輪的 `WeightAdjustment` 清單。這個迴圈會一直跑到使用者滿意為止——不是固定兩輪就停——但現場 demo 至少要把第一輪跟第二輪並排展示出來。
+`weight_adjustments`（`WeightAdjustment[]`，交給 ENGINE02 用）＋當下這輪的 `Intent` echo（給前端顯示，不是重算）。這個迴圈會一直跑到使用者滿意為止——不是固定兩輪就停——但現場 demo 至少要把第一輪跟第二輪並排展示出來。
 
 ## 介面
 
-輸入：`FeedbackInput`。輸出：`FeedbackResult`（`updated_intent`、`weight_adjustments`）——見 [interface-contract.md](interface-contract.md)。
+輸入：`FeedbackInput`。輸出：`FeedbackResult`（`updated_intent`、`weight_adjustments`）——見 [interface-contract.md](interface-contract.md)。跟 ENGINE02 的交接方式：`POST /intent/rank` 既有的 `feedback` 欄位（`IntentRankRequest.feedback`），細節見上面「跟 ENGINE01／ENGINE02 的分工」。
 
 ## 怎麼讓這個迴圈在台上看得出來有效
 
 定義一個「符合度分數」（`RetrievalResult.match_score`）：目前結果跟目前結構化意圖的符合程度（例如意圖要求的顏色／場合／預算條件，推薦清單裡實際符合的比例）。回饋前顯示一次，ENGINE03 處理完回饋、重新產出結果後再顯示一次——例如畫面上直接秀「符合度：62% → 89%」。這樣「回饋迴圈有效」就不是一句空話，而是評審眼前真實發生的數字變化。
+
+「1 個 `WeightAdjustment` 大概等於幾步權重調整」這類量化細節這份提案先留白——沒有實作依據前不要瞎編數字；上面提到的真實分支的 README 有一條量化過的參考值（「1 feedback = 2 steps」），正式定案時可以參考那邊，不是這裡憑空定的。
 
 ## 依賴
 
