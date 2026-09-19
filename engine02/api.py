@@ -782,13 +782,18 @@ class CompleteLookRequest(BaseModel):
     n_categories: int = 2
     k: int = 5
     filters: dict[str, list[str]] = {}
+    # a budget for the WHOLE outfit (the brief's own example is 「一套…預算 3,000 元」);
+    # null means no budget, and the plan then takes the best-scoring item per slot
+    budget: float | None = None
+
 
 
 @app.post("/complete-look")
 def complete_look(body: CompleteLookRequest) -> dict:
     """給一件，推薦能搭的：complementary categories (NPMI) then items (OutfitTransformer / similarity)."""
     try:
-        return STATE["service"].complete_look(body.anchor_item_ids, body.n_categories, body.k, body.filters or None)
+        return STATE["service"].complete_look(body.anchor_item_ids, body.n_categories, body.k,
+                                              body.filters or None, budget=body.budget)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except RuntimeError as e:

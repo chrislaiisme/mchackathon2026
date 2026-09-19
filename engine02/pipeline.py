@@ -526,7 +526,13 @@ class Engine02:
                 input_warnings=input_warnings(
                     req, known_needs=self.kansei.need_ids,
                     known_elements=[e.id for e in self.kansei.elements])
-                + [r["why"] for r in (getattr(fr, "retracted", []) or [])] + (
+                + [r["why"] for r in (getattr(fr, "retracted", []) or [])]
+                + ([f"預算 {fr.applied['budget_unavailable'][0]} 無法套用："
+                    f"這個商品庫沒有價格資料，本輪未依預算過濾（其餘條件不受影響）"]
+                   if "budget_unavailable" in fr.applied else [])
+                + ([f"有 {fr.applied['budget_unpriced_excluded'][0]} 件商品沒有價格，"
+                    f"依預算過濾時已被排除"]
+                   if "budget_unpriced_excluded" in fr.applied else []) + (
                     [f"查詢用字與商品庫幾乎對不上（只觸及 {bm25_gate_note['share_docs_touched']:.1%} 的商品），"
                      f"本輪關閉關鍵字比對、只用語意檢索；請 ENGINE 01 把屬性值正規化成商品庫詞彙"]
                     if bm25_gate_note else []),

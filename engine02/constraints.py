@@ -129,15 +129,27 @@ def build_mask(
 
     b = c.budget
     if b.is_hard() and (b.max_price is not None or b.min_price is not None) and state.get("budget") != "drop":
-        price = pd.to_numeric(items["price"], errors="coerce").to_numpy(copy=True)
-        factor = 1.2 if state.get("budget") == "x1.2" else 1.0
-        ok = ~np.isnan(price)
-        if b.max_price is not None:
-            ok &= price <= b.max_price * factor
-        if b.min_price is not None:
-            ok &= price >= b.min_price
-        mask &= ok
-        applied["budget"] = [f"{b.min_price or 0}-{b.max_price}{'×1.2' if factor > 1 else ''}"]
+        price = pd.to_numeric(items.get("price"), errors="coerce").to_numpy(copy=True) \
+            if "price" in items.columns else np.full(n, np.nan)
+        known = ~np.isnan(price)
+        if not known.any():
+            # No prices in this catalog. Applying the filter would empty the pool, and the ladder
+            # would then relax colour, season and occasion (they come BEFORE budget:drop) to
+            # recover from a constraint that never applied. Record it as unusable instead.
+            applied["budget_unavailable"] = [f"{b.min_price or 0}-{b.max_price}"]
+        else:
+            factor = 1.2 if state.get("budget") == "x1.2" else 1.0
+            ok = known.copy()
+            if b.max_price is not None:
+                ok &= price <= b.max_price * factor
+            if b.min_price is not None:
+                ok &= price >= b.min_price
+            mask &= ok
+            applied["budget"] = [f"{b.min_price or 0}-{b.max_price}{'×1.2' if factor > 1 else ''}"]
+            if (~known).any():
+                # items with no price are excluded by `known`; say how many, because "within
+                # budget" over a catalog that is half unpriced is a different claim
+                applied["budget_unpriced_excluded"] = [str(int((~known).sum()))]
 
     # required values (critique targets) are hard and never relaxed
     for attr, values in c.required_values.items():
