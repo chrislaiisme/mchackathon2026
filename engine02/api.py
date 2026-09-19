@@ -213,17 +213,47 @@ def _record_demand(req: Engine02Request) -> None:
     if buf is None:
         buf = STATE["demand"] = deque(maxlen=int(os.environ.get("ENGINE02_DEMAND_LOG", "500")))
     c = req.constraints
+    # Every source that reaches beta, not just the two we happened to log first. The ones that
+    # were missing are the explicit ones: what the user typed this round (stated_design_steps,
+    # e.g. 「版型要修身」) and what their choices taught the preference model
+    # (design_weight_delta). A manufacturer's dashboard that cannot see a stated silhouette
+    # preference is missing the signal it exists to report.
+    steps: dict[str, float] = {k: float(v) for k, v in req.feedback.design_adjust_steps.items()}
+    for source in (req.stated_design_steps or {}, req.feedback.design_weight_delta or {},
+                   req.design_weight_prior or {}):
+        for k, v in source.items():
+            steps[k] = steps.get(k, 0.0) + float(v)
     buf.append((
         {n.need_id: n.prob for n in req.needs},
-        dict(req.feedback.design_adjust_steps),
+        steps,
         ((c.category.values[0] if c.category.values else None),
          (c.color.values[0] if c.color.values else None)),
         time.time(),  # so the panel can say "demand in this session changed", with a real window
     ))
 
 
+
+def _category_mask(spec: str | None):
+    """`?categories=top,outerwear` → a boolean mask over the catalog, or None for everything."""
+    if not spec:
+        return None
+    import numpy as np
+
+    items = engine().catalog.items
+    if "category" not in items.columns:
+        return None
+    want = {c.strip().lower() for c in spec.split(",") if c.strip()}
+    col = items["category"].astype(str).str.lower().to_numpy()
+    mask = np.isin(col, list(want))
+    if not mask.any():
+        raise HTTPException(400, f"no catalog item has category in {sorted(want)}; "
+                                 f"see GET /vocabulary")
+    return mask
+
+
 @app.get("/gap/elements")
-def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
+def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5,
+                 categories: str | None = None) -> dict:
     """Design-element demand (from the queries this server served) vs catalog supply.
 
     What a garment maker can act on: an element many requests wanted that little of the catalog
@@ -235,8 +265,15 @@ def gap_elements(arm: str = "full_zclip3", threshold: float = 0.5) -> dict:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     buf = list(STATE.get("demand", []))
     labels = {e.id: e.label for e in engine().kansei.elements}
-    rep = element_gap(engine(), [(p, s) for p, s, *_ in buf], arm, threshold, labels)
-    return rep.model_dump()
+    mask = _category_mask(categories)
+    rep = element_gap(engine(), [(p, s) for p, s, *_ in buf], arm, threshold, labels,
+                      mask=mask)
+    out = rep.model_dump()
+    # the denominator is part of the claim: without it "12% of the catalog" is unreadable
+    out["supply_scope"] = {"categories": categories or "all",
+                           "n_items": int(mask.sum()) if mask is not None
+                           else len(engine().catalog)}
+    return out
 
 
 @app.get("/gap/elements/change")
@@ -406,6 +443,47 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+class HandshakeRequest(BaseModel):
+    """ENGINE 03's round of ops, plus the request that produced the cards it is about."""
+
+    prev_request: Engine02Request
+    prev_response: dict | None = None
+    feedback: dict                      # engine02.handshake.FeedbackRound as JSON
+
+
+@app.post("/handshake")
+def handshake(body: HandshakeRequest) -> dict:
+    """One round of ENGINE 03 ops → the next `Engine02Request` (and a ledger of what each op did).
+
+    `engine02/handshake.py::apply_round` has implemented this since the contract was published,
+    but nothing exposed it over HTTP — and ENGINE 03 runs in its own process on another port, so
+    "call it in-process" was never an option for them. Without this endpoint every op ENGINE 03
+    emits is silently dropped at the boundary: the request still succeeds, the cards still look
+    reasonable, and nothing anywhere says the feedback was ignored.
+
+    Unknown elements or attributes come back in `rejected_ops` rather than disappearing.
+    """
+    from .handshake import FeedbackRound, apply_round
+
+    e = engine()
+    try:
+        fb = FeedbackRound.model_validate(body.feedback)
+    except ValidationError as exc:
+        raise HTTPException(422, {"error": "feedback is not a valid FeedbackRound",
+                                  "detail": exc.errors(include_url=False)})
+    prev_resp = None
+    if body.prev_response:
+        try:
+            prev_resp = Engine02Response.model_validate(body.prev_response)
+        except ValidationError:
+            prev_resp = None           # a partial previous response is not worth failing over
+    result = apply_round(body.prev_request, prev_resp, fb, kansei=e.kansei,
+                         gain=ARMS[os.environ.get('ENGINE02_ARM', 'full_zclip3')].adjust_gain)
+    return {"next_request": result.request.model_dump(mode="json"),
+            "ledger": [entry.model_dump() for entry in result.ledger],
+            "rejected_ops": result.rejected_ops}
+
+
 class IntentRankRequest(BaseModel):
     """ENGINE 01 speaks this. `intent` is `backend.shared.schemas.Intent` as plain JSON."""
 
@@ -448,10 +526,32 @@ def intent_rank(body: IntentRankRequest) -> dict:
                                         round=max(0, body.round - 1),
                                         catalog_name=getattr(e.catalog, "name", None),
                                         catalog_items=e.catalog.items, top_k=body.top_k, arm=arm)
+    # ENGINE 03 returns a FeedbackRound of ops. Making the caller notice that and route it to
+    # /handshake is a whole class of integration bug for no benefit, so apply it here and
+    # report what each op did; /handshake stays for callers that want the ledger alone.
+    ledger, rejected = [], []
+    if isinstance(body.feedback, dict) and body.feedback.get("ops"):
+        from .handshake import FeedbackRound, apply_round
+
+        try:
+            fr = FeedbackRound.model_validate({"session_id": req.session_id,
+                                               "round": max(0, body.round - 1),
+                                               **body.feedback})
+        except ValidationError as exc:
+            raise HTTPException(422, {"error": "feedback looked like a FeedbackRound but is not valid",
+                                      "detail": exc.errors(include_url=False)})
+        applied = apply_round(req, None, fr, kansei=e.kansei,
+                              gain=ARMS[arm].adjust_gain)
+        req, ledger, rejected = applied.request, applied.ledger, applied.rejected_ops
+        req.round, req.options.top_k = body.round, body.top_k
+
     resp = rank(req)
     out = response_to_retrieval_result(e, req, resp, arm=arm, prev_req=prev_req)
     # what ENGINE 01 should fix, in ENGINE 01's own terms, next to what the pipeline itself found
     out["engine02"]["unresolved_from_intent"] = unresolved
+    if ledger or rejected:
+        out["engine02"]["feedback_ledger"] = [entry.model_dump() for entry in ledger]
+        out["engine02"]["rejected_ops"] = rejected
     return out
 
 
@@ -649,7 +749,7 @@ def concept_image_nearest(body: ConceptImageRequest) -> dict:
 
 
 @app.get("/needs/supply")
-def needs_supply(arm: str = "full", threshold: float = 0.5) -> dict:
+def needs_supply(arm: str = "full", threshold: float = 0.5, categories: str | None = None) -> dict:
     """PRD §6.7 supply side Sup(n): the share of the catalog that expresses each hidden need.
 
     ENGINE 03 owns demand D(occasion, n) and the Gap product; this half needs c(i,d).
@@ -658,8 +758,84 @@ def needs_supply(arm: str = "full", threshold: float = 0.5) -> dict:
 
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
-    return {"arm": arm, "threshold": threshold, "n_items": len(engine().catalog),
-            "supply": need_supply(engine(), arm, threshold)}
+    mask = _category_mask(categories)
+    return {"arm": arm, "threshold": threshold,
+            "n_items": int(mask.sum()) if mask is not None else len(engine().catalog),
+            "supply_scope": categories or "all",
+            "supply": need_supply(engine(), arm, threshold, mask=mask)}
+
+
+@app.get("/trends/forecast")
+def trends_forecast(term: str | None = None, h: int = 8, model: str = "combination",
+                    level: float = 0.8) -> dict:
+    """Forecast attention for the trend terms, with the backtest that says whether to believe it.
+
+    Every series comes back with three things and never fewer: the point forecast, an interval
+    taken from this model's own rolling-origin errors, and its MASE against a seasonal-naive
+    baseline. MASE above 1.0 means the model is worse than repeating last year on that series, and
+    the response says so rather than letting a smooth curve imply otherwise.
+
+    Measured on 19 Wikipedia fashion series, 2019-2026 (§3.37): the combination of SES, Theta and
+    seasonal Theta averages MASE 0.583 against seasonal naive's 0.879 and wins on 18 of 19
+    (p=0.0001) -- which is the M4 competition's own finding, reproduced on our data.
+
+    This is attention, not demand, and it never enters the ranking (§3.15).
+    """
+    import glob
+    import json as _json
+
+    from .forecast import MODELS, backtest, forecast_with_interval
+
+    if model not in MODELS:
+        raise HTTPException(400, f"unknown model {model!r}; choose from {sorted(MODELS)}")
+    files = sorted(glob.glob(str(ROOT / "data" / "trends" / "history" / "wikipedia_*.json")))
+    if not files:
+        return {"available": False,
+                "note": ("沒有歷史序列。先跑 scripts/fetch_trend_history.py（會連網，"
+                         "服務路徑不會）。沒有歷史就沒有回測，沒有回測就不該畫預測。")}
+    doc = _json.loads(Path(files[-1]).read_text(encoding="utf-8"))
+
+    import numpy as np
+
+    def weekly(points):
+        vals = np.array([pt["views"] for pt in points], dtype=np.float64)
+        n = (len(vals) // 7) * 7
+        return vals[:n].reshape(-1, 7).sum(axis=1)
+
+    wanted = [term] if term else list(doc["series"])
+    out = []
+    for t in wanted:
+        s_ = doc["series"].get(t)
+        if s_ is None:
+            raise HTTPException(404, f"unknown term {t!r}; see {sorted(doc['series'])}")
+        y = weekly(s_["points"])
+        bt = backtest(y, m=52, h=h, n_windows=10)
+        fc = forecast_with_interval(y, model=model, m=52, h=h, level=level)
+        this = bt.mase.get(model, float("nan"))
+        baseline = bt.mase.get("seasonal_naive", float("nan"))
+        out.append({
+            "term": t, "target": s_.get("target"), "kind": s_.get("kind"),
+            "risk": s_.get("risk", ""),
+            "history_weeks": int(len(y)),
+            "forecast": fc,
+            "backtest": {"mase": this, "seasonal_naive_mase": baseline,
+                         "beats_baseline": bool(this < baseline) if
+                         (this == this and baseline == baseline) else None,
+                         "windows": bt.n_windows},
+            "trustworthy": bool(this < 1.0) if this == this else False,
+            "note": ("這條序列上這個模型比『重複去年同期』差，不要用它下結論"
+                     if (this == this and this >= 1.0) else ""),
+        })
+    out.sort(key=lambda r: (not r["trustworthy"], r["backtest"]["mase"]))
+    return {
+        "available": True, "model": model, "h_weeks": h, "level": level,
+        "source": doc.get("source"), "license": doc.get("license"),
+        "measures": doc.get("measures"),
+        "affects_score": False,
+        "n_series": len(out), "series": out,
+        "how_to_read": ("MASE < 1 代表比季節性天真基準好，= 1 就是基準，> 1 是更差。"
+                        "區間是這個模型自己的回測誤差分位數，不是常態假設。"),
+    }
 
 
 @app.get("/trends")
@@ -681,13 +857,18 @@ class CompleteLookRequest(BaseModel):
     n_categories: int = 2
     k: int = 5
     filters: dict[str, list[str]] = {}
+    # a budget for the WHOLE outfit (the brief's own example is 「一套…預算 3,000 元」);
+    # null means no budget, and the plan then takes the best-scoring item per slot
+    budget: float | None = None
+
 
 
 @app.post("/complete-look")
 def complete_look(body: CompleteLookRequest) -> dict:
     """給一件，推薦能搭的：complementary categories (NPMI) then items (OutfitTransformer / similarity)."""
     try:
-        return STATE["service"].complete_look(body.anchor_item_ids, body.n_categories, body.k, body.filters or None)
+        return STATE["service"].complete_look(body.anchor_item_ids, body.n_categories, body.k,
+                                              body.filters or None, budget=body.budget)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except RuntimeError as e:
