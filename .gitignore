@@ -7,6 +7,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-engine02/
 venv/
 *.egg-info/
 .pytest_cache/
@@ -126,3 +127,9 @@ data/inspiration/*
 
 # forecast cache written by engine02/context/weather.py: date-specific, rebuilt on demand
 data/context/forecast_*.json
+
+# 生圖的產出與參考圖不進版控：一次六宮格就好幾 MB，而這個 repo 比賽當天大家要 clone。
+# 解釋每次執行的 prompt 與 manifest 有進版控，證據留著、重量不帶上。
+evals/choice_images/*.png
+evals/choice_images/*.jpg
+evals/choice_images/*.jpeg

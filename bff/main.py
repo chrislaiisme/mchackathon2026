@@ -17,7 +17,10 @@ from typing import Any, Literal, Optional
 import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+
+from bff.images.concept import GENERATED_ROOT, ConceptImageUnavailable, generate_concepts
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
 ENGINE02_URL = os.environ.get("ENGINE02_URL", "http://127.0.0.1:8002")
@@ -38,6 +41,8 @@ class Session(BaseModel):
     intent: dict[str, Any] = Field(default_factory=dict)
     prev_intent: Optional[dict[str, Any]] = None
     feedback: Optional[dict[str, Any]] = None       # ENGINE 03 上一輪的產出
+    utterance: str = ""                             # 使用者最近說的那句原話（生圖要用）
+    concept_image: Optional[dict[str, Any]] = None  # 最近一次生成的單品圖
     rounds: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -98,6 +103,7 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
 
     sid = intent_out.get("session_id") or body.session_id or "anonymous"
     s = _SESSIONS.get(sid) or Session(session_id=sid)
+    s.utterance = body.message
     s.prev_intent = s.intent or None
     s.intent = intent_out.get("intent") or {}
     s.round = int(intent_out.get("round") or s.round + 1)
@@ -109,7 +115,11 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
         "intent": s.intent,
         "clarifying_questions": intent_out.get("clarifying_questions") or [],
         "retrieval": retrieval,
+        "concept_image": s.concept_image,
         "feedback_applied": s.feedback,
+        # 目錄給不出使用者要的東西時才值得按「生成單品」，前端拿這個決定按鈕要不要亮。
+        "concept_image_suggested": bool(
+            ((retrieval.get("engine02") or {}).get("match_score_detail") or {}).get("relaxed")),
         "activity": activity,
     }
     s.rounds.append(result)
@@ -153,12 +163,64 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
         "session_id": s.session_id, "round": s.round,
         "intent": s.intent,
         "retrieval": retrieval,
+        "concept_image": s.concept_image,
         "feedback_applied": s.feedback,
         "ledger_entry": fb_out.get("ledger_entry"),
         "activity": activity,
     }
     s.rounds.append(result)
     return result
+
+
+class ConceptImageRequest(BaseModel):
+    session_id: str
+    cells: int = 6
+    model: Optional[str] = None
+    """生圖模型，省略用 generate_grid.py 的預設。"""
+    dry_run: bool = False
+    """只組 prompt 與 manifest，不生圖、不花額度。開發時先用這個。"""
+
+
+@app.post("/concept-image")
+def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
+    """使用者對檢索結果不滿意時，一次生六件新單品讓他挑。
+
+    明確觸發，不在每一輪自動跑：一張六宮格 26–48 秒。六件擠在一張圖裡生，
+    比逐一生成快三倍多，理由見 bff/images/concept.py。
+    """
+    s = _SESSIONS.get(body.session_id)
+    if s is None or not s.rounds:
+        raise HTTPException(404, f"session {body.session_id!r} 還沒有任何一輪結果")
+    if not s.intent:
+        raise HTTPException(409, "這個 session 還沒有結構化意圖，無法生圖")
+
+    activity: list[dict[str, Any]] = []
+    t0 = time.time()
+    try:
+        out = generate_concepts(s.session_id, s.round, s.intent,
+                                cells=body.cells, model=body.model, dry_run=body.dry_run)
+    except ConceptImageUnavailable as exc:
+        activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000),
+                         "ok": False, "error": str(exc)[:200]})
+        raise HTTPException(502, f"生成單品失敗：{exc}")
+    except Exception as exc:
+        raise HTTPException(502, f"生成單品失敗：{type(exc).__name__}: {exc}"[:300])
+
+    activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000), "ok": True})
+    s.concept_image = {"image_url": out.get("grid_image"), "prompt_used": out.get("prompt_used"),
+                       "response_id": None}
+    return {"session_id": s.session_id, "round": s.round, "concepts": out, "activity": activity}
+
+
+@app.get("/generated/{path:path}")
+def generated_image(path: str) -> FileResponse:
+    """把生成的圖給前端。解析後必須仍在 data/generated 底下，擋住 ../ 之類的路徑。"""
+    target = (GENERATED_ROOT / path).resolve()
+    if not target.is_relative_to(GENERATED_ROOT.resolve()):
+        raise HTTPException(400, "路徑不合法")
+    if not target.is_file():
+        raise HTTPException(404, f"找不到 {path}")
+    return FileResponse(target)
 
 
 @app.get("/session/{session_id}")

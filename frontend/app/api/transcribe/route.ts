@@ -1,7 +1,6 @@
 export const runtime = "nodejs";
 
-const OPENAI_TRANSCRIPTION_URL = "https://api.openai.com/v1/audio/transcriptions";
-const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+const WHISPER_API_URL = process.env.WHISPER_API_URL || "http://127.0.0.1:9000/transcribe";
 const SUPPORTED_AUDIO_TYPES = new Set([
   "audio/flac",
   "audio/mp3",
@@ -16,12 +15,10 @@ const SUPPORTED_AUDIO_TYPES = new Set([
 ]);
 
 type TranscriptionError =
-  | "missing_api_key"
   | "invalid_audio"
   | "unsupported_audio"
-  | "openai_rate_limited"
-  | "openai_quota_exceeded"
-  | "openai_request_failed"
+  | "whisper_unavailable"
+  | "whisper_request_failed"
   | "transcription_empty"
   | "transcription_failed";
 
@@ -39,25 +36,8 @@ function getBaseAudioType(type: string) {
   return type.split(";")[0]?.trim().toLowerCase() || "";
 }
 
-function isQuotaError(status: number, body: string) {
-  const lowerBody = body.toLowerCase();
-
-  return (
-    status === 429 &&
-    (lowerBody.includes("insufficient_quota") || lowerBody.includes("quota") || lowerBody.includes("credit"))
-  );
-}
-
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
-
   console.log("[Voice API] Request received");
-  console.log("[Voice API] OPENAI_API_KEY exists:", Boolean(apiKey));
-
-  if (!apiKey) {
-    console.error("[Voice API] Missing OPENAI_API_KEY");
-    return jsonError("missing_api_key", 503, "OPENAI_API_KEY is not configured on the server.");
-  }
 
   try {
     const formData = await request.formData();
@@ -81,50 +61,36 @@ export async function POST(request: Request) {
       return jsonError("unsupported_audio", 415, `Unsupported audio type: ${audio.type}`);
     }
 
-    const openAiFormData = new FormData();
-    openAiFormData.append("file", audio, audio.name || "intentweave-voice.webm");
-    openAiFormData.append("model", TRANSCRIPTION_MODEL);
+    const whisperFormData = new FormData();
+    whisperFormData.append("audio", audio, audio.name || "intentweave-voice.webm");
 
-    console.log("[Voice API] Calling OpenAI:", {
-      endpoint: OPENAI_TRANSCRIPTION_URL,
-      model: TRANSCRIPTION_MODEL,
+    console.log("[Voice API] Calling local Whisper:", {
+      endpoint: WHISPER_API_URL,
     });
 
-    const response = await fetch(OPENAI_TRANSCRIPTION_URL, {
+    const response = await fetch(WHISPER_API_URL, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: openAiFormData,
+      body: whisperFormData,
     });
 
-    console.log("[Voice API] OpenAI status:", response.status);
+    console.log("[Voice API] Whisper status:", response.status);
 
     if (!response.ok) {
       const responseBody = await response.text().catch(() => "");
 
-      console.error("[Voice API] OpenAI transcription failed:", {
+      console.error("[Voice API] Whisper transcription failed:", {
         status: response.status,
         body: responseBody,
       });
-
-      if (isQuotaError(response.status, responseBody)) {
-        return jsonError("openai_quota_exceeded", 429, "OpenAI quota or credits are exhausted.");
-      }
-
-      if (response.status === 429) {
-        return jsonError("openai_rate_limited", 429, "OpenAI rate limit was reached.");
-      }
-
-      return jsonError("openai_request_failed", 502, `OpenAI transcription request failed with status ${response.status}.`);
+      return jsonError("whisper_request_failed", 502, `Whisper request failed with status ${response.status}.`);
     }
 
     const result = (await response.json()) as { text?: unknown };
     const text = typeof result.text === "string" ? result.text.trim() : "";
 
     if (!text) {
-      console.error("[Voice API] OpenAI response did not include transcription text");
-      return jsonError("transcription_empty", 502, "OpenAI returned an empty transcription.");
+      console.error("[Voice API] Whisper response did not include transcription text");
+      return jsonError("transcription_empty", 502, "Whisper returned an empty transcription.");
     }
 
     console.log("[Voice API] Transcription received:", {
@@ -134,6 +100,6 @@ export async function POST(request: Request) {
     return Response.json({ text });
   } catch (error) {
     console.error("[Voice API] Transcription route error:", error);
-    return jsonError("transcription_failed", 500, "Unexpected transcription route error.");
+    return jsonError("whisper_unavailable", 503, "The local Whisper service is unavailable.");
   }
 }

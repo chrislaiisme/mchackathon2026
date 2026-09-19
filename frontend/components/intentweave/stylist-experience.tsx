@@ -1,28 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Info, Mic, RefreshCw, Send, Shirt, SlidersHorizontal, Square, ThumbsDown, Upload, X } from "lucide-react";
+import {
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Info,
+  Mic,
+  RefreshCw,
+  Send,
+  Shirt,
+  SlidersHorizontal,
+  Square,
+  Star,
+  ThumbsDown,
+  Upload,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
-import { createStylistReply } from "@/lib/mock/stylist";
+import {
+  createChatRecommendation,
+  createStylistReply,
+} from "@/lib/mock/stylist";
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
+import {
+  adaptToChatRecommendation,
+  adaptToClarifyingMessage,
+  fetchIntentTurn,
+  fetchRecommendation,
+} from "@/lib/services/stylist";
 import {
   defaultVirtualYouImage,
   virtualYouService,
 } from "@/lib/services/virtual-you";
 import type {
   ChatMessage,
+  ChatRecommendation,
   Conversation,
   FashionRecommendation,
+  OutfitRecommendation,
   PreferenceSignal,
   VirtualYouMeasurements,
   VirtualYouProfile,
   VisualChoice,
 } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function RecommendationCard({
   item,
@@ -128,8 +156,19 @@ function MessageBlock({
   onChoice,
   onFeedback,
   onTryOn,
+  onTryOnOutfit,
+  onRecommendationNavigate,
+  onRecommendationTryMore,
+  onRecommendationBackToTopPick,
+  onRecommendationRate,
+  onRecommendationToggleSaved,
+  onRecommendationSaveLook,
+  onDesignForMe,
+  choicesDisabled,
   feedback,
-  activeTryOnItemId,
+  activeTryOnItemIds,
+  recommendationState,
+  tryOnState,
   tryOnStatus,
 }: {
   message: ChatMessage;
@@ -137,8 +176,19 @@ function MessageBlock({
   onChoice: (prompt: string) => void;
   onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
   onTryOn: (item: FashionRecommendation) => void;
+  onTryOnOutfit: (outfit: OutfitRecommendation) => void;
+  onRecommendationNavigate: (messageId: string, slot: "topOrDress" | "bottom", index: number) => void;
+  onRecommendationTryMore: (messageId: string) => void;
+  onRecommendationBackToTopPick: (messageId: string) => void;
+  onRecommendationRate: (messageId: string, itemId: string, rating: number) => void;
+  onRecommendationToggleSaved: (messageId: string, itemId: string) => void;
+  onRecommendationSaveLook: (messageId: string) => void;
+  onDesignForMe: (messageId: string) => void;
+  choicesDisabled: boolean;
   feedback: Record<string, "like" | "dislike">;
-  activeTryOnItemId: string | null;
+  activeTryOnItemIds: string[];
+  recommendationState?: RecommendationUiState;
+  tryOnState: TryOnState;
   tryOnStatus: "idle" | "generating" | "error";
 }) {
   const { t } = useI18n();
@@ -175,7 +225,7 @@ function MessageBlock({
       {message.quickChoices && (
         <div className="flex flex-wrap gap-2 md:pl-[100px]">
           {message.quickChoices.map((choice) => (
-            <Button key={choice.id} variant="outline" size="sm" onClick={() => onChoice(choice.prompt)}>
+            <Button key={choice.id} variant="outline" size="sm" onClick={() => onChoice(choice.prompt)} disabled={choicesDisabled}>
               {choice.label}
             </Button>
           ))}
@@ -192,19 +242,39 @@ function MessageBlock({
               feedback={feedback[item.id]}
               onFeedback={onFeedback}
               onTryOn={onTryOn}
-              isTryOnActive={activeTryOnItemId === item.id}
+              isTryOnActive={activeTryOnItemIds.includes(item.id)}
               isTryOnLoading={tryOnStatus === "generating"}
             />
           ))}
         </div>
+      )}
+
+      {recommendationState && (
+        <ConversationRecommendation
+          state={recommendationState}
+          onNavigate={(slot, nextIndex) => onRecommendationNavigate(message.id, slot, nextIndex)}
+          onTryOn={onTryOn}
+          onTryOnOutfit={onTryOnOutfit}
+          onFeedback={onFeedback}
+          onTryMore={() => onRecommendationTryMore(message.id)}
+          onBackToTopPick={() => onRecommendationBackToTopPick(message.id)}
+          activeTryOnItemIds={activeTryOnItemIds}
+          tryOnState={tryOnState}
+          tryOnStatus={tryOnStatus}
+          feedback={feedback}
+          onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
+          onToggleSaved={(itemId) => onRecommendationToggleSaved(message.id, itemId)}
+          onSaveLook={() => onRecommendationSaveLook(message.id)}
+          onDesignForMe={() => onDesignForMe(message.id)}
+        />
       )}
     </section>
   );
 }
 
 interface CreateYouApiErrorDetails {
-  openaiStatus?: number;
-  openaiBody?: string;
+  extractionStatus?: number;
+  extractionBody?: string;
   message?: string;
 }
 
@@ -214,6 +284,29 @@ interface TryOnItemFeedback {
   itemId: string;
   feedback: "like" | "dislike";
   timestamp: string;
+}
+
+interface TryOnState {
+  topOrDress: FashionRecommendation | null;
+  bottom: FashionRecommendation | null;
+}
+
+interface TryOnOverlay {
+  id: string;
+  imageUrl: string;
+  slot: "topOrDress" | "bottom";
+}
+
+interface StyledMessage {
+  title: string;
+  summary?: string;
+  reason: string;
+}
+
+interface RecommendationUiState extends ChatRecommendation {
+  ratings: Record<string, number>;
+  savedItems: Record<string, boolean>;
+  savedLook: boolean;
 }
 
 interface TranscriptionResponse {
@@ -236,44 +329,465 @@ function getCreateYouErrorCode(error: unknown) {
   return error instanceof CreateYouError ? error.message : error instanceof Error ? error.message : "image_processing_failed";
 }
 
-function base64ToBlob(base64: string, type = "image/png") {
-  const binary = window.atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
+function getItemSlot(item: FashionRecommendation): "topOrDress" | "bottom" {
+  if (item.itemType === "bottom" || item.id.startsWith("bottom-")) {
+    return "bottom";
   }
 
-  return new Blob([bytes], { type });
+  return "topOrDress";
+}
+
+function isDress(item: FashionRecommendation | null) {
+  return item?.itemType === "dress" || Boolean(item?.id.startsWith("dress-"));
+}
+
+function createRecommendationUiState(recommendation: ChatRecommendation, locale: Parameters<typeof createChatRecommendation>[0]): RecommendationUiState {
+  const fallbackRecommendation = createChatRecommendation(locale);
+  const legacyRecommendation = recommendation as Partial<ChatRecommendation> & {
+    topOrDressCandidates?: FashionRecommendation[];
+    bottomCandidates?: FashionRecommendation[];
+    selectedTopOrDressIndex?: number;
+    selectedBottomIndex?: number;
+  };
+  const normalizedRecommendation: ChatRecommendation = recommendation.topPick
+    ? recommendation
+    : {
+        view: "top-pick",
+        topPick: fallbackRecommendation.topPick,
+        alternatives: {
+          topOrDressCandidates: legacyRecommendation.topOrDressCandidates || fallbackRecommendation.alternatives.topOrDressCandidates,
+          bottomCandidates: legacyRecommendation.bottomCandidates || fallbackRecommendation.alternatives.bottomCandidates,
+          selectedTopOrDressIndex: legacyRecommendation.selectedTopOrDressIndex || 0,
+          selectedBottomIndex: legacyRecommendation.selectedBottomIndex || 0,
+        },
+      };
+
+  return {
+    ...normalizedRecommendation,
+    ratings: {},
+    savedItems: {},
+    savedLook: false,
+  };
+}
+
+function RecommendationCarousel({
+  title,
+  items,
+  index,
+  onNavigate,
+  onTryOn,
+  onFeedback,
+  activeTryOnItemIds,
+  tryOnStatus,
+  feedback,
+  rating,
+  onRate,
+  saved,
+  onToggleSaved,
+  disabledReason,
+}: {
+  title: string;
+  items: FashionRecommendation[];
+  index: number;
+  onNavigate: (nextIndex: number) => void;
+  onTryOn: (item: FashionRecommendation) => void;
+  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  activeTryOnItemIds: string[];
+  tryOnStatus: TryOnStatus;
+  feedback: Record<string, "like" | "dislike">;
+  rating?: number;
+  onRate: (itemId: string, rating: number) => void;
+  saved: boolean;
+  onToggleSaved: (itemId: string) => void;
+  disabledReason?: string;
+}) {
+  const { t } = useI18n();
+  const item = items[index];
+  const isTryOnActive = activeTryOnItemIds.includes(item.id);
+
+  function move(direction: -1 | 1) {
+    onNavigate((index + direction + items.length) % items.length);
+  }
+
+  return (
+    <article className="flex h-full overflow-hidden border border-border bg-card transition">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className="fashion-image relative h-[320px] bg-muted transition duration-500 sm:h-[360px] xl:h-[400px]"
+          style={{ backgroundImage: `url(${item.imageUrl})` }}
+          aria-label={item.name}
+        >
+          <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-foreground/35 to-transparent" aria-hidden="true" />
+          <div className="absolute left-5 top-5 text-primary-foreground drop-shadow-sm">
+            <p className="text-xs uppercase tracking-[0.22em]">{title}</p>
+            <p className="mt-2 text-lg tabular-nums">
+              {String(index + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="icon-lg"
+            variant="outline"
+            onClick={() => move(-1)}
+            aria-label={`Previous ${title}`}
+            className="absolute left-5 top-1/2 -translate-y-1/2 rounded-full border-white/50 bg-card/80 text-foreground shadow-sm backdrop-blur-md hover:bg-card"
+          >
+            <ChevronLeft className="size-5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon-lg"
+            variant="outline"
+            onClick={() => move(1)}
+            aria-label={`Next ${title}`}
+            className="absolute right-5 top-1/2 -translate-y-1/2 rounded-full border-white/50 bg-card/80 text-foreground shadow-sm backdrop-blur-md hover:bg-card"
+          >
+            <ChevronRight className="size-5" />
+          </Button>
+        </div>
+        <div className="flex flex-1 flex-col justify-between gap-5 p-5 sm:p-6">
+          <div className="space-y-4">
+          <div>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-serif text-2xl leading-tight text-foreground">{item.name}</h3>
+              <span className="mt-1 shrink-0 border-b border-primary/60 pb-1 text-sm text-muted-foreground">
+                {item.confidence}% {t.stylist.match}
+              </span>
+            </div>
+            <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.explanation}</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {item.attributes.slice(0, 3).map((attribute) => (
+              <span key={attribute} className="border border-border bg-background/40 px-2.5 py-1 text-xs text-muted-foreground">
+                {attribute}
+              </span>
+            ))}
+          </div>
+          <div>
+            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
+              Your rating {rating ? `${rating}/5` : ""}
+            </p>
+            <div className="flex gap-1" aria-label={`Rate ${item.name}`}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onRate(item.id, value)}
+                  className="p-0.5 text-primary transition hover:scale-105"
+                  aria-label={`${value} stars`}
+                >
+                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+            <Button
+              type="button"
+              size="lg"
+              variant={isTryOnActive ? "default" : "outline"}
+              onClick={() => onTryOn(item)}
+              disabled={tryOnStatus === "generating" || Boolean(disabledReason)}
+              title={disabledReason}
+              aria-pressed={isTryOnActive}
+            >
+              {isTryOnActive ? <Heart className="size-4 fill-current" /> : <Shirt className="size-4" />}
+              {isTryOnActive ? t.virtualYou.onYou : t.virtualYou.tryOn}
+            </Button>
+            <Button
+              type="button"
+              size="icon-lg"
+              variant={saved ? "default" : "outline"}
+              onClick={() => onToggleSaved(item.id)}
+              aria-label={`Save ${item.name}`}
+            >
+              <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
+            </Button>
+            <Button
+              type="button"
+              size="icon-lg"
+              variant={feedback[item.id] === "dislike" ? "destructive" : "outline"}
+              onClick={() => onFeedback(item.id, "dislike", item.name)}
+              aria-label={`${t.stylist.dislike} ${item.name}`}
+            >
+              <ThumbsDown className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CompleteOutfitCard({
+  outfit,
+  rating,
+  saved,
+  disliked,
+  isTryOnActive,
+  isTryOnLoading,
+  onTryOn,
+  onRate,
+  onToggleSaved,
+  onDislike,
+  onTryMore,
+  onDesignForMe,
+}: {
+  outfit: OutfitRecommendation;
+  rating?: number;
+  saved: boolean;
+  disliked: boolean;
+  isTryOnActive: boolean;
+  isTryOnLoading: boolean;
+  onTryOn: () => void;
+  onRate: (rating: number) => void;
+  onToggleSaved: () => void;
+  onDislike: () => void;
+  onTryMore: () => void;
+  onDesignForMe: () => void;
+}) {
+  const { t } = useI18n();
+  const garmentLine = outfit.items.bottom
+    ? `${outfit.items.topOrDress.name} + ${outfit.items.bottom.name}`
+    : outfit.items.topOrDress.name;
+  const hasBottom = Boolean(outfit.items.bottom) && !isDress(outfit.items.topOrDress);
+  const imagePanels = [
+    {
+      id: outfit.items.topOrDress.id,
+      label: isDress(outfit.items.topOrDress) ? "Dress" : "Top",
+      eyebrow: "Complete Look",
+      name: outfit.items.topOrDress.name,
+      imageUrl: outfit.items.topOrDress.imageUrl,
+    },
+    ...(hasBottom && outfit.items.bottom
+      ? [
+          {
+            id: outfit.items.bottom.id,
+            label: "Bottom",
+            eyebrow: "Stylist's Pick",
+            name: outfit.items.bottom.name,
+            imageUrl: outfit.items.bottom.imageUrl,
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="md:pl-[100px]">
+      <article className="overflow-hidden border border-border bg-card">
+        <div className={cn("grid border-b border-border", hasBottom ? "sm:grid-cols-2" : "grid-cols-1")}>
+          {imagePanels.map((panel) => (
+            <div
+              key={panel.id}
+              className="fashion-image relative h-[320px] bg-muted sm:h-[440px]"
+              style={{ backgroundImage: `url(${panel.imageUrl})` }}
+              aria-label={panel.name}
+            >
+              <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-foreground/35 to-transparent" aria-hidden="true" />
+              <div className="absolute left-5 top-5 text-primary-foreground drop-shadow-sm">
+                <p className="text-xs uppercase tracking-[0.22em]">{panel.eyebrow}</p>
+                <p className="mt-2 text-lg">{panel.label}</p>
+              </div>
+              <div className="absolute bottom-5 left-5 right-5">
+                <p className="inline border border-white/45 bg-card/80 px-3 py-2 text-xs text-foreground shadow-sm backdrop-blur-md">
+                  {panel.name}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-5 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="font-serif text-3xl leading-tight text-foreground">{outfit.name}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{garmentLine}</p>
+            </div>
+            <span className="mt-1 shrink-0 border-b border-primary/60 pb-1 text-sm text-muted-foreground">
+              {outfit.matchScore}% {t.stylist.match}
+            </span>
+          </div>
+
+          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{outfit.explanation}</p>
+
+          <div className="flex flex-wrap gap-1.5">
+            {outfit.tags.map((tag) => (
+              <span key={tag} className="border border-border bg-background/40 px-2.5 py-1 text-xs text-muted-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          <div>
+            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
+              Your rating {rating ? `${rating}/5` : ""}
+            </p>
+            <div className="flex gap-1" aria-label={`Rate ${outfit.name}`}>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => onRate(value)}
+                  className="p-0.5 text-primary transition hover:scale-105"
+                  aria-label={`${value} stars`}
+                >
+                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid min-w-[280px] flex-1 grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+              <Button type="button" size="lg" variant={isTryOnActive ? "default" : "outline"} onClick={onTryOn} disabled={isTryOnLoading}>
+                {isTryOnActive ? <Heart className="size-4 fill-current" /> : <Shirt className="size-4" />}
+                {isTryOnActive ? t.virtualYou.onYou : t.virtualYou.tryOn}
+              </Button>
+              <Button type="button" size="icon-lg" variant={saved ? "default" : "outline"} onClick={onToggleSaved} aria-label={`Save ${outfit.name}`}>
+                <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
+              </Button>
+              <Button type="button" size="icon-lg" variant={disliked ? "destructive" : "outline"} onClick={onDislike} aria-label={`Dislike ${outfit.name}`}>
+                <ThumbsDown className="size-4" />
+              </Button>
+            </div>
+            <div className="flex gap-4">
+              <button type="button" onClick={onDesignForMe} className="border-b border-border pb-1 text-sm text-muted-foreground hover:border-primary hover:text-foreground">
+                Design for Me
+              </button>
+              <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
+                Try More →
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function ConversationRecommendation({
+  state,
+  onNavigate,
+  onTryOn,
+  onTryOnOutfit,
+  onFeedback,
+  onTryMore,
+  onBackToTopPick,
+  activeTryOnItemIds,
+  tryOnState,
+  tryOnStatus,
+  feedback,
+  onRate,
+  onToggleSaved,
+  onSaveLook,
+  onDesignForMe,
+}: {
+  state: RecommendationUiState;
+  onNavigate: (slot: "topOrDress" | "bottom", index: number) => void;
+  onTryOn: (item: FashionRecommendation) => void;
+  onTryOnOutfit: (outfit: OutfitRecommendation) => void;
+  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onTryMore: () => void;
+  onBackToTopPick: () => void;
+  activeTryOnItemIds: string[];
+  tryOnState: TryOnState;
+  tryOnStatus: TryOnStatus;
+  feedback: Record<string, "like" | "dislike">;
+  onRate: (itemId: string, rating: number) => void;
+  onToggleSaved: (itemId: string) => void;
+  onSaveLook: () => void;
+  onDesignForMe: () => void;
+}) {
+  const dressActive = isDress(tryOnState.topOrDress);
+  const topPick = state.topPick;
+
+  if (!topPick?.items?.topOrDress) {
+    return null;
+  }
+
+  const topPickItemIds = [
+    topPick.items.topOrDress.id,
+    topPick.items.bottom?.id,
+  ].filter((itemId): itemId is string => Boolean(itemId));
+  const isTopPickTryOnActive = topPickItemIds.length > 0 && topPickItemIds.every((itemId) => activeTryOnItemIds.includes(itemId));
+
+  if (state.view === "top-pick") {
+    return (
+      <CompleteOutfitCard
+        outfit={topPick}
+        rating={state.ratings[topPick.id]}
+        saved={state.savedLook}
+        disliked={feedback[topPick.id] === "dislike"}
+        isTryOnActive={isTopPickTryOnActive}
+        isTryOnLoading={tryOnStatus === "generating"}
+        onTryOn={() => onTryOnOutfit(topPick)}
+        onRate={(rating) => onRate(topPick.id, rating)}
+        onToggleSaved={onSaveLook}
+        onDislike={() => onFeedback(topPick.id, "dislike", topPick.name)}
+        onTryMore={onTryMore}
+        onDesignForMe={onDesignForMe}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4 md:pl-[100px]">
+      <button type="button" onClick={onBackToTopPick} className="border-b border-primary pb-1 text-sm text-foreground">
+        ← Back to Stylist&apos;s Pick
+      </button>
+      <div className="grid items-stretch gap-5 xl:grid-cols-2">
+        <RecommendationCarousel
+          title="TOP / DRESS"
+          items={state.alternatives.topOrDressCandidates}
+          index={state.alternatives.selectedTopOrDressIndex}
+          onNavigate={(index) => onNavigate("topOrDress", index)}
+          onTryOn={onTryOn}
+          onFeedback={onFeedback}
+          activeTryOnItemIds={activeTryOnItemIds}
+          tryOnStatus={tryOnStatus}
+          feedback={feedback}
+          rating={state.ratings[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id]}
+          onRate={onRate}
+          saved={Boolean(state.savedItems[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id])}
+          onToggleSaved={onToggleSaved}
+        />
+        <RecommendationCarousel
+          title="BOTTOM"
+          items={state.alternatives.bottomCandidates}
+          index={state.alternatives.selectedBottomIndex}
+          onNavigate={(index) => onNavigate("bottom", index)}
+          onTryOn={onTryOn}
+          onFeedback={onFeedback}
+          activeTryOnItemIds={activeTryOnItemIds}
+          tryOnStatus={tryOnStatus}
+          feedback={feedback}
+          rating={state.ratings[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id]}
+          onRate={onRate}
+          saved={Boolean(state.savedItems[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id])}
+          onToggleSaved={onToggleSaved}
+          disabledReason={dressActive ? "A dress is active as the complete outfit." : undefined}
+        />
+      </div>
+    </div>
+  );
 }
 
 async function removeBackground(originalUserImage: File) {
   console.log("[CreateYou] Starting segmentation/background removal");
-  const formData = new FormData();
-  formData.append("image", originalUserImage, originalUserImage.name || "create-you-source.jpg");
+  const { extractedPersonImage: personMask } = await virtualYouService.extractPerson(originalUserImage).catch((error) => {
+    console.error("[CreateYou] Backend extraction failed", error);
+    const details =
+      error instanceof Error && "details" in error && typeof error.details === "object"
+        ? (error.details as CreateYouApiErrorDetails)
+        : undefined;
 
-  console.log("[CreateYou] Calling backend: /api/virtual-you/extract");
-  const response = await fetch("/api/virtual-you/extract", {
-    method: "POST",
-    body: formData,
+    throw new CreateYouError(error instanceof Error ? error.message : "background_removal_failed", details);
   });
-  console.log("[CreateYou] Backend response status:", response.status);
 
-  const result = (await response.json().catch((error) => {
-    console.error("[CreateYou] Failed to parse backend response", error);
-    return null;
-  })) as { imageBase64?: string; error?: string; details?: CreateYouApiErrorDetails } | null;
-
-  if (!response.ok || !result?.imageBase64) {
-    console.error("[CreateYou] Backend extraction failed", result);
-    throw new CreateYouError(result?.error || "background_removal_failed", result?.details);
-  }
-
-  const personMask = base64ToBlob(result.imageBase64, "image/png");
   console.log("[CreateYou] Segmentation result:", {
     type: personMask.type,
     size: personMask.size,
-    imageBase64Length: result.imageBase64.length,
   });
 
   return personMask;
@@ -419,13 +933,13 @@ async function uploadUserPhoto(originalUserImage: File) {
 function VirtualYouFigure({
   baseImage,
   displayImage,
-  tryOnOverlayImage,
+  tryOnOverlays,
   isTryingOn,
   loadingLabel,
 }: {
   baseImage: string;
   displayImage: string;
-  tryOnOverlayImage?: string;
+  tryOnOverlays: TryOnOverlay[];
   isTryingOn: boolean;
   loadingLabel: string;
 }) {
@@ -436,13 +950,16 @@ function VirtualYouFigure({
         className="relative z-10 mx-auto h-[330px] max-h-[42vh] w-full bg-contain bg-bottom bg-no-repeat"
         style={{ backgroundImage: `url(${displayImage || baseImage})` }}
       >
-        {tryOnOverlayImage && (
+        {tryOnOverlays.map((overlay) => (
           <div
-            className="pointer-events-none absolute left-1/2 top-[23%] h-[42%] w-[58%] -translate-x-1/2 bg-contain bg-center bg-no-repeat opacity-60 mix-blend-multiply"
-            style={{ backgroundImage: `url(${tryOnOverlayImage})` }}
+            key={overlay.id}
+            className={`pointer-events-none absolute left-1/2 -translate-x-1/2 bg-contain bg-center bg-no-repeat opacity-60 mix-blend-multiply transition duration-500 ${
+              overlay.slot === "bottom" ? "top-[48%] h-[34%] w-[54%]" : "top-[23%] h-[42%] w-[58%]"
+            }`}
+            style={{ backgroundImage: `url(${overlay.imageUrl})` }}
             aria-hidden="true"
           />
-        )}
+        ))}
       </div>
       {isTryingOn && (
         <div className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center text-sm leading-6 text-muted-foreground">
@@ -495,22 +1012,24 @@ function CreateYouSection({
   error,
   onUpload,
   activeTryOnImage,
-  activeTryOnOverlayImage,
+  activeTryOnOverlays,
   tryOnStatus,
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  styledMessage,
 }: {
   profile: VirtualYouProfile | null;
   isProcessing: boolean;
   error: string;
   onUpload: (file: File) => void;
   activeTryOnImage: string | null;
-  activeTryOnOverlayImage: string | null;
+  activeTryOnOverlays: TryOnOverlay[];
   tryOnStatus: "idle" | "generating" | "error";
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -556,7 +1075,7 @@ function CreateYouSection({
         <VirtualYouFigure
           baseImage={baseVirtualYouImage}
           displayImage={displayImage}
-          tryOnOverlayImage={activeTryOnOverlayImage || undefined}
+          tryOnOverlays={activeTryOnOverlays}
           isTryingOn={tryOnStatus === "generating"}
           loadingLabel={t.virtualYou.tryingItOn}
         />
@@ -567,6 +1086,13 @@ function CreateYouSection({
       )}
       {error && <p className="text-sm leading-6 text-destructive">{error}</p>}
       {tryOnError && <p className="text-sm leading-6 text-destructive">{tryOnError}</p>}
+      {styledMessage && tryOnStatus !== "generating" && (
+        <div className="border-l border-primary bg-accent/40 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">{styledMessage.title}</p>
+          {styledMessage.summary && <p className="mt-1 text-sm text-primary">{styledMessage.summary}</p>}
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{styledMessage.reason}</p>
+        </div>
+      )}
       {activeTryOnImage && tryOnStatus !== "generating" && (
         <TryOnFeedbackControls selected={activeTryOnFeedback} onSelect={onTryOnFeedback} />
       )}
@@ -583,11 +1109,12 @@ function StylePanel({
   createYouError,
   onCreateYouUpload,
   activeTryOnImage,
-  activeTryOnOverlayImage,
+  activeTryOnOverlays,
   tryOnStatus,
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  styledMessage,
 }: {
   signals: PreferenceSignal[];
   feedbackCount: number;
@@ -597,11 +1124,12 @@ function StylePanel({
   createYouError: string;
   onCreateYouUpload: (file: File) => void;
   activeTryOnImage: string | null;
-  activeTryOnOverlayImage: string | null;
+  activeTryOnOverlays: TryOnOverlay[];
   tryOnStatus: "idle" | "generating" | "error";
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
   const topSignals = styleProfile?.styles.length
@@ -642,11 +1170,12 @@ function StylePanel({
         error={createYouError}
         onUpload={onCreateYouUpload}
         activeTryOnImage={activeTryOnImage}
-        activeTryOnOverlayImage={activeTryOnOverlayImage}
+        activeTryOnOverlays={activeTryOnOverlays}
         tryOnStatus={tryOnStatus}
         tryOnError={tryOnError}
         activeTryOnFeedback={activeTryOnFeedback}
         onTryOnFeedback={onTryOnFeedback}
+        styledMessage={styledMessage}
       />
     </aside>
   );
@@ -816,12 +1345,13 @@ export function StylistExperience() {
   const [virtualYouStorageError, setVirtualYouStorageError] = useState("");
   const [createYouProcessing, setCreateYouProcessing] = useState(false);
   const [createYouError, setCreateYouError] = useState("");
-  const [activeTryOnItemId, setActiveTryOnItemId] = useState<string | null>(null);
+  const [tryOnState, setTryOnState] = useState<TryOnState>({ topOrDress: null, bottom: null });
   const [activeTryOnImage, setActiveTryOnImage] = useState<string | null>(null);
-  const [activeTryOnOverlayImage, setActiveTryOnOverlayImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] = useState<TryOnStatus>("idle");
   const [tryOnError, setTryOnError] = useState("");
   const [itemFeedback, setItemFeedback] = useState<Record<string, TryOnItemFeedback>>({});
+  const [recommendationStateByMessageId, setRecommendationStateByMessageId] = useState<Record<string, RecommendationUiState>>({});
+  const [styledMessage, setStyledMessage] = useState<StyledMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -831,8 +1361,16 @@ export function StylistExperience() {
   const recordingTimerRef = useRef<number | null>(null);
   const shouldFollowRef = useRef(true);
   const virtualYouObjectUrlRef = useRef<string | null>(null);
+  const tryOnObjectUrlRef = useRef<string | null>(null);
 
   const activeConversation = conversations.find((conversation) => conversation.id === activeId);
+  const activeTryOnItems = useMemo(
+    () => [tryOnState.topOrDress, isDress(tryOnState.topOrDress) ? null : tryOnState.bottom].filter(Boolean) as FashionRecommendation[],
+    [tryOnState],
+  );
+  const activeTryOnItemIds = useMemo(() => activeTryOnItems.map((item) => item.id), [activeTryOnItems]);
+  const activeTryOnOverlays = useMemo<TryOnOverlay[]>(() => [], []);
+  const primaryActiveTryOnItemId = activeTryOnItemIds[activeTryOnItemIds.length - 1] || null;
 
   const replaceVirtualYou = useCallback((nextProfile: VirtualYouProfile | null) => {
     const previousObjectUrl = virtualYouObjectUrlRef.current;
@@ -846,6 +1384,18 @@ export function StylistExperience() {
     setVirtualYou(nextProfile);
     setVirtualYouStorageError(nextProfile?.storageError ? t.virtualYou.loadError : "");
   }, [t.virtualYou.loadError]);
+
+  const replaceActiveTryOnImage = useCallback((nextImageUrl: string | null) => {
+    const previousObjectUrl = tryOnObjectUrlRef.current;
+    const nextObjectUrl = nextImageUrl?.startsWith("blob:") ? nextImageUrl : null;
+
+    if (previousObjectUrl && previousObjectUrl !== nextObjectUrl) {
+      URL.revokeObjectURL(previousObjectUrl);
+    }
+
+    tryOnObjectUrlRef.current = nextObjectUrl;
+    setActiveTryOnImage(nextImageUrl);
+  }, []);
 
   const refreshConversations = useCallback(async () => {
     const user = authService.getSession();
@@ -894,6 +1444,10 @@ export function StylistExperience() {
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
       }
+
+      if (tryOnObjectUrlRef.current) {
+        URL.revokeObjectURL(tryOnObjectUrlRef.current);
+      }
     };
   }, [refreshConversations]);
 
@@ -902,6 +1456,38 @@ export function StylistExperience() {
       bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     }
   }, [activeConversation?.messages.length, isGenerating, activeId]);
+
+  useEffect(() => {
+    if (!activeConversation) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setRecommendationStateByMessageId((current) => {
+        let changed = false;
+        const next = { ...current };
+
+        activeConversation.messages.forEach((message) => {
+          if (message.role !== "assistant" || next[message.id]) {
+            return;
+          }
+
+          if (message.recommendation) {
+            next[message.id] = createRecommendationUiState(message.recommendation, locale);
+            changed = true;
+            return;
+          }
+
+          if (message.recommendations?.length) {
+            next[message.id] = createRecommendationUiState(createChatRecommendation(locale), locale);
+            changed = true;
+          }
+        });
+
+        return changed ? next : current;
+      });
+    });
+  }, [activeConversation, locale]);
 
   useEffect(() => {
     return () => {
@@ -980,7 +1566,7 @@ export function StylistExperience() {
           details: result?.details,
         });
 
-        if (result?.error === "missing_api_key") {
+        if (result?.error === "whisper_unavailable") {
           setVoiceError(t.stylist.voiceConfigError);
         } else if (
           result?.error === "invalid_audio" ||
@@ -988,10 +1574,6 @@ export function StylistExperience() {
           result?.error === "transcription_empty"
         ) {
           setVoiceError(t.stylist.voiceInvalidAudioError);
-        } else if (result?.error === "openai_rate_limited") {
-          setVoiceError(t.stylist.voiceRateLimitError);
-        } else if (result?.error === "openai_quota_exceeded") {
-          setVoiceError(t.stylist.voiceQuotaError);
         } else {
           setVoiceError(t.stylist.voiceTranscriptionError);
         }
@@ -1124,7 +1706,7 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
-  function sendPrompt(prompt: string) {
+  async function sendPrompt(prompt: string) {
     const trimmed = prompt.trim();
 
     if (!trimmed || !activeConversation || isGenerating) {
@@ -1143,14 +1725,64 @@ export function StylistExperience() {
     setInput("");
     setIsGenerating(true);
 
-    window.setTimeout(() => {
+    // 2026-09-19：這裡原本是 window.setTimeout 假裝在想，換成真的呼叫 ENGINE01
+    // /intent（→有澄清問題就組選擇題；沒有就接著 /recommend 組 Top Pick＋Try More）。
+    // token 理論上一定有（createNewSession 已經檔過未登入導去 /login），沒有就退回
+    // 舊的 mock 回覆，不讓對話卡死。
+    const token = authService.getSessionToken();
+
+    if (!token) {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
       nextConversation = conversationService.appendMessage(latest, createStylistReply(trimmed, locale));
       persistConversation(nextConversation);
       setIsGenerating(false);
-    }, 420);
+      return;
+    }
+
+    try {
+      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, trimmed, token);
+
+      const assistantMessage: ChatMessage =
+        intentResult.clarifying_questions.length > 0
+          ? adaptToClarifyingMessage(intentResult.clarifying_questions)
+          : {
+              id: `ai-${Date.now()}`,
+              role: "assistant",
+              text:
+                locale === "zh-TW"
+                  ? "我有一套很適合你的方向，這是幫你搭好的一套。"
+                  : "I have a direction in mind — here's the outfit I'd start with.",
+              recommendation: await adaptToChatRecommendation(
+                await fetchRecommendation(intentResult.session_id, token),
+                token,
+              ),
+            };
+
+      const latest =
+        conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
+        nextConversation;
+      nextConversation = conversationService.update({ ...latest, engineSessionId: intentResult.session_id });
+      nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
+      persistConversation(nextConversation);
+    } catch (error) {
+      console.error("[stylist] 呼叫 ENGINE01／ENGINE02 失敗：", error);
+      const latest =
+        conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
+        nextConversation;
+      nextConversation = conversationService.appendMessage(latest, {
+        id: `ai-${Date.now()}`,
+        role: "assistant",
+        text:
+          locale === "zh-TW"
+            ? "後端目前連不上，稍後再試一次，或確認 ENGINE01／ENGINE02 服務都已經啟動。"
+            : "Couldn't reach the backend just now — please try again, or check that ENGINE01/ENGINE02 are running.",
+      });
+      persistConversation(nextConversation);
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1253,9 +1885,9 @@ export function StylistExperience() {
     try {
       const virtualYouAssets = await uploadUserPhoto(file);
       replaceVirtualYou(await saveCreateYou(virtualYouAssets));
-      setActiveTryOnItemId(null);
-      setActiveTryOnImage(null);
-      setActiveTryOnOverlayImage(null);
+      setTryOnState({ topOrDress: null, bottom: null });
+      replaceActiveTryOnImage(null);
+      setStyledMessage(null);
       setTryOnStatus("idle");
       setTryOnError("");
       console.log("[CreateYou] Rendering extracted person");
@@ -1271,7 +1903,12 @@ export function StylistExperience() {
         setCreateYouError(t.virtualYou.extractionConfigError);
       } else if (code === "invalid_image") {
         setCreateYouError(t.virtualYou.invalidImageError);
-      } else if (code === "openai_request_failed" || code === "openai_response_missing_image") {
+      } else if (
+        code === "extraction_request_failed" ||
+        code === "extraction_response_missing_image" ||
+        code === "openai_request_failed" ||
+        code === "openai_response_missing_image"
+      ) {
         setCreateYouError(t.virtualYou.openAiExtractionError);
       } else if (code === "no_person_detected") {
         setCreateYouError(t.virtualYou.noPersonDetected);
@@ -1303,15 +1940,20 @@ export function StylistExperience() {
     }
   }
 
-  async function handleTryOn(item: FashionRecommendation) {
+  async function applyTryOnState(nextState: TryOnState, options?: { delayMs?: number; message?: StyledMessage | null }) {
     if (tryOnStatus === "generating") {
       return;
     }
 
-    if (activeTryOnItemId === item.id) {
-      setActiveTryOnItemId(null);
-      setActiveTryOnImage(null);
-      setActiveTryOnOverlayImage(null);
+    const wearableItems = [
+      nextState.topOrDress,
+      isDress(nextState.topOrDress) ? null : nextState.bottom,
+    ].filter(Boolean) as FashionRecommendation[];
+
+    if (wearableItems.length === 0) {
+      setTryOnState(nextState);
+      replaceActiveTryOnImage(null);
+      setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
       setTryOnError("");
       return;
@@ -1319,34 +1961,213 @@ export function StylistExperience() {
 
     setTryOnStatus("generating");
     setTryOnError("");
-    setActiveTryOnItemId(item.id);
-    setActiveTryOnImage(null);
-    setActiveTryOnOverlayImage(null);
+    setTryOnState(nextState);
+    replaceActiveTryOnImage(null);
+    setStyledMessage(null);
 
     try {
-      await new Promise((resolve) => window.setTimeout(resolve, 320));
-      const preview = virtualYouService.generateVirtualTryOn(virtualYou, item);
-      setActiveTryOnImage(preview.generatedImageUrl);
-      setActiveTryOnOverlayImage(preview.outfitImageUrl);
+      await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
+      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
+      replaceActiveTryOnImage(preview.generatedImageUrl);
+      setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
     } catch {
-      setActiveTryOnItemId(null);
-      setActiveTryOnImage(null);
-      setActiveTryOnOverlayImage(null);
+      setTryOnState({ topOrDress: null, bottom: null });
+      replaceActiveTryOnImage(null);
+      setStyledMessage(null);
       setTryOnStatus("error");
       setTryOnError(t.virtualYou.tryOnError);
     }
   }
 
+  async function handleTryOn(item: FashionRecommendation) {
+    const slot = getItemSlot(item);
+
+    if (slot === "bottom") {
+      if (tryOnState.bottom?.id === item.id) {
+        await applyTryOnState({ ...tryOnState, bottom: null }, { message: null });
+        return;
+      }
+
+      await applyTryOnState({ ...tryOnState, bottom: item }, { message: null });
+      return;
+    }
+
+    if (tryOnState.topOrDress?.id === item.id) {
+      await applyTryOnState({ ...tryOnState, topOrDress: null }, { message: null });
+      return;
+    }
+
+    await applyTryOnState(
+      {
+        topOrDress: item,
+        bottom: isDress(item) ? null : tryOnState.bottom,
+      },
+      { message: null },
+    );
+  }
+
+  async function handleTryOnOutfit(outfit: OutfitRecommendation) {
+    await applyTryOnState(
+      {
+        topOrDress: outfit.items.topOrDress,
+        bottom: isDress(outfit.items.topOrDress) ? null : outfit.items.bottom,
+      },
+      {
+        message: {
+          title: "Styled for you ✦",
+          summary: outfit.name,
+          reason: outfit.explanation,
+        },
+      },
+    );
+  }
+
+  function handleDesignForMe(messageId: string) {
+    if (!activeConversation) {
+      return;
+    }
+
+    const nextConversation = conversationService.appendMessage(activeConversation, {
+      id: `assistant-design-placeholder-${Date.now()}`,
+      role: "assistant",
+      text:
+        locale === "zh-TW"
+          ? "Design for Me 會在這裡連接個人化服裝設計生成。這個 prototype 先保留入口，不呼叫外部 AI。"
+          : "Design for Me will connect personalized fashion design generation here. For this prototype, the entry point is preserved without calling an external AI API.",
+    });
+
+    persistConversation(nextConversation);
+    handleRecommendationBackToTopPick(messageId);
+  }
+
+  function handleRecommendationNavigate(messageId: string, slot: "topOrDress" | "bottom", index: number) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          alternatives: {
+            ...state.alternatives,
+            selectedTopOrDressIndex: slot === "topOrDress" ? index : state.alternatives.selectedTopOrDressIndex,
+            selectedBottomIndex: slot === "bottom" ? index : state.alternatives.selectedBottomIndex,
+          },
+        },
+      };
+    });
+  }
+
+  function handleRecommendationRate(messageId: string, itemId: string, rating: number) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          ratings: {
+            ...state.ratings,
+            [itemId]: rating,
+          },
+        },
+      };
+    });
+  }
+
+  function handleRecommendationToggleSaved(messageId: string, itemId: string) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          savedItems: {
+            ...state.savedItems,
+            [itemId]: !state.savedItems[itemId],
+          },
+        },
+      };
+    });
+  }
+
+  function handleRecommendationSaveLook(messageId: string) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          savedLook: !state.savedLook,
+        },
+      };
+    });
+  }
+
+  function handleRecommendationTryMore(messageId: string) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          view: "explore",
+        },
+      };
+    });
+  }
+
+  function handleRecommendationBackToTopPick(messageId: string) {
+    setRecommendationStateByMessageId((current) => {
+      const state = current[messageId];
+
+      if (!state) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [messageId]: {
+          ...state,
+          view: "top-pick",
+        },
+      };
+    });
+  }
+
   function handleTryOnFeedback(feedbackValue: "like" | "dislike") {
-    if (!activeTryOnItemId) {
+    if (!primaryActiveTryOnItemId) {
       return;
     }
 
     setItemFeedback((current) => ({
       ...current,
-      [activeTryOnItemId]: {
-        itemId: activeTryOnItemId,
+      [primaryActiveTryOnItemId]: {
+        itemId: primaryActiveTryOnItemId,
         feedback: feedbackValue,
         timestamp: new Date().toISOString(),
       },
@@ -1396,8 +2217,19 @@ export function StylistExperience() {
               onChoice={sendPrompt}
               onFeedback={handleFeedback}
               onTryOn={handleTryOn}
+              onTryOnOutfit={handleTryOnOutfit}
+              onRecommendationNavigate={handleRecommendationNavigate}
+              onRecommendationTryMore={handleRecommendationTryMore}
+              onRecommendationBackToTopPick={handleRecommendationBackToTopPick}
+              onRecommendationRate={handleRecommendationRate}
+              onRecommendationToggleSaved={handleRecommendationToggleSaved}
+              onRecommendationSaveLook={handleRecommendationSaveLook}
+              onDesignForMe={handleDesignForMe}
+              choicesDisabled={index !== activeConversation.messages.length - 1 || isGenerating}
               feedback={feedback}
-              activeTryOnItemId={activeTryOnItemId}
+              activeTryOnItemIds={activeTryOnItemIds}
+              recommendationState={recommendationStateByMessageId[message.id]}
+              tryOnState={tryOnState}
               tryOnStatus={tryOnStatus}
             />
           ))}
@@ -1479,11 +2311,12 @@ export function StylistExperience() {
         createYouError={createYouError}
         onCreateYouUpload={handleCreateYouUpload}
         activeTryOnImage={activeTryOnImage}
-        activeTryOnOverlayImage={activeTryOnOverlayImage}
+        activeTryOnOverlays={activeTryOnOverlays}
         tryOnStatus={tryOnStatus}
         tryOnError={tryOnError}
-        activeTryOnFeedback={activeTryOnItemId ? itemFeedback[activeTryOnItemId]?.feedback : undefined}
+        activeTryOnFeedback={primaryActiveTryOnItemId ? itemFeedback[primaryActiveTryOnItemId]?.feedback : undefined}
         onTryOnFeedback={handleTryOnFeedback}
+        styledMessage={styledMessage}
       />
       <VirtualYouModal
         key={virtualYouModalOpen ? virtualYou?.updatedAt || "new-virtual-you" : "closed-virtual-you"}

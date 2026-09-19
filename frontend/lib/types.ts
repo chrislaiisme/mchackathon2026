@@ -8,7 +8,41 @@ export interface FashionRecommendation {
   attributes: string[];
   priceBand: string;
   confidence: number;
+  itemType?: "top" | "bottom" | "dress";
   feedback?: "like" | "dislike";
+}
+
+export interface StylistOutfitRecommendation {
+  topOrDressId: string;
+  bottomId: string | null;
+  reason: string;
+  summary?: string;
+}
+
+export type RecommendationView = "top-pick" | "explore";
+
+export interface OutfitRecommendation {
+  id: string;
+  name: string;
+  items: {
+    topOrDress: FashionRecommendation;
+    bottom: FashionRecommendation | null;
+  };
+  imageUrl?: string;
+  matchScore: number;
+  explanation: string;
+  tags: string[];
+}
+
+export interface ChatRecommendation {
+  view: RecommendationView;
+  topPick: OutfitRecommendation;
+  alternatives: {
+    topOrDressCandidates: FashionRecommendation[];
+    bottomCandidates: FashionRecommendation[];
+    selectedTopOrDressIndex: number;
+    selectedBottomIndex: number;
+  };
 }
 
 export type WardrobeCategory = "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "accessories";
@@ -53,6 +87,7 @@ export interface ChatMessage {
   quickChoices?: GuidedChoice[];
   visualChoices?: VisualChoice[];
   recommendations?: FashionRecommendation[];
+  recommendation?: ChatRecommendation;
 }
 
 export interface User {
@@ -71,6 +106,10 @@ export interface Conversation {
   messages: ChatMessage[];
   recommendationFeedback: Record<string, "like" | "dislike">;
   preferenceSignals: PreferenceSignal[];
+  // 2026-09-19 新增：ENGINE01 的 /intent session_id，讓同一個對話的多輪訊息延續同一個
+  // session（沿用 ENGINE01 的澄清問題把關與五題上限邏輯），而不是每則訊息都開新 session。
+  // 選填是因為舊對話（合併 main 之前建立的、或還沒送出過第一句真訊息的）不會有這個欄位。
+  engineSessionId?: string;
 }
 
 export interface VirtualYouMeasurements {

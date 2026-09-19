@@ -1,32 +1,15 @@
 # ENGINE02 — 檢索與排序
 
-**負責人：待確認。** 這份是從 [hackathon-brief.md](hackathon-brief.md) 抄出來的骨架摘要——正式負責人接手後應該把這裡展開成真正的規格（Polyvore 資料集實際的欄位名稱、reranker 的權重公式等），不要直接把這份當成定案。
+**這份文件已經過時，留著只是給歷史脈絡用。** 底下原本是賽前依 [hackathon-brief.md](hackathon-brief.md) 寫的骨架猜測（Polyvore Outfits Dataset、FashionCLIP、Chroma/FAISS 等），ENGINE02 實際做出來的方向不一樣（KAGL 商品庫、自寫的 BM25、逐項加總可解釋分數、taxonomy），比賽前的猜測不再準確，不要照這份施工。
 
-## 目標
+**2026-09-19 補充**：這份文件曾經被 ENGINE02 那批帶 Hermes app 上 main 的 commit（`e34a820`）意外覆蓋回這份賽前骨架，這次 merge 進 `engine01-intent` 時發現並修回導覽頁版本——如果之後又看到這份文件變回骨架內容，八成又是同一種意外覆蓋，直接修回導覽頁就好，不用照著施工。
 
-拿到 ENGINE01 產出的目前 `Intent`，檢索並排序出符合的商品，並為每個結果生成有根據的自然語言理由。核心不是 GPT 驅動的——這是自己實作的 hybrid search ＋ reranker，GPT 只在最後一步負責把理由講出來。
+真正的規格在這幾份文件：
 
-## 資料
+- [`docs/engine02-design.md`](engine02-design.md) — 完整設計與所有實驗結果（§3.1–§3.39，每個結論都有對照組跟統計檢定）。
+- [`docs/engine02-pipeline.md`](engine02-pipeline.md) — 管線、現場 demo 腳本、上台前檢查清單。
+- [`docs/engine02-literature-review.md`](engine02-literature-review.md) — 文獻回顧。
+- [`../backend/engine02_retrieval/README.md`](../backend/engine02_retrieval/README.md) — 怎麼跑、端點清單、跟團隊介面的整合細節。
+- [`docs/research/`](research/) — 專題研究報告（人類標註協議、外部 benchmark、視覺搜尋落差分析等）。
 
-Polyvore Outfits Dataset（[huggingface.co/datasets/mvasil/polyvore-outfits](https://huggingface.co/datasets/mvasil/polyvore-outfits)）當核心商品庫。
-
-## 做法（依簡報內容）
-
-- **Dense 側**：FashionCLIP embedding 抓語意風格相似度（例如「簡約」「正式」「防水」）。
-- **Sparse 側**：屬性過濾／BM25（`rank_bm25`）抓精確條件（顏色、價格區間、季節、尺寸）。
-- **Reranker**：合併 dense/sparse 相似度分數、Polyvore 式的穿搭相容性分數、ENGINE03 學到的偏好權重，決定最終排序——因為每個訊號都可追溯，每個結果都能講出「為什麼排在這裡」（呼應「可解釋」要求）。
-- 生成模組（`bff/images/`）產出的概念圖，也會轉成 FashionCLIP 向量併入 dense 側分數，讓檢索和生成互相加強，不是各跑各的兩套系統。
-- 向量儲存：Chroma 或 FAISS，嵌在 Python process 裡——兩天的開發時程用不到另外開一套資料庫服務。
-- 推薦理由生成：排序後的商品屬性 → GPT chat completions → 一句根據真實檢索屬性寫成的自然語言句子，不是憑空生成。
-
-## 介面
-
-輸入：`Intent`（來自 ENGINE01）＋權重調整（來自 ENGINE03）。輸出：`RetrievalResult`（`products: ProductCard[]`、`concept_image`、`match_score`）——見 [interface-contract.md](interface-contract.md)。
-
-## 離線驗證
-
-Ablation 實驗：同一批測試 query，分別跑純關鍵字搜尋、純 embedding 搜尋、hybrid+rerank 三種，比較 Precision@5／NDCG@5，證明 hybrid 方案的優勢。見 [validation-plan.md](validation-plan.md)。
-
-## 依賴
-
-`OPENAI_API_KEY`（只有推薦理由生成這一步需要——檢索／排序本身的運算不呼叫 GPT）。
+跨引擎 JSON 契約（`Intent` 進、`RetrievalResult` 出）見 [`interface-contract.md`](interface-contract.md)；ENGINE02 額外用到的請求／回應細節見 [`docs/contract/`](contract/) 底下的 JSON Schema 跟範例。ENGINE01 實際整合用的端點是 `POST /intent/rank`（見 ENGINE02 負責人交接的 HackMD 文件與 `docs/engine01-intent.md`），本機啟動方式是 `uvicorn mcp_servers.catalog.main:app --port 8000`（`mcp_servers/catalog/` 是 Hermes app 遷移後的路徑，跟原本的 `backend/engine02_retrieval/` 內容目前逐位元組相同）。
