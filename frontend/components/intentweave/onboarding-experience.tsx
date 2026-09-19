@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, SkipForward } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/lib/services/auth";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
@@ -99,7 +99,7 @@ function StyleCard({
   );
 }
 
-function OnboardingHeader({ step, onSkip }: { step: number; onSkip: () => void }) {
+function OnboardingHeader({ step }: { step: number }) {
   return (
     <header className="border-b border-border/70 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
@@ -125,14 +125,6 @@ function OnboardingHeader({ step, onSkip }: { step: number; onSkip: () => void }
           <span className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
             {String(step).padStart(2, "0")} - 03
           </span>
-          <button
-            type="button"
-            onClick={onSkip}
-            className="inline-flex items-center gap-1 border-b border-transparent pb-1 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground"
-          >
-            Skip
-            <SkipForward className="size-3.5" />
-          </button>
         </div>
       </div>
     </header>
@@ -398,17 +390,6 @@ export function OnboardingExperience() {
     window.setTimeout(() => router.replace("/stylist"), 1200);
   }
 
-  function skip() {
-    const fallbackProfile: OnboardingProfile = {
-      ageRange: profile.ageRange || "Prefer not to say",
-      gender: profile.gender || "Prefer not to say",
-      styles: profile.styles.length ? profile.styles : ["Minimal", "Casual"],
-      contexts: profile.contexts.length ? profile.contexts : ["Work"],
-    };
-    setProfile(fallbackProfile);
-    finish(fallbackProfile);
-  }
-
   function next() {
     if (!canContinue) {
       return;
@@ -424,7 +405,7 @@ export function OnboardingExperience() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <OnboardingHeader step={step} onSkip={skip} />
+      <OnboardingHeader step={step} />
       <main className="mx-auto w-full max-w-7xl px-5 py-10 sm:px-8 lg:py-14">
         {complete ? (
           <CompletionState profile={profile} />
