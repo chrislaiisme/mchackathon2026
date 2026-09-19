@@ -17,7 +17,10 @@ from typing import Any, Literal, Optional
 import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+
+from bff.images.concept import GENERATED_DIR, build_skill_input, generate as generate_concept
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
 ENGINE02_URL = os.environ.get("ENGINE02_URL", "http://127.0.0.1:8002")
@@ -38,6 +41,8 @@ class Session(BaseModel):
     intent: dict[str, Any] = Field(default_factory=dict)
     prev_intent: Optional[dict[str, Any]] = None
     feedback: Optional[dict[str, Any]] = None       # ENGINE 03 上一輪的產出
+    utterance: str = ""                             # 使用者最近說的那句原話（生圖要用）
+    concept_image: Optional[dict[str, Any]] = None  # 最近一次生成的單品圖
     rounds: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -98,6 +103,7 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
 
     sid = intent_out.get("session_id") or body.session_id or "anonymous"
     s = _SESSIONS.get(sid) or Session(session_id=sid)
+    s.utterance = body.message
     s.prev_intent = s.intent or None
     s.intent = intent_out.get("intent") or {}
     s.round = int(intent_out.get("round") or s.round + 1)
@@ -109,7 +115,11 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
         "intent": s.intent,
         "clarifying_questions": intent_out.get("clarifying_questions") or [],
         "retrieval": retrieval,
+        "concept_image": s.concept_image,
         "feedback_applied": s.feedback,
+        # 目錄給不出使用者要的東西時才值得按「生成單品」，前端拿這個決定按鈕要不要亮。
+        "concept_image_suggested": bool(
+            ((retrieval.get("engine02") or {}).get("match_score_detail") or {}).get("relaxed")),
         "activity": activity,
     }
     s.rounds.append(result)
@@ -153,12 +163,60 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
         "session_id": s.session_id, "round": s.round,
         "intent": s.intent,
         "retrieval": retrieval,
+        "concept_image": s.concept_image,
         "feedback_applied": s.feedback,
         "ledger_entry": fb_out.get("ledger_entry"),
         "activity": activity,
     }
     s.rounds.append(result)
     return result
+
+
+class ConceptImageRequest(BaseModel):
+    session_id: str
+    reference_item_id: Optional[str] = None
+    """要當參考圖的商品；省略就用這一輪排第一的那件。"""
+    prompt: Optional[str] = None
+    """生圖 skill 寫好的 prompt。省略時用 bff/images/concept.py 的保守版本。"""
+
+
+@app.post("/concept-image")
+def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
+    """生成一張平拍單品圖，填進這個 session 的 `concept_image`。
+
+    明確觸發，不在每一輪自動跑 —— 一張要 27–50 秒，會把整輪拖垮。
+    材料取自上一輪 ENGINE 02 的回傳加上使用者原話，理由見 `bff/images/concept.py`。
+    """
+    s = _SESSIONS.get(body.session_id)
+    if s is None or not s.rounds:
+        raise HTTPException(404, f"session {body.session_id!r} 還沒有任何一輪結果")
+
+    activity: list[dict[str, Any]] = []
+    t0 = time.time()
+    skill_input = build_skill_input(
+        s.rounds[-1].get("retrieval") or {}, utterance=s.utterance,
+        reference_item_id=body.reference_item_id)
+    out = generate_concept(skill_input, body.prompt)
+    activity.append({"step": "images.concept", "ms": int((time.time() - t0) * 1000),
+                     "ok": "error" not in out})
+
+    if "error" in out:
+        raise HTTPException(502, f"生成單品圖失敗：{out['error']}")
+
+    s.concept_image = out
+    return {"session_id": s.session_id, "round": s.round, "concept_image": out,
+            "skill_input": skill_input.model_dump(), "activity": activity}
+
+
+@app.get("/generated/{filename}")
+def generated_image(filename: str) -> FileResponse:
+    """把生成的圖給前端。只認檔名，不接受路徑，避免讀到目錄外的檔案。"""
+    if "/" in filename or "\\" in filename or filename.startswith("."):
+        raise HTTPException(400, "檔名不合法")
+    path = GENERATED_DIR / filename
+    if not path.is_file():
+        raise HTTPException(404, f"找不到 {filename}")
+    return FileResponse(path)
 
 
 @app.get("/session/{session_id}")

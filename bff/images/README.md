@@ -1,38 +1,46 @@
 # bff/images/
 
+生成平拍單品圖，填進 `RoundResult.concept_image`。
+
 負責線：線 3｜概念圖與選項圖
-對應功能：FR-004 Choice Image Generation and Check；FR-007 Concept Image Generation；FR-010 中的選項圖檢查通過率
+對應功能：FR-007 Concept Image Generation
 
-## 負責內容
+## 兩段式：skill 寫 prompt，runtime 執行
 
-- 選項圖：先生成基準圖，每個選項從基準圖只修改一個屬性
-- 選項圖自動檢查：明示條件是否仍在、目標屬性是否確實改變；不通過時重生，多次不通過改用文字選項
-- 已生成的選項圖固定保存，同一題不重新生成
-- 概念圖生成與依回饋的多輪調整
-- 生圖服務切換與額度控管（驗證流程與 demo 共用額度）
+| 職責 | 在哪 |
+|---|---|
+| 寫 prompt（政策） | Hermes skill `agent/skills/concept-image-director/` |
+| 整理材料、執行生圖、存檔（流程） | `concept.py` |
 
-## 介面
+流程不交給模型決定要不要做。skill 還沒到位時 `fallback_prompt()` 頂著，整條路現在就能跑。
 
-- 需要：結構化意圖與選擇題規格（線 1）、回饋後的意圖修正（線 4）
-- 提供：選項圖檢查結果與可出題的屬性清單（線 1）、選項圖（線 4）、概念圖（線 2、線 4）
+## 端點
 
-## 比賽前準備
+```
+POST /concept-image  {session_id, reference_item_id?, prompt?}
+GET  /generated/<檔名>
+```
 
-- 整理先前的生圖可行性驗證結果（褲口、腰線可守住固定條件），放進 `evals/choice_images/`
-- 準備 demo 情境的基準圖（放在 `data/demo_cache/`）
+`prompt` 給定時就用它（skill 的產出），省略則用 fallback。**明確觸發，不在每輪自動跑** ——
+一張 27–50 秒會把整輪拖垮。`/round` 的回傳有 `concept_image_suggested`，目錄給不出使用者要的
+東西時為 true，前端拿它決定按鈕要不要亮。
 
-目前狀態：尚未開始。
+## 材料取自 ENGINE 02，但原話一定要一起帶
 
----
+| 欄位 | 來源 | 用途 |
+|---|---|---|
+| `utterance` | 使用者原話 | **目錄詞彙表達不了的細節只存在這裡** |
+| `hard` | `match_score_detail.requirements` kind=hard | 必須出現在圖上 |
+| `design` | 同上 kind=design | 有方向性的偏好 |
+| `relaxed` | `match_score_detail.relaxed` | 目錄給不出什麼 —— 生圖的主角 |
+| `unresolved` | `unresolved_from_intent` | 目錄詞彙對不到的說法 |
+| `reference_image` | 該輪商品的目錄照片 | 版型與構圖參考 |
 
-（以下併自搬移前的 `bff/images/README.md`）
+實測佐證：輸入「我想要寬鬆的深色牛仔褲，上方有珍珠褲鏈」，ENGINE 02 的結構化欄位裡
+**完全沒有「珍珠褲鏈」**（目錄沒有這個概念），只有 `utterance` 保住了它，生成的圖也確實有那條鏈子。
 
-# 生成模組 — 概念圖
+## 已知限制
 
-**負責人：待確認（提議跟 `pinterest/` 合併，見 docs/pinterest-and-generation.md）。** 這是建 repo 骨架時順便建立的佔位資料夾，讓這條線可以馬上開始動工。
-
-用 OpenAI Responses API 的 `image_generation` tool，從目前的 `Intent` 每一輪產出一張原創概念圖（`action: "auto"`，用 `previous_response_id` 跨輪銜接，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生成）。Prompt 要維持抽象（顏色／剪裁／場合／材質），避免點名真實品牌或設計師。現場 demo 跑幾輪完全由使用者回饋決定（不是模型自己決定要不要停）；離線驗證迴圈則固定跑 2–4 輪，用 FashionCLIP 相似度當量化停止依據。
-
-完整規格：[../../docs/pinterest-and-generation.md](../../docs/pinterest-and-generation.md)。輸出 JSON：`RetrievalResult` 裡的 `ConceptImage`，見 [../../docs/interface-contract.md](../../docs/interface-contract.md)。
-
-需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。範例程式碼在 [../../docs/hackathon-brief.md](../../docs/hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
+- Codex 那條路**忽略尺寸參數**，要 1024×1024 可能回 1086×1448，前端不要寫死尺寸。
+- `ConceptImage.response_id` 是 OpenAI Responses API 多輪接續用的，Hermes 這條路不支援，恆為 None；
+  多輪要接續就把上一張圖當 `reference_item_id` 之外的參考圖傳入。
