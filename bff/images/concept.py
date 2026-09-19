@@ -22,6 +22,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Optional
 
@@ -53,12 +54,12 @@ def _run(script: Path, args: list[str]) -> dict[str, Any]:
 
 def generate_concepts(session_id: str, round_no: int, intent: dict[str, Any],
                       cells: int = 6, model: Optional[str] = None,
-                      dry_run: bool = False) -> dict[str, Any]:
+                      dry_run: bool = False, slot: Optional[str] = None) -> dict[str, Any]:
     """對外入口：版面沒切成就重生一張，最多 MAX_ATTEMPTS 次。"""
     last: Optional[ConceptImageUnavailable] = None
     for attempt in range(1, (1 if dry_run else MAX_ATTEMPTS) + 1):
         try:
-            return _generate_once(session_id, round_no, intent, cells, model, dry_run, attempt)
+            return _generate_once(session_id, round_no, intent, cells, model, dry_run, attempt, slot)
         except ConceptImageUnavailable as exc:
             last = exc
             if "版面" not in str(exc):   # 只有版面問題值得重生，其餘照實往上拋
@@ -68,13 +69,18 @@ def generate_concepts(session_id: str, round_no: int, intent: dict[str, Any],
 
 def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
                    cells: int, model: Optional[str], dry_run: bool,
-                   attempt: int = 1) -> dict[str, Any]:
+                   attempt: int = 1, slot: Optional[str] = None) -> dict[str, Any]:
     """生一張六宮格並切成六件單品，回傳給前端的形狀。
 
     `intent` 吃 ENGINE 01 的 `Intent`；第 2 輪起可以改吃 ENGINE 03 的 `updated_intent`，
     型別相同，所以使用者按下按鈕時拿到的是「已經吸收過這輪回饋」的六件。
     """
-    out_dir = GENERATED_ROOT / session_id / (f"r{round_no}" if attempt == 1 else f"r{round_no}-retry{attempt}")
+    # slot 要進路徑：TOP 跟 BOTTOM 是同一個 session／同一輪同時生的，
+    # 不分開就會寫到同一個 r{round} 底下互相覆蓋。
+    name = f"r{round_no}" if attempt == 1 else f"r{round_no}-retry{attempt}"
+    if slot:
+        name = f"{name}-{slot}"
+    out_dir = GENERATED_ROOT / session_id / name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as fh:
@@ -128,6 +134,98 @@ def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
     }
 
 
+# --- TOP / BOTTOM 兩件一起生 -------------------------------------------------
+
+# ENGINE 01 的 intent 只講一個 item_type。使用者按 Design for Me 要的是「上身跟
+# 下身都給我幾件 AI 的選擇」，所以另外那一格用一個通用品項補上——這兩個詞在
+# engine02 的分類體系裡分別對到 tops / bottoms 這兩個最上層節點。
+SLOT_FALLBACK_ITEM_TYPE = {"top": "上衣", "bottom": "褲子"}
+
+
+def slot_of(item_type: Optional[str]) -> Optional[str]:
+    """「牛仔褲」→ "bottom"。翻不出來回 None。
+
+    走 agent/scripts 的 english_item_type（背後是 engine02 的分類體系），不要自己
+    另外寫一張同義詞表——那樣會跟檢索那條線講不同的話。
+    """
+    if not item_type:
+        return None
+    scripts = str(ROOT / "agent" / "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    try:
+        from grid_common import english_item_type  # type: ignore[import-not-found]
+        _, node_id = english_item_type(item_type)
+    except Exception:
+        return None
+    if not node_id:
+        return None
+    return {"tops": "top", "bottoms": "bottom", "dresses": "dress"}.get(node_id.split(".")[0])
+
+
+def plan_slots(intent: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """要生哪幾個 slot、各自用什麼 intent。
+
+    使用者說的那一類保持原樣（連同顏色、材質、版型一起帶著），另一類換成通用品項。
+    洋裝是自成一格的品項，不需要再配一件下身，所以只生它自己。
+    """
+    own = slot_of(intent.get("item_type"))
+
+    if own == "dress":
+        # 洋裝在前端跟上衣共用同一個輪播（topOrDressCandidates）。
+        return {"top": intent}
+
+    plan: dict[str, dict[str, Any]] = {}
+    for slot in ("top", "bottom"):
+        plan[slot] = intent if slot == own else _companion_intent(intent, SLOT_FALLBACK_ITEM_TYPE[slot])
+    return plan
+
+
+# 使用者說「深色的寬鬆牛仔褲」時，深色／牛仔布／寬鬆講的是那件褲子，不是要配的上衣。
+# 這些欄位只跟被點名的那件單品有關，換到另一格就要丟掉，否則會生出「深色牛仔布上衣」。
+_GARMENT_SPECIFIC_FIELDS = ("colors", "material", "fit", "pattern", "collar", "length", "notes")
+
+
+def _companion_intent(intent: dict[str, Any], item_type: str) -> dict[str, Any]:
+    """另一格要用的 intent：換品項，保留場合／季節／風格這種整套共用的脈絡。"""
+    companion = {k: v for k, v in intent.items() if k not in _GARMENT_SPECIFIC_FIELDS}
+    companion["item_type"] = item_type
+    companion["inferred_fields"] = list(intent.get("inferred_fields") or [])
+    return companion
+
+
+def generate_concept_pair(session_id: str, round_no: int, intent: dict[str, Any],
+                          cells: int = 6, model: Optional[str] = None,
+                          dry_run: bool = False) -> dict[str, Any]:
+    """TOP 與 BOTTOM 各一張六格拼圖，兩張同時發出去。
+
+    一張要 26–48 秒，串著跑就是兩分鐘，現場撐不住；兩張並行大約等於一張的時間。
+    用執行緒而不是 async 是因為底下是 subprocess.run，等的時候本來就放掉 GIL。
+
+    其中一邊失敗不讓整個請求掛掉——另一邊的六件仍然可用，失敗的那格回 error。
+    """
+    plan = plan_slots(intent)
+
+    with ThreadPoolExecutor(max_workers=len(plan)) as pool:
+        futures = {
+            slot: pool.submit(generate_concepts, session_id, round_no, slot_intent,
+                              cells, model, dry_run, slot)
+            for slot, slot_intent in plan.items()
+        }
+        out: dict[str, Any] = {}
+        for slot, future in futures.items():
+            try:
+                out[slot] = future.result()
+            except ConceptImageUnavailable as exc:
+                out[slot] = {"error": str(exc)[:300]}
+            except Exception as exc:
+                out[slot] = {"error": f"{type(exc).__name__}: {exc}"[:300]}
+
+    if all("error" in slot_out for slot_out in out.values()):
+        raise ConceptImageUnavailable("；".join(str(v.get("error")) for v in out.values()))
+    return out
+
+
 def _counts_match(message: str) -> bool:
     """錯誤訊息裡「偵測到 N 欄 × M 列，要求的是 N 欄 × M 列」兩組數字是否相同。"""
     found = re.findall(r"(\d+)\s*欄\s*×\s*(\d+)\s*列", message)
@@ -135,15 +233,28 @@ def _counts_match(message: str) -> bool:
 
 
 def _varied_label(cell: dict[str, Any]) -> Optional[str]:
-    """這一格被改掉的那個屬性的值，優先用生圖端給的中文標籤。"""
+    """這一格被改掉的那些屬性的「值」，優先用生圖端給的中文標籤。
+
+    varied_attribute 可能是一個軸（"length"），也可能是逗號接起來的好幾個軸
+    （上衣是 "sleeve_length,neckline"）。要印的是值不是軸名——印軸名的話六張卡
+    會長得一模一樣，使用者看不出差在哪。
+    """
     label = cell.get("varied_label_zh")
     if label:
         return label
+
     attribute = cell.get("varied_attribute")
     if not attribute:
         return None
-    value = cell.get("varied_value") or (cell.get("keywords") or {}).get(attribute)
-    return str(value) if value else str(attribute)
+
+    explicit = cell.get("varied_value")
+    if explicit:
+        return str(explicit)
+
+    keywords = cell.get("keywords") or {}
+    values = [str(keywords[axis]) for axis in
+              (a.strip() for a in str(attribute).split(",")) if axis and keywords.get(axis)]
+    return " · ".join(values) if values else str(attribute)
 
 
 def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:

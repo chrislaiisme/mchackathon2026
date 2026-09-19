@@ -135,6 +135,15 @@
     background-position: center;
     background-size: cover;
   }
+
+  /* AI 生成的單品是白底平拍圖，整件衣服就是畫面的全部——用 cover 會把袖子、
+     褲管裁掉（2026-09-19 生出來的六件在輪播裡就是這樣被切掉的）。改成 contain
+     讓整件看得到，留白補成白色而不是 muted，跟生成圖自己的白底接得上。 */
+  .fashion-image--contain {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: #fff;
+  }
 }
 
 @keyframes login-fade-up {

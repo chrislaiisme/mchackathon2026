@@ -10,6 +10,11 @@ export interface FashionRecommendation {
   confidence: number;
   itemType?: "top" | "bottom" | "dress";
   feedback?: "like" | "dislike";
+  /**
+   * 這件是 AI 生成的，不在商品庫裡。影響兩件事：卡片要標明「不是商品」，
+   * 圖片要用 contain 不能用 cover——生成的是白底平拍圖，裁切會把衣服切掉。
+   */
+  generated?: boolean;
 }
 
 export interface StylistOutfitRecommendation {
@@ -32,6 +37,13 @@ export interface OutfitRecommendation {
   matchScore: number;
   explanation: string;
   tags: string[];
+}
+
+export interface GeneratedGroup {
+  slot: "top" | "bottom";
+  /** 已經翻好的標題，直接顯示。 */
+  label: string;
+  items: FashionRecommendation[];
 }
 
 export interface ChatRecommendation {
@@ -78,15 +90,6 @@ export interface PreferenceSignal {
   direction: SignalDirection;
 }
 
-export interface GeneratedItem {
-  /** 六宮格切出來的單格，1 起算。 */
-  index: number;
-  imageUrl: string;
-  /** 這一格相對其他格改了什麼，中文原字，直接顯示在卡片上。 */
-  variedLabel?: string;
-  keywords: Record<string, string>;
-}
-
 export interface ChatMessage {
   id: string;
   conversationId?: string;
@@ -97,8 +100,12 @@ export interface ChatMessage {
   visualChoices?: VisualChoice[];
   recommendations?: FashionRecommendation[];
   recommendation?: ChatRecommendation;
-  /** AI 生成的單品（不是商品庫裡的東西，卡片上要標明）。 */
-  generatedItems?: GeneratedItem[];
+  /**
+   * Design for Me 生出來的單品，照上身／下身分組，自成一輪對話。
+   * 刻意不併進 recommendations——那一欄是 ENGINE 02 從商品庫撈到的真商品，
+   * 這些是還不存在的東西，混在一起就分不出哪些買得到。
+   */
+  generatedGroups?: GeneratedGroup[];
 }
 
 export interface User {

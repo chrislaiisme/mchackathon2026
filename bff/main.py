@@ -20,7 +20,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from bff.images.concept import GENERATED_ROOT, ConceptImageUnavailable, generate_concepts
+from bff.images.concept import (GENERATED_ROOT, ConceptImageUnavailable, generate_concept_pair,
+                                generate_concepts)
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
 ENGINE02_URL = os.environ.get("ENGINE02_URL", "http://127.0.0.1:8002")
@@ -182,6 +183,8 @@ class ConceptImageRequest(BaseModel):
     """生圖模型，省略用 generate_grid.py 的預設。"""
     dry_run: bool = False
     """只組 prompt 與 manifest，不生圖、不花額度。開發時先用這個。"""
+    pair: bool = False
+    """True = TOP 與 BOTTOM 各生一張六格（並行），回傳 slots；False = 只生 intent 那一類。"""
 
 
 @app.post("/concept-image")
@@ -206,17 +209,27 @@ def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
 
     activity: list[dict[str, Any]] = []
     t0 = time.time()
+    step = "images.concepts.pair" if body.pair else "images.concepts"
     try:
-        out = generate_concepts(session_id, round_no, intent,
-                                cells=body.cells, model=body.model, dry_run=body.dry_run)
+        if body.pair:
+            slots = generate_concept_pair(session_id, round_no, intent,
+                                          cells=body.cells, model=body.model, dry_run=body.dry_run)
+        else:
+            slots = None
+            out = generate_concepts(session_id, round_no, intent,
+                                    cells=body.cells, model=body.model, dry_run=body.dry_run)
     except ConceptImageUnavailable as exc:
-        activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000),
+        activity.append({"step": step, "ms": int((time.time() - t0) * 1000),
                          "ok": False, "error": str(exc)[:200]})
         raise HTTPException(502, f"生成單品失敗：{exc}")
     except Exception as exc:
         raise HTTPException(502, f"生成單品失敗：{type(exc).__name__}: {exc}"[:300])
 
-    activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000), "ok": True})
+    activity.append({"step": step, "ms": int((time.time() - t0) * 1000), "ok": True})
+
+    if body.pair:
+        return {"session_id": session_id, "round": round_no, "slots": slots, "activity": activity}
+
     if not body.intent and (s := _SESSIONS.get(session_id)):
         s.concept_image = {"image_url": out.get("grid_image"),
                            "prompt_used": out.get("prompt_used"), "response_id": None}

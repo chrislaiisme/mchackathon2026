@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
-import { generateItems } from "@/lib/services/concept-image";
+import { generateItemPair } from "@/lib/services/concept-image";
 import {
   createChatRecommendation,
   createStylistReply,
@@ -46,6 +46,7 @@ import type {
   ChatRecommendation,
   Conversation,
   FashionRecommendation,
+  GeneratedGroup,
   OutfitRecommendation,
   PreferenceSignal,
   VirtualYouMeasurements,
@@ -61,6 +62,8 @@ function RecommendationCard({
   feedback,
   isTryOnActive,
   isTryOnLoading,
+  saved,
+  onToggleSaved,
 }: {
   item: FashionRecommendation;
   onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
@@ -68,24 +71,40 @@ function RecommendationCard({
   feedback?: "like" | "dislike";
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
+  saved?: boolean;
+  onToggleSaved?: (itemId: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   return (
     <article className="group overflow-hidden border border-border bg-card">
       <div
-        className="fashion-image aspect-[3/4] bg-muted transition duration-700 group-hover:scale-[1.03]"
+        className={cn(
+          "fashion-image aspect-[3/4] bg-muted transition duration-700",
+          // 生成的是白底平拍圖，整件衣服就是畫面全部——放大會把袖子褲管推出框外。
+          item.generated ? "fashion-image--contain" : "group-hover:scale-[1.03]",
+        )}
         style={{ backgroundImage: `url(${item.imageUrl})` }}
         aria-label={item.name}
       />
       <div className="space-y-4 p-4">
         <div>
-          <div className="flex items-start justify-between gap-4">
-            <h3 className="font-serif text-xl leading-tight text-foreground">{item.name}</h3>
-            <span className="mt-1 border-b border-primary/50 pb-1 text-xs text-muted-foreground">
-              {item.confidence}% {t.stylist.match}
-            </span>
-          </div>
+          {item.generated ? (
+            // 生成單品的標記比「94% match」長得多，跟標題並排會被擠掉，所以另起一行。
+            <>
+              <p className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
+                {locale === "zh-TW" ? "AI 生成 · 非商品庫" : "AI generated · not in catalog"}
+              </p>
+              <h3 className="mt-2 font-serif text-xl leading-tight text-foreground">{item.name}</h3>
+            </>
+          ) : (
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="font-serif text-xl leading-tight text-foreground">{item.name}</h3>
+              <span className="mt-1 shrink-0 border-b border-primary/50 pb-1 text-xs text-muted-foreground">
+                {item.confidence}% {t.stylist.match}
+              </span>
+            </div>
+          )}
           <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.explanation}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -97,7 +116,7 @@ function RecommendationCard({
         </div>
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">
-            {t.stylist.priceBand} {item.priceBand}
+            {item.generated ? item.priceBand : `${t.stylist.priceBand} ${item.priceBand}`}
           </span>
           <div className="flex gap-1">
             <Button
@@ -129,6 +148,16 @@ function RecommendationCard({
             >
               <ThumbsDown className="size-4" />
             </Button>
+            {onToggleSaved && (
+              <Button
+                size="icon-sm"
+                variant={saved ? "default" : "outline"}
+                aria-label={`Save ${item.name}`}
+                onClick={() => onToggleSaved(item.id)}
+              >
+                <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -166,6 +195,9 @@ function MessageBlock({
   onRecommendationToggleSaved,
   onRecommendationSaveLook,
   onDesignForMe,
+  designBusy,
+  savedItems,
+  onToggleSavedItem,
   choicesDisabled,
   feedback,
   activeTryOnItemIds,
@@ -186,6 +218,9 @@ function MessageBlock({
   onRecommendationToggleSaved: (messageId: string, itemId: string) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
+  designBusy?: boolean;
+  savedItems: Record<string, boolean>;
+  onToggleSavedItem: (itemId: string) => void;
   choicesDisabled: boolean;
   feedback: Record<string, "like" | "dislike">;
   activeTryOnItemIds: string[];
@@ -193,7 +228,7 @@ function MessageBlock({
   tryOnState: TryOnState;
   tryOnStatus: "idle" | "generating" | "error";
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -235,29 +270,6 @@ function MessageBlock({
         </div>
       )}
 
-      {message.generatedItems && message.generatedItems.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-2 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            AI GENERATED · 這些不是商品庫裡的商品
-          </p>
-          <div className="grid gap-4 md:grid-cols-3">
-            {message.generatedItems.map((item) => (
-              <figure key={item.index} className="overflow-hidden border border-border bg-card">
-                <div
-                  className="fashion-image aspect-[4/5] bg-muted"
-                  style={{ backgroundImage: `url(${item.imageUrl})` }}
-                  role="img"
-                  aria-label={item.variedLabel || `生成單品 ${item.index}`}
-                />
-                {item.variedLabel && (
-                  <figcaption className="px-3 py-2 text-sm text-foreground">{item.variedLabel}</figcaption>
-                )}
-              </figure>
-            ))}
-          </div>
-        </div>
-      )}
-
       {message.recommendations && (
         <div className="grid gap-4 md:grid-cols-3">
           {message.recommendations.map((item) => (
@@ -269,10 +281,37 @@ function MessageBlock({
               onTryOn={onTryOn}
               isTryOnActive={activeTryOnItemIds.includes(item.id)}
               isTryOnLoading={tryOnStatus === "generating"}
+              saved={savedItems[item.id]}
+              onToggleSaved={onToggleSavedItem}
             />
           ))}
         </div>
       )}
+
+      {/* Design for Me 生出來的單品自成一輪，照上身／下身分組。用的是跟上面
+          同一張卡，所以試穿、愛心、收藏都在；差別只有卡片上標著「非商品庫」。 */}
+      {message.generatedGroups?.map((group) => (
+        <div key={group.slot} className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            {group.label} · {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {group.items.map((item) => (
+              <RecommendationCard
+                key={item.id}
+                item={item}
+                feedback={feedback[item.id]}
+                onFeedback={onFeedback}
+                onTryOn={onTryOn}
+                isTryOnActive={activeTryOnItemIds.includes(item.id)}
+                isTryOnLoading={tryOnStatus === "generating"}
+                saved={savedItems[item.id]}
+                onToggleSaved={onToggleSavedItem}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
 
       {recommendationState && (
         <ConversationRecommendation
@@ -291,6 +330,7 @@ function MessageBlock({
           onToggleSaved={(itemId) => onRecommendationToggleSaved(message.id, itemId)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
+          designBusy={designBusy}
         />
       )}
     </section>
@@ -443,7 +483,7 @@ function RecommendationCarousel({
   onToggleSaved: (itemId: string) => void;
   disabledReason?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const item = items[index];
   const isTryOnActive = activeTryOnItemIds.includes(item.id);
 
@@ -455,7 +495,10 @@ function RecommendationCarousel({
     <article className="flex h-full overflow-hidden border border-border bg-card transition">
       <div className="flex min-w-0 flex-1 flex-col">
         <div
-          className="fashion-image relative h-[320px] bg-muted transition duration-500 sm:h-[360px] xl:h-[400px]"
+          className={cn(
+            "fashion-image relative h-[320px] bg-muted transition duration-500 sm:h-[360px] xl:h-[400px]",
+            item.generated && "fashion-image--contain",
+          )}
           style={{ backgroundImage: `url(${item.imageUrl})` }}
           aria-label={item.name}
         >
@@ -493,7 +536,9 @@ function RecommendationCarousel({
             <div className="flex items-start justify-between gap-3">
               <h3 className="font-serif text-2xl leading-tight text-foreground">{item.name}</h3>
               <span className="mt-1 shrink-0 border-b border-primary/60 pb-1 text-sm text-muted-foreground">
-                {item.confidence}% {t.stylist.match}
+                {item.generated
+                  ? locale === "zh-TW" ? "AI 生成 · 非商品庫" : "AI generated · not in catalog"
+                  : `${item.confidence}% ${t.stylist.match}`}
               </span>
             </div>
             <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.explanation}</p>
@@ -575,6 +620,7 @@ function CompleteOutfitCard({
   onDislike,
   onTryMore,
   onDesignForMe,
+  designBusy,
 }: {
   outfit: OutfitRecommendation;
   rating?: number;
@@ -588,6 +634,7 @@ function CompleteOutfitCard({
   onDislike: () => void;
   onTryMore: () => void;
   onDesignForMe: () => void;
+  designBusy?: boolean;
 }) {
   const { t } = useI18n();
   const garmentLine = outfit.items.bottom
@@ -601,6 +648,7 @@ function CompleteOutfitCard({
       eyebrow: "Complete Look",
       name: outfit.items.topOrDress.name,
       imageUrl: outfit.items.topOrDress.imageUrl,
+      generated: outfit.items.topOrDress.generated,
     },
     ...(hasBottom && outfit.items.bottom
       ? [
@@ -610,6 +658,7 @@ function CompleteOutfitCard({
             eyebrow: "Stylist's Pick",
             name: outfit.items.bottom.name,
             imageUrl: outfit.items.bottom.imageUrl,
+            generated: outfit.items.bottom.generated,
           },
         ]
       : []),
@@ -622,7 +671,10 @@ function CompleteOutfitCard({
           {imagePanels.map((panel) => (
             <div
               key={panel.id}
-              className="fashion-image relative h-[320px] bg-muted sm:h-[440px]"
+              className={cn(
+                "fashion-image relative h-[320px] bg-muted sm:h-[440px]",
+                panel.generated && "fashion-image--contain",
+              )}
               style={{ backgroundImage: `url(${panel.imageUrl})` }}
               aria-label={panel.name}
             >
@@ -694,8 +746,15 @@ function CompleteOutfitCard({
               </Button>
             </div>
             <div className="flex gap-4">
-              <button type="button" onClick={onDesignForMe} className="border-b border-border pb-1 text-sm text-muted-foreground hover:border-primary hover:text-foreground">
-                Design for Me
+              {/* 商品庫裡沒有想要的 → 讓 AI 生幾件，直接併進上面的候選輪播。
+                  TOP 跟 BOTTOM 兩張六宮格並行生，現場約 50–70 秒。 */}
+              <button
+                type="button"
+                onClick={onDesignForMe}
+                disabled={designBusy}
+                className="border-b border-border pb-1 text-sm text-muted-foreground transition hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {designBusy ? "Designing…" : "Design for Me"}
               </button>
               <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
                 Try More →
@@ -724,6 +783,7 @@ function ConversationRecommendation({
   onToggleSaved,
   onSaveLook,
   onDesignForMe,
+  designBusy,
 }: {
   state: RecommendationUiState;
   onNavigate: (slot: "topOrDress" | "bottom", index: number) => void;
@@ -740,6 +800,7 @@ function ConversationRecommendation({
   onToggleSaved: (itemId: string) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
+  designBusy?: boolean;
 }) {
   const dressActive = isDress(tryOnState.topOrDress);
   const topPick = state.topPick;
@@ -769,6 +830,7 @@ function ConversationRecommendation({
         onDislike={() => onFeedback(topPick.id, "dislike", topPick.name)}
         onTryMore={onTryMore}
         onDesignForMe={onDesignForMe}
+        designBusy={designBusy}
       />
     );
   }
@@ -1381,6 +1443,9 @@ export function StylistExperience() {
   // ENGINE 01 最近一輪抽出來的意圖。生成單品要用它，所以每次問到就留下來。
   const [lastIntent, setLastIntent] = useState<Record<string, unknown> | null>(null);
   const [isGeneratingItems, setIsGeneratingItems] = useState(false);
+  // 對話裡每張卡的收藏狀態。ENGINE 02 的商品與 AI 生成的單品共用同一份，
+  // 兩邊的 id 前綴不同不會互撞。
+  const [savedItemIds, setSavedItemIds] = useState<Record<string, boolean>>({});
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceElapsedSeconds, setVoiceElapsedSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
@@ -1830,52 +1895,6 @@ export function StylistExperience() {
 
   // 對商品庫撈到的東西不滿意時，用同一份意圖生六件新的。
   // 一次生圖 26–48 秒，所以是明確按下去才跑，不是每輪自動。
-  async function handleGenerateItems() {
-    if (!activeConversation || !lastIntent || isGeneratingItems) {
-      return;
-    }
-
-    shouldFollowRef.current = true;
-    setIsGeneratingItems(true);
-    const conversationId = activeConversation.id;
-    const userId = activeConversation.userId;
-
-    try {
-      const items = await generateItems(lastIntent, activeConversation.engineSessionId);
-      const latest =
-        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
-        activeConversation;
-      persistConversation(
-        conversationService.appendMessage(latest, {
-          id: `ai-generated-${Date.now()}`,
-          role: "assistant",
-          text:
-            locale === "zh-TW"
-              ? "商品庫裡沒有更合適的了，這六件是照你的需求生成的。"
-              : "Nothing closer in the catalog — here are six generated from what you asked for.",
-          generatedItems: items,
-        }),
-      );
-    } catch (error) {
-      console.error("[stylist] 生成單品失敗：", error);
-      const latest =
-        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
-        activeConversation;
-      persistConversation(
-        conversationService.appendMessage(latest, {
-          id: `ai-generated-error-${Date.now()}`,
-          role: "assistant",
-          text:
-            locale === "zh-TW"
-              ? "生成單品失敗了，確認生圖服務有啟動（預設 8100 埠）再試一次。"
-              : "Generating items failed — check that the generation service is running on port 8100.",
-        }),
-      );
-    } finally {
-      setIsGeneratingItems(false);
-    }
-  }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     sendPrompt(input);
@@ -2114,22 +2133,93 @@ export function StylistExperience() {
     );
   }
 
-  function handleDesignForMe(messageId: string) {
-    if (!activeConversation) {
+  /**
+   * Design for Me：商品庫裡沒有想要的，就讓 AI 生幾件出來。
+   *
+   * 生出來的東西自成一輪對話，不併進 ENGINE 02 那一輪的候選——那一輪是商品庫裡
+   * 真的買得到的東西，這些是還不存在的單品，混在同一排會分不出哪些是商品。
+   * 卡片本身跟 ENGINE 02 的同一支元件，所以一樣可以試穿、按愛心、收藏。
+   *
+   * TOP 與 BOTTOM 是兩張六宮格，BFF 並行送，大約等於一張的時間（50–70 秒）。
+   */
+  async function handleDesignForMe(messageId: string) {
+    void messageId;
+
+    if (!activeConversation || isGeneratingItems) {
       return;
     }
 
-    const nextConversation = conversationService.appendMessage(activeConversation, {
-      id: `assistant-design-placeholder-${Date.now()}`,
-      role: "assistant",
-      text:
-        locale === "zh-TW"
-          ? "Design for Me 會在這裡連接個人化服裝設計生成。這個 prototype 先保留入口，不呼叫外部 AI。"
-          : "Design for Me will connect personalized fashion design generation here. For this prototype, the entry point is preserved without calling an external AI API.",
-    });
+    if (!lastIntent) {
+      persistConversation(
+        conversationService.appendMessage(activeConversation, {
+          id: `assistant-design-no-intent-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "先說一句你想要什麼，我才知道要生成什麼樣的單品。"
+              : "Tell me what you are after first — I need something to design from.",
+        }),
+      );
+      return;
+    }
 
-    persistConversation(nextConversation);
-    handleRecommendationBackToTopPick(messageId);
+    shouldFollowRef.current = true;
+    setIsGeneratingItems(true);
+    const conversationId = activeConversation.id;
+    const userId = activeConversation.userId;
+
+    function latestConversation() {
+      return (
+        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
+        activeConversation!
+      );
+    }
+
+    try {
+      const generated = await generateItemPair(lastIntent, activeConversation.engineSessionId, locale);
+
+      const groups: GeneratedGroup[] = [];
+      if (generated.topOrDress.length > 0) {
+        groups.push({
+          slot: "top",
+          label: locale === "zh-TW" ? "上身" : "Top",
+          items: generated.topOrDress,
+        });
+      }
+      if (generated.bottom.length > 0) {
+        groups.push({
+          slot: "bottom",
+          label: locale === "zh-TW" ? "下身" : "Bottom",
+          items: generated.bottom,
+        });
+      }
+
+      persistConversation(
+        conversationService.appendMessage(latestConversation(), {
+          id: `assistant-designed-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "商品庫裡沒有更合適的了，這幾件是照你的需求生成的——還不存在的衣服。"
+              : "Nothing closer in the catalog — these are designed from what you asked for, and do not exist yet.",
+          generatedGroups: groups,
+        }),
+      );
+    } catch (error) {
+      console.error("[stylist] Design for Me 生成失敗：", error);
+      persistConversation(
+        conversationService.appendMessage(latestConversation(), {
+          id: `assistant-design-error-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? `生成單品失敗：${error instanceof Error ? error.message : String(error)}`
+              : `Generating items failed: ${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+    } finally {
+      setIsGeneratingItems(false);
+    }
   }
 
   function handleRecommendationNavigate(messageId: string, slot: "topOrDress" | "bottom", index: number) {
@@ -2280,17 +2370,6 @@ export function StylistExperience() {
               </h1>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateItems}
-                disabled={!lastIntent || isGeneratingItems}
-                title={lastIntent ? undefined : locale === "zh-TW" ? "先說一句需求" : "Describe what you want first"}
-              >
-                {isGeneratingItems
-                  ? locale === "zh-TW" ? "生成中…" : "Generating…"
-                  : locale === "zh-TW" ? "AI 生成單品" : "Generate items"}
-              </Button>
               <Button variant="outline" size="sm" onClick={createNewSession}>
                 {t.stylist.newSession}
               </Button>
@@ -2327,6 +2406,11 @@ export function StylistExperience() {
               onRecommendationToggleSaved={handleRecommendationToggleSaved}
               onRecommendationSaveLook={handleRecommendationSaveLook}
               onDesignForMe={handleDesignForMe}
+              designBusy={isGeneratingItems}
+              savedItems={savedItemIds}
+              onToggleSavedItem={(itemId) =>
+                setSavedItemIds((current) => ({ ...current, [itemId]: !current[itemId] }))
+              }
               choicesDisabled={index !== activeConversation.messages.length - 1 || isGenerating}
               feedback={feedback}
               activeTryOnItemIds={activeTryOnItemIds}
