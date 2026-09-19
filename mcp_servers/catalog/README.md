@@ -41,9 +41,16 @@
 # 從 repo 根目錄執行
 ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
 ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
-ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
 uvicorn mcp_servers.catalog.main:app --host 0.0.0.0 --port 8002
 ```
+
+> **2026-09-19，ENGINE01 負責人實測發現並修正**：上面 `ENGINE02_PUBLIC_BASE` 原本寫的是
+> `http://localhost:8002`（沒有 `/engine02`），對著真實跑起來的服務＋真瀏覽器測過，
+> 商品圖網址會 404——這支 app 是用 `app.mount("/engine02", ...)` 掛的，`intent_adapter.py`
+> 拿 `ENGINE02_PUBLIC_BASE + "/images/<id>"` 組圖片網址時沒有算進這段 mount 前綴，
+> 真正能連到的路徑是 `/engine02/images/<id>`，不是 `/images/<id>`。已經改成上面這樣，
+> 兩邊都測過確認能載出真圖。
 
 | 端點 | 用途 |
 |---|---|
