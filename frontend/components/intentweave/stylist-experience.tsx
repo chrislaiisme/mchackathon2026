@@ -165,6 +165,82 @@ function RecommendationCard({
   );
 }
 
+/**
+ * Design for Me 生出來的兩組單品：左邊上衣、右邊下裝，各自一個輪播。
+ *
+ * 跟 ENGINE 02 的 explore 檢視用同一支 RecommendationCarousel，所以六件是翻頁
+ * 看而不是攤成一排，試穿／愛心／評分／收藏也自動一致。翻到第幾件跟星等是純
+ * 畫面狀態，留在這支元件裡；收藏與喜好要跨元件累積，由上層傳進來。
+ */
+function GeneratedGroupCarousels({
+  groups,
+  onTryOn,
+  onFeedback,
+  activeTryOnItemIds,
+  tryOnStatus,
+  feedback,
+  savedItems,
+  onToggleSaved,
+}: {
+  groups: GeneratedGroup[];
+  onTryOn: (item: FashionRecommendation) => void;
+  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  activeTryOnItemIds: string[];
+  tryOnStatus: TryOnStatus;
+  feedback: Record<string, "like" | "dislike">;
+  savedItems: Record<string, boolean>;
+  onToggleSaved: (itemId: string) => void;
+}) {
+  const { locale } = useI18n();
+  const [indexBySlot, setIndexBySlot] = useState<Record<string, number>>({});
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+
+  // 左邊固定上衣、右邊固定下裝，不跟著後端回傳的順序跑。
+  const ordered = (["top", "bottom"] as const)
+    .map((slot) => groups.find((group) => group.slot === slot))
+    .filter((group): group is GeneratedGroup => Boolean(group) && group!.items.length > 0);
+
+  if (ordered.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
+      </p>
+      <div className="grid items-stretch gap-5 xl:grid-cols-2">
+        {ordered.map((group) => {
+          // 這一組只有幾件，index 取餘數以防萬一（例如某一邊生失敗只回了幾格）。
+          const index = (indexBySlot[group.slot] ?? 0) % group.items.length;
+          const current = group.items[index];
+
+          return (
+            <RecommendationCarousel
+              key={group.slot}
+              title={group.label}
+              items={group.items}
+              index={index}
+              onNavigate={(nextIndex) =>
+                setIndexBySlot((state) => ({ ...state, [group.slot]: nextIndex }))
+              }
+              onTryOn={onTryOn}
+              onFeedback={onFeedback}
+              activeTryOnItemIds={activeTryOnItemIds}
+              tryOnStatus={tryOnStatus}
+              feedback={feedback}
+              rating={ratings[current.id]}
+              onRate={(itemId, rating) => setRatings((state) => ({ ...state, [itemId]: rating }))}
+              saved={Boolean(savedItems[current.id])}
+              onToggleSaved={onToggleSaved}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function VisualChoiceCard({ choice, onSelect }: { choice: VisualChoice; onSelect: (prompt: string) => void }) {
   return (
     <button
@@ -228,7 +304,7 @@ function MessageBlock({
   tryOnState: TryOnState;
   tryOnStatus: "idle" | "generating" | "error";
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const isUser = message.role === "user";
 
   if (isUser) {
@@ -288,30 +364,21 @@ function MessageBlock({
         </div>
       )}
 
-      {/* Design for Me 生出來的單品自成一輪，照上身／下身分組。用的是跟上面
-          同一張卡，所以試穿、愛心、收藏都在；差別只有卡片上標著「非商品庫」。 */}
-      {message.generatedGroups?.map((group) => (
-        <div key={group.slot} className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {group.label} · {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
-          </p>
-          <div className="grid gap-4 md:grid-cols-3">
-            {group.items.map((item) => (
-              <RecommendationCard
-                key={item.id}
-                item={item}
-                feedback={feedback[item.id]}
-                onFeedback={onFeedback}
-                onTryOn={onTryOn}
-                isTryOnActive={activeTryOnItemIds.includes(item.id)}
-                isTryOnLoading={tryOnStatus === "generating"}
-                saved={savedItems[item.id]}
-                onToggleSaved={onToggleSavedItem}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+      {/* Design for Me 生出來的單品自成一輪，左邊上衣、右邊下裝，各自輪播。
+          用的是跟 ENGINE 02 explore 檢視同一支 RecommendationCarousel，所以
+          試穿、愛心、評分、收藏都在；差別只有卡片上標著「非商品庫」。 */}
+      {message.generatedGroups && message.generatedGroups.length > 0 && (
+        <GeneratedGroupCarousels
+          groups={message.generatedGroups}
+          onTryOn={onTryOn}
+          onFeedback={onFeedback}
+          activeTryOnItemIds={activeTryOnItemIds}
+          tryOnStatus={tryOnStatus}
+          feedback={feedback}
+          savedItems={savedItems}
+          onToggleSaved={onToggleSavedItem}
+        />
+      )}
 
       {recommendationState && (
         <ConversationRecommendation
