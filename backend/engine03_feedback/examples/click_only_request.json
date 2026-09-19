@@ -1,11 +1,14 @@
 {
-  "current_intent": {
-    "item_type": "top",
-    "occasion": "面試",
-    "style_keywords": ["可靠", "不要太正式"],
-    "inferred_fields": []
+  "session_id": "demo-interview",
+  "round": 1,
+  "attribute_scores": [],
+  "interaction": {
+    "chosen_item_id": "14731",
+    "rejected_item_ids": ["14716"],
+    "excluded_item_ids": [],
+    "anchor_item_ids": [],
+    "replace_anchors": false
   },
-  "feedback_inputs": [],
   "engine02_request": {
     "contract_version": "0.1.0",
     "session_id": "demo-interview",
@@ -30,8 +33,7 @@
         "category": "top",
         "color": "White",
         "score": 4.69,
-        "design_scores": {"formal_style": 1.78},
-        "reasons": ["整體風格和描述相近"]
+        "design_scores": {"formal_style": 1.78}
       },
       {
         "item_id": "14731",
@@ -40,18 +42,9 @@
         "category": "top",
         "color": "Lavender",
         "score": 3.12,
-        "design_scores": {"formal_style": 0.72},
-        "reasons": ["較不正式"]
+        "design_scores": {"formal_style": 0.72}
       }
     ]
   },
-  "interaction": {
-    "chosen_item_id": "14731",
-    "rejected_item_ids": ["14716"]
-  },
-  "allowed_design_elements": ["formal_style", "casual_style"],
-  "allowed_attribute_values": {
-    "category": ["top"],
-    "color": ["White", "Black", "Lavender"]
-  }
+  "allowed_design_elements": ["formal_style", "soft_knit"]
 }

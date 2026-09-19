@@ -1,8 +1,7 @@
-"""ENGINE 03 I/O contracts.
+"""ENGINE 03 contracts for structured, non-language feedback.
 
-ENGINE 01 types are imported from the integration framework's shared schema.
-ENGINE 02's contract-0.1.0 feedback operations are mirrored here until the
-engine02-research branch is merged into the framework.
+Natural language belongs to ENGINE 01. ENGINE 03 receives only attribute scores and explicit UI
+interactions, then emits the small subset of ENGINE 02 operations those signals can justify.
 """
 
 from __future__ import annotations
@@ -11,12 +10,8 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend.shared.schemas import FeedbackInput, Intent
 
-
-CONTRACT_VERSION = "0.1.0"
-AttributeName = Literal["category", "subcategory", "color", "occasion", "season", "gender"]
-CritiqueAttribute = Literal["color", "occasion", "category", "subcategory", "season"]
+CONTRACT_VERSION = "0.2.0"
 
 
 class ContractModel(BaseModel):
@@ -73,7 +68,7 @@ class Engine02FeedbackState(ContractModel):
 class Engine02RequestContext(ContractModel):
     """Relevant Engine02Request subset; the complete payload is accepted."""
 
-    contract_version: str = CONTRACT_VERSION
+    contract_version: str = "0.1.0"
     session_id: str
     round: int = 1
     utterances: list[str] = Field(default_factory=list)
@@ -101,15 +96,22 @@ class RankedItemContext(ContractModel):
 class Engine02ResponseContext(ContractModel):
     """Relevant Engine02Response subset; the complete payload is accepted."""
 
-    contract_version: str = CONTRACT_VERSION
+    contract_version: str = "0.1.0"
     session_id: str
     round: int
     items: list[RankedItemContext] = Field(default_factory=list)
     query_embedding: list[float] | None = None
 
 
+class AttributeScore(ContractModel):
+    """A direct rating of one ENGINE 02 design-element ID."""
+
+    element: str
+    score: float = Field(ge=0.0, le=1.0)
+
+
 class UserInteraction(ContractModel):
-    """Explicit UI actions; these are authoritative and never inferred by the LLM."""
+    """Explicit UI actions; scores never infer these states."""
 
     chosen_item_id: str | None = None
     rejected_item_ids: list[str] = Field(default_factory=list)
@@ -119,77 +121,38 @@ class UserInteraction(ContractModel):
 
 
 class Engine3Request(ContractModel):
-    # Snapshot used to produce the cards currently on screen.
-    current_intent: Intent
-    # Full candidate Intent returned by ENGINE 01 after it merges the recommended-feedback text
-    # into `current_intent`. ENGINE 03 compares the two; it does not re-extract language from zero.
-    feedback_intent: Intent | None = None
-    feedback_inputs: list[FeedbackInput] = Field(default_factory=list)
+    session_id: str
+    round: int
+    attribute_scores: list[AttributeScore] = Field(default_factory=list)
+    interaction: UserInteraction = Field(default_factory=UserInteraction)
     engine02_request: Engine02RequestContext
     engine02_response: Engine02ResponseContext
-    interaction: UserInteraction = Field(default_factory=UserInteraction)
     allowed_design_elements: list[str] = Field(default_factory=list)
-    allowed_attribute_values: dict[str, list[str]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_handoff(self) -> "Engine3Request":
-        session_id = self.engine02_response.session_id
-        round_number = self.engine02_response.round
-        if self.engine02_request.session_id != session_id:
-            raise ValueError("ENGINE 02 request/response session_id must match")
-        if self.engine02_request.round != round_number:
-            raise ValueError("ENGINE 02 request/response round must match")
+        contexts = (self.engine02_request, self.engine02_response)
+        if any(context.session_id != self.session_id for context in contexts):
+            raise ValueError("session_id must match ENGINE 02 request and response")
+        if any(context.round != self.round for context in contexts):
+            raise ValueError("round must match ENGINE 02 request and response")
 
-        seen_targets: set[str] = set()
-        for feedback in self.feedback_inputs:
-            if feedback.session_id != session_id or feedback.round != round_number:
-                raise ValueError("every FeedbackInput must match ENGINE 02 session_id and round")
-            if feedback.target in seen_targets:
-                raise ValueError(f"duplicate FeedbackInput target: {feedback.target}")
-            seen_targets.add(feedback.target)
-            for score in feedback.attribute_scores:
-                if not 0.0 <= score.score <= 1.0:
-                    raise ValueError("FeedbackInput attribute score must be between 0 and 1")
-            # A score or click without the user's words is too ambiguous to turn into a semantic
-            # adjustment. Product clicks live in `interaction`, so every FeedbackInput is an
-            # explicit written critique and must carry its own explanation.
-            if not (feedback.free_text or "").strip():
-                raise ValueError("every FeedbackInput must include non-empty free_text")
+        elements = [score.element for score in self.attribute_scores]
+        if len(elements) != len(set(elements)):
+            raise ValueError("attribute_scores must contain each element at most once")
 
-        has_feedback = any(
-            feedback.free_text
-            or feedback.selected_option_id
-            or feedback.attribute_scores
-            for feedback in self.feedback_inputs
-        )
+        chosen = self.interaction.chosen_item_id
+        rejected = set(self.interaction.rejected_item_ids)
+        excluded = set(self.interaction.excluded_item_ids)
+        if chosen and (chosen in rejected or chosen in excluded):
+            raise ValueError("chosen item cannot also be rejected or excluded")
+        if rejected & excluded:
+            raise ValueError("an item cannot be both rejected and excluded in one request")
+
         has_interaction = bool(self.interaction.model_dump(exclude_defaults=True))
-        if not has_feedback and not has_interaction:
-            raise ValueError("provide at least one FeedbackInput value or explicit UI interaction")
-        has_recommended_text = any(
-            feedback.target == "recommended" for feedback in self.feedback_inputs
-        )
-        if has_recommended_text and self.feedback_intent is None:
-            raise ValueError(
-                "recommended feedback requires feedback_intent produced by ENGINE 01"
-            )
+        if not self.attribute_scores and not has_interaction:
+            raise ValueError("provide at least one attribute score or explicit UI interaction")
         return self
-
-
-# ENGINE 02 contract 0.1.0 operation set -----------------------------------
-
-
-class ExcludeOp(ContractModel):
-    op: Literal["exclude"] = "exclude"
-    attribute: AttributeName
-    value: str
-    quote: str | None = None
-
-
-class RequireOp(ContractModel):
-    op: Literal["require"] = "require"
-    attribute: AttributeName
-    value: str
-    quote: str | None = None
 
 
 class AdjustOp(ContractModel):
@@ -206,23 +169,6 @@ class ChoiceOp(ContractModel):
     rejected_item_ids: list[str] = Field(default_factory=list)
 
 
-class FeelingOp(ContractModel):
-    op: Literal["feeling"] = "feeling"
-    quote: str
-    need_log_likelihood: dict[str, float] = Field(default_factory=dict)
-    lam: float = 1.0
-    needs_override: list[NeedProbability] | None = None
-
-
-class CritiqueOp(ContractModel):
-    op: Literal["critique"] = "critique"
-    reference_item_id: str
-    attribute: CritiqueAttribute | None = None
-    to_value: str | None = None
-    direction: Literal["more_formal", "more_casual", "sportier"] | None = None
-    quote: str | None = None
-
-
 class AnchorOp(ContractModel):
     op: Literal["anchor"] = "anchor"
     item_ids: list[str] = Field(default_factory=list)
@@ -235,41 +181,18 @@ class ExcludeItemOp(ContractModel):
 
 
 FeedbackOp = Annotated[
-    ExcludeOp | RequireOp | AdjustOp | ChoiceOp | FeelingOp | CritiqueOp | AnchorOp | ExcludeItemOp,
+    AdjustOp | ChoiceOp | AnchorOp | ExcludeItemOp,
     Field(discriminator="op"),
 ]
 
 
 class FeedbackRound(ContractModel):
-    """Exact payload accepted by engine02.handshake.apply_round()."""
+    """Payload accepted by engine02.handshake.apply_round()."""
 
     session_id: str
     round: int
-    utterance: str | None = None
+    utterance: None = None
     ops: list[FeedbackOp] = Field(default_factory=list)
-
-
-class Engine3Decision(ContractModel):
-    """Structured LLM output before deterministic validation and UI merge."""
-
-    reasoning: str
-    ops: list[FeedbackOp] = Field(default_factory=list)
-    updated_intent: Intent
-
-
-class GenerationAdjustment(ContractModel):
-    """A generation-only nudge. It must never be forwarded to ENGINE 02."""
-
-    attribute: str
-    direction: Literal[-1, 1]
-    strength: float = Field(default=1.0, ge=0.0, le=1.0)
-    reason: str | None = None
-
-
-class GenerationDecision(ContractModel):
-    reasoning: str
-    generation_prompt: str
-    adjustments: list[GenerationAdjustment] = Field(default_factory=list)
 
 
 class RejectedOperation(ContractModel):
@@ -279,9 +202,5 @@ class RejectedOperation(ContractModel):
 
 class Engine3Response(ContractModel):
     contract_version: str = CONTRACT_VERSION
-    reasoning: str
     engine02_feedback: FeedbackRound
-    updated_intent: Intent
-    generation_prompt: str | None = None
-    generation_adjustments: list[GenerationAdjustment] = Field(default_factory=list)
     rejected_ops: list[RejectedOperation] = Field(default_factory=list)

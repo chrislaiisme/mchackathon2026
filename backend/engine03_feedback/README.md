@@ -1,197 +1,151 @@
-# ENGINE 03 — 偏好回饋迴圈
+# ENGINE 03 — 結構化互動回饋
 
-這個資料夾可直接放進 `engine01-intent` 整合框架的 `backend/engine03_feedback/`。入口重用 `backend.shared.schemas.Intent` 與 `FeedbackInput`；出口 `engine02_feedback` 對齊 `engine02-research` 的 `FeedbackRound` contract `0.1.0`。
+ENGINE 03 不處理自然語言，也不呼叫 LLM。它把前端的評分與明確互動，轉成 ENGINE 02 可套用的 operations。
 
-## 整體資料流
+## 責任邊界
 
 ```mermaid
 flowchart LR
-    U[使用者文字、評分、點選] --> FE[前端]
-    E1[ENGINE 01<br/>base intent + feedback intent] --> ORCH[Orchestrator]
-    E2R[本輪 Engine02Request] --> ORCH
-    E2O[本輪 Engine02Response<br/>items + design_scores] --> ORCH
-    FE -->|FeedbackInput × 0..2<br/>UserInteraction| ORCH
-    ORCH -->|Engine3Request| E3[ENGINE 03 /feedback]
-    E3 -->|updated_intent| E1S[下一輪 ENGINE 01 state／意圖面板]
-    E3 -->|generation_prompt + generation_adjustments| GEN[概念圖生成模組]
-    E3 -->|FeedbackRound| HS[engine02.handshake.apply_round]
-    HS -->|next Engine02Request| E2[ENGINE 02 /rank]
-    HS -->|ledger + rejected_ops| FE
-    E2 -->|下一輪商品與 metrics| FE
+    TEXT[自然語言] --> E1[ENGINE 01 意圖理解] --> E2[ENGINE 02 檢索與排序]
+    E2 --> FE[Frontend 顯示商品]
+    FE -->|attribute_scores + interaction| E3[ENGINE 03 deterministic mapping]
+    E3 -->|FeedbackRound ops| APPLY[ENGINE 02 apply_round]
+    APPLY -->|下一輪 Engine02Request| E2
 ```
 
-一輪的責任邊界：
+1. 自然語言：`Frontend → ENGINE 01 → ENGINE 02`。
+2. 結構化回饋：`Frontend → ENGINE 03 → ENGINE 02`。
+3. ENGINE 03 不更新 Intent、不產生圖片 prompt，也不從分數猜使用者按了哪個按鈕。
 
-1. 前端送 0–2 筆共用 `FeedbackInput`：`recommended`、`generated` 各最多一筆；每筆文字必填，評分選填，點選商品另放 `interaction`。
-2. 推薦回饋文字先交給 ENGINE 01，產生 `feedback_intent`；ENGINE 03 比較它與 `current_intent`，再融合評分與點選。
-3. ENGINE 02 的 `apply_round()` 負責累加 operation、裁切步數、維護 choice history，產生下一輪 request 與可解釋 ledger。
-4. `recommended` 只產生 ENGINE 02 ops；`generated` 只產生 `generation_prompt` 與 `generation_adjustments`，兩條路徑在程式層分開。
+## 前端互動規則
 
-## 檔案
+商品狀態必須來自明確操作：
 
-| 檔案 | 用途 |
-|---|---|
-| `contracts.py` | ENGINE 01 共用輸入、ENGINE 02 context、8 種 operation 與 API I/O |
-| `prompts.py` | structured-output system prompt |
-| `service.py` | LLM 轉譯、UI operation、詞彙與 ID 驗證 |
-| `main.py` | FastAPI `/feedback`、`/health`、schema endpoint |
-| `examples/click_only_request.json` | 不需 API key 的最小 request |
-| `tests/test_service.py` | session/round、0–1 評分與 click-only handoff 測試 |
+| 使用者動作 | 輸入欄位 | ENGINE 02 operation | 意義 |
+|---|---|---|---|
+| 愛心／選擇 | `chosen_item_id` | `choice.chosen_item_id` | 本輪最偏好的商品；每輪至多一個 |
+| 不喜歡 | `rejected_item_ids` | `choice.rejected_item_ids` | 負向偏好訊號，可有多個，但不是永久封鎖 |
+| 不要再出現 | `excluded_item_ids` | `exclude_item` | 永久排除商品，可有多個 |
+| 以此搭配 | `anchor_item_ids` | `anchor` | 搭配參考，可來自本輪、衣櫃或先前輪次 |
+| 設計維度評分 | `attribute_scores` | `adjust` | 改變排序的軟性權重，不代表選擇／拒絕 |
 
-## 啟動
+`anchor` 不由排名或評分自動決定。使用者在 UI 明確按「以此搭配」才會建立；`replace_anchors=true` 取代既有 anchor，`false` 則加入既有 anchor。
 
-從整合框架 repo 根目錄執行：
+## POST `/feedback`
 
-```bash
-pip install -r backend/requirements.txt
-uvicorn backend.engine03_feedback.main:app --reload --port 8003
-```
-
-開發時可在 `.env` 設：
-
-```dotenv
-DEV_BYPASS_AUTH=true
-OPENAI_API_KEY=...
-ENGINE3_MODEL=gpt-4o-mini
-```
-
-`/feedback` 沿用整合框架的 `get_current_user`，正式 demo 必須關閉 `DEV_BYPASS_AUTH`。只有 click-only request 會完全走 deterministic path、不需要 `OPENAI_API_KEY`；只要有文字、選項或分項評分就需要 key。
-
-## API
-
-| Method | Path | 說明 |
-|---|---|---|
-| `POST` | `/feedback` | `Engine3Request` → `Engine3Response` |
-| `GET` | `/contract/engine02-feedback` | ENGINE 02 handoff 的 JSON Schema |
-| `GET` | `/health` | service 與 contract version |
-
-舊路徑 `/api/engine3/process_feedback` 暫時保留為隱藏 alias，方便現有前端過渡。
-
-### 輸入重點
+### Request
 
 ```json
 {
-  "current_intent": {"item_type": "top", "colors": [], "inferred_fields": []},
-  "feedback_intent": {
-    "item_type": "top",
-    "colors": [],
-    "style_keywords": ["休閒"],
-    "inferred_fields": []
-  },
-  "feedback_inputs": [
-    {
-      "session_id": "demo-interview",
-      "round": 1,
-      "target": "recommended",
-      "attribute_scores": [{"attribute": "fit", "score": 0.3, "comment": "太正式"}],
-      "free_text": "不要黑色，希望休閒一點",
-      "selected_option_id": null
-    }
+  "session_id": "demo-interview",
+  "round": 1,
+  "attribute_scores": [
+    {"element": "formal_style", "score": 0.2},
+    {"element": "soft_knit", "score": 0.8}
   ],
-  "engine02_request": {"session_id": "demo-interview", "round": 1},
+  "interaction": {
+    "chosen_item_id": "B",
+    "rejected_item_ids": ["A"],
+    "excluded_item_ids": ["C"],
+    "anchor_item_ids": ["wardrobe-pants-7"],
+    "replace_anchors": true
+  },
+  "engine02_request": {
+    "session_id": "demo-interview",
+    "round": 1
+  },
   "engine02_response": {
     "session_id": "demo-interview",
     "round": 1,
-    "items": [{"item_id": "14731", "rank": 1, "title": "Shirt", "score": 3.1}]
+    "items": [
+      {"item_id": "A", "rank": 1, "title": "A", "score": 4.1},
+      {"item_id": "B", "rank": 2, "title": "B", "score": 3.9},
+      {"item_id": "C", "rank": 3, "title": "C", "score": 3.4}
+    ]
   },
-  "interaction": {"chosen_item_id": "14731"},
-  "allowed_design_elements": ["formal_style", "casual_style"],
-  "allowed_attribute_values": {"color": ["Black", "Navy Blue"]}
+  "allowed_design_elements": ["formal_style", "soft_knit"]
 }
 ```
 
-硬性驗證：
+### 每個變數
 
-- `FeedbackInput.session_id/round` 必須和 ENGINE 02 request/response 一致。
-- 每筆 `FeedbackInput.free_text` 必填且不可是空白；純商品點選不建立 `FeedbackInput`，改放 `interaction`。
-- `target="recommended"` 的文字必須先經 ENGINE 01，並把完整候選 Intent 放入 `feedback_intent`。
-- `FeedbackInput.attribute_scores[].score` 使用整合框架文件定義的 0–1。
-- choice／exclude item 必須是本輪 `items` 出現過的 ID。
-- `adjust.element` 應來自 ENGINE 02 `GET /kansei`；商品屬性值應來自 `GET /vocabulary`。
+| 變數 | 說明 |
+|---|---|
+| `session_id` | 同一段推薦工作階段的 ID；必須和兩份 ENGINE 02 context 相同 |
+| `round` | 使用者正在回饋的推薦輪次；必須和兩份 ENGINE 02 context 相同 |
+| `attribute_scores` | 使用者對 ENGINE 02 設計維度的 0–1 評分；同一維度每次最多一筆 |
+| `attribute_scores[].element` | ENGINE 02 `/kansei` 提供的設計維度 ID，不是商品 ID |
+| `attribute_scores[].score` | `< 0.4` 產生 `step=-1`；`0.4–0.6` 不調整；`> 0.6` 產生 `step=+1` |
+| `interaction.chosen_item_id` | 本輪唯一選中的商品；必須在本輪顯示清單內 |
+| `interaction.rejected_item_ids` | 本輪明確不喜歡的商品；必須在本輪清單內，可多個 |
+| `interaction.excluded_item_ids` | 永久不再推薦的商品；必須在本輪清單內，可多個 |
+| `interaction.anchor_item_ids` | 搭配基準；允許使用衣櫃或舊輪次 ID，因此不限制在本輪清單 |
+| `interaction.replace_anchors` | `true` 取代舊 anchor；`false` 追加 |
+| `engine02_request` | 本輪輸入 ENGINE 02 的 context；ENGINE 03 用它驗證 session／round |
+| `engine02_response` | 本輪 ENGINE 02 顯示結果；順序用來建立 `shown_item_ids`，並驗證 choice／exclude |
+| `allowed_design_elements` | ENGINE 02 允許調整的維度白名單；未知維度進 `rejected_ops` |
 
-### 輸出重點
+`interaction` 與 `attribute_scores` 可擇一送，也可以同輪一起送。自然語言另送 ENGINE 01，不放在這個 request。
+
+### Response
 
 ```json
 {
-  "contract_version": "0.1.0",
-  "reasoning": "使用者排除黑色並希望降低正式感。",
+  "contract_version": "0.2.0",
   "engine02_feedback": {
     "session_id": "demo-interview",
     "round": 1,
-    "utterance": "不要黑色，希望休閒一點",
+    "utterance": null,
     "ops": [
-      {"op": "exclude", "attribute": "color", "value": "Black", "quote": "不要黑色"},
-      {"op": "adjust", "element": "formal_style", "step": -1, "quote": "希望休閒一點"},
+      {"op": "adjust", "element": "formal_style", "step": -1, "quote": null},
+      {"op": "adjust", "element": "soft_knit", "step": 1, "quote": null},
       {
         "op": "choice",
-        "shown_item_ids": ["14731"],
-        "chosen_item_id": "14731",
-        "rejected_item_ids": []
-      }
+        "shown_item_ids": ["A", "B", "C"],
+        "chosen_item_id": "B",
+        "rejected_item_ids": ["A"]
+      },
+      {"op": "exclude_item", "item_ids": ["C"]},
+      {"op": "anchor", "item_ids": ["wardrobe-pants-7"], "replace": true}
     ]
   },
-  "updated_intent": {"item_type": "top", "colors": [], "inferred_fields": []},
-  "generation_prompt": "一件適合面試但偏休閒、非黑色的上衣",
-  "generation_adjustments": [],
   "rejected_ops": []
 }
 ```
 
-`target="generated"` 不會產生任何 ENGINE 02 operation；其輸出範例如下：
+`rejected_ops` 會保留無法安全套用的操作和原因，例如未知設計維度，或 choice／exclude 引用了本輪沒有顯示的商品。
 
-```json
-{
-  "engine02_feedback": {"session_id": "abc123", "round": 1, "utterance": null, "ops": []},
-  "generation_prompt": "柔和、休閒輪廓的面試上衣",
-  "generation_adjustments": [
-    {"attribute": "fit", "direction": -1, "strength": 0.6, "reason": "輪廓太正式"}
-  ]
-}
-```
+## ENGINE 02 如何受影響
 
-## ENGINE 02 handoff
+ENGINE 03 只產生增量操作，不自行推薦商品。ENGINE 02 的 `apply_round()` 將 operations 累積進下一輪 request：
 
-合併 `engine02-research` 後，orchestrator 執行：
+- `adjust` 累積到設計維度調整，改變設計分數在排序中的權重。
+- `choice` 寫入 choice history，讓 ENGINE 02 使用選中與拒絕商品的特徵作偏好訊號。
+- `exclude_item` 寫入永久排除 ID，候選生成時移除。
+- `anchor` 啟用商品相容性／搭配訊號。
 
-```python
-from engine02.handshake import FeedbackRound, apply_round
+ENGINE 02 仍保留商品資料、embedding、design scores、constraints、needs 與歷史 feedback，並由它完成候選檢索和排序。
 
-feedback = FeedbackRound.model_validate(engine3_response.engine02_feedback.model_dump())
-handoff = apply_round(previous_engine02_request, previous_engine02_response, feedback, kansei=kansei)
-next_engine02_request = handoff.request
-ledger = handoff.ledger
-rejected_by_engine02 = handoff.rejected_ops
-```
+## 驗證規則
 
-`ledger` 是前端解釋「這次回饋改了什麼」的真相來源，不要自行從卡片分數推回去。
+- `session_id`、`round` 必須與 ENGINE 02 request/response 一致。
+- 至少要有一筆 `attribute_scores` 或一個明確互動。
+- 同一商品不可同時 chosen 和 rejected／excluded，也不可同時 rejected 和 excluded。
+- choice／rejected／excluded 必須指向本輪顯示的商品。
+- anchor 可指向衣櫃或舊輪次商品。
+- 未知 design element 不會靜默忽略，而會回到 `rejected_ops`。
 
-## Operation 對照
+## 執行與測試
 
-| operation | 來源例子 | 下一輪效果 |
-|---|---|---|
-| `exclude` | 不要黑色 | 永久寫入 `excluded_values` |
-| `require` | 一定要海軍藍 | 永久寫入 `required_values` |
-| `adjust` | 再休閒一點 | ±1 步；ENGINE 02 累加並裁切至 ±3 |
-| `choice` | 點選／否決卡片 | 累積 `choice_history`，由 ENGINE 02 學偏好 |
-| `feeling` | 不想顯得太用力 | 更新既有 need probabilities |
-| `critique` | 這件但換成藍色 | 單輪 reference＋永久目標值 |
-| `anchor` | 搭我這件褲子 | 啟用相容性訊號 |
-| `exclude_item` | 不要再出現這件 | 永久排除商品 ID |
-
-## 測試
-
-```bash
+```powershell
+uvicorn backend.engine03_feedback.main:app --reload --port 8003
 pytest -q backend/engine03_feedback/tests
 ```
 
-手動測 click-only request：
+API：
 
-```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://127.0.0.1:8003/feedback `
-  -Headers @{ Authorization = 'Bearer dev' } `
-  -ContentType 'application/json' `
-  -InFile .\backend\engine03_feedback\examples\click_only_request.json
-```
+- `POST /feedback`
+- `GET /contract/engine02-feedback`
+- `GET /health`
 
-`DEV_BYPASS_AUTH=true` 時 `Bearer dev` 的內容不會被驗證；正式模式必須使用 `/auth/google` 回傳的真實 session token。
+舊路徑 `POST /api/engine3/process_feedback` 暫時保留為隱藏 alias。

@@ -16,7 +16,7 @@ from .service import process_feedback
 
 app = FastAPI(
     title="ENGINE 03 — preference feedback",
-    description="FeedbackInput + ENGINE 02 context → FeedbackRound + updated ENGINE 01 Intent",
+    description="Attribute scores + explicit UI interactions → ENGINE 02 FeedbackRound",
     version=CONTRACT_VERSION,
 )
 app.add_middleware(
