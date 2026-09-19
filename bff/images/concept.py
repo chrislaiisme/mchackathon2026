@@ -134,14 +134,28 @@ def _counts_match(message: str) -> bool:
     return len(found) >= 2 and found[0] == found[1]
 
 
+def _varied_label(cell: dict[str, Any]) -> Optional[str]:
+    """這一格被改掉的那個屬性的值，優先用生圖端給的中文標籤。"""
+    label = cell.get("varied_label_zh")
+    if label:
+        return label
+    attribute = cell.get("varied_attribute")
+    if not attribute:
+        return None
+    value = cell.get("varied_value") or (cell.get("keywords") or {}).get(attribute)
+    return str(value) if value else str(attribute)
+
+
 def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:
     out = []
     for cell in manifest.get("cells") or []:
         item = {
             "index": cell.get("index"),
             "keywords": cell.get("keywords") or {},
-            # 這格相對其他格改了什麼，中文原字，前端可以直接顯示在卡片上。
-            "varied_label": cell.get("varied_label_zh") or cell.get("varied_attribute"),
+            # 這格相對其他格改了什麼，前端直接顯示在卡片上。六格差在同一個屬性
+            # （varied_attribute，例如 length），所以只印屬性名的話六張卡會長得
+            # 一模一樣；要印的是「這格的值」——它在 keywords 裡，key 就是屬性名。
+            "varied_label": _varied_label(cell),
             "prompt_fragment": cell.get("prompt_fragment"),
         }
         if sliced:
