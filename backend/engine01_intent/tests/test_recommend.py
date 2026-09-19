@@ -130,6 +130,18 @@ def test_reference_image_uses_visual_search():
     assert zones_by_name["top"].products[0].product_id == "visual1"
 
 
+def test_resolve_reference_image_only_trusts_user_upload():
+    # 2026-09-19 真人測試發現：Pinterest fallback 的圖跟使用者自己上傳的圖
+    # 曾經被一視同仁送進 visual_search()，圖片比對結果蓋掉使用者打的文字意圖
+    # （打「商務白色襯衫」，上衣區被換成一雙襪子）。這支函式就是那次修正——
+    # 只有 user_upload 才放行，pinterest／none 一律當沒有參考圖。
+    assert recommend.resolve_reference_image_for_retrieval("/files/user123/abc.jpg", "user_upload") == (
+        "/files/user123/abc.jpg"
+    )
+    assert recommend.resolve_reference_image_for_retrieval("https://pinterest.example/pin.jpg", "pinterest") is None
+    assert recommend.resolve_reference_image_for_retrieval(None, "none") is None
+
+
 def test_style_keywords_fallback_uses_profile_without_mutating_session_intent():
     intent = Intent(item_type="外套")  # style_keywords 這輪是空的
     assert intent.style_keywords == []

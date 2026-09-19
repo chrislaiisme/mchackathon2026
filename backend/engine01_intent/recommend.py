@@ -17,7 +17,7 @@ docs/interface-contract.md 待確認事項），並且在 ENGINE02 既有的檢�
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import requests
 
@@ -74,6 +74,23 @@ def _primary_zone_slate(products: list[ProductCard]) -> tuple[zones.Zone, bool, 
         return "top", False, products
     category = products[0].attributes.get("category")
     return zones.zone_of(category), zones.is_dress(category), products
+
+
+def resolve_reference_image_for_retrieval(
+    reference_image_url: Optional[str],
+    reference_image_source: Literal["user_upload", "pinterest", "none"],
+) -> Optional[str]:
+    """決定這一輪要不要把參考圖送進 visual_search()——只信任使用者自己上傳的圖。
+
+    2026-09-19 真人測試發現：Pinterest fallback 比對到的圖（板子上關鍵字硬湊出來的，
+    使用者根本沒看過、沒選過）如果也送進 visual_search()，圖片相似度搜出來的第一件
+    商品的 category 會直接決定「這輪主要在講哪個分區」，蓋掉使用者自己打的文字意圖——
+    真人測試打「商務白色襯衫」，上衣區結果被換成一雙襪子就是這樣來的。使用者自己上傳
+    的圖沒有這個問題（那是使用者自己選的、真的想比對的圖），所以只有 `user_upload`
+    這個來源才放行，`pinterest`／`none` 一律當沒有參考圖，退回純文字流程。"""
+    if reference_image_source == "user_upload":
+        return reference_image_url
+    return None
 
 
 def build_zoned_recommendation(

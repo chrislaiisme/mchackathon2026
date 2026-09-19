@@ -215,7 +215,9 @@ def post_recommend(
         state.session_id,
         state.round,
         state.message_history,
-        state.reference_image_url,
+        recommend.resolve_reference_image_for_retrieval(
+            state.reference_image_url, state.reference_image_source
+        ),
         user,
     )
 

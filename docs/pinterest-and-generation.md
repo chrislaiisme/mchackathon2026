@@ -18,6 +18,8 @@ Pinterest API v5 的 Trial access 只能讀寫／搜尋連結帳號自己的 pin
 
 **這張圖依照上面已經定案的規則，只能給 ENGINE02 內部當參考特徵／生成 prompt 素材，不會顯示在使用者畫面上**——這條規則這次新用途也一樣適用，2026-09-19 有跟使用者確認過維持不顯示。**2026-09-19 起已經正式接進 ENGINE02**：`POST /recommend` 有參考圖時會呼叫 ENGINE02 的 `POST /visual-search`（base64 圖片＋文字），不是透過 `Intent` model 傳遞，細節見 [interface-contract.md](interface-contract.md) 第 6 節；在那之前的解析結果一樣先存在 ENGINE01 內部的 session 狀態（`backend/engine01_intent/session_store.py` 的 `reference_image_url`／`reference_image_source`）。
 
+**2026-09-19 真人測試發現並修正：`POST /visual-search` 現在只有「使用者自己上傳的圖」才會觸發，Pinterest fallback 的圖不會**（`backend/engine01_intent/main.py` 的 `post_recommend()` 現在檢查 `reference_image_source == "user_upload"` 才把圖傳下去，`"pinterest"` 一律當沒有圖，走純文字流程）。原因：Pinterest 板子上關鍵字硬湊出來的圖，使用者根本沒看過也沒選過，讓它的圖片相似度搜尋結果去決定「這輪主要在講哪個分區」，會蓋掉使用者自己打的文字意圖——真人測試打「商務白色襯衫」，上衣區結果被換成一雙襪子就是這樣來的（Pinterest 比對到一張跟襯衫無關的圖，圖片比對的第一名自然也跟襯衫無關）。使用者自己上傳的圖沒有這個問題（那是使用者自己選的、真的想比對的圖），所以只擋 Pinterest 這一種來源。Pinterest 參考圖現在退回原本規劃的角色：只是離線的趨勢訊號／生成模組素材，不參與即時推薦的分區決定。
+
 ## 概念圖生成
 
 OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的 `Intent` 轉成一段抽象的 prompt（顏色／剪裁／場合／材質——避免點名真實品牌或設計師，畢竟是在出題企業的評審面前 demo）。多輪銜接用 `previous_response_id`，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生。範例程式碼在 [hackathon-brief.md](hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
