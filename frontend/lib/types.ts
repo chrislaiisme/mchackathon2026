@@ -8,7 +8,41 @@ export interface FashionRecommendation {
   attributes: string[];
   priceBand: string;
   confidence: number;
+  itemType?: "top" | "bottom" | "dress";
   feedback?: "like" | "dislike";
+}
+
+export interface StylistOutfitRecommendation {
+  topOrDressId: string;
+  bottomId: string | null;
+  reason: string;
+  summary?: string;
+}
+
+export type RecommendationView = "top-pick" | "explore";
+
+export interface OutfitRecommendation {
+  id: string;
+  name: string;
+  items: {
+    topOrDress: FashionRecommendation;
+    bottom: FashionRecommendation | null;
+  };
+  imageUrl?: string;
+  matchScore: number;
+  explanation: string;
+  tags: string[];
+}
+
+export interface ChatRecommendation {
+  view: RecommendationView;
+  topPick: OutfitRecommendation;
+  alternatives: {
+    topOrDressCandidates: FashionRecommendation[];
+    bottomCandidates: FashionRecommendation[];
+    selectedTopOrDressIndex: number;
+    selectedBottomIndex: number;
+  };
 }
 
 export type WardrobeCategory = "tops" | "bottoms" | "dresses" | "outerwear" | "shoes" | "accessories";
@@ -53,6 +87,7 @@ export interface ChatMessage {
   quickChoices?: GuidedChoice[];
   visualChoices?: VisualChoice[];
   recommendations?: FashionRecommendation[];
+  recommendation?: ChatRecommendation;
 }
 
 export interface User {
