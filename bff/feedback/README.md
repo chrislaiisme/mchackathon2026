@@ -31,3 +31,38 @@
 完整規格：[../../docs/engine03-feedback.md](../../docs/engine03-feedback.md)。輸入輸出 JSON：[../../docs/interface-contract.md](../../docs/interface-contract.md)（`FeedbackInput` 進、`FeedbackResult` 出）。
 
 需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。
+
+---
+
+## 怎麼接（已實作並驗證）
+
+`main.py` 是 ENGINE 03 的服務。一輪的流向：
+
+1. 前端把該輪回饋 POST 到 `/feedback`：分維度評分、自由文字、按讚／倒讚的卡片 id
+2. 服務回傳 `feedback` 物件（`FeedbackInput` 格式）
+3. 呼叫端把它原樣放進 ENGINE 02 `/retrieve` 的 `feedback` 欄位，跑下一輪
+
+```bash
+uvicorn bff.feedback.main:app --port 8003 --reload
+```
+
+實測結果（`engine02.intent_adapter.feedback_from_engine03` 轉換）：
+
+| 前端送的 | ENGINE 02 轉成 |
+|---|---|
+| 顏色 −1 | `design_adjust_steps: {dark_tone: -1}` |
+| 版型 +1 | `design_adjust_steps: {relaxed_fit: +1}` |
+| 按讚某張卡 | `chosen_item_ids` |
+| 對不到設計軸的屬性 | 回報在 `unresolved`，不會靜默丟掉 |
+
+可用的評分維度（對應表在 `engine02/intent_adapter.py::FEEDBACK_ATTRIBUTE_TO_ELEMENT`）：
+顏色、版型、圖案、領子、材質、正式感、風格、logo、運動。
+
+## 兩個要注意的地方
+
+1. **不可以混格式。** ENGINE 02 看到 `chosen_item_ids`、`design_adjust_steps` 這類欄位，就會判定
+   payload 已經是它自己的格式而整包放行，`attribute_scores` 會被靜默忽略。所以這裡只送
+   `FeedbackInput` 宣告的欄位。
+
+2. **倒讚傳不過去。** `FeedbackInput` 沒有對應欄位，倒讚只會進本地帳本。要讓倒讚影響排序，
+   得跟 ENGINE 02 擴充契約（他們的 `FeedbackState` 有 `rejected_item_ids`，但混格式會踩到第 1 點）。
