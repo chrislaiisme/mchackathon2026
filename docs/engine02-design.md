@@ -905,7 +905,7 @@ T16 量到域差之後，最自然的下一步是文獻裡效果最大的那一�
   **只有前者上升代表是意圖變寬鬆，不是結果變好**；
 - 絕不拿排序分數當符合度（那是循環論證：ENGINE 03 調高權重，分數依定義必然變高）。
 
-**框架**：服務層在 `backend/engine02_retrieval/`（`POST /retrieve`、`GET /health`，
+**框架**：服務層有兩份、內容等價：`mcp_servers/catalog/`（Hermes 結構，demo 跑這個）與 `backend/engine02_retrieval/`（main 原有），兩者都提供 `POST /retrieve`、`GET /health`，
 並把 ENGINE 02 完整 API 掛在 `/engine02/*`）。套件本身留在根目錄，因為四個模組用
 `parents[1]` 解析資料路徑，搬家會讓所有預設路徑、14 個測試檔與 40+ 腳本失效。
 測試固定樣本直接取自 ENGINE 01 的 `test_cases.json`，共 15 項，GPU 與 CPU 都驗過。

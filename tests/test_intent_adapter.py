@@ -187,7 +187,10 @@ def test_the_framework_service_layer_runs(monkeypatch):
     monkeypatch.setenv("ENGINE02_DEMO", "1")
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         h = client.get("/health").json()
@@ -213,7 +216,10 @@ def test_auth_is_optional_and_never_crashes_without_a_secret(monkeypatch):
     monkeypatch.delenv("SESSION_SECRET", raising=False)
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         r = client.post("/retrieve", json={"session_id": "anon", "intent": {"item_type": "襯衫"}},
@@ -261,7 +267,10 @@ def test_engine03_feedback_shape_is_accepted_and_enforced(monkeypatch):
     monkeypatch.setenv("ENGINE02_DEMO", "1")
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         intent = {"item_type": "襯衫", "occasion": "上班"}
@@ -287,7 +296,10 @@ def test_our_own_feedback_shape_still_passes_through(monkeypatch):
     monkeypatch.setenv("ENGINE02_DEMO", "1")
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         first = client.post("/retrieve", json={"session_id": "p", "intent": {"item_type": "襯衫"}}).json()
@@ -353,7 +365,10 @@ def test_a_feedback_round_sent_to_retrieve_is_not_silently_ignored(monkeypatch):
     monkeypatch.setenv("ENGINE02_DEMO", "1")
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         b = client.post("/retrieve", json={
@@ -371,7 +386,10 @@ def test_engine03_ops_are_applied_by_retrieve_without_a_second_call(monkeypatch)
     monkeypatch.setenv("ENGINE02_DEMO", "1")
     from fastapi.testclient import TestClient
 
-    from backend.engine02_retrieval.main import app
+    try:  # both service layers live on main; the Hermes one is what the demo runs
+        from mcp_servers.catalog.main import app
+    except ImportError:
+        from backend.engine02_retrieval.main import app
 
     with TestClient(app) as client:
         r1 = client.post("/retrieve", json={"session_id": "ops", "round": 1,

@@ -102,9 +102,9 @@ def main() -> None:
     from fastapi.testclient import TestClient
 
     try:
-        from backend.engine02_retrieval.main import app as e02_app       # the Hermes layout
+        from mcp_servers.catalog.main import app as e02_app          # the Hermes layout
     except ImportError:
-        from backend.engine02_retrieval.main import app as e02_app  # our own branch
+        from backend.engine02_retrieval.main import app as e02_app   # main's original layout
 
     from bff.engine01_intent import llm_client
     from bff.shared.schemas import Intent
