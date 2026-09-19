@@ -44,6 +44,10 @@ class UserProfile(BaseModel):
     # 有這兩題（性別、使用情境），後端要能接住，不然 PUT /profile 會丟掉這兩個值。
     gender: Optional[str] = None
     contexts: list[str] = Field(default_factory=list)
+    # 根據跨對話的明確喜歡／不喜歡回饋累積的風格訊號。保留 onboarding 的
+    # style_preferences 當初始偏好；這個欄位才是會隨使用者實際選擇而變動的
+    # 長期輪廓，寫進同一份 user JSON，重啟 ENGINE01 也不會消失。
+    style_affinities: dict[str, float] = Field(default_factory=dict)
     onboarding_completed: bool = False
     created_at: str
     """ISO 8601 timestamp."""
@@ -145,40 +149,80 @@ class IntentResponse(BaseModel):
     clarifying_questions: list[ClarifyingQuestion] = Field(default_factory=list)
 
 
-# ── 回饋迴圈相關（ENGINE03 會用到，ENGINE01 這邊先定義好介面）──────────
+# ── 回饋迴圈相關（POST /feedback，接 backend/engine03_feedback/ 的真實實作）──────────
+# 2026-09-19：這裡原本是 ENGINE01 自己從零設計的提案（free_text + GPT structured
+# output，AttributeScore／FeedbackInput／WeightAdjustment／FeedbackResult 四個型別），
+# 但 ENGINE03 實際上線的是完全不同、純規則式（不吃自由文字、不用 LLM）的設計——
+# 星等打分＋收藏／不喜歡＋整套喜歡，見 backend/engine03_feedback/contracts.py。
+# Grep 確認過整個程式碼庫沒有任何地方 import 舊的那四個型別（只有已知是孤兒程式碼的
+# bff/shared/schemas.py／bff/feedback/main.py 提到過），直接換成跟真實契約對齊的形狀，
+# 不需要保留舊提案或寫轉換層。
 
 
-class AttributeScore(BaseModel):
-    # 針對某個具體屬性（顏色／版型／圖案／領子）的評分，不是打一個總分，
-    # 這樣 ENGINE03 才知道要調整哪個維度的權重。
+class AttributeRating(BaseModel):
+    # attribute 直接收前端 PreferenceRatingDimension 的值（"visual_impact"／
+    # "polished_formality"／"soft_energy"），跟 ENGINE03 的 ATTRIBUTE_IDS
+    # 一模一樣，兩邊不用另外對一份映射表。
     attribute: str
-    score: float
-    comment: Optional[str] = None
+    stars: int = Field(ge=1, le=5)
 
 
-class FeedbackInput(BaseModel):
+class ItemFeedbackRequest(BaseModel):
+    item_id: str
+    source: Literal["catalog", "generated"] = "catalog"
+    favorited: bool = False
+    disliked: bool = False
+    attribute_ratings: list[AttributeRating] = Field(default_factory=list)
+    # design_attributes 故意不開放前端傳——ENGINE03 的驗證規則要求這個欄位只能由
+    # 「受信任」的一方填（生成 manifest 的真實內容），前端不算，source="generated"
+    # 的回饋今天整批跳過，見 main.py::post_feedback()。
+
+
+class OutfitItemRequest(BaseModel):
+    # 2026-09-19 修正：欄位形狀改成跟團隊另一份「Frontend → BFF 回饋 JSON 規格」
+    # 文件的 outfit_feedbacks[].items[] 一致（zone／source／item_id 三欄，不是
+    # 原本 top_item_id／bottom_item_id 兩個扁平欄位）——那份規格明確允許整套裡
+    # 一件資料庫商品配一件生成商品，前端如果照那份規格寫，不應該因為打的是
+    # ENGINE01 而要重寫一次資料形狀。
+    zone: Literal["top", "bottom"]
+    source: Literal["catalog", "generated"] = "catalog"
+    item_id: str
+
+
+class OutfitFeedbackRequest(BaseModel):
+    # 只支援「喜歡」——對應 ENGINE03 OutfitFeedback.favorited 寫死 Literal[True]，
+    # 沒有「整套不喜歡」這個概念，backend 本身沒做這一半。
+    outfit_id: str
+    favorited: Literal[True] = True
+    items: list[OutfitItemRequest] = Field(min_length=2, max_length=2)
+    """一定剛好兩件，一件 top 一件 bottom——驗證邏輯見 main.py::post_feedback()。
+    generated 那一件今天一律跳過整筆 outfit（見 post_feedback() 的說明），
+    不是因為規格不允許，是 design_attributes 詞彙映射還沒有人跟 ENGINE02／
+    生成模組負責人確認過，不能自己瞎猜著送。"""
+
+
+class FeedbackRequest(BaseModel):
     session_id: str
     round: int
-    # 推薦商品跟生成概念圖分開打分，所以要標明這次評分是對哪一邊。
-    target: Literal["recommended", "generated"]
-    attribute_scores: list[AttributeScore] = Field(default_factory=list)
-    free_text: Optional[str] = None
-    selected_option_id: Optional[str] = None
+    item_feedbacks: list[ItemFeedbackRequest] = Field(default_factory=list)
+    outfit_feedbacks: list[OutfitFeedbackRequest] = Field(default_factory=list)
 
 
-class WeightAdjustment(BaseModel):
-    # ENGINE03 把回饋轉換成的具體權重調整，field 對應 Intent 或排序訊號的名稱，
-    # delta 是調整量（正負皆可），reason 是給前端顯示的說明文字。
-    field: str
-    delta: float
-    reason: Optional[str] = None
-
-
-class FeedbackResult(BaseModel):
+class FeedbackResponse(BaseModel):
     session_id: str
     round: int
-    updated_intent: Intent
-    weight_adjustments: list[WeightAdjustment] = Field(default_factory=list)
+    engine02_feedback: dict
+    attribute_evidence: list[dict] = Field(default_factory=list)
+    generated_attribute_evidence: list[dict] = Field(default_factory=list)
+    outfit_evidence: list[dict] = Field(default_factory=list)
+    skipped_generated_item_feedbacks: list[str] = Field(default_factory=list)
+    """source="generated" 的單品回饋今天整批跳過，這裡誠實列出被跳過的 item_id，
+    不是默默丟掉裝作沒發生——見 docs 記錄的已知落差（design_attributes 詞彙映射
+    需要跨負責人確認）。"""
+    skipped_generated_outfit_feedbacks: list[str] = Field(default_factory=list)
+    """整套裡有任何一件是 source="generated" 就整筆 outfit 跳過（同一個落差，
+    不是只挑資料庫那一件單獨送——半套的「整套喜歡」語意會失真），這裡列出
+    被跳過的 outfit_id。"""
 
 
 # ── ENGINE02／生成模組的輸出（ENGINE01 這邊先定義好介面，實際邏輯不在這裡）──
@@ -250,6 +294,11 @@ class ZoneSlate(BaseModel):
     products: list[ProductCard] = Field(default_factory=list)
     """最多 6 件；連身裙情境下的下身區會是空列表且 requested=False（見 zones.py
     的 is_dress 規則），不是查詢失敗。"""
+    match_score: float = 0.0
+    """2026-09-19 新增：這區的意圖符合度（來自 ENGINE02 RetrievalResult.match_score），
+    讓現場能秀出「回饋前 62% → 回饋後 89%」這種量化證明——之前兩分區格式沒有把
+    ENGINE02 早就算好的這個分數帶出來。連身裙留空的那一區、或 ENGINE02 連不上時，
+    沒有真的查詢過，維持預設值 0.0，不是查詢結果。"""
 
 
 class ZonedRecommendationResult(BaseModel):
@@ -261,6 +310,29 @@ class ZonedRecommendationResult(BaseModel):
 
 class RecommendRequest(BaseModel):
     session_id: str
+
+
+class RecommendationReasonRewriteRequest(BaseModel):
+    """Ask ENGINE01 to proxy ENGINE02's fact-checked card-copy rewrite.
+
+    The browser never talks to ENGINE02 directly: ENGINE01 owns the authenticated
+    conversation and has the namespaced session ids that ENGINE02 used to retain
+    the card facts for this exact recommendation round.
+    """
+
+    session_id: str
+
+
+class RecommendationReasonRewriteCard(BaseModel):
+    product_id: str
+    reason: str
+    explanation_source: str = "template"
+
+
+class RecommendationReasonRewriteResponse(BaseModel):
+    session_id: str
+    round: int
+    cards: list[RecommendationReasonRewriteCard] = Field(default_factory=list)
 
 
 # ── 「幫你搭」（POST /style-me，ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端 ──

@@ -129,8 +129,10 @@ def build_mask(
 
     b = c.budget
     if b.is_hard() and (b.max_price is not None or b.min_price is not None) and state.get("budget") != "drop":
-        price = pd.to_numeric(items.get("price"), errors="coerce").to_numpy(copy=True) \
-            if "price" in items.columns else np.full(n, np.nan)
+        from .price_estimate import comparable_price
+
+        # on the budget's currency scale: crawl_tw mixes TWD and USD listings
+        price = comparable_price(items, b.currency or "TWD") if "price" in items.columns else np.full(n, np.nan)
         known = ~np.isnan(price)
         if not known.any():
             # No prices in this catalog. Applying the filter would empty the pool, and the ladder
@@ -150,6 +152,11 @@ def build_mask(
                 # items with no price are excluded by `known`; say how many, because "within
                 # budget" over a catalog that is half unpriced is a different claim
                 applied["budget_unpriced_excluded"] = [str(int((~known).sum()))]
+            if "price_estimated" in items.columns:
+                est = items["price_estimated"].fillna(False).astype(bool).to_numpy()
+                if (est & mask).any():
+                    # "within budget" on an estimate is a weaker claim than on a price tag
+                    applied["budget_estimated_prices"] = [str(int((est & mask).sum()))]
 
     # required values (critique targets) are hard and never relaxed
     for attr, values in c.required_values.items():

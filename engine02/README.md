@@ -104,7 +104,7 @@ All ground truth in T1–T5 comes from catalog metadata or blind visual labels, 
 | The gap panel responds to a real gap, not to catalog size | removing the items that express an element lifts it (MRR 0.381 → 0.509, p<1e-4); removing the same number of random items does not (p=1.00). Rerun at 44k with the real encoder, `reports/server/gap_kagl_marqo/` |
 | Attribute filling is worth less than we first wrote | one query set sent to both catalogs: relaxation 31% → 11%, satisfaction 0.782 → 0.958. The cleanest cell is that Polyvore items in the top 5 go 0.00 → 2.12, because before filling those categories could never survive a four-slot filter (§3.17, corrected 2026-09-18) |
 
-Limitations: public catalogs have no prices; KAGL lacks blazers/knitwear (Polyvore apparel merged as a
+Limitations: public catalogs have no prices (missing prices get a labelled estimate, `engine02/price_estimate.py`; real listed prices only in `data/catalog/crawl_tw`); KAGL lacks blazers/knitwear (Polyvore apparel merged as a
 workaround); simulated users are rule-based; visual labels were produced by an LLM annotator, not humans
 (`scripts/eval_human_agreement.py` + `data/labels/human_tasks.csv` are ready for a human pass; the
 headline number there is **Krippendorff's alpha over all three answers**, not Cohen's kappa on the 1/0

@@ -1,0 +1,11 @@
+{
+ "name": "台北",
+ "resolved_name": "台北市",
+ "lat": 25.05306,
+ "lon": 121.52639,
+ "country": "台湾",
+ "country_code": "TW",
+ "timezone": "Asia/Taipei",
+ "query": "Taipei",
+ "fetched_at": "2026-09-19T19:31:46"
+}

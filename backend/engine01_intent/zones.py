@@ -50,3 +50,30 @@ def default_category_for_zone(zone: Zone, intent: Intent) -> str:
     呼叫端負責複製 `intent` 再把 `item_type` 換成這個回傳值，這裡
     不直接修改 `intent`（保持這個函式單純、可測試）。"""
     return _DEFAULT_ITEM_TYPE[zone]
+
+
+def resolve_zone_for_item_type(item_type: Optional[str]) -> tuple[Zone, bool]:
+    """自由文字版的分區／連身裙判斷，給 /concept-image 用。
+
+    `zone_of()`／`is_dress()` 吃的是 ENGINE02 已經正規化過的 `category` 字串
+    （例如查詢結果 `ProductCard.attributes["category"]`），不是使用者原話——
+    `intent.item_type` 是使用者打的中文詞（「洋裝」「連身裙」「白襯衫」……），
+    兩者不能直接套用同一個函式，硬要判斷字面上是不是等於 "dress" 只會永遠
+    判不出連身裙。這裡重用 `engine02.taxonomy` 既有的中文同義詞表
+    （`resolve_category_values()` + `Taxonomy.legacy_coarse()`），跟
+    `engine02/intent_adapter.py` 判斷 category slot 走同一條路——這樣「洋裝」
+    「連身裙」「連衣裙」之類的同義詞才會跟 ENGINE02 那邊的認知一致，不用
+    自己另外造一份關鍵字表、之後兩邊詞彙表分岔。
+
+    解析不出來（空字串、taxonomy 完全沒有對應詞條）保守回傳 `("top", False)`，
+    跟 `zone_of()` 對未知類別的防禦性預設一致。
+    """
+    if not item_type:
+        return "top", False
+
+    from engine02.taxonomy import load_taxonomy, resolve_category_values
+
+    tax = load_taxonomy()
+    ids = [nid for nid in resolve_category_values([item_type], tax) if nid in tax.nodes]
+    coarse = tax.legacy_coarse(ids[0]) if ids else None
+    return zone_of(coarse), is_dress(coarse)

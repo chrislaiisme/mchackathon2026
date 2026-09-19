@@ -42,8 +42,13 @@ class ConceptImageUnavailable(RuntimeError):
 def _run(script: Path, args: list[str]) -> dict[str, Any]:
     if not script.is_file():
         raise ConceptImageUnavailable(f"找不到 {script.relative_to(ROOT) if script.is_relative_to(ROOT) else script}")
+    # encoding="utf-8" 要明講：text=True 不指定編碼時吃 locale.getpreferredencoding()，
+    # Windows 中文地區設定預設是 cp950，但這兩支腳本的輸出（prompt、manifest 裡的
+    # varied_label_zh 等）常常帶中文——2026-09-19 在 generate_grid.py 內部呼叫
+    # hermes_image.py 那一層就踩過一次這個坑（UnicodeDecodeError 把整次生圖搞掛），
+    # 這裡是同一種 subprocess 呼叫模式，先一起補上，不要等它也真的炸過一次才修。
     proc = subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True,
-                          timeout=TIMEOUT, cwd=str(ROOT))
+                          encoding="utf-8", errors="replace", timeout=TIMEOUT, cwd=str(ROOT))
     if proc.returncode != 0:
         raise ConceptImageUnavailable(f"{script.name} 失敗：{(proc.stderr or proc.stdout)[-300:]}")
     try:
@@ -260,12 +265,23 @@ def _varied_label(cell: dict[str, Any]) -> Optional[str]:
 def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:
     out = []
     for cell in manifest.get("cells") or []:
+        keywords = cell.get("keywords") or {}
+        varied_fields = [
+            field.strip()
+            for field in str(cell.get("varied_attribute") or "").split(",")
+            if field.strip()
+        ]
         item = {
             "index": cell.get("index"),
-            "keywords": cell.get("keywords") or {},
+            "keywords": keywords,
+            # Only attributes varied by this generated option become preference evidence. Locked
+            # intent attributes are not re-counted merely because the user liked the image.
+            "design_attributes": {
+                field: str(keywords[field]) for field in varied_fields if field in keywords
+            },
             # 這格相對其他格改了什麼，前端直接顯示在卡片上。六格差在同一個屬性
-            # （varied_attribute，例如 length），所以只印屬性名的話六張卡會長得
-            # 一模一樣；要印的是「這格的值」——它在 keywords 裡，key 就是屬性名。
+            # （varied_attribute，可能是逗號接起來的好幾個軸），所以只印屬性名的話
+            # 六張卡會長得一模一樣；要印的是「這格的值」——在 keywords 裡，key 就是屬性名。
             "varied_label": _varied_label(cell),
             "prompt_fragment": cell.get("prompt_fragment"),
         }

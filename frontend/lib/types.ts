@@ -61,6 +61,10 @@ export type WardrobeCategory = "tops" | "bottoms" | "dresses" | "outerwear" | "s
 
 export type OutfitSlot = "top" | "bottom" | "dress" | "outerwear" | "shoes" | "accessories";
 
+export type PreferenceItemSource = "recommended" | "generated";
+export type PreferenceRatingDimension = "visual_impact" | "polished_formality" | "soft_energy";
+export type PreferenceDimensionRatings = Partial<Record<PreferenceRatingDimension, number>>;
+
 export interface WardrobeItem {
   id: string;
   name: string;
@@ -68,6 +72,32 @@ export interface WardrobeItem {
   category: WardrobeCategory;
   brand?: string;
   attributes: string[];
+}
+
+export interface PreferenceItemSnapshot extends WardrobeItem {
+  source: PreferenceItemSource;
+  likedBySave: boolean;
+  savedAt: string;
+  conversationId?: string;
+  messageId?: string;
+  roundKey?: string;
+}
+
+export interface TryOnFeedbackEntry {
+  outfitKey: string;
+  feedback: "like" | "dislike";
+  itemIds: string[];
+  timestamp: string;
+  conversationId?: string;
+  roundKey?: string;
+}
+
+export interface UserPreferenceState {
+  savedItems: Record<string, PreferenceItemSnapshot>;
+  dislikedItems: Record<string, PreferenceItemSnapshot>;
+  itemRatings: Record<string, PreferenceDimensionRatings>;
+  tryOnFeedback: Record<string, TryOnFeedbackEntry>;
+  recentRecommendationRounds: string[];
 }
 
 export interface GuidedChoice {
@@ -124,6 +154,7 @@ export interface User {
   name: string;
   email: string;
   avatarUrl: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface Conversation {
@@ -139,6 +170,10 @@ export interface Conversation {
   // session（沿用 ENGINE01 的澄清問題把關與五題上限邏輯），而不是每則訊息都開新 session。
   // 選填是因為舊對話（合併 main 之前建立的、或還沒送出過第一句真訊息的）不會有這個欄位。
   engineSessionId?: string;
+  // 2026-09-19 新增：最近一次 /recommend 回應的 round——POST /feedback 要求 round
+  // 跟後端 session 目前的 round 完全一致（不符回 409），前端這邊需要記住這個數字
+  // 才能在送出下一句話之前，把這一輪收集到的收藏／不喜歡／打分／整套喜歡送出去。
+  engineRound?: number;
   // 2026-09-19 新增：ENGINE01 抽出來的最新意圖，Design for Me 生成單品要靠它。
   // 不能只放 React state——重新整理頁面後 state 會歸零，但對話是從 localStorage
   // 讀回來的，兩者不同步就會出現「畫面上明明有推薦結果，按鈕卻說先說需求」的情況。

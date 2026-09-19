@@ -1,0 +1,11 @@
+{
+ "name": "東京",
+ "resolved_name": "東京",
+ "lat": 35.6895,
+ "lon": 139.69171,
+ "country": "日本",
+ "country_code": "JP",
+ "timezone": "Asia/Tokyo",
+ "query": "Tokyo",
+ "fetched_at": "2026-09-19T19:33:52"
+}

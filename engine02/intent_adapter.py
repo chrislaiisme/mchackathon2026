@@ -457,6 +457,10 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
                     attrs["price"] = f"{float(v):.0f}" if float(v) >= 100 else f"{float(v):.2f}"
                     if cur and cur.lower() not in ("nan", "none"):
                         attrs["currency"] = cur
+                    if "price_estimated" in items.columns and bool(row.get("price_estimated")):
+                        attrs["price_estimated"] = "true"      # show 「估計價」, not a price tag
+                        if str(row.get("price_basis") or "").strip():
+                            attrs["price_basis"] = str(row["price_basis"])
         products.append({
             "product_id": it.item_id,
             "image_url": f"{base}/{it.item_id}",
@@ -496,6 +500,11 @@ def response_to_retrieval_result(engine, req: Engine02Request, resp: Engine02Res
             "encoder": resp.encoder,
             "timings_ms": resp.timings_ms,
             "items": [it.model_dump() for it in resp.items],
+            # the situation used (weather, festival ...), incl. what ENGINE 02 filled in by itself
+            "context_used": getattr(resp, "context_used", {}) or {},
+            # the stylist-voiced reasons arrive later: POST {this service}/explain/rewrite
+            # (under /engine02 on the /retrieve services) with this session id
+            "rewrite": {"session_id": resp.session_id, "endpoint": "/explain/rewrite"},
         },
     }
 

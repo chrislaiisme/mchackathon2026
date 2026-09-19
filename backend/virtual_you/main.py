@@ -13,8 +13,18 @@ import os
 from functools import lru_cache
 
 import requests
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
+
+# 2026-09-19 真人測試發現並修正：這支服務原本完全沒有讀根目錄的 .env（跟
+# backend/engine01_intent/main.py 不一樣，那支一開始就呼叫 load_dotenv()）——
+# VIRTUAL_TRY_ON_PROVIDER 這種設定過去只能靠啟動這支服務的那個 shell 自己
+# export，寫進 .env 完全沒用。真人測試時把 VIRTUAL_TRY_ON_PROVIDER=codex 寫進了
+# frontend/.env.local（前端的檔案，Next.js 根本不會把這個名字沒有 NEXT_PUBLIC_
+# 前綴的變數往下傳，而且就算傳了，這支後端也讀不到前端的 .env.local），
+# 造成試穿一路悄悄退回 mock（回原圖，看起來像「沒反應」，不會報錯）。
+load_dotenv()
 
 from backend.virtual_you.codex_tryon import (
     SUPPORTED_CATEGORIES,
@@ -123,11 +133,20 @@ async def generate_try_on(
     if provider not in {"", "mock", "worker", "remote"}:
         raise HTTPException(status_code=503, detail=f"unsupported try-on provider: {provider}")
 
-    if not worker_url or provider == "mock":
+    # mock 只保留給明確指定的開發情境。provider 未設定或 worker 設定漏掉時，
+    # 原本會回傳原人物圖而且 HTTP 仍是 200，前端便誤以為「已試穿」；這種
+    # 靜默 fallback 對 demo 是假成功，必須讓操作者立刻看到設定錯誤。
+    if provider == "mock":
         return {
             "imageBase64": base64.b64encode(person_bytes).decode("ascii"),
             "provider": "mock",
         }
+
+    if not worker_url:
+        raise HTTPException(
+            status_code=503,
+            detail="try-on provider is not configured; set VIRTUAL_TRY_ON_PROVIDER=codex or configure VIRTUAL_TRY_ON_WORKER_URL",
+        )
 
     try:
         response = await asyncio.to_thread(

@@ -224,6 +224,42 @@ class Engine02Request(BaseModel):
         return v
     feedback: FeedbackState = Field(default_factory=FeedbackState)
     options: Engine02Options = Field(default_factory=Engine02Options)
+    # The shopper's situation and opt-in personal options (engine02/context/). Everything here is
+    # optional and defaults to "not given"; an empty ContextInput changes nothing.
+    context: "ContextInput" = Field(default_factory=lambda: ContextInput())
+
+
+class ContextInput(BaseModel):
+    city: str | None = None                    # display name, e.g. "新竹"
+    lat: float | None = None
+    lon: float | None = None
+    event_date: str | None = None              # ISO date the outfit is FOR; default today
+    commute: Literal["scooter", "mrt", "car", "walk", "bike"] | None = None
+    mood: Literal["energetic", "calm", "confident", "low", "adventurous"] | None = None
+    personal_color: Literal["spring", "summer", "autumn", "winter"] | None = None
+    # entertainment only, opt-in: {"zodiac": "leo"} or {"birth_year": 1998}
+    lucky: dict | None = None
+    surprise: bool = False                     # reserve one card for a bold-but-fitting "驚喜款"
+    # travel: where the shopper is coming FROM (city/lat/lon above = where the outfit is worn).
+    # A city name without coordinates is geocoded (engine02/context/geo.py).
+    origin_city: str | None = None
+    origin_lat: float | None = None
+    origin_lon: float | None = None
+    event_time: str | None = None              # "19:00" local time -> hourly forecast at that hour
+    transport: Literal["flight", "hsr", "train", "car", "scooter", "mrt", "walk", "bike"] | None = None
+
+
+class ItineraryEvent(BaseModel):
+    date: str                                  # ISO date
+    city: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    time: str | None = None                    # "19:00"
+    occasion: str | None = None                # free text or catalog occasion ("婚禮", "Formal")
+    note: str | None = None                    # "海邊晚餐", "爬山"
+
+
+Engine02Request.model_rebuild()
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +267,7 @@ class Engine02Request(BaseModel):
 # ---------------------------------------------------------------------------
 
 TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank", "freshness",
-                    "critique"]
+                    "critique", "context"]
 
 
 class Contribution(BaseModel):
@@ -261,6 +297,10 @@ class RankedItem(BaseModel):
     category: str | None = None
     color: str | None = None
     price: float | None = None
+    currency: str | None = None
+    # True when `price` is engine02.price_estimate's estimate, not a price tag: show 「估計價」
+    price_estimated: bool = False
+    price_basis: str | None = None  # how the estimate was reached, e.g. 「洋裝類基準 1,190 元 × 正式場合 1.2」
     score: float
     contributions: list[Contribution]
     need_contributions: dict[str, float] = Field(default_factory=dict)
@@ -269,6 +309,9 @@ class RankedItem(BaseModel):
     margin_vs_cutoff: float | None = None  # score gap to the rank k+1 item
     reason_mode: str = "sufficient"
     reasons: list[str] = Field(default_factory=list)  # template sentences, verified
+    # the facts those sentences state (label, contribution, direction ...): what a rewrite may use
+    # and what engine02.explain.verify_paraphrase checks it against (POST /explain/rewrite)
+    reason_facts: list[dict] = Field(default_factory=list)
     # hard-constrained attributes of this item that were filled by a model, e.g. ["顏色為模型判讀"]
     attribute_notes: list[str] = Field(default_factory=list)
     explanation: str = ""
@@ -330,3 +373,6 @@ class Engine02Response(BaseModel):
     # proposed: query vector used this round, so ENGINE 03 can apply Rocchio next round
     query_embedding: list[float] | None = None
     timings_ms: dict[str, float] = Field(default_factory=dict)
+    # the situation this ranking used: signals (with their card labels), problems (e.g. no forecast),
+    # and -- when ENGINE 02 filled it in itself -- auto_filled {field: value} (engine02/context/auto.py)
+    context_used: dict = Field(default_factory=dict)

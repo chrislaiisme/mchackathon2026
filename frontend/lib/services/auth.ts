@@ -35,6 +35,7 @@ interface BackendUserProfile {
   email: string;
   name: string | null;
   picture: string | null;
+  onboarding_completed: boolean;
 }
 
 interface BackendAuthResponse {
@@ -60,6 +61,7 @@ function toUser(profile: BackendUserProfile): User {
     name: profile.name || profile.email,
     email: profile.email,
     avatarUrl: profile.picture ?? "",
+    onboardingCompleted: profile.onboarding_completed,
   };
 }
 

@@ -51,15 +51,88 @@ codex login             # one-time, needed for ENGINE01
 
 # ENGINE01
 pip install -r backend/requirements.txt
-uvicorn backend.engine01_intent.main:app --reload
-
-# frontend
-cd frontend && npm install && npm run dev
 ```
 
 **ENGINE02 has its own environment** (`pyproject.toml` at the repo root, installed with `uv` — see [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md) for the exact commands and why it doesn't share `backend/requirements.txt`) and runs as a separate service on its own port.
 
 Each module under `backend/` has its own `README.md` with module-specific run/test instructions.
+
+### Running the services (2026-09-19, verified working set)
+
+For Windows demo machines, the quickest option is to start the complete stack with one command:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1
+```
+
+It starts ENGINE01/02/03, Whisper, Virtual You, and the frontend in the background, reuses ports that are already listening, and writes logs under `data/runtime/logs/`. Use `-WhatIf` to inspect what it would start without changing anything.
+
+The launcher checks these endpoints before returning:
+
+| Service | Port | Purpose |
+| --- | ---: | --- |
+| ENGINE02 | 8002 | catalog ranking and background, fact-checked recommendation-copy rewrite |
+| ENGINE01 | 8000 | login, intent orchestration, feedback, and the browser-safe ENGINE02 rewrite proxy |
+| ENGINE03 | 8003 | feedback loop |
+| Whisper | 9000 | voice transcription |
+| Virtual You | 8081 | person extraction and Try On |
+| Frontend | 3000 | Next.js app |
+
+`start-demo.ps1` enables `ENGINE02_REWRITER=codex` by default. Run `codex login` beforehand. The ranking response remains fast: ENGINE01 first shows ENGINE02's template reason, then asks ENGINE02 to fact-check and replace only the card copy in the background. For an offline demo that must skip this optional refinement, explicitly run `powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02Rewriter none`.
+
+The default Codex reasoning setting is `low`, the fastest setting supported by the current default model (`gpt-5.6-luna`). To select an available account model explicitly, pass it only when starting ENGINE02, for example: `powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02CodexModel gpt-5.6-terra -Engine02CodexEffort low`. The launcher deliberately does not inherit old `ENGINE02_CODEX_MODEL` or `ENGINE02_CODEX_EFFORT` values from the terminal, because an unsupported combination makes the optional rewrite fall back to templates.
+
+### Restarting after code or configuration changes
+
+The launcher intentionally reuses an occupied port, so it does **not** reload an already-running process. Stop the affected process in the terminal where it is running (or identify its PID with `Get-NetTCPConnection -State Listen -LocalPort <port>` and use `Stop-Process -Id <pid>`), then run the launcher again. Changes made in this repository require ENGINE01, ENGINE02, and the frontend to be restarted; the other services do not need a restart for an intent/recommendation-only change.
+
+### Resetting one demo account to a first-visit state
+
+This app stores the server-side profile at `data/users/<Google-sub>.json`, browser state under `intentweave.*` local-storage keys, and active conversation state in ENGINE01 memory. It does **not** store or delete the Google account itself.
+
+1. With ENGINE01 stopped, delete one app profile by its login email (the script refuses ambiguous targets and asks PowerShell for confirmation):
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\reset-demo-user.ps1 -Email judge@example.com
+   ```
+
+2. In the browser used for the demo, open DevTools → Console at `http://127.0.0.1:3000` and run:
+
+   ```js
+   Object.keys(localStorage).filter((key) => key.startsWith("intentweave.")).forEach((key) => localStorage.removeItem(key)); location.reload();
+   ```
+
+   Alternatively use DevTools → Application → Storage → **Clear site data** for the local frontend origin.
+
+3. Start ENGINE01 again (or run `start-demo.ps1`) and sign in. The next visit is a new application registration/onboarding. To make Google show another account chooser, sign out of the Google account in that browser or use an incognito window; do not delete the person's actual Google account.
+
+Every service below is a separate long-running terminal. ENGINE02 must be up before ENGINE01 (ENGINE01 calls it directly); the rest can start in any order.
+
+```powershell
+# Terminal 1 — ENGINE02 (port 8002, real catalog)
+$env:ENGINE02_DEMO="1"; $env:ENGINE02_PUBLIC_BASE="http://localhost:8002/engine02"
+.venv-engine02\Scripts\python.exe -m uvicorn mcp_servers.catalog.main:app --port 8002
+
+# Terminal 2 — ENGINE01 (port 8000)
+.venv\Scripts\python.exe -m uvicorn backend.engine01_intent.main:app --port 8000
+
+# Terminal 3 — frontend (port 3000)
+cd frontend
+npm run dev
+
+# Terminal 4 — voice input (optional; only needed for the mic button)
+.venv\Scripts\python.exe -m uvicorn backend.whisper_transcription.main:app --host 127.0.0.1 --port 9000
+
+# Terminal 5 — virtual try-on (optional; only needed for the "Try On" feature)
+$env:VIRTUAL_TRY_ON_PROVIDER="codex"
+.venv\Scripts\python.exe -m uvicorn backend.virtual_you.main:app --host 127.0.0.1 --port 8081
+```
+
+Notes:
+- `ENGINE02_PUBLIC_BASE` must include the `/engine02` path segment — `mcp_servers.catalog.main:app` mounts the whole API under that prefix, and product-card image URLs built without it 404.
+- The frontend needs matching entries in `frontend/.env.local` (not committed — copy from `frontend/.env.example` if present): `NEXT_PUBLIC_API_BASE_URL` for ENGINE01, and `PERSON_EXTRACTION_SERVICE_URL` / `VIRTUAL_TRY_ON_SERVICE_URL` for the virtual-try-on service (Terminal 5) — without those two, Try On returns a clear configuration error instead of echoing the original photo back as a mock success.
+- The virtual-try-on service's first `/extract` call downloads a ~973MB background-removal model (`rembg`'s `birefnet-portrait`) to a local cache; the whisper service's first `/transcribe` call downloads the Whisper `small` model. Warm both up well before a live demo, not during one.
+- ENGINE02's catalog is loaded into memory once at startup, not re-read per request — if its underlying catalog data changes, restart Terminal 1 to pick it up. ENGINE01 doesn't cache anything from ENGINE02 and needs no changes when that happens.
 
 ## Deliverables checklist (per competition brief)
 

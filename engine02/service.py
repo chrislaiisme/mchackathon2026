@@ -182,8 +182,10 @@ class Engine02Service:
 
             from .outfit_budget import plan_outfit
 
-            price_col = (pd.to_numeric(items["price"], errors="coerce")
-                         if "price" in items.columns else None)
+            # the budget is in NT$; price_twd puts USD listings on the same scale
+            pcol = "price_twd" if "price_twd" in items.columns else "price"
+            price_col = (pd.to_numeric(items[pcol], errors="coerce")
+                         if pcol in items.columns else None)
             slots = {}
             for sl in slates:
                 slots[sl.category] = [
@@ -209,6 +211,8 @@ class Engine02Service:
                          "image_path": str(items.at[it.position, "image_path"]), "score": it.score,
                          "contributions": it.contributions,
                          "price": _price_of(items, it.position),
+                         "price_estimated": bool("price_estimated" in items.columns
+                                                 and items["price_estimated"].iat[it.position]),
                          # the screen that is literally about 「為什麼這樣搭」 has to say it, and
                          # every clause below cites a number we computed (§3.4's rule, applied here)
                          "reason": _slate_reason(it.contributions, s.category, s.category_score,

@@ -32,12 +32,18 @@ import {
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
 import { onboardingService, type OnboardingProfile } from "@/lib/services/onboarding";
+import { outfitKeyFromItems, preferenceService } from "@/lib/services/preferences";
 import {
+  adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
   fetchIntentTurn,
   fetchRecommendation,
+  fetchRecommendationReasonRewrite,
+  submitFeedback,
   StylistApiError,
+  type BackendClarifyingQuestion,
+  type ZoneByItemId,
 } from "@/lib/services/stylist";
 import {
   defaultVirtualYouImage,
@@ -50,31 +56,129 @@ import type {
   FashionRecommendation,
   GeneratedGroup,
   OutfitRecommendation,
+  PreferenceDimensionRatings,
+  PreferenceRatingDimension,
   PreferenceSignal,
+  UserPreferenceState,
   VirtualYouMeasurements,
   VirtualYouProfile,
   VisualChoice,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const preferenceRatingDimensions: {
+  id: PreferenceRatingDimension;
+  title: string;
+  low: string;
+  high: string;
+}[] = [
+  { id: "visual_impact", title: "吸睛程度", low: "低調簡約", high: "醒目吸睛" },
+  { id: "polished_formality", title: "正式程度", low: "輕鬆休閒", high: "俐落正式" },
+  { id: "soft_energy", title: "輕盈活動感", low: "挺拔有型", high: "柔軟靈活" },
+];
+
+function PreferenceDimensionControl({
+  dimension,
+  value,
+  onChange,
+}: {
+  dimension: (typeof preferenceRatingDimensions)[number];
+  value?: number;
+  onChange: (value: number) => void;
+}) {
+  const [hoveredValue, setHoveredValue] = useState<number>();
+  const displayValue = hoveredValue ?? value ?? 0;
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm text-foreground">{dimension.title}</p>
+      <div className="grid grid-cols-[minmax(4.5rem,1fr)_auto_minmax(4.5rem,1fr)] items-center gap-2">
+        <span className="text-xs leading-5 text-muted-foreground">{dimension.low}</span>
+        <div className="flex items-center gap-0.5" aria-label={dimension.title} onMouseLeave={() => setHoveredValue(undefined)}>
+          {[1, 2, 3, 4, 5].map((ratingValue) => {
+            const active = ratingValue <= displayValue;
+            const selected = value === ratingValue;
+
+            return (
+              <button
+                key={ratingValue}
+                type="button"
+                onClick={() => onChange(ratingValue)}
+                onFocus={() => setHoveredValue(ratingValue)}
+                onBlur={() => setHoveredValue(undefined)}
+                onMouseEnter={() => setHoveredValue(ratingValue)}
+                className={cn(
+                  "flex size-7 cursor-pointer items-center justify-center text-muted-foreground/45 transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  active && "text-primary",
+                )}
+                aria-label={`${dimension.title} ${ratingValue} 分`}
+                aria-pressed={selected}
+              >
+                <Star className={cn("size-4 transition-colors", active && "fill-current")} />
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-right text-xs leading-5 text-muted-foreground">{dimension.high}</span>
+      </div>
+    </div>
+  );
+}
+
+function ClothingPreferenceRatings({
+  itemName,
+  ratings,
+  onRate,
+  compact = false,
+}: {
+  itemName: string;
+  ratings?: PreferenceDimensionRatings;
+  onRate: (dimension: PreferenceRatingDimension, value: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("space-y-3 border-t border-border/70 pt-3", compact && "space-y-2.5 pt-3")}>
+      <div>
+        <p className="text-sm text-foreground">這件單品給你什麼感覺？</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">告訴我們你的直覺，讓推薦越來越懂你。</p>
+        {compact && <p className="mt-1 text-xs text-muted-foreground">{itemName}</p>}
+      </div>
+      <div className={cn("space-y-3", compact && "space-y-2.5")}>
+        {preferenceRatingDimensions.map((dimension) => (
+          <PreferenceDimensionControl
+            key={dimension.id}
+            dimension={dimension}
+            value={ratings?.[dimension.id]}
+            onChange={(value) => onRate(dimension.id, value)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RecommendationCard({
   item,
   onFeedback,
+  onToggleSaved,
+  onRate,
   onTryOn,
   feedback,
+  saved,
+  rating,
   isTryOnActive,
   isTryOnLoading,
-  saved,
-  onToggleSaved,
 }: {
   item: FashionRecommendation;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
   feedback?: "like" | "dislike";
+  saved: boolean;
+  rating?: PreferenceDimensionRatings;
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
-  saved?: boolean;
-  onToggleSaved?: (itemId: string) => void;
 }) {
   const { t, locale } = useI18n();
 
@@ -136,32 +240,36 @@ function RecommendationCard({
             </Button>
             <Button
               size="icon-sm"
-              variant={feedback === "like" ? "default" : "outline"}
-              aria-label={`${t.stylist.like} ${item.name}`}
-              onClick={() => onFeedback(item.id, "like", item.name)}
+              variant={saved ? "default" : "outline"}
+              aria-label={`Save ${item.name}`}
+              onClick={() => onToggleSaved(item)}
             >
-              <Heart className="size-4" />
+              <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
             </Button>
             <Button
               size="icon-sm"
               variant={feedback === "dislike" ? "destructive" : "outline"}
               aria-label={`${t.stylist.dislike} ${item.name}`}
-              onClick={() => onFeedback(item.id, "dislike", item.name)}
+              onClick={() => onFeedback(item, "dislike")}
             >
               <ThumbsDown className="size-4" />
             </Button>
-            {onToggleSaved && (
-              <Button
-                size="icon-sm"
-                variant={saved ? "default" : "outline"}
-                aria-label={`Save ${item.name}`}
-                onClick={() => onToggleSaved(item.id)}
-              >
-                <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
-              </Button>
-            )}
+            <Button
+              size="icon-sm"
+              variant={saved ? "default" : "outline"}
+              aria-label={`Save ${item.name}`}
+              onClick={() => onToggleSaved(item)}
+            >
+              <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
+            </Button>
           </div>
         </div>
+        <ClothingPreferenceRatings
+          itemName={item.name}
+          ratings={rating}
+          onRate={(dimension, value) => onRate(item.id, dimension, value)}
+          compact
+        />
       </div>
     </article>
   );
@@ -195,7 +303,7 @@ function GeneratedGroupCarousels({
   activeTryOnItemIds,
   tryOnStatus,
   feedback,
-  savedItems,
+  preferenceState,
   onToggleSaved,
 }: {
   groups: GeneratedGroup[];
@@ -210,16 +318,17 @@ function GeneratedGroupCarousels({
     bottoms: FashionRecommendation[],
   ) => Promise<OutfitPairing>;
   onTryOn: (item: FashionRecommendation) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   activeTryOnItemIds: string[];
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
-  savedItems: Record<string, boolean>;
-  onToggleSaved: (itemId: string) => void;
+  /** main 2026-09-20 的統一偏好狀態；收藏與評分都從這裡讀，不再自己維護一份。 */
+  preferenceState: UserPreferenceState;
+  onToggleSaved: (item: FashionRecommendation) => void;
 }) {
   const { locale } = useI18n();
   const [indexBySlot, setIndexBySlot] = useState<Record<string, number>>({});
-  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [ratings, setRatings] = useState<Record<string, PreferenceDimensionRatings>>({});
   // 配對結果只是這一輪的畫面狀態，跟翻到第幾件一樣留在這支元件裡：同一個對話可能
   // 有好幾輪 Design for Me，各自的配對互不相干，放到上層反而要多一層 messageId 對照。
   const [pairing, setPairing] = useState<OutfitPairing | null>(null);
@@ -364,8 +473,13 @@ function GeneratedGroupCarousels({
               tryOnStatus={tryOnStatus}
               feedback={feedback}
               rating={ratings[current.id]}
-              onRate={(itemId, rating) => setRatings((state) => ({ ...state, [itemId]: rating }))}
-              saved={Boolean(savedItems[current.id])}
+              onRate={(itemId, dimension, value) =>
+                setRatings((state) => ({
+                  ...state,
+                  [itemId]: { ...(state[itemId] ?? {}), [dimension]: value },
+                }))
+              }
+              saved={Boolean(preferenceState.savedItems[current.id])}
               onToggleSaved={onToggleSaved}
             />
           );
@@ -396,6 +510,7 @@ function MessageBlock({
   index,
   onChoice,
   onFeedback,
+  onToggleSaved,
   onTryOn,
   onTryOnOutfit,
   onRecommendationNavigate,
@@ -407,10 +522,9 @@ function MessageBlock({
   onDesignForMe,
   onPairOutfit,
   designBusy,
-  savedItems,
-  onToggleSavedItem,
   choicesDisabled,
   feedback,
+  preferenceState,
   activeTryOnItemIds,
   recommendationState,
   tryOnState,
@@ -419,14 +533,15 @@ function MessageBlock({
   message: ChatMessage;
   index: number;
   onChoice: (prompt: string) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
+  onToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onTryOn: (item: FashionRecommendation) => void;
   onTryOnOutfit: (outfit: OutfitRecommendation) => void;
   onRecommendationNavigate: (messageId: string, slot: "topOrDress" | "bottom", index: number) => void;
   onRecommendationTryMore: (messageId: string) => void;
   onRecommendationBackToTopPick: (messageId: string) => void;
-  onRecommendationRate: (messageId: string, itemId: string, rating: number) => void;
-  onRecommendationToggleSaved: (messageId: string, itemId: string) => void;
+  onRecommendationRate: (messageId: string, itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
+  onRecommendationToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
   onPairOutfit: (
@@ -434,10 +549,9 @@ function MessageBlock({
     bottoms: FashionRecommendation[],
   ) => Promise<OutfitPairing>;
   designBusy?: boolean;
-  savedItems: Record<string, boolean>;
-  onToggleSavedItem: (itemId: string) => void;
   choicesDisabled: boolean;
   feedback: Record<string, "like" | "dislike">;
+  preferenceState: UserPreferenceState;
   activeTryOnItemIds: string[];
   recommendationState?: RecommendationUiState;
   tryOnState: TryOnState;
@@ -492,12 +606,14 @@ function MessageBlock({
               key={item.id}
               item={item}
               feedback={feedback[item.id]}
+              saved={Boolean(preferenceState.savedItems[item.id])}
+              rating={preferenceState.itemRatings[item.id]}
               onFeedback={onFeedback}
+              onToggleSaved={(nextItem) => onToggleSaved(message.id, nextItem)}
+              onRate={(itemId, dimension, rating) => onRecommendationRate(message.id, itemId, dimension, rating)}
               onTryOn={onTryOn}
               isTryOnActive={activeTryOnItemIds.includes(item.id)}
               isTryOnLoading={tryOnStatus === "generating"}
-              saved={savedItems[item.id]}
-              onToggleSaved={onToggleSavedItem}
             />
           ))}
         </div>
@@ -516,8 +632,8 @@ function MessageBlock({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          savedItems={savedItems}
-          onToggleSaved={onToggleSavedItem}
+          preferenceState={preferenceState}
+          onToggleSaved={(item) => onToggleSaved(message.id, item)}
         />
       )}
 
@@ -534,11 +650,13 @@ function MessageBlock({
           tryOnState={tryOnState}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
-          onToggleSaved={(itemId) => onRecommendationToggleSaved(message.id, itemId)}
+          preferenceState={preferenceState}
+          onRate={(itemId, dimension, rating) => onRecommendationRate(message.id, itemId, dimension, rating)}
+          onToggleSaved={(item) => onRecommendationToggleSaved(message.id, item)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
           designBusy={designBusy}
+          designForMeDisabled={choicesDisabled}
         />
       )}
     </section>
@@ -552,12 +670,6 @@ interface CreateYouApiErrorDetails {
 }
 
 type TryOnStatus = "idle" | "generating" | "error";
-
-interface TryOnItemFeedback {
-  itemId: string;
-  feedback: "like" | "dislike";
-  timestamp: string;
-}
 
 interface TryOnState {
   topOrDress: FashionRecommendation | null;
@@ -576,10 +688,34 @@ interface StyledMessage {
   reason: string;
 }
 
-interface RecommendationUiState extends ChatRecommendation {
-  ratings: Record<string, number>;
-  savedItems: Record<string, boolean>;
-  savedLook: boolean;
+type RecommendationUiState = ChatRecommendation;
+
+function applyRecommendationReasonRewrites(
+  recommendation: ChatRecommendation,
+  rewrites: Record<string, string>,
+): ChatRecommendation {
+  const replaceItem = (item: FashionRecommendation | null): FashionRecommendation | null => {
+    if (!item || !rewrites[item.id]) {
+      return item;
+    }
+    return { ...item, explanation: rewrites[item.id] };
+  };
+
+  const topOrDress = replaceItem(recommendation.topPick.items.topOrDress);
+  const bottom = replaceItem(recommendation.topPick.items.bottom);
+  return {
+    ...recommendation,
+    topPick: {
+      ...recommendation.topPick,
+      items: { topOrDress: topOrDress as FashionRecommendation, bottom },
+      explanation: topOrDress?.explanation || recommendation.topPick.explanation,
+    },
+    alternatives: {
+      ...recommendation.alternatives,
+      topOrDressCandidates: recommendation.alternatives.topOrDressCandidates.map((item) => replaceItem(item) as FashionRecommendation),
+      bottomCandidates: recommendation.alternatives.bottomCandidates.map((item) => replaceItem(item) as FashionRecommendation),
+    },
+  };
 }
 
 interface TranscriptionResponse {
@@ -613,6 +749,16 @@ function describeTurnFailure(error: unknown, locale: string): string {
     error instanceof StylistApiError || error instanceof Error ? error.message : String(error);
 
   return locale === "zh-TW" ? `這一輪沒有結果：${detail}` : `This turn came back empty: ${detail}`;
+}
+
+function createEmptyPreferenceState(): UserPreferenceState {
+  return {
+    savedItems: {},
+    dislikedItems: {},
+    itemRatings: {},
+    tryOnFeedback: {},
+    recentRecommendationRounds: [],
+  };
 }
 
 function getCreateYouErrorCode(error: unknown) {
@@ -654,9 +800,6 @@ function createRecommendationUiState(recommendation: ChatRecommendation, locale:
 
   return {
     ...normalizedRecommendation,
-    ratings: {},
-    savedItems: {},
-    savedLook: false,
   };
 }
 
@@ -681,17 +824,31 @@ function RecommendationCarousel({
   index: number;
   onNavigate: (nextIndex: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   activeTryOnItemIds: string[];
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
-  rating?: number;
-  onRate: (itemId: string, rating: number) => void;
+  rating?: PreferenceDimensionRatings;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   saved: boolean;
-  onToggleSaved: (itemId: string) => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
   disabledReason?: string;
 }) {
   const { t, locale } = useI18n();
+
+  if (items.length === 0) {
+    // 這一區沒有候選商品——資料庫那邊連身裙的下身區本來就會故意留空
+    // （zones.py 的 is_dress() 規則），生圖那邊理論上兩區都會有六格，但
+    // 單一格生成失敗、被 slice_grid.py 的版面檢查擋下時也可能整區變空。
+    // 兩種情況都不該讓 `items[index]` 直接炸掉，秀一個空狀態卡片就好。
+    return (
+      <article className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground sm:min-h-[360px] xl:min-h-[400px]">
+        <p className="text-xs uppercase tracking-[0.22em]">{title}</p>
+        <p>{disabledReason || "No options for this zone."}</p>
+      </article>
+    );
+  }
+
   const item = items[index];
   const isTryOnActive = activeTryOnItemIds.includes(item.id);
 
@@ -758,24 +915,11 @@ function RecommendationCarousel({
               </span>
             ))}
           </div>
-          <div>
-            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
-              Your rating {rating ? `${rating}/5` : ""}
-            </p>
-            <div className="flex gap-1" aria-label={`Rate ${item.name}`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onRate(item.id, value)}
-                  className="p-0.5 text-primary transition hover:scale-105"
-                  aria-label={`${value} stars`}
-                >
-                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <ClothingPreferenceRatings
+            itemName={item.name}
+            ratings={rating}
+            onRate={(dimension, value) => onRate(item.id, dimension, value)}
+          />
         </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
             <Button
@@ -794,7 +938,7 @@ function RecommendationCarousel({
               type="button"
               size="icon-lg"
               variant={saved ? "default" : "outline"}
-              onClick={() => onToggleSaved(item.id)}
+              onClick={() => onToggleSaved(item)}
               aria-label={`Save ${item.name}`}
             >
               <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} />
@@ -803,7 +947,7 @@ function RecommendationCarousel({
               type="button"
               size="icon-lg"
               variant={feedback[item.id] === "dislike" ? "destructive" : "outline"}
-              onClick={() => onFeedback(item.id, "dislike", item.name)}
+              onClick={() => onFeedback(item, "dislike")}
               aria-label={`${t.stylist.dislike} ${item.name}`}
             >
               <ThumbsDown className="size-4" />
@@ -817,7 +961,7 @@ function RecommendationCarousel({
 
 function CompleteOutfitCard({
   outfit,
-  rating,
+  itemRatings,
   saved,
   disliked,
   isTryOnActive,
@@ -829,20 +973,22 @@ function CompleteOutfitCard({
   onTryMore,
   onDesignForMe,
   designBusy,
+  designForMeDisabled,
 }: {
   outfit: OutfitRecommendation;
-  rating?: number;
+  itemRatings: UserPreferenceState["itemRatings"];
   saved: boolean;
   disliked: boolean;
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
   onTryOn: () => void;
-  onRate: (rating: number) => void;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onToggleSaved: () => void;
   onDislike: () => void;
   onTryMore: () => void;
   onDesignForMe: () => void;
   designBusy?: boolean;
+  designForMeDisabled: boolean;
 }) {
   const { t } = useI18n();
   const garmentLine = outfit.items.bottom
@@ -921,23 +1067,16 @@ function CompleteOutfitCard({
             ))}
           </div>
 
-          <div>
-            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
-              Your rating {rating ? `${rating}/5` : ""}
-            </p>
-            <div className="flex gap-1" aria-label={`Rate ${outfit.name}`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onRate(value)}
-                  className="p-0.5 text-primary transition hover:scale-105"
-                  aria-label={`${value} stars`}
-                >
-                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
-                </button>
-              ))}
-            </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[outfit.items.topOrDress, outfit.items.bottom].filter((item): item is FashionRecommendation => Boolean(item)).map((item) => (
+              <ClothingPreferenceRatings
+                key={item.id}
+                itemName={item.name}
+                ratings={itemRatings[item.id]}
+                onRate={(dimension, value) => onRate(item.id, dimension, value)}
+                compact
+              />
+            ))}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -957,10 +1096,17 @@ function CompleteOutfitCard({
               {/* 商品庫裡沒有想要的 → 讓 AI 生幾件。TOP 跟 BOTTOM 兩張六宮格並行生，
                   現場約 50–70 秒。樣式跟 Enterprise Insights 的「Ask Your Market」
                   一致（實心主色＋Sparkles）——同一套產品裡，叫 AI 做事的入口要長一樣，
-                  使用者才認得出哪些按鈕會花時間、會產生新東西。 */}
-              <Button type="button" size="sm" onClick={onDesignForMe} disabled={designBusy}>
+                  使用者才認得出哪些按鈕會花時間、會產生新東西。
+                  兩個停用條件都要：designBusy 是這一次生成還沒回來，
+                  designForMeDisabled 是這則訊息已經不是最後一則（main 2026-09-20 加的）。 */}
+              <Button
+                type="button"
+                size="sm"
+                onClick={onDesignForMe}
+                disabled={designBusy || designForMeDisabled}
+              >
                 <Sparkles className="size-4" />
-                {designBusy ? "Designing…" : "Design for Me"}
+                {designBusy ? t.stylist.generating : "Design for Me"}
               </Button>
               <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
                 Try More →
@@ -985,28 +1131,32 @@ function ConversationRecommendation({
   tryOnState,
   tryOnStatus,
   feedback,
+  preferenceState,
   onRate,
   onToggleSaved,
   onSaveLook,
   onDesignForMe,
   designBusy,
+  designForMeDisabled,
 }: {
   state: RecommendationUiState;
   onNavigate: (slot: "topOrDress" | "bottom", index: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
   onTryOnOutfit: (outfit: OutfitRecommendation) => void;
-  onFeedback: (id: string, value: "like" | "dislike", itemName: string) => void;
+  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   onTryMore: () => void;
   onBackToTopPick: () => void;
   activeTryOnItemIds: string[];
   tryOnState: TryOnState;
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
-  onRate: (itemId: string, rating: number) => void;
-  onToggleSaved: (itemId: string) => void;
+  preferenceState: UserPreferenceState;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
+  onToggleSaved: (item: FashionRecommendation) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
   designBusy?: boolean;
+  designForMeDisabled: boolean;
 }) {
   const dressActive = isDress(tryOnState.topOrDress);
   const topPick = state.topPick;
@@ -1025,18 +1175,19 @@ function ConversationRecommendation({
     return (
       <CompleteOutfitCard
         outfit={topPick}
-        rating={state.ratings[topPick.id]}
-        saved={state.savedLook}
-        disliked={feedback[topPick.id] === "dislike"}
+        itemRatings={preferenceState.itemRatings}
+        saved={topPickItemIds.length > 0 && topPickItemIds.every((itemId) => Boolean(preferenceState.savedItems[itemId]))}
+        disliked={feedback[topPick.id] === "dislike" || topPickItemIds.some((itemId) => feedback[itemId] === "dislike")}
         isTryOnActive={isTopPickTryOnActive}
         isTryOnLoading={tryOnStatus === "generating"}
         onTryOn={() => onTryOnOutfit(topPick)}
-        onRate={(rating) => onRate(topPick.id, rating)}
+        onRate={onRate}
         onToggleSaved={onSaveLook}
-        onDislike={() => onFeedback(topPick.id, "dislike", topPick.name)}
+        onDislike={() => onFeedback(topPick.items.topOrDress, "dislike")}
         onTryMore={onTryMore}
         onDesignForMe={onDesignForMe}
         designBusy={designBusy}
+        designForMeDisabled={designForMeDisabled}
       />
     );
   }
@@ -1057,9 +1208,17 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id]}
+          rating={
+            preferenceState.itemRatings[
+              state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex]?.id ?? ""
+            ]
+          }
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex].id])}
+          saved={Boolean(
+            preferenceState.savedItems[
+              state.alternatives.topOrDressCandidates[state.alternatives.selectedTopOrDressIndex]?.id ?? ""
+            ],
+          )}
           onToggleSaved={onToggleSaved}
         />
         <RecommendationCarousel
@@ -1072,9 +1231,17 @@ function ConversationRecommendation({
           activeTryOnItemIds={activeTryOnItemIds}
           tryOnStatus={tryOnStatus}
           feedback={feedback}
-          rating={state.ratings[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id]}
+          rating={
+            preferenceState.itemRatings[
+              state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex]?.id ?? ""
+            ]
+          }
           onRate={onRate}
-          saved={Boolean(state.savedItems[state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex].id])}
+          saved={Boolean(
+            preferenceState.savedItems[
+              state.alternatives.bottomCandidates[state.alternatives.selectedBottomIndex]?.id ?? ""
+            ],
+          )}
           onToggleSaved={onToggleSaved}
           disabledReason={dressActive ? "A dress is active as the complete outfit." : undefined}
         />
@@ -1246,12 +1413,14 @@ function VirtualYouFigure({
   tryOnOverlays,
   isTryingOn,
   loadingLabel,
+  waitingLabel,
 }: {
   baseImage: string;
   displayImage: string;
   tryOnOverlays: TryOnOverlay[];
   isTryingOn: boolean;
   loadingLabel: string;
+  waitingLabel: string;
 }) {
   return (
     <div className="relative min-h-[320px] overflow-visible">
@@ -1272,8 +1441,21 @@ function VirtualYouFigure({
         ))}
       </div>
       {isTryingOn && (
-        <div className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center text-sm leading-6 text-muted-foreground">
-          {loadingLabel}
+        <div
+          className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex max-w-full flex-col items-center rounded-full border border-background/70 bg-background/80 px-5 py-4 text-center shadow-[0_10px_30px_rgba(26,22,35,0.12)] backdrop-blur-sm">
+            <span
+              className="mb-2 size-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary"
+              aria-hidden="true"
+            />
+            <p className="max-w-full text-sm font-semibold uppercase tracking-[0.12em] text-foreground sm:text-base">
+              {loadingLabel}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm">{waitingLabel}</p>
+          </div>
         </div>
       )}
     </div>
@@ -1327,6 +1509,7 @@ function CreateYouSection({
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  canShowTryOnFeedback,
   styledMessage,
 }: {
   profile: VirtualYouProfile | null;
@@ -1339,6 +1522,7 @@ function CreateYouSection({
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  canShowTryOnFeedback: boolean;
   styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
@@ -1388,6 +1572,7 @@ function CreateYouSection({
           tryOnOverlays={activeTryOnOverlays}
           isTryingOn={tryOnStatus === "generating"}
           loadingLabel={t.virtualYou.tryingItOn}
+          waitingLabel={t.virtualYou.tryOnWait}
         />
       ) : (
         <div className="relative min-h-[320px] overflow-visible">
@@ -1403,7 +1588,7 @@ function CreateYouSection({
           <p className="mt-1 text-xs leading-5 text-muted-foreground">{styledMessage.reason}</p>
         </div>
       )}
-      {activeTryOnImage && tryOnStatus !== "generating" && (
+      {activeTryOnImage && canShowTryOnFeedback && tryOnStatus !== "generating" && (
         <TryOnFeedbackControls selected={activeTryOnFeedback} onSelect={onTryOnFeedback} />
       )}
     </section>
@@ -1424,6 +1609,7 @@ function StylePanel({
   tryOnError,
   activeTryOnFeedback,
   onTryOnFeedback,
+  canShowTryOnFeedback,
   styledMessage,
 }: {
   signals: PreferenceSignal[];
@@ -1439,6 +1625,7 @@ function StylePanel({
   tryOnError: string;
   activeTryOnFeedback?: "like" | "dislike";
   onTryOnFeedback: (feedback: "like" | "dislike") => void;
+  canShowTryOnFeedback: boolean;
   styledMessage: StyledMessage | null;
 }) {
   const { t } = useI18n();
@@ -1485,6 +1672,7 @@ function StylePanel({
         tryOnError={tryOnError}
         activeTryOnFeedback={activeTryOnFeedback}
         onTryOnFeedback={onTryOnFeedback}
+        canShowTryOnFeedback={canShowTryOnFeedback}
         styledMessage={styledMessage}
       />
     </aside>
@@ -1649,9 +1837,12 @@ export function StylistExperience() {
   // ENGINE 01 最近一輪抽出來的意圖。生成單品要用它，所以每次問到就留下來。
   const [lastIntent, setLastIntent] = useState<Record<string, unknown> | null>(null);
   const [isGeneratingItems, setIsGeneratingItems] = useState(false);
-  // 對話裡每張卡的收藏狀態。ENGINE 02 的商品與 AI 生成的單品共用同一份，
-  // 兩邊的 id 前綴不同不會互撞。
-  const [savedItemIds, setSavedItemIds] = useState<Record<string, boolean>>({});
+  // 2026-09-19 新增：同一輪 ENGINE01 一次回傳多題澄清問題時（例如「一套商業套裝」
+  // 一次缺 colors／material／season 好幾個核心欄位），本地依序秀出剩下的題目、
+  // 答案先收集在這裡，全部答完才真的打一次 /intent——見 sendPrompt() 跟
+  // lib/services/stylist.ts 的 adaptToClarifyingMessage() 註解，兩邊要一起看。
+  const [pendingClarifyingQueue, setPendingClarifyingQueue] = useState<BackendClarifyingQuestion[]>([]);
+  const [pendingClarifyingAnswers, setPendingClarifyingAnswers] = useState<string[]>([]);
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [voiceElapsedSeconds, setVoiceElapsedSeconds] = useState(0);
   const [voiceError, setVoiceError] = useState("");
@@ -1665,7 +1856,7 @@ export function StylistExperience() {
   const [activeTryOnImage, setActiveTryOnImage] = useState<string | null>(null);
   const [tryOnStatus, setTryOnStatus] = useState<TryOnStatus>("idle");
   const [tryOnError, setTryOnError] = useState("");
-  const [itemFeedback, setItemFeedback] = useState<Record<string, TryOnItemFeedback>>({});
+  const [preferenceState, setPreferenceState] = useState<UserPreferenceState>(createEmptyPreferenceState);
   const [recommendationStateByMessageId, setRecommendationStateByMessageId] = useState<Record<string, RecommendationUiState>>({});
   const [styledMessage, setStyledMessage] = useState<StyledMessage | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1686,7 +1877,7 @@ export function StylistExperience() {
   );
   const activeTryOnItemIds = useMemo(() => activeTryOnItems.map((item) => item.id), [activeTryOnItems]);
   const activeTryOnOverlays = useMemo<TryOnOverlay[]>(() => [], []);
-  const primaryActiveTryOnItemId = activeTryOnItemIds[activeTryOnItemIds.length - 1] || null;
+  const canShowTryOnFeedback = Boolean(tryOnState.topOrDress && (isDress(tryOnState.topOrDress) || tryOnState.bottom));
 
   const replaceVirtualYou = useCallback((nextProfile: VirtualYouProfile | null) => {
     const previousObjectUrl = virtualYouObjectUrlRef.current;
@@ -1731,9 +1922,20 @@ export function StylistExperience() {
       conversationService.setCurrentId(nextActiveId);
     }
 
+    if (currentId && nextActiveId && currentId !== nextActiveId) {
+      // 真的切換到別的對話了（不是「同一個對話又觸發了一次 refresh」，例如
+      // virtual-you／onboarding 變更也會走到這裡）——把「還沒問完的一批
+      // clarifying questions」佇列清掉，不然切過去之後點選項，答案會被誤當成
+      // 回答上一個對話裡那批還沒問完的題目（pendingClarifyingQueue 是跨對話
+      // 共用的 component state，不是存在個別 Conversation 物件裡）。
+      setPendingClarifyingQueue([]);
+      setPendingClarifyingAnswers([]);
+    }
+
     setConversations(list);
     setActiveId(nextActiveId);
     setStyleProfile(onboardingService.getProfile());
+    setPreferenceState(preferenceService.get(user.id));
     replaceVirtualYou(await virtualYouService.get(user.id));
   }, [replaceVirtualYou, router]);
 
@@ -1750,12 +1952,14 @@ export function StylistExperience() {
     window.addEventListener("intentweave-auth-change", handleChange);
     window.addEventListener("intentweave-virtual-you-change", handleChange);
     window.addEventListener("intentweave-onboarding-change", handleChange);
+    window.addEventListener(preferenceService.changeEvent, handleChange);
 
     return () => {
       window.removeEventListener("intentweave-conversations-change", handleChange);
       window.removeEventListener("intentweave-auth-change", handleChange);
       window.removeEventListener("intentweave-virtual-you-change", handleChange);
       window.removeEventListener("intentweave-onboarding-change", handleChange);
+      window.removeEventListener(preferenceService.changeEvent, handleChange);
 
       if (virtualYouObjectUrlRef.current) {
         URL.revokeObjectURL(virtualYouObjectUrlRef.current);
@@ -1782,6 +1986,7 @@ export function StylistExperience() {
       setRecommendationStateByMessageId((current) => {
         let changed = false;
         const next = { ...current };
+        const user = authService.getSession();
 
         activeConversation.messages.forEach((message) => {
           if (message.role !== "assistant" || next[message.id]) {
@@ -1790,12 +1995,18 @@ export function StylistExperience() {
 
           if (message.recommendation) {
             next[message.id] = createRecommendationUiState(message.recommendation, locale);
+            if (user) {
+              preferenceService.registerRecommendationRound(user.id, message.id);
+            }
             changed = true;
             return;
           }
 
           if (message.recommendations?.length) {
             next[message.id] = createRecommendationUiState(createChatRecommendation(locale), locale);
+            if (user) {
+              preferenceService.registerRecommendationRound(user.id, message.id);
+            }
             changed = true;
           }
         });
@@ -2022,27 +2233,112 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
-  async function sendPrompt(prompt: string) {
-    const trimmed = prompt.trim();
+  async function applyBackgroundReasonRewrite(
+    conversationId: string,
+    messageId: string,
+    sessionId: string,
+    token: string,
+  ) {
+    try {
+      const rewrites = await fetchRecommendationReasonRewrite(sessionId, token);
+      if (Object.keys(rewrites).length === 0) {
+        return;
+      }
 
-    if (!trimmed || !activeConversation || isGenerating) {
+      const current = conversationService.list(authService.getSession()?.id || "").find((item) => item.id === conversationId);
+      if (!current) {
+        return;
+      }
+      const next = conversationService.update({
+        ...current,
+        messages: current.messages.map((message) =>
+          message.id === messageId && message.recommendation
+            ? { ...message, recommendation: applyRecommendationReasonRewrites(message.recommendation, rewrites) }
+            : message,
+        ),
+      });
+      persistConversation(next);
+      setRecommendationStateByMessageId((currentState) => {
+        const existing = currentState[messageId];
+        return existing
+          ? { ...currentState, [messageId]: applyRecommendationReasonRewrites(existing, rewrites) }
+          : currentState;
+      });
+    } catch (error) {
+      // 改寫只是可選的文案增強；保留立即顯示的 ENGINE02 template reason。
+      console.warn("[stylist] ENGINE02 推薦理由背景改寫未完成：", error);
+    }
+  }
+
+  // 2026-09-19 新增：把上一輪（conversation.engineRound）收集到的
+  // preferenceState 收藏／不喜歡／打分／整套喜歡送給 ENGINE03。沒有
+  // engineSessionId／engineRound（還沒有真的跑過一輪）或這輪完全沒有任何
+  // recommendation 訊息就直接跳過，不報錯——這是「有沒有東西可以送」的
+  // 正常情況，不是失敗。任何呼叫失敗只印 log，不往外丟例外：這是輔助性的
+  // 背景送出，絕對不能卡住使用者發送下一句話。
+  async function submitPendingRoundFeedback(conversation: Conversation, token: string) {
+    if (!conversation.engineSessionId || conversation.engineRound === undefined) {
       return;
     }
 
-    shouldFollowRef.current = true;
-    let nextConversation = conversationService.appendMessage(activeConversation, {
-      id: `user-${Date.now()}`,
-      role: "user",
-      text: trimmed,
-      createdAt: new Date().toISOString(),
-    });
+    const lastRecommendationMessage = [...conversation.messages].reverse().find((message) => message.recommendation);
+    const recommendation = lastRecommendationMessage?.recommendation;
+    if (!recommendation) {
+      return;
+    }
 
+    // 從 Top Pick／Try More 候選清單重建「這個 id 屬於哪一區」——整套喜歡
+    // 一定要分清楚 top_item_id／bottom_item_id，不能只知道兩件不知道哪件是哪區。
+    const zoneByItemId: ZoneByItemId = {};
+    recommendation.alternatives.topOrDressCandidates.forEach((item) => {
+      zoneByItemId[item.id] = "top";
+    });
+    recommendation.alternatives.bottomCandidates.forEach((item) => {
+      zoneByItemId[item.id] = "bottom";
+    });
+    if (recommendation.topPick.items.topOrDress) {
+      zoneByItemId[recommendation.topPick.items.topOrDress.id] = "top";
+    }
+    if (recommendation.topPick.items.bottom) {
+      zoneByItemId[recommendation.topPick.items.bottom.id] = "bottom";
+    }
+
+    const { itemFeedbacks, outfitFeedbacks } = adaptPreferencesToFeedbackRequest(preferenceState, zoneByItemId);
+    if (itemFeedbacks.length === 0 && outfitFeedbacks.length === 0) {
+      return;
+    }
+
+    try {
+      await submitFeedback(
+        conversation.engineSessionId,
+        conversation.engineRound,
+        itemFeedbacks,
+        outfitFeedbacks,
+        token,
+      );
+    } catch (error) {
+      // Feedback 是下一輪排序的輔助訊號。舊版快取可能含有已不再屬於這輪
+      // session 的生成 item id；後端會安全地拒絕它，但不應讓 Next dev overlay
+      // 把這個已處理的情況誤顯示成應用程式崩潰。
+      console.warn("[stylist] 送出上一輪回饋已略過（不影響本輪對話）：", error);
+    }
+  }
+
+  // 真的打 ENGINE01 /intent（→有澄清問題就組選擇題；沒有就接著 /recommend
+  // 組 Top Pick＋Try More）。`messageForBackend` 是實際要送給後端的一句話——
+  // 一般情況下就是使用者這輪打的字／點的選項；但如果這輪是在回答同一個
+  // clarifying-question 批次裡的最後一題，`sendPrompt()`（下面）會先把
+  // 這一批已經收集到的所有答案合併成一句話，才呼叫這支函式，所以這裡
+  // 不能假設 `messageForBackend` 一定等於使用者剛剛打的原始文字。
+  // `baseConversation` 是已經包含這一輪使用者訊息泡泡的對話物件（由呼叫端
+  // 決定要不要、以及怎麼組出使用者泡泡——見 sendPrompt()），這支函式只管
+  // 呼叫後端、把回應接到後面。
+  async function runIntentTurn(messageForBackend: string, baseConversation: Conversation) {
+    let nextConversation = baseConversation;
     persistConversation(nextConversation);
     setInput("");
     setIsGenerating(true);
 
-    // 2026-09-19：這裡原本是 window.setTimeout 假裝在想，換成真的呼叫 ENGINE01
-    // /intent（→有澄清問題就組選擇題；沒有就接著 /recommend 組 Top Pick＋Try More）。
     // token 理論上一定有（createNewSession 已經檔過未登入導去 /login），沒有就退回
     // 舊的 mock 回覆，不讓對話卡死。
     const token = authService.getSessionToken();
@@ -2051,44 +2347,74 @@ export function StylistExperience() {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      nextConversation = conversationService.appendMessage(latest, createStylistReply(trimmed, locale));
+      nextConversation = conversationService.appendMessage(latest, createStylistReply(messageForBackend, locale));
       persistConversation(nextConversation);
       setIsGenerating(false);
       return;
     }
 
+
+    // 2026-09-19 新增：送出這輪新訊息之前，先把上一輪收集到的收藏／不喜歡／
+    // 打分／整套喜歡送給 ENGINE03——fire-and-forget，任何失敗只印 log，
+    // 絕對不能讓回饋送不出去卡住使用者這輪新的對話。用 baseConversation
+    // （呼叫端傳進來的，還沒被下面的 /intent 回應覆寫 engineSessionId／
+    // engineRound）才是「上一輪」真正的狀態。
+    // 回饋要先成功寫回 ENGINE01 session，下一次 /recommend 才能吃到 ENGINE03
+    // 的權重調整；submitPendingRoundFeedback 會自行處理失敗，不會阻斷對話。
+    await submitPendingRoundFeedback(baseConversation, token);
+
     try {
-      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, trimmed, token);
+      const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);
+      // Design for Me／AI 幫我搭都要用這包意圖；重整後 React state 會歸零，
+      // 所以下面 conversationService.update 時也會一起寫進對話。
       setLastIntent(intentResult.intent ?? null);
 
-      const assistantMessage: ChatMessage =
-        intentResult.clarifying_questions.length > 0
-          ? adaptToClarifyingMessage(intentResult.clarifying_questions)
-          : {
-              id: `ai-${Date.now()}`,
-              role: "assistant",
-              text:
-                locale === "zh-TW"
-                  ? "我有一套很適合你的方向，這是幫你搭好的一套。"
-                  : "I have a direction in mind — here's the outfit I'd start with.",
-              recommendation: await adaptToChatRecommendation(
-                await fetchRecommendation(intentResult.session_id, token),
-                token,
-              ),
-            };
+      let assistantMessage: ChatMessage;
+      let reasonRewriteSessionId: string | null = null;
+      if (intentResult.clarifying_questions.length > 0) {
+        // 2026-09-19 修正：這裡以前把整批 clarifying_questions 丟給
+        // adaptToClarifyingMessage()，但它只轉第一題、其餘題目直接消失——
+        // 而後端 gating.py 早就把「這次保留的每一題」都記成已經問過
+        // （不是只記第一題），造成那些被丟掉的題目對應的核心欄位永遠不會
+        // 再被問、也沒被使用者真的回答過。現在改成只顯示第一題，其餘的存進
+        // pendingClarifyingQueue，交給 sendPrompt() 依序秀出來、答完才送出
+        // 下一次 /intent（見該函式與 lib/services/stylist.ts 的註解）。
+        assistantMessage = adaptToClarifyingMessage(intentResult.clarifying_questions[0]);
+        setPendingClarifyingQueue(intentResult.clarifying_questions);
+        setPendingClarifyingAnswers([]);
+      } else {
+        setPendingClarifyingQueue([]);
+        setPendingClarifyingAnswers([]);
+        const zonedRecommendation = await fetchRecommendation(intentResult.session_id, token);
+        assistantMessage = {
+          id: `ai-${Date.now()}`,
+          role: "assistant",
+          text:
+            locale === "zh-TW"
+              ? "我有一套很適合你的方向，這是幫你搭好的一套。"
+              : "I have a direction in mind — here's the outfit I'd start with.",
+          recommendation: await adaptToChatRecommendation(zonedRecommendation, token),
+        };
+        reasonRewriteSessionId = zonedRecommendation.session_id;
+      }
 
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      // lastIntent 跟著 engineSessionId 一起寫回對話——單靠 setLastIntent 的 React state
-      // 撐不過重新整理，Design for Me 會在重整後誤判成「還沒說需求」。
+      // lastIntent 跟著 engineSessionId／engineRound 一起寫回對話——單靠
+      // setLastIntent 的 React state 撐不過重新整理，Design for Me 會在重整後
+      // 誤判成「還沒說需求」。
       nextConversation = conversationService.update({
         ...latest,
         engineSessionId: intentResult.session_id,
+        engineRound: intentResult.round,
         lastIntent: intentResult.intent ?? null,
       });
       nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
       persistConversation(nextConversation);
+      if (reasonRewriteSessionId && assistantMessage.recommendation) {
+        void applyBackgroundReasonRewrite(nextConversation.id, assistantMessage.id, reasonRewriteSessionId, token);
+      }
     } catch (error) {
       console.error("[stylist] 呼叫 ENGINE01／ENGINE02 失敗：", error);
       const latest =
@@ -2105,45 +2431,75 @@ export function StylistExperience() {
     }
   }
 
-  // 對商品庫撈到的東西不滿意時，用同一份意圖生六件新的。
-  // 一次生圖 26–48 秒，所以是明確按下去才跑，不是每輪自動。
+  // 使用者實際打字送出、或點某個 quickChoice/visualChoice 按鈕都會走到這裡
+  // （`onChoice={sendPrompt}`，見下面 render 那段）。多數情況下就是直接組一個
+  // 使用者訊息泡泡、呼叫 runIntentTurn() 打後端；但如果目前正卡在一批多題
+  // 的 clarifying-question 佇列中間（pendingClarifyingQueue 非空——見
+  // runIntentTurn() 設定它的地方），這通常代表使用者剛回答的是佇列裡的
+  // 「目前顯示中」那一題，不能立刻打後端，要先在本地依序秀出佇列裡剩下
+  // 的題目，全部答完才把收集到的答案合併成一句話真正送出 /intent。
+  function sendPrompt(prompt: string) {
+    const trimmed = prompt.trim();
+
+    if (!trimmed || !activeConversation || isGenerating) {
+      return;
+    }
+
+    shouldFollowRef.current = true;
+    let nextConversation = conversationService.appendMessage(activeConversation, {
+      id: `user-${Date.now()}`,
+      role: "user",
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (pendingClarifyingQueue.length > 0) {
+      const accumulatedAnswers = [...pendingClarifyingAnswers, trimmed];
+      const remainingQueue = pendingClarifyingQueue.slice(1);
+
+      if (remainingQueue.length > 0) {
+        // 佇列裡還有題目沒問——秀出下一題，先不打後端。
+        nextConversation = conversationService.appendMessage(
+          nextConversation,
+          adaptToClarifyingMessage(remainingQueue[0]),
+        );
+        persistConversation(nextConversation);
+        setPendingClarifyingQueue(remainingQueue);
+        setPendingClarifyingAnswers(accumulatedAnswers);
+        return;
+      }
+
+      // 這是這批問題的最後一題，答案都收集齊了，合併成一句話真正送出去。
+      setPendingClarifyingQueue([]);
+      setPendingClarifyingAnswers([]);
+      void runIntentTurn(accumulatedAnswers.join(locale === "zh-TW" ? "；" : "; "), nextConversation);
+      return;
+    }
+
+    void runIntentTurn(trimmed, nextConversation);
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     sendPrompt(input);
   }
 
-  function handleFeedback(id: string, value: "like" | "dislike", itemName: string) {
-    if (!activeConversation || isGenerating) {
+  function preferenceContext(messageId?: string) {
+    return {
+      conversationId: activeConversation?.id,
+      messageId,
+      roundKey: messageId,
+    };
+  }
+
+  function handleFeedback(item: FashionRecommendation, value: "dislike") {
+    const user = authService.getSession();
+
+    if (!user || !activeConversation || isGenerating || value !== "dislike") {
       return;
     }
 
-    shouldFollowRef.current = true;
-    let nextConversation = conversationService.updateFeedback(activeConversation, id, value);
-    const feedbackText =
-      value === "like"
-        ? locale === "zh-TW"
-          ? `我喜歡 ${itemName}，想看類似方向。`
-          : `I like ${itemName}. Show me similar directions.`
-        : locale === "zh-TW"
-          ? `我不太喜歡 ${itemName}，請幫我調整。`
-          : `I do not love ${itemName}. Refine it.`;
-
-    nextConversation = conversationService.appendMessage(nextConversation, {
-      id: `user-feedback-${Date.now()}`,
-      role: "user",
-      text: feedbackText,
-    });
-    nextConversation = conversationService.appendMessage(nextConversation, {
-      id: `assistant-feedback-${Date.now()}`,
-      role: "assistant",
-      text: value === "like" ? t.assistant.feedbackLike : t.assistant.feedbackDislike,
-      quickChoices: [
-        { id: "similar", label: t.choices.showSimilar, prompt: locale === "zh-TW" ? "看類似款" : "Show me something similar" },
-        { id: "casual", label: t.choices.makeCasual, prompt: locale === "zh-TW" ? "更休閒一點" : "I like this, but make it more casual" },
-        { id: "color", label: t.choices.keepColor, prompt: locale === "zh-TW" ? "保留顏色但換輪廓" : "I like the color but not the silhouette" },
-      ],
-    });
-    persistConversation(nextConversation);
+    setPreferenceState(preferenceService.toggleDislikedItem(user.id, item, preferenceContext()));
   }
 
   async function saveVirtualYou(photo: File | null, measurements: VirtualYouMeasurements) {
@@ -2289,7 +2645,7 @@ export function StylistExperience() {
 
     try {
       await new Promise((resolve) => window.setTimeout(resolve, options?.delayMs ?? 320));
-      const preview = await virtualYouService.generateVirtualTryOn(virtualYou, wearableItems[0]);
+      const preview = await virtualYouService.runVirtualTryOn(virtualYou, wearableItems);
       replaceActiveTryOnImage(preview.generatedImageUrl);
       setStyledMessage(options?.message ?? null);
       setTryOnStatus("idle");
@@ -2345,15 +2701,6 @@ export function StylistExperience() {
     );
   }
 
-  /**
-   * Design for Me：商品庫裡沒有想要的，就讓 AI 生幾件出來。
-   *
-   * 生出來的東西自成一輪對話，不併進 ENGINE 02 那一輪的候選——那一輪是商品庫裡
-   * 真的買得到的東西，這些是還不存在的單品，混在同一排會分不出哪些是商品。
-   * 卡片本身跟 ENGINE 02 的同一支元件，所以一樣可以試穿、按愛心、收藏。
-   *
-   * TOP 與 BOTTOM 是兩張六宮格，BFF 並行送，大約等於一張的時間（50–70 秒）。
-   */
   /** 某一輪 ENGINE 02 的候選。只在那一輪真的有推薦結果時才有東西。 */
   function catalogFor(messageId: string) {
     const state = recommendationStateByMessageId[messageId];
@@ -2498,64 +2845,40 @@ export function StylistExperience() {
     });
   }
 
-  function handleRecommendationRate(messageId: string, itemId: string, rating: number) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+  function handleRecommendationRate(
+    messageId: string,
+    itemId: string,
+    dimension: PreferenceRatingDimension,
+    rating: number,
+  ) {
+    const user = authService.getSession();
 
-      if (!state) {
-        return current;
-      }
+    if (!user) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          ratings: {
-            ...state.ratings,
-            [itemId]: rating,
-          },
-        },
-      };
-    });
+    setPreferenceState(preferenceService.setDimensionRating(user.id, itemId, dimension, rating));
   }
 
-  function handleRecommendationToggleSaved(messageId: string, itemId: string) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+  function handleRecommendationToggleSaved(messageId: string, item: FashionRecommendation) {
+    const user = authService.getSession();
 
-      if (!state) {
-        return current;
-      }
+    if (!user) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          savedItems: {
-            ...state.savedItems,
-            [itemId]: !state.savedItems[itemId],
-          },
-        },
-      };
-    });
+    setPreferenceState(preferenceService.toggleSavedItem(user.id, item, preferenceContext(messageId)));
   }
 
   function handleRecommendationSaveLook(messageId: string) {
-    setRecommendationStateByMessageId((current) => {
-      const state = current[messageId];
+    const user = authService.getSession();
+    const state = recommendationStateByMessageId[messageId];
 
-      if (!state) {
-        return current;
-      }
+    if (!user || !state?.topPick) {
+      return;
+    }
 
-      return {
-        ...current,
-        [messageId]: {
-          ...state,
-          savedLook: !state.savedLook,
-        },
-      };
-    });
+    setPreferenceState(preferenceService.toggleSavedOutfitItems(user.id, state.topPick, preferenceContext(messageId)));
   }
 
   function handleRecommendationTryMore(messageId: string) {
@@ -2595,22 +2918,31 @@ export function StylistExperience() {
   }
 
   function handleTryOnFeedback(feedbackValue: "like" | "dislike") {
-    if (!primaryActiveTryOnItemId) {
+    const user = authService.getSession();
+    const canRateTryOn = Boolean(tryOnState.topOrDress && (isDress(tryOnState.topOrDress) || tryOnState.bottom));
+
+    if (!user || !canRateTryOn) {
       return;
     }
 
-    setItemFeedback((current) => ({
-      ...current,
-      [primaryActiveTryOnItemId]: {
-        itemId: primaryActiveTryOnItemId,
-        feedback: feedbackValue,
-        timestamp: new Date().toISOString(),
-      },
-    }));
+    setPreferenceState(preferenceService.setTryOnFeedback(user.id, activeTryOnItems, feedbackValue, preferenceContext()));
   }
 
-  const feedback = activeConversation?.recommendationFeedback || {};
+  const feedback = useMemo(() => {
+    const next: Record<string, "like" | "dislike"> = {};
+
+    Object.keys(preferenceState.savedItems).forEach((itemId) => {
+      next[itemId] = "like";
+    });
+    Object.keys(preferenceState.dislikedItems).forEach((itemId) => {
+      next[itemId] = "dislike";
+    });
+
+    return next;
+  }, [preferenceState.dislikedItems, preferenceState.savedItems]);
   const signals = activeConversation?.preferenceSignals || [];
+  const activeTryOnOutfitKey = outfitKeyFromItems(activeTryOnItems);
+  const activeTryOnFeedback = activeTryOnOutfitKey ? preferenceState.tryOnFeedback[activeTryOnOutfitKey]?.feedback : undefined;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -2651,6 +2983,7 @@ export function StylistExperience() {
               index={index}
               onChoice={sendPrompt}
               onFeedback={handleFeedback}
+              onToggleSaved={handleRecommendationToggleSaved}
               onTryOn={handleTryOn}
               onTryOnOutfit={handleTryOnOutfit}
               onRecommendationNavigate={handleRecommendationNavigate}
@@ -2662,12 +2995,9 @@ export function StylistExperience() {
               onDesignForMe={handleDesignForMe}
               onPairOutfit={handlePairOutfit}
               designBusy={isGeneratingItems}
-              savedItems={savedItemIds}
-              onToggleSavedItem={(itemId) =>
-                setSavedItemIds((current) => ({ ...current, [itemId]: !current[itemId] }))
-              }
               choicesDisabled={index !== activeConversation.messages.length - 1 || isGenerating}
               feedback={feedback}
+              preferenceState={preferenceState}
               activeTryOnItemIds={activeTryOnItemIds}
               recommendationState={recommendationStateByMessageId[message.id]}
               tryOnState={tryOnState}
@@ -2755,8 +3085,9 @@ export function StylistExperience() {
         activeTryOnOverlays={activeTryOnOverlays}
         tryOnStatus={tryOnStatus}
         tryOnError={tryOnError}
-        activeTryOnFeedback={primaryActiveTryOnItemId ? itemFeedback[primaryActiveTryOnItemId]?.feedback : undefined}
+        activeTryOnFeedback={activeTryOnFeedback}
         onTryOnFeedback={handleTryOnFeedback}
+        canShowTryOnFeedback={canShowTryOnFeedback}
         styledMessage={styledMessage}
       />
       <VirtualYouModal

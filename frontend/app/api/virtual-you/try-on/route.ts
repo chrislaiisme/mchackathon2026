@@ -39,11 +39,9 @@ export async function POST(request: Request) {
     }
 
     if (!tryOnServiceUrl) {
-      const imageBytes = Buffer.from(await personImage.arrayBuffer());
-      return Response.json({
-        imageBase64: imageBytes.toString("base64"),
-        provider: "mock",
-      });
+      // 原本把人物原圖包成 mock 成功回應，畫面會假裝試穿成功但完全沒換衣服。
+      // 未設定服務時必須明確失敗，讓使用者和開發者都能立刻看出設定問題。
+      return errorResponse("try_on_service_unconfigured", 503);
     }
 
     let resolvedGarmentImage = garmentImage;
@@ -99,6 +97,12 @@ export async function POST(request: Request) {
 
       if (typeof result.imageBase64 !== "string") {
         return errorResponse("try_on_response_missing_image", 502);
+      }
+
+      // 舊版 Virtual You 在 provider 未設定時會用原人物圖回 mock 成功結果。
+      // 不把這種假成功送回 UI，否則右側仍顯示預設人物、卻寫著已經試穿。
+      if (result.provider === "mock") {
+        return errorResponse("try_on_provider_mock", 503);
       }
 
       return Response.json({

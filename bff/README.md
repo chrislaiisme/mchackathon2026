@@ -40,6 +40,32 @@ Runtime：內嵌 Hermes Agent 的後端服務，對應 PRD 7.1 Agent Runtime Lay
 `POST /feedback` 一次就完成「回饋 → 再出題」，前端不用自己再呼叫一次 `/round`。同一份意圖沿用，
 差別只在多了一輪回饋，所以排序改變的原因是可以指著講的。
 
+BFF 會從 session 取回 ENGINE 01 intent 和 ENGINE 02 上輪實際展示的商品 ID。Frontend 只需
+一次送出整輪所有有互動商品的 `item_feedbacks`；BFF 呼叫 ENGINE 03 後，把原 intent 與彙整後的
+feedback 一次送進 ENGINE 02，不會逐商品重複呼叫。
+
+BFF 只保留最近三輪原始回饋。每次 `/feedback` 會把「前三輪＋本輪」交給 ENGINE 03，
+ENGINE 03 將這最多四輪的收藏、倒讚、`choice_history` 與屬性平均權重合併後，再給 ENGINE 02。
+Frontend 仍只需送本輪 `item_feedbacks`。
+
+```json
+{
+  "session_id": "s1",
+  "round": 1,
+  "item_feedbacks": [
+    {
+      "item_id": "A",
+      "favorited": true,
+      "attribute_ratings": [{"attribute": "polished_formality", "stars": 2}]
+    },
+    {"item_id": "B", "disliked": true}
+  ]
+}
+```
+
+Frontend 先呼叫 `GET /feedback/attributes` 取得三個可評分方向及繁中顯示文字：`醒目亮眼感`、
+`俐落正式感`、`柔軟動感`。送回評分時使用對應的穩定 `id`，ENGINE 03 再展開成 ENGINE 02 的 15 個設計軸。
+
 ### 四個服務一起跑
 
 先裝依賴（一次）。ENGINE 02 用 `pyproject.toml`；ENGINE 01／03 與串接層用根目錄的
@@ -56,7 +82,7 @@ ENGINE 02 還要先建商品庫（`data/README.md` 步驟 1）；沒裝 torch �
 ```bash
 uvicorn bff.engine01_intent.main:app --port 8000     # ENGINE 01（需要 codex login）
 uvicorn mcp_servers.catalog.main:app --port 8002     # ENGINE 02（需要商品庫；無 torch 加 ENGINE02_ENCODER=hash）
-uvicorn bff.feedback.main:app       --port 8003      # ENGINE 03
+uvicorn backend.engine03_feedback.main:app --port 8003  # ENGINE 03
 uvicorn bff.main:app                --port 8100      # 串接層
 cd web && npm run dev                                # 前端
 ```

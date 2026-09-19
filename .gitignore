@@ -77,11 +77,56 @@ data/catalog/kagl/*
 data/catalog/polyvore/*
 !data/catalog/polyvore/category_cooccurrence.json
 !data/catalog/polyvore/category_cooccurrence.meta.json
+# H&M catalog filled in by a GPU vision model: the table ships (it needs a GPU to regenerate);
+# images are rebuilt from image_url (scripts/fetch_catalog_images.py), embeddings on first start
+!data/catalog/hm_filled/
+data/catalog/hm_filled/*
+!data/catalog/hm_filled/items.parquet
+!data/catalog/hm_filled/vlm_fill_report.json
+!data/catalog/hm_filled/README.md
+!data/catalog/hm_filled/stats.json
+!data/catalog/hm_filled/vlm_fill_*.meta.json
+# image embeddings computed on the GPU in the final row order (~15 min on CPU otherwise)
+!data/catalog/hm_filled/index/
+data/catalog/hm_filled/index/*
+!data/catalog/hm_filled/index/img_marqo-fashionSigLIP.npy
 # Pinterest: metadata needs the team token, so it ships; the images are third-party and can be
 # rebuilt from the public CDN URLs in the metadata with --images-from, so they stay local.
 !data/pinterest/
 data/pinterest/*
 !data/pinterest/pins_*.json
+# Crawled web / Commons / Mastodon records: pages change, so a re-crawl gives a different set;
+# the merged records ship. Page caches and raw run folders (data/crawl/) stay local.
+!data/crawl_dataset/
+data/crawl_dataset/*
+!data/crawl_dataset/records.json
+!data/crawl_dataset/records.csv
+!data/crawl_dataset/sources.json
+!data/crawl_dataset/errors.jsonl
+!data/crawl_dataset/README.md
+# the crawled product pages mapped to the catalog schema; images rebuild from image_url
+!data/catalog/crawl_tw/
+data/catalog/crawl_tw/*
+!data/catalog/crawl_tw/items.parquet
+!data/catalog/crawl_tw/stats.json
+!data/catalog/crawl_tw/README.md
+!data/catalog/crawl_tw/vlm_fill_report.json
+!data/catalog/crawl_tw/vlm_fill_*.meta.json
+!data/catalog/crawl_tw/index/
+data/catalog/crawl_tw/index/*
+!data/catalog/crawl_tw/index/img_marqo-fashionSigLIP.npy
+# inspiration library: Commons photos are CC-licensed (attribution in items.parquet) and can be
+# deleted or recategorised upstream, so thumbnails + index ship with the table
+!data/inspiration/
+data/inspiration/*
+!data/inspiration/items.parquet
+!data/inspiration/build_report.json
+!data/inspiration/README.md
+!data/inspiration/images/
+!data/inspiration/index/
+
+# forecast cache written by engine02/context/weather.py: date-specific, rebuilt on demand
+data/context/forecast_*.json
 
 # 生圖的產出與參考圖不進版控：一次六宮格就好幾 MB，而這個 repo 比賽當天大家要 clone。
 # 解釋每次執行的 prompt 與 manifest 有進版控，證據留著、重量不帶上。

@@ -96,6 +96,7 @@ def test_a_budget_on_a_priceless_catalog_does_not_cost_the_user_their_colour(mon
     monkeypatch.setenv("ENGINE02_ENCODER", "hash")
     monkeypatch.setenv("ENGINE02_LLM", "none")
     monkeypatch.setenv("ENGINE02_DEMO", "1")
+    monkeypatch.setenv("ENGINE02_ESTIMATE_PRICES", "0")     # the truly priceless case
     from fastapi.testclient import TestClient
 
     from engine02.api import app
@@ -112,6 +113,29 @@ def test_a_budget_on_a_priceless_catalog_does_not_cost_the_user_their_colour(mon
         assert rep["applied"].get("color") == ["White"]
         assert "budget_unavailable" in rep["applied"]
         assert any("預算" in w for w in rep["input_warnings"]), rep["input_warnings"]
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl")
+def test_with_estimated_prices_a_budget_filters_and_says_the_prices_are_estimates(monkeypatch):
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    monkeypatch.delenv("ENGINE02_ESTIMATE_PRICES", raising=False)
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        b = client.post("/rank", json={
+            "session_id": "b", "retrieval_text": "formal shirt",
+            "constraints": {"category": "tops", "color": ["White"],
+                            "budget": {"state": "value", "max_price": 800}},
+            "options": {"top_k": 5}}).json()
+        rep = b["constraint_report"]
+        assert b["items"] and "budget" in rep["applied"] and "budget_unavailable" not in rep["applied"]
+        assert all(it["price"] <= 800 and it["price_estimated"] for it in b["items"])
+        assert all("估計價" in (it["price_basis"] or "") for it in b["items"])
+        assert any("估計價" in w for w in rep["input_warnings"]), rep["input_warnings"]
 
 
 FIXTURE = ROOT / "data" / "catalog" / "kagl_priced_fixture" / "items.parquet"
