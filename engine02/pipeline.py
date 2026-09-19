@@ -9,6 +9,7 @@ filter (with relaxation) → candidate retrieval (BM25 / dense / RRF / convex)
 from __future__ import annotations
 
 import os
+import threading
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -36,6 +37,8 @@ from .kansei import KanseiTable
 from .rerank import Term, additive_score, counterfactual_ranks, cutoff_explanations
 from .sparse import BM25Index
 from .taxonomy import filter_with_category_relaxation, load_taxonomy, resolve_category_values
+
+_CTX_LOCAL = threading.local()
 
 
 class CrossReranker(Protocol):
@@ -274,6 +277,7 @@ class Engine02:
         arm = ARMS[arm] if isinstance(arm, str) else (arm or ARMS[req.options.arm])
         timings: dict[str, float] = {}
         t = time.perf_counter()
+        _CTX_LOCAL.info = {"signals": [], "problems": []}   # never report a previous request's weather
 
         def lap(name: str) -> None:
             nonlocal t
@@ -502,6 +506,7 @@ class Engine02:
                     margin_vs_cutoff=ce.margin if ce.cutoff_position is not None else None,
                     reason_mode=arm.reason_mode,
                     reasons=reasons,
+                    reason_facts=facts,
                     attribute_notes=notes,
                     explanation=text_expl,
                     explanation_source=src,
@@ -548,6 +553,7 @@ class Engine02:
             encoder=self.encoder.name,
             query_embedding=[float(x) for x in q],
             timings_ms=timings,
+            context_used=self._context_used(),
         )
 
     # ------------------------------------------------------------------
@@ -768,6 +774,14 @@ class Engine02:
         terms += self._context_terms(req, arm, cand)
         return terms
 
+    @staticmethod
+    def _context_used() -> dict:
+        """What the situation actually contributed this request (shown to the front end as-is)."""
+        info = getattr(_CTX_LOCAL, "info", None) or {"signals": [], "problems": []}
+        return {"signals": [{"source": s.source, "label": s.label, "affects_ranking": bool(s.affects_ranking)}
+                            for s in info["signals"]],
+                "problems": list(info["problems"])}
+
     def _context_terms(self, req, arm: ArmConfig, cand) -> list[Term]:
         """The shopper's situation (weather, festival, commute) and opt-in personal options, one
         un-normalised term per signal so "+0.30" on a card is exactly +0.30. No context -> no terms,
@@ -775,12 +789,13 @@ class Engine02:
         from .context.engine import CONTEXT_LABELS, build_signals, enriched, is_empty, item_scores
 
         ctx = getattr(req, "context", None)
-        self._last_context = {"signals": [], "problems": []}
+        _CTX_LOCAL.info = {"signals": [], "problems": []}
         if is_empty(ctx):
             CONTEXT_LABELS.set({})
             return []
         sigs, problems = build_signals(ctx)
-        self._last_context = {"signals": sigs, "problems": problems}
+        # per request thread: two concurrent /rank calls must not report each other's weather
+        _CTX_LOCAL.info = {"signals": sigs, "problems": problems}
         items = enriched(self.catalog.items)
         c_mat = self.design_matrix(arm)
         ids = list(self.kansei.element_ids)

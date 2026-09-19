@@ -309,6 +309,9 @@ class RankedItem(BaseModel):
     margin_vs_cutoff: float | None = None  # score gap to the rank k+1 item
     reason_mode: str = "sufficient"
     reasons: list[str] = Field(default_factory=list)  # template sentences, verified
+    # the facts those sentences state (label, contribution, direction ...): what a rewrite may use
+    # and what engine02.explain.verify_paraphrase checks it against (POST /explain/rewrite)
+    reason_facts: list[dict] = Field(default_factory=list)
     # hard-constrained attributes of this item that were filled by a model, e.g. ["顏色為模型判讀"]
     attribute_notes: list[str] = Field(default_factory=list)
     explanation: str = ""
@@ -370,3 +373,6 @@ class Engine02Response(BaseModel):
     # proposed: query vector used this round, so ENGINE 03 can apply Rocchio next round
     query_embedding: list[float] | None = None
     timings_ms: dict[str, float] = Field(default_factory=dict)
+    # the situation this ranking used: signals (with their card labels), problems (e.g. no forecast),
+    # and -- when ENGINE 02 filled it in itself -- auto_filled {field: value} (engine02/context/auto.py)
+    context_used: dict = Field(default_factory=dict)

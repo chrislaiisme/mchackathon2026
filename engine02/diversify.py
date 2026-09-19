@@ -347,7 +347,7 @@ def diversify_response(engine, req: Engine02Request, deep: Engine02Response, cfg
         text, src = explain(reasons, facts, engine.vocabulary, use_llm)
         data = it.model_dump()
         data.update(rank=rank, contributions=contribs, margin_vs_cutoff=margin, reasons=reasons,
-                    explanation=text, explanation_source=src, relevance_rank=i + 1,
+                    reason_facts=facts, explanation=text, explanation_source=src, relevance_rank=i + 1,
                     promoted_by_diversity=promoted, max_similarity_to_higher=max_sim, new_aspects=new_aspects)
         if surprise:
             data["promoted_by_surprise"] = True

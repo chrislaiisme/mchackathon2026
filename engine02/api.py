@@ -17,6 +17,10 @@ Environment variables:
   ENGINE02_DEMO      1 = never call the LLM for reasons, whatever the request asks
   ENGINE02_MAX_UPLOAD_MB  /visual-search upload cap (default 12)
   ENGINE02_LLM_TIMEOUT / ENGINE02_LLM_BUDGET_S  per-call and per-request paraphrase budgets
+  ENGINE02_AUTO_CONTEXT  1 (default) = no/partial context -> today, the current hour and ENGINE02_DEFAULT_CITY
+                     (default 新竹市) are filled in and that weather fetched; 0 = off (engine02/context/auto.py)
+  ENGINE02_REWRITER  codex = POST /explain/rewrite re-voices the cards through the team's ChatGPT
+                     account (Codex CLI, `codex login`); /rank never waits for it (docs/explain-rewrite.md)
 """
 
 from __future__ import annotations
@@ -125,8 +129,30 @@ async def lifespan(app: FastAPI):
             log.warning("could not load trend keywords: %s", e)
     if os.environ.get("ENGINE02_WARMUP", "1") != "0":
         STATE["warm_ms"] = _warmup()
+    _prefetch_situation()
     yield
     STATE.clear()
+
+
+def _prefetch_situation() -> None:
+    """Fetch today's weather for the default city in the background at startup, so the first
+    shopper's /rank reads it from the cache instead of waiting ~1.5 s for Open-Meteo."""
+    from .context.auto import auto_context, enabled
+
+    if not enabled() or DEMO_MODE:
+        return
+
+    def run() -> None:
+        try:
+            from .context.engine import build_signals
+
+            build_signals(auto_context(None)[0])
+        except Exception as e:  # noqa: BLE001 -- a failed prefetch only means the first request fetches
+            log.warning("situation prefetch failed: %s", e)
+
+    import threading
+
+    threading.Thread(target=run, name="engine02-situation-prefetch", daemon=True).start()
 
 
 def _warmup() -> float | None:
@@ -409,7 +435,25 @@ def rank(req: Engine02Request) -> ServiceResponse:
     if ARMS[arm].use_cross_reranker and engine().cross_reranker is None:
         raise HTTPException(400, "this arm needs ENGINE02_RERANKER to be set on the server")
     _record_demand(req)
-    return STATE["service"].rank(req, arm)
+    # no situation from the caller -> ENGINE 02 uses today's date, the current hour and the default
+    # city itself, and fetches that weather (engine02/context/auto.py); caller's fields always win
+    from .context.auto import auto_context
+
+    ctx, auto_filled = auto_context(req.context)
+    if auto_filled:
+        req = req.model_copy(update={"context": ctx})
+    out = STATE["service"].rank(req, arm)
+    if auto_filled:
+        out.context_used = {**(out.context_used or {}), "auto_filled": auto_filled}
+    from .rewrite import remember
+
+    # for POST /explain/rewrite (the ChatGPT-voiced reasons): the cards, their catalogue facts and
+    # the shopper's situation, so the rewrite can quote the real temperature or flight time
+    said = [u for u in (req.utterances or []) if u][-3:]
+    remember(req.session_id, out.items, catalog=engine().catalog, context=req.context,
+             request={"said": said, "search_text": req.retrieval_text or "",
+                      "excluded": {k: list(v) for k, v in (req.constraints.excluded_values or {}).items()}})
+    return out
 
 
 @app.post("/rank/plain", response_model=Engine02Response)
@@ -419,6 +463,66 @@ def rank_plain(req: Engine02Request) -> Engine02Response:
     if arm not in ARMS:
         raise HTTPException(400, f"unknown arm {arm!r}; see GET /arms")
     return engine().run(req, arm)
+
+
+class RewriteRequest(BaseModel):
+    """Ask for the stylist-voiced reasons of cards /rank (or /intent/rank, /retrieve) just showed."""
+
+    session_id: str
+    item_ids: list[str] | None = None   # default: every card of that session's last slate
+    # stateless alternative (no /rank in this process): [{item_id, title, reason_facts, template, item}]
+    cards: list[dict] | None = None
+    situation: list[dict] | None = None  # with `cards`: the situation facts (see engine02.rewrite)
+    request: dict | None = None          # with `cards`: what the shopper asked for
+
+
+@app.get("/explain/status")
+def explain_status() -> dict:
+    """Is a rewriter configured (ENGINE02_REWRITER=codex) and signed in?"""
+    from .rewrite import get_rewriter
+
+    rw = get_rewriter()
+    if rw is None:
+        return {"backend": None, "available": False,
+                "detail": "set ENGINE02_REWRITER=codex (and run `codex login` with the ChatGPT account)"}
+    return {"backend": rw.name, **rw.status()}
+
+
+@app.post("/explain/rewrite")
+def explain_rewrite(body: RewriteRequest) -> dict:
+    """Friendlier sentences for the cards already on screen (~10-15 s per slate through Codex).
+
+    /rank never waits for this. Every sentence is fact-checked against its own card's facts;
+    a card whose sentence fails the check, or a Codex that is slow, signed out or not configured,
+    keeps its template -- `source` on each card says which one was used.
+    """
+    from .rewrite import cache, get_rewriter, item_facts, remembered, rewrite_cards, situation_facts
+
+    if body.cards is not None:
+        cards = [{"item_id": str(c.get("item_id")), "title": c.get("title"),
+                  "template": c.get("template") or c.get("explanation") or "",
+                  "facts": list(c.get("reason_facts") or c.get("facts") or []),
+                  "item": c.get("item") or item_facts(engine().catalog, str(c.get("item_id")))}
+                 for c in body.cards if c.get("item_id") is not None]
+        situation = body.situation or []
+        request = body.request or {}
+    else:
+        known = remembered(body.session_id)
+        if not known:
+            raise HTTPException(404, f"no ranked slate remembered for session {body.session_id!r}; "
+                                     "call /rank first or send `cards`")
+        ids = body.item_ids or list(known["cards"])
+        missing = [i for i in ids if i not in known["cards"]]
+        if missing:
+            raise HTTPException(404, f"item_ids not in this session's last slate: {missing}")
+        cards = [known["cards"][i] for i in ids]
+        situation = situation_facts(known["context"])
+        request = known["request"]
+    rw = get_rewriter()
+    out = rewrite_cards(cards, engine().vocabulary, rw, cache(), situation=situation, request=request)
+    out["note"] = ("每一句都已對照該卡的事實查核；source=template 表示沿用模板（未啟用、失敗或查核沒過）"
+                   if rw else "改寫未啟用（ENGINE02_REWRITER 未設為 codex），回傳模板理由")
+    return out
 
 
 class ViewRequest(BaseModel):
