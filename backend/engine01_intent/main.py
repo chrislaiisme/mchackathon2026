@@ -21,7 +21,7 @@ from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.engine01_intent import llm_client, session_store
+from backend.engine01_intent import gating, llm_client, session_store
 from backend.pinterest import client as pinterest_client
 from backend.shared import user_store
 from backend.shared.auth import create_session_token, get_current_user, verify_google_id_token
@@ -161,6 +161,13 @@ def post_intent(
 
     state.intent = extraction.intent
     state.round += 1
+    state.message_history.append(request.message)
+
+    # 核心欄位把關（代辦事項 2）：LLM 這輪吐出的問題先經過 gating.py 過濾——
+    # 只留核心欄位、同一欄位不重複問、全部題數不超過 5 題，見 gating.py 的說明。
+    clarifying_questions = gating.filter_clarifying_questions(
+        extraction.clarifying_questions, state.asked_core_fields
+    )
 
     # 參考圖解析（代辦事項 2）：使用者這次有上傳就優先用使用者的；沒上傳
     # 就用這輪更新後的 Intent 去比對團隊的 Pinterest 板子；兩者都沒有就
@@ -184,7 +191,7 @@ def post_intent(
         session_id=state.session_id,
         round=state.round,
         intent=state.intent,
-        clarifying_questions=extraction.clarifying_questions,
+        clarifying_questions=clarifying_questions,
     )
 
 

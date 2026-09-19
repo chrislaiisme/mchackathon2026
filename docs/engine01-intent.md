@@ -42,15 +42,17 @@
 ## 輸出
 
 - 更新後的 `Intent`（見 [interface-contract.md](interface-contract.md)）——模型改動或推斷出來的每個欄位，都用 `inferred_fields` 標出哪些是 GPT 自己填的，不是使用者原話。這個切分正是「可解釋」要求的具體機制：意圖面板裡沒有任何欄位會被包裝成使用者自己講的，除非真的是。
-- `clarifying_questions`——只要意圖還太模糊、搜不出好結果，就出 1–3 題選擇題（每題都附自由輸入的備援選項）。每一輪都用同一套格式，不只是第一輪。
+- `clarifying_questions`——只要核心欄位還缺，就出選擇題（每題都附自由輸入的備援選項）。每一輪都用同一套格式，不只是第一輪。**2026-09-19 新增決定性把關**：核心欄位是 `item_type`（`outfit_requested=true` 時不算缺）／`colors`／`occasion`／`material`／`season`／`style_keywords`，`backend/engine01_intent/gating.py` 會過濾 LLM 吐出的問題，只保留核心欄位、同一欄位不重複問、整個 session 累計不超過 5 題；`budget_min`／`budget_max`／`fit`／`pattern`／`collar` 不主動問。
 
 ## 情境推斷
 
 使用者沒提到的欄位（天氣、季節、情境暗示的場合等）由 GPT 自己合理推斷，明確標進 `inferred_fields`，前端要用視覺上明顯不同的樣式呈現，跟使用者親口說的欄位分開。這直接回應簡報裡「AI 像黑盒子」的抱怨——任何一個推斷欄位都要能追溯到「系統是這樣猜的，理由是這樣」，不能悄悄混進使用者自己的陳述裡。
 
-## 使用者怎麼跟 AI 對話（不需要 Hermes Agent）
+## 使用者怎麼跟 AI 對話
 
-現有的 FastAPI `POST /intent` ＋ `session_store.py`（使用者發一句話、後端存狀態、回傳更新後意圖）本身就是完整的對話迴圈了，前端只要重複呼叫這個端點就是在「跟 AI 對話」。Hermes Agent 在這個專案裡的角色已經定案——只是 ENGINE01 呼叫模型的後端機制（`codex exec`），不是使用者面對的對話框架，不需要再疊一層 Hermes Agent 上去當 webapp 的對話引擎。
+現有的 FastAPI `POST /intent` ＋ `session_store.py`（使用者發一句話、後端存狀態、回傳更新後意圖）本身就是完整的對話迴圈了，前端只要重複呼叫這個端點就是在「跟 AI 對話」。
+
+**2026-09-19 更新，這段先前的結論已經被團隊決議取代**：先前這裡寫「不需要 Hermes Agent，`codex exec` 已經是刻意的成本決策」，但團隊在 2026-09-18 正式決議整個專案要以 Hermes Agent 應用的形式建置與交付（見根目錄 `docs/migration-to-hermes-app.md`，PRD 第 7 章）。`backend/engine01_intent/` 這裡的程式碼結構（含這份文件描述的 `POST /intent`／`codex exec` 呼叫方式）已經被複製一份到 `bff/`（Hermes app 的 runtime 層），且遷移計畫第 2 階段（`bff/` 內嵌 Hermes Agent、取代這裡的 `llm_client.py` 自己接 `codex exec`）標記「待做」——代表 `codex exec` 這個機制**遲早會被拿掉換成內嵌的 Hermes Agent**，不是永久架構。`backend/` 這邊的程式碼目前繼續維持原狀開發（遷移文件明講「分支作者照常開發，不需要 rebase」），只是要知道這不是終局狀態。正式 demo 會從 `integration/hermes-app` 分支跑，不是從 `main` 或這條分支直接跑。
 
 ## 實作
 

@@ -49,6 +49,7 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
   "fit": null,
   "pattern": null,
   "collar": null,
+  "outfit_requested": false,
   "inferred_fields": ["season"],
   "notes": null
 }
@@ -57,6 +58,8 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 - 除了容器本身，每個欄位都是選填——一句模糊或講不清楚的話，就只會產出大部分是 null 的意圖，再搭配澄清問題。
 - `inferred_fields` 列出上面哪些欄位是 GPT 用情境合理推斷出來的（天氣、季節等），不是使用者親口說的。前端一定要用不同的視覺樣式呈現這些欄位（例如標上「系統推斷」）——這就是「可解釋」要求的具體實作，意圖面板裡沒有任何一個欄位是不標明來源的。
 - `colors` ／ `style_keywords` 用陣列，因為一句話裡可能不只講一個。
+- `outfit_requested`（2026-09-19 新增）：使用者要的是一整套穿搭（「一套」「整套」「幫我搭配」）還是單一品項。`true` 時 `item_type` 可以是 `null`，不代表抽取失敗。
+- **核心欄位把關（2026-09-19 新增）**：`item_type`（`outfit_requested=true` 時不算）、`colors`、`occasion`、`material`、`season`、`style_keywords` 是核心欄位，ENGINE01 會優先針對還缺的核心欄位出選擇題，直到都有值或這個 session 已經問滿 5 題為止（`backend/engine01_intent/gating.py`，決定性把關，不只是拜託 LLM）；`budget_min`／`budget_max`／`fit`／`pattern`／`collar` 不主動問，使用者自己提到才記錄。
 
 ## 2. 澄清問題（`ClarifyingQuestion`）
 

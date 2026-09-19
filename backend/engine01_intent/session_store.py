@@ -30,6 +30,16 @@ class SessionState:
     # docs/pinterest-and-generation.md、docs/interface-contract.md 待確認事項）。
     reference_image_url: Optional[str] = None
     reference_image_source: Literal["user_upload", "pinterest", "none"] = "none"
+    # 2026-09-19 新增，兩個都是跨輪次累加、不會重置：
+    # asked_core_fields 記錄這個 session 已經正式問過（送給前端）的核心欄位，
+    # 給 gating.py 的 filter_clarifying_questions() 用，避免同一欄位被問兩次、
+    # 也用來算 5 題預算還剩多少。
+    asked_core_fields: set[str] = field(default_factory=set)
+    # message_history 存每一輪使用者的原始訊息，供之後呼叫 ENGINE02
+    # 的 /intent/rank 時組成完整的 message——ENGINE02 的否定語意偵測
+    # （engine02/negation.py）是讀 message 原句判斷的，只傳最新一句會
+    # 漏掉前幾輪講過的排除條件（例如「不要太正式」）。
+    message_history: list[str] = field(default_factory=list)
 
 
 # 純記憶體字典，key 是 (user_id, session_id) 這組 tuple，代表「哪個使用者的哪個對話串」，
@@ -48,6 +58,13 @@ def get_or_create(user_id: str, session_id: str | None) -> SessionState:
     state = SessionState(session_id=key_session_id)
     _sessions[key] = state
     return state
+
+
+def get(user_id: str, session_id: str) -> Optional[SessionState]:
+    # 跟 get_or_create 不同：查不到就回 None，不會偷偷開一個新的空 session。
+    # 給 POST /recommend 用——那支端點只該用「已經跑過幾輪 /intent」的既有
+    # session，不該無中生有接住一個亂打的 session_id。
+    return _sessions.get((user_id, session_id))
 
 
 def save(user_id: str, state: SessionState) -> None:

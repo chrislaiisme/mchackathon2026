@@ -95,6 +95,12 @@ class Intent(BaseModel):
     fit: Optional[str] = None
     pattern: Optional[str] = None
     collar: Optional[str] = None
+    outfit_requested: bool = False
+    """2026-09-19 新增：使用者是不是要一整套穿搭（「一套」「整套」「幫我搭配」），
+    不是單一品項。True 時 item_type 可以維持 None——套裝請求本來就不是在問單一
+    品項，見 backend/engine01_intent/prompts.py 的抽取規則、zones.py 的兩分區
+    orchestration（ENGINE02 taxonomy 的「套裝」節點筆記本來就預期 ENGINE01 會
+    明確標示這件事，見 docs/interface-contract.md 第 6 節）。"""
     inferred_fields: list[str] = Field(default_factory=list)
     """Names of the fields above that GPT filled in by contextual inference
     (weather, season, etc.) rather than the user stating them. The frontend
@@ -227,3 +233,31 @@ class RetrievalResult(BaseModel):
     Live 流程應該每輪都會有值，這裡選填只是讓還沒做完的模組也能先跑。"""
     match_score: float
     """The on-stage "符合度分數" shown before/after feedback (e.g. 62% -> 89%)."""
+
+
+# ── 兩分區推薦（ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端負責人確認 ──
+# 欄位命名，見 docs/interface-contract.md 第 6 節）：POST /recommend 的回應
+# 形狀。跟上面的 RetrievalResult 是兩回事——RetrievalResult 是單一份平坦的
+# 商品清單，這裡是「上衣一份、下身一份」固定兩分區的展示邏輯，是 ENGINE01
+# 自己在既有的 ENGINE02 檢索能力之上組出來的，不是 ENGINE02 原生就有的形狀。
+
+
+class ZoneSlate(BaseModel):
+    zone: Literal["top", "bottom"]
+    requested: bool
+    """True＝使用者這輪明確要這個分區（單品命中的那區，或整套請求時的兩區）；
+    False＝使用者沒特別要求，是代進代表性品項猜的預設，見 zones.py。"""
+    products: list[ProductCard] = Field(default_factory=list)
+    """最多 6 件；連身裙情境下的下身區會是空列表且 requested=False（見 zones.py
+    的 is_dress 規則），不是查詢失敗。"""
+
+
+class ZonedRecommendationResult(BaseModel):
+    session_id: str
+    round: int
+    outfit_requested: bool
+    zones: list[ZoneSlate]
+
+
+class RecommendRequest(BaseModel):
+    session_id: str
