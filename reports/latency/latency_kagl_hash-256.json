@@ -1,0 +1,56 @@
+{
+ "meta": {
+  "catalog": "data/catalog/kagl",
+  "n_items": 5000,
+  "encoder": "hash-256",
+  "arm": "full_zclip3",
+  "import_ms": 214.8,
+  "build_ms": 1191.9,
+  "ot_load_ms": null,
+  "first_call_ms": 119.7
+ },
+ "rows": [
+  {
+   "endpoint": "rank_round1",
+   "n": 15,
+   "p50_ms": 6.7,
+   "p95_ms": 9.9,
+   "max_ms": 11.7,
+   "mean_ms": 7.2,
+   "counterfactual_p50": 0.1,
+   "explain_p50": 1.8,
+   "filter_p50": 1.0,
+   "fuse_p50": 0.1,
+   "rerank_p50": 0.4,
+   "retrieve_p50": 0.2
+  },
+  {
+   "endpoint": "rank_round2",
+   "n": 15,
+   "p50_ms": 6.6,
+   "p95_ms": 8.1,
+   "max_ms": 9.3,
+   "mean_ms": 6.7,
+   "counterfactual_p50": 0.1,
+   "explain_p50": 1.8,
+   "filter_p50": 0.8,
+   "fuse_p50": 0.1,
+   "rerank_p50": 0.5,
+   "retrieve_p50": 0.3
+  },
+  {
+   "endpoint": "view",
+   "n": 15,
+   "p50_ms": 6.5,
+   "p95_ms": 7.8,
+   "max_ms": 8.6,
+   "mean_ms": 6.6,
+   "counterfactual_p50": 0.1,
+   "explain_p50": 1.6,
+   "filter_p50": 0.8,
+   "fuse_p50": 0.1,
+   "rerank_p50": 0.3,
+   "retrieve_p50": 0.2
+  }
+ ]
+}
