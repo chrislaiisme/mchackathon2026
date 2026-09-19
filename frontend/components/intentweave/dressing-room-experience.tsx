@@ -9,8 +9,9 @@ import { useI18n } from "@/components/intentweave/i18n-provider";
 import { getOutfitSlot, getSavedWardrobeItems, outfitSlots, wardrobeCategories } from "@/lib/mock/dressing-room";
 import { authService } from "@/lib/services/auth";
 import { conversationService } from "@/lib/services/conversations";
+import { preferenceService } from "@/lib/services/preferences";
 import { defaultVirtualYouImage, virtualYouService } from "@/lib/services/virtual-you";
-import type { Conversation, OutfitSlot, User, VirtualYouProfile, WardrobeCategory, WardrobeItem } from "@/lib/types";
+import type { OutfitSlot, User, VirtualYouProfile, WardrobeCategory, WardrobeItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type WardrobeFilter = "all" | WardrobeCategory;
@@ -89,10 +90,12 @@ function WardrobeItemCard({
   item,
   selected,
   onSelect,
+  onRemove,
 }: {
   item: WardrobeItem;
   selected: boolean;
   onSelect: (item: WardrobeItem) => void;
+  onRemove: (item: WardrobeItem) => void;
 }) {
   const { t } = useI18n();
 
@@ -107,12 +110,23 @@ function WardrobeItemCard({
       )}
     >
       <div className="relative overflow-hidden bg-muted">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(item);
+          }}
+          aria-label={`${t.dressingRoom.remove} ${item.name}`}
+          className="absolute right-3 top-3 z-10 inline-flex size-8 items-center justify-center border border-border bg-background/90 text-muted-foreground shadow-sm backdrop-blur transition hover:border-destructive hover:text-destructive focus-visible:border-primary focus-visible:outline-none"
+        >
+          <X className="size-4" />
+        </button>
         <div
           className="fashion-image aspect-[3/4] transition duration-700 group-hover:scale-[1.02]"
           style={{ backgroundImage: `url(${item.imageUrl})` }}
         />
         {selected && (
-          <span className="absolute right-3 top-3 inline-flex size-7 items-center justify-center border border-primary bg-background text-primary">
+          <span className="absolute left-3 top-3 inline-flex size-7 items-center justify-center border border-primary bg-background text-primary">
             <Check className="size-4" />
             <span className="sr-only">{t.dressingRoom.selected}</span>
           </span>
@@ -134,12 +148,14 @@ function SavedWardrobe({
   selectedIds,
   onFilterChange,
   onSelect,
+  onRemove,
 }: {
   items: WardrobeItem[];
   activeFilter: WardrobeFilter;
   selectedIds: Set<string>;
   onFilterChange: (filter: WardrobeFilter) => void;
   onSelect: (item: WardrobeItem) => void;
+  onRemove: (item: WardrobeItem) => void;
 }) {
   const { t } = useI18n();
   const filteredItems = activeFilter === "all" ? items : items.filter((item) => item.category === activeFilter);
@@ -164,7 +180,13 @@ function SavedWardrobe({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filteredItems.map((item) => (
-            <WardrobeItemCard key={item.id} item={item} selected={selectedIds.has(item.id)} onSelect={onSelect} />
+            <WardrobeItemCard
+              key={item.id}
+              item={item}
+              selected={selectedIds.has(item.id)}
+              onSelect={onSelect}
+              onRemove={onRemove}
+            />
           ))}
         </div>
       )}
@@ -305,9 +327,9 @@ function OutfitPreview({
 
 export function DressingRoomExperience() {
   const router = useRouter();
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [user, setUser] = useState<User | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [savedWardrobeItems, setSavedWardrobeItems] = useState<WardrobeItem[]>([]);
   const [virtualYou, setVirtualYou] = useState<VirtualYouProfile | null>(null);
   const [activeFilter, setActiveFilter] = useState<WardrobeFilter>("all");
   const [outfit, setOutfit] = useState<OutfitState>({});
@@ -337,7 +359,7 @@ export function DressingRoomExperience() {
 
     conversationService.ensureSeeded(session.id);
     setUser(session);
-    setConversations(conversationService.list(session.id));
+    setSavedWardrobeItems(preferenceService.listSavedItems(session.id));
     replaceVirtualYou(await virtualYouService.get(session.id));
   }, [replaceVirtualYou, router]);
 
@@ -347,10 +369,12 @@ export function DressingRoomExperience() {
     });
 
     window.addEventListener("intentweave-conversations-change", refresh);
+    window.addEventListener(preferenceService.changeEvent, refresh);
     window.addEventListener("intentweave-virtual-you-change", refresh);
 
     return () => {
       window.removeEventListener("intentweave-conversations-change", refresh);
+      window.removeEventListener(preferenceService.changeEvent, refresh);
       window.removeEventListener("intentweave-virtual-you-change", refresh);
 
       if (virtualYouObjectUrlRef.current) {
@@ -359,7 +383,7 @@ export function DressingRoomExperience() {
     };
   }, [refresh]);
 
-  const savedItems = useMemo(() => getSavedWardrobeItems(conversations, locale), [conversations, locale]);
+  const savedItems = useMemo(() => getSavedWardrobeItems(savedWardrobeItems), [savedWardrobeItems]);
   const selectedIds = useMemo(() => new Set(outfitSlots.map((slot) => outfit[slot]?.id).filter(Boolean) as string[]), [outfit]);
 
   async function handleUpload(file: File) {
@@ -396,6 +420,25 @@ export function DressingRoomExperience() {
     });
   }
 
+  function removeSavedItem(item: WardrobeItem) {
+    if (!user) {
+      return;
+    }
+
+    preferenceService.removeSavedItem(user.id, item.id);
+    setOutfit((current) => {
+      const next = { ...current };
+
+      outfitSlots.forEach((slot) => {
+        if (next[slot]?.id === item.id) {
+          delete next[slot];
+        }
+      });
+
+      return next;
+    });
+  }
+
   return (
     <div className="space-y-10">
       <section className="border-b border-border pb-8">
@@ -413,6 +456,7 @@ export function DressingRoomExperience() {
             selectedIds={selectedIds}
             onFilterChange={setActiveFilter}
             onSelect={(item) => setOutfit((current) => applyWardrobeItem(current, item))}
+            onRemove={removeSavedItem}
           />
         </div>
         <div className="order-1 lg:order-2">

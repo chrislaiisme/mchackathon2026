@@ -1,0 +1,748 @@
+{
+ "model": "Qwen/Qwen3-VL-8B-Instruct",
+ "catalog": "hm",
+ "n_items": 10000,
+ "n_labelled": 10000,
+ "n_unlabelled": 0,
+ "answered_per_question": {
+  "product": 10000,
+  "category": 10000,
+  "color": 10000,
+  "season": 10000,
+  "occasion": 10000,
+  "fit": 10000,
+  "pattern": 10000,
+  "boldness": 10000,
+  "style": 10000
+ },
+ "agreement_with_dataset": {
+  "category": {
+   "n": 10000,
+   "agreement": 0.9398
+  },
+  "color_exact": {
+   "n": 9234,
+   "agreement": 0.6888
+  },
+  "color_family": {
+   "n": 9234,
+   "agreement": 0.8079
+  },
+  "pattern": {
+   "n": 9997,
+   "agreement": 0.7698
+  }
+ },
+ "season_vs_description_words": {
+  "n_items_with_one_clear_word": 4713,
+  "agreement": 0.7887,
+  "note": "season has no ground truth; this checks only items whose own text points one way"
+ },
+ "dropped": {
+  "n": 130,
+  "by_reason": {
+   "multipack": 79,
+   "size_chart": 47,
+   "not_apparel": 4
+  },
+  "items": [
+   {
+    "item_id": "hm_0788547001",
+    "title": "Tupax tank",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0741388001",
+    "title": "NW Bebe SL set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0891105001",
+    "title": "BRADLEY SLIM LS HENLEY 2PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0733090002",
+    "title": "Fav polo 3-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0662310002",
+    "title": "Johnson chunky runner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0851936004",
+    "title": "ED Claudine 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0851936003",
+    "title": "ED Claudine 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0732524001",
+    "title": "2-pack Flip Flop solid",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0808619001",
+    "title": "Aziza slip-in",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0674180008",
+    "title": "BILL HENLEY 2 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0843213004",
+    "title": "Laila Ballerina",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0510465006",
+    "title": "Moa 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0688432001",
+    "title": "Long leggings 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0658013001",
+    "title": "Honey Boo Boo",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0602152001",
+    "title": "Ivy webbing runner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0433414031",
+    "title": "NT Maria 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0573695001",
+    "title": "Destiny bow pump",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0803423001",
+    "title": "HALO Devil muscle suit",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0752090003",
+    "title": "Mama Basic Pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0811719002",
+    "title": "Cissi 2-pack SS",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0663378001",
+    "title": "Palmer chelsea PQ",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0773504002",
+    "title": "NW Flora SL set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0557184002",
+    "title": "Milla espadrille",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0767862005",
+    "title": "Bob v-neck 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0534164028",
+    "title": "NT Alva 2-pack(1)",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0379963002",
+    "title": "Mama plain cotton leggings 2p",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0562306002",
+    "title": "Kattis fur WL",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0720953001",
+    "title": "NW Kim set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0720953002",
+    "title": "NW Kim set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0629908001",
+    "title": "OL JOHANNA mini wedge",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0781471001",
+    "title": "NW Rory SL set.",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0727063001",
+    "title": "Karin sock sneaker",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0808631002",
+    "title": "Bolivar bow",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0433414010",
+    "title": "NT Maria 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0578630026",
+    "title": "R-NECK SS SLIM 3 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0672112001",
+    "title": "Jonas sockrunner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0824999001",
+    "title": "Strap top 2p",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0701030001",
+    "title": "Sesam zip",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0858125001",
+    "title": "Babette Capri 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0845435001",
+    "title": "ED Frugan 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0662310004",
+    "title": "Johnson chunky runner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0944309001",
+    "title": "R-neck ALLINGTON 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0721776001",
+    "title": "NW Bebe LL PJ",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0619623002",
+    "title": "Cia maxi",
+    "vlm_product": "not_apparel"
+   },
+   {
+    "item_id": "hm_0903518002",
+    "title": "RICHIE HOOD 2PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0556763001",
+    "title": "Sunny espadrille",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0156231002",
+    "title": "Box 4p Tights",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0643145011",
+    "title": "Liam runner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0821173002",
+    "title": "Frame 2pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0674180009",
+    "title": "BILL HENLEY 2 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0534164018",
+    "title": "NT Alva 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0564375013",
+    "title": "Willow runner",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0891105002",
+    "title": "BRADLEY SLIM LS HENLEY 2PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0572954005",
+    "title": "Steiner PQ",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0874167002",
+    "title": "Will 2p Coolmax Tank top",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0607712002",
+    "title": "Fling off shoulder",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0900176002",
+    "title": "ED Nora tee 2p",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0817777001",
+    "title": "ED Long leggings 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0629897001",
+    "title": "OL BUTLER Wedge",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0656869004",
+    "title": "PETER POLO 2 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0863626002",
+    "title": "ERIK TANKTOP 5PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0569355008",
+    "title": "Alma Sneaker",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0673475003",
+    "title": "Wilde bikini",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0645134001",
+    "title": "Gina Wedge Heel",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0611201003",
+    "title": "Henrik fancy",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0623248003",
+    "title": "Blank espadrill",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0719010002",
+    "title": "Albany sock",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0586955016",
+    "title": "Amie ballerina",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0663010004",
+    "title": "Maria SL 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0652570001",
+    "title": "OL CLINTON",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0893994001",
+    "title": "V-Neck Strap Top Long 2-pk",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0903517001",
+    "title": "ROBIN HOOD 2PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0796285001",
+    "title": "HALO Scary costume set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0853552001",
+    "title": "Hopper Slip In",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0851061001",
+    "title": "Ester set (J)",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0513699027",
+    "title": "R-NECK SS BASIC 3 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0808631003",
+    "title": "Bolivar bow",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0733090004",
+    "title": "Fav polo 3-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0640990002",
+    "title": "OL PIPPIN PQ Flatform",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0733090001",
+    "title": "Fav polo 3-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0674180005",
+    "title": "BILL HENLEY 2 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0433444019",
+    "title": "Sara s/s 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0649082002",
+    "title": "R-NECK SS BASIC 5 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0607788002",
+    "title": "Gabriella slip-in",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0642671003",
+    "title": "P Marika NT",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0615054002",
+    "title": "Kadri",
+    "vlm_product": "not_apparel"
+   },
+   {
+    "item_id": "hm_0433414039",
+    "title": "NT Maria 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0581102001",
+    "title": "Gemma pool slide",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0619907003",
+    "title": "Tyler bodycon J",
+    "vlm_product": "not_apparel"
+   },
+   {
+    "item_id": "hm_0731643001",
+    "title": "NW  Romina LL PJ",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0706487005",
+    "title": "Holly fancy",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0663010005",
+    "title": "Maria SL 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0824995002",
+    "title": "Frugan 2p",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0593399005",
+    "title": "PANAREA",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0716850001",
+    "title": "Wilma western stud",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0710328002",
+    "title": "OL CHARLEE PQ slip-in",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0916881002",
+    "title": "Turtle 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0736869001",
+    "title": "Pirate leggings 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0478022003",
+    "title": "MARTIN HIGHLIFT",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0747828001",
+    "title": "NW Sara SL Set.",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0534164029",
+    "title": "NT Alva 2-pack(1)",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0808953002",
+    "title": "Roland semiboot",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0743400001",
+    "title": "NW Irma SL set",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0433444001",
+    "title": "Sara s/s 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0860232001",
+    "title": "Mama LI basic pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0863579001",
+    "title": "SIGGE 2PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0622126003",
+    "title": "Cleo braded shoe",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0910568002",
+    "title": "Mama 40 Den 2p Tights Consciou",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0916881001",
+    "title": "Turtle 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0837680002",
+    "title": "Frugan 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0860170001",
+    "title": "Ida 2-pack tank",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0771157006",
+    "title": "Kinen sneaker",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0656868001",
+    "title": "MARION SHORTS 2 PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0510465001",
+    "title": "Moa 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0689139002",
+    "title": "Gable moccasin",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0433444022",
+    "title": "Sara s/s 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0686210001",
+    "title": "Rakel",
+    "vlm_product": "not_apparel"
+   },
+   {
+    "item_id": "hm_0824999003",
+    "title": "Strap top 2p",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0433444013",
+    "title": "Sara s/s 2-pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0769819001",
+    "title": "Flo slip in",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0590416002",
+    "title": "Daisy fancy",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0752090001",
+    "title": "Mama Basic Pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0796156004",
+    "title": "Arabella ballerina",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0714637002",
+    "title": "SALT 2-pack tee",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0863626001",
+    "title": "ERIK TANKTOP 5PK",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0721221001",
+    "title": "David bow",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0740949002",
+    "title": "VALENTINE Clint Tee 2pack",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0629881001",
+    "title": "OL CARMELO PQ Wedge",
+    "vlm_product": "size_chart"
+   },
+   {
+    "item_id": "hm_0811719005",
+    "title": "Cissi 2-pack SS",
+    "vlm_product": "multipack"
+   },
+   {
+    "item_id": "hm_0926469001",
+    "title": "SPORT Karin mid 2-pack.",
+    "vlm_product": "multipack"
+   }
+  ]
+ },
+ "filled": {
+  "season": 9870,
+  "occasion": 9870,
+  "color": 16
+ },
+ "coverage_after": {
+  "color": 1.0,
+  "season": 1.0,
+  "occasion": 1.0,
+  "gender": 1.0,
+  "fit": 0.8973,
+  "boldness": 1.0,
+  "style": 1.0
+ },
+ "distribution": {
+  "season": {
+   "Summer": 4576,
+   "Spring": 3018,
+   "Winter": 1440,
+   "Fall": 836
+  },
+  "occasion": {
+   "Casual": 7339,
+   "Formal": 1566,
+   "Smart Casual": 683,
+   "Sports": 165,
+   "Travel": 117
+  },
+  "boldness": {
+   "1": 5787,
+   "0": 3720,
+   "2": 354,
+   "3": 9
+  },
+  "style": {
+   "minimalist": 4077,
+   "classic": 1815,
+   "romantic": 1477,
+   "preppy": 666,
+   "bohemian": 489,
+   "streetwear": 365,
+   "sporty": 335,
+   "edgy": 327,
+   "vintage": 281,
+   "avant_garde": 38
+  }
+ }
+}
