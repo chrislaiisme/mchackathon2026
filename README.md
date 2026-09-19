@@ -11,7 +11,7 @@ Consumer Intent Agent turns a shopper's one-sentence apparel request into a stru
 The system is two engines plus a generation module, wired together behind a FastAPI backend and a React frontend:
 
 - **ENGINE 01 — Intent Understanding**: one sentence → structured JSON intent (item, color, occasion, budget, style keywords), using GPT structured outputs. Ambiguous fields are inferred and labeled as system-inferred (never silently guessed); unclear intent triggers clarifying multiple-choice questions.
-- **ENGINE 02 — Retrieval & Ranking**: hybrid search (FashionCLIP dense embeddings + BM25/attribute sparse filtering) over the [Polyvore Outfits Dataset](https://huggingface.co/datasets/mvasil/polyvore-outfits), reranked with outfit-compatibility and learned preference weights. GPT turns the ranked result into a natural-language reason, grounded in the retrieved item's real attributes.
+- **ENGINE 02 — Retrieval & Ranking** (implemented, `engine02/` + `backend/engine02_retrieval/`): hybrid search (dense embeddings + a from-scratch BM25) over a KAGL apparel catalog, reranked by an additive score where every term's contribution is reported and sums to the final score — that decomposition is the explanation, not a separately-generated one. See [docs/engine02-design.md](docs/engine02-design.md) (full design + experiments) and [docs/engine02-pipeline.md](docs/engine02-pipeline.md) (how to run it).
 - **ENGINE 03 — Preference Feedback Loop**: turns free-text and per-attribute feedback (color/fit/pattern/collar, scored separately for recommended vs. generated items) into structured weight/intent adjustments that re-trigger the next round.
 - **Generation module**: OpenAI Responses API `image_generation` tool produces an original concept image per round alongside the retrieval results; the image is embedded back into ENGINE 02's dense score so retrieval and generation reinforce each other.
 - **Pinterest trend signal**: a team-curated Pinterest board (Trial API access) feeds recent-trend signal into ENGINE 02's ranking weights.
@@ -27,32 +27,37 @@ docs/               All project markdown docs and architecture diagrams
 backend/
   shared/            Cross-engine Pydantic schemas (the interface contract)
   engine01_intent/   Intent understanding (FastAPI service)
-  engine02_retrieval/  Hybrid search + reranker
+  engine02_retrieval/  ENGINE02's HTTP seam (Intent in, RetrievalResult out; full API mounted at /engine02/*)
   engine03_feedback/   Preference feedback loop
   generation/          Concept image generation
   pinterest/           Pinterest trend signal ingestion
+engine02/            ENGINE02's implementation package (kept at repo root on purpose,
+                     see CLAUDE.md "Repo 結構" — its own data-path resolution and
+                     40+ scripts assume this location)
 frontend/            React + Vite UI
 validation/          Simulated-user offline validation loop
-scripts/             Dev setup / data-download helpers
+scripts/             Dev setup / data-download helpers, plus ENGINE02's evaluation scripts
 ```
 
 ## Getting started
 
 Requirements: Python 3.11+, Node.js 18+.
 
-ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. Other modules (ENGINE02/03, generation) may need `OPENAI_API_KEY` depending on how their owners implement them — see [CLAUDE.md](CLAUDE.md).
+ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. Other modules (ENGINE03, generation) may need `OPENAI_API_KEY` depending on how their owners implement them — see [CLAUDE.md](CLAUDE.md).
 
 ```bash
 cp .env.example .env   # fill in OPENAI_API_KEY only if a module you're running needs it
 codex login             # one-time, needed for ENGINE01
 
-# backend
+# ENGINE01
 pip install -r backend/requirements.txt
 uvicorn backend.engine01_intent.main:app --reload
 
 # frontend
 cd frontend && npm install && npm run dev
 ```
+
+**ENGINE02 has its own environment** (`pyproject.toml` at the repo root, installed with `uv` — see [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md) for the exact commands and why it doesn't share `backend/requirements.txt`) and runs as a separate service on its own port.
 
 Each module under `backend/` has its own `README.md` with module-specific run/test instructions.
 
