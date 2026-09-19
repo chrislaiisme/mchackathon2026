@@ -43,3 +43,15 @@ Thumbs.db
 
 # local AI coding tool settings (per-user, not project config)
 .claude/
+
+# --- Hermes app ---
+.env.*
+!.env.example
+auth.json
+data/*
+!data/README.md
+web/dist/
+*.tar.gz
+/mchackathon2026/
+engine02.egg-info/
+reports/forecast/

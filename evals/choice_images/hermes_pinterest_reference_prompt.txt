@@ -1,0 +1,14 @@
+請直接呼叫 image_generate 工具，以附加圖片作為 reference image 產生一張全新的圖片；不要只描述圖片或只回覆文字。完成後請回報產出檔案路徑。
+
+Use case: photorealistic-natural
+Asset type: IntentWeave Pinterest-to-concept pipeline demo
+Primary request: Generate an original contemporary unisex streetwear editorial inspired only by the reference image's relaxed layering, oversized proportions, and dark neutral palette.
+Input images: Image 1 is a visual reference for outfit silhouette, layering rhythm, and color mood only; it is not an edit target.
+Scene/backdrop: a quiet modern concrete plaza with subtle geometric architecture, clearly different from the reference location.
+Subject: a new adult fashion model with a clearly different identity, hairstyle, pose, and accessories, wearing a charcoal knit layer over a pale blue collared shirt, wide-leg graphite trousers, and simple off-white sneakers.
+Style/medium: photorealistic fashion editorial with natural fabric texture and realistic skin detail.
+Composition/framing: vertical full-body portrait, eye-level camera, balanced negative space, original pose.
+Lighting/mood: soft overcast daylight, calm and refined.
+Color palette: charcoal, slate gray, pale blue, off-white.
+Constraints: create a genuinely new image; preserve only high-level fashion inspiration; no logos, no brands, no readable text, no watermark.
+Avoid: copying the reference person's face, identity, exact pose, exact garments, scaffolding, storefront, signage, or background composition.

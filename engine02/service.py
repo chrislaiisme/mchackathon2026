@@ -30,6 +30,37 @@ class ServiceResponse(DiversifiedResponse):
     learned_preferences: dict[str, Any] | None = None  # Δβ learned from choice_history
 
 
+
+# how each complete-the-look term reads on a card, and what the number under it means
+_SLATE_TERM_LABEL = {
+    "complementary": "互補頭判定它和你選的那件搭得起來",
+    "compatibility": "相容性判定它和你選的那件不衝突",
+    "similarity": "和你選的那件在風格空間裡相近",
+    "category": "這個品類和你選的那件經常一起出現",
+}
+
+
+def _slate_reason(contributions: dict, category: str, category_score: float,
+                  price: float | None, currency: str = "") -> str:
+    """One sentence, every clause backed by a number we actually computed."""
+    parts = [f"{_SLATE_TERM_LABEL.get(k, k)}（{v:+.2f}）"
+             for k, v in sorted(contributions.items(), key=lambda kv: -abs(kv[1]))]
+    parts.append(f"{_SLATE_TERM_LABEL['category']}（NPMI {category_score:+.2f}）")
+    if price is not None:
+        parts.append(f"售價 {price:,.0f}{currency}")
+    return "；".join(parts)
+
+
+def _price_of(items, position: int) -> float | None:
+    """The item's price, or None when this catalog has no prices — never a fabricated 0."""
+    if "price" not in items.columns:
+        return None
+    import pandas as pd
+
+    v = pd.to_numeric(items["price"].iat[position], errors="coerce")
+    return None if pd.isna(v) else float(v)
+
+
 class Engine02Service:
     def __init__(self, engine: ComposedEngine02, complete_the_look=None, rewriter=None):
         self.engine = engine
@@ -132,7 +163,8 @@ class Engine02Service:
         return "similarity"
 
     def complete_look(self, anchor_ids: list[str], n_categories: int = 2, k: int = 5,
-                      filters: dict[str, list[str]] | None = None) -> dict:
+                      filters: dict[str, list[str]] | None = None,
+                      budget: float | None = None) -> dict:
         if self.ctl is None:
             raise RuntimeError("complete-the-look is not configured (needs category co-occurrence)")
         unknown = [i for i in anchor_ids if self.engine.catalog.pos(i) is None]
@@ -141,9 +173,33 @@ class Engine02Service:
         method = self.complete_look_method()
         slates = self.ctl.recommend(anchor_ids, n_categories=n_categories, k=k, method=method, filters=filters)
         items = self.engine.catalog.items
+
+        # 「一套…預算 3,000 元」 is a budget for the WHOLE outfit. A per-item filter at 3,000
+        # returns four garments costing 3,000 each, which is not what was asked.
+        plan = None
+        if budget is not None:
+            import pandas as pd
+
+            from .outfit_budget import plan_outfit
+
+            price_col = (pd.to_numeric(items["price"], errors="coerce")
+                         if "price" in items.columns else None)
+            slots = {}
+            for sl in slates:
+                slots[sl.category] = [
+                    (it.item_id, str(items.at[it.position, "title"]),
+                     (float(price_col.iat[it.position])
+                      if price_col is not None and pd.notna(price_col.iat[it.position]) else None),
+                     float(it.score))
+                    for it in sl.items
+                ]
+            # the anchors are already owned, so they do not spend the budget
+            plan = plan_outfit(slots, budget).as_dict()
+
         return {
             "anchor_item_ids": anchor_ids,
             "method": method,
+            "outfit_plan": plan,
             "slates": [
                 {
                     "category": s.category,
@@ -151,7 +207,12 @@ class Engine02Service:
                     "items": [
                         {"item_id": it.item_id, "title": str(items.at[it.position, "title"]),
                          "image_path": str(items.at[it.position, "image_path"]), "score": it.score,
-                         "contributions": it.contributions}
+                         "contributions": it.contributions,
+                         "price": _price_of(items, it.position),
+                         # the screen that is literally about 「為什麼這樣搭」 has to say it, and
+                         # every clause below cites a number we computed (§3.4's rule, applied here)
+                         "reason": _slate_reason(it.contributions, s.category, s.category_score,
+                                                 _price_of(items, it.position))}
                         for it in s.items
                     ],
                 }

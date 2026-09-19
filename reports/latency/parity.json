@@ -1,0 +1,11 @@
+{
+ "queries": 20,
+ "env": [
+  "ENGINE02_DENSE_F64=1"
+ ],
+ "identical_topk": 1.0,
+ "n_differing": 0,
+ "first_diff_rank_min": null,
+ "max_score_gap_at_diff": 0.0,
+ "max_abs_score_delta": 3.6975681005912975e-07
+}

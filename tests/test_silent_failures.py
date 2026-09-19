@@ -187,3 +187,56 @@ def test_an_exclusion_comes_with_something_instead(client):
     plain = client.post("/rank", json={"session_id": "s", "retrieval_text": "a shirt for work",
                                        "options": {"top_k": 5}}).json()
     assert not plain["constraint_report"]["substitutes"], "nothing excluded, nothing to substitute"
+
+
+def test_the_gap_panel_sees_a_stated_silhouette_preference(client):
+    """A manufacturer's dashboard that cannot see 「版型要修身」 is missing its whole point."""
+    for _ in range(4):
+        client.post("/intent/rank", json={"session_id": "d",
+                                          "intent": {"item_type": "襯衫", "fit": "修身"}})
+    g = client.get("/gap/elements").json()
+    moved = {r["label"]: r["demand"] for r in g["elements"]}
+    assert any(abs(v) > 0 for v in moved.values()), g
+    assert g["n_sessions"] >= 4
+
+
+def test_supply_can_be_scoped_to_garments(client):
+    """Structured shoulders measured against a denominator full of handbags is not a supply rate."""
+    everything = client.get("/gap/elements").json()
+    garments = client.get("/gap/elements?categories=top,outerwear,dress").json()
+    assert garments["supply_scope"]["n_items"] < everything["supply_scope"]["n_items"]
+    assert garments["supply_scope"]["categories"] == "top,outerwear,dress"
+
+    bad = client.get("/gap/elements?categories=spacesuit")
+    assert bad.status_code == 400, "an empty scope must be an error, not a silent full-catalog answer"
+
+
+def test_a_self_contradicting_request_is_answered_not_blanked(client):
+    """R1 「不要黑色」 then R3 「這件但換成黑色」 used to return zero cards with an empty
+    `relaxed` list and no warning — the relaxation ladder cannot reach require_/not_ keys, so
+    this was the one way to produce a blank screen the system could not explain."""
+    b = client.post("/rank", json={
+        "session_id": "x", "retrieval_text": "shirt",
+        "constraints": {"excluded_values": {"color": ["Black", "White"]},
+                        "required_values": {"color": ["Black"]}},
+        "options": {"top_k": 5}}).json()
+    rep = b["constraint_report"]
+    assert b["items"], "a contradiction must not blank the screen"
+    assert rep["retracted_constraints"], rep
+    r = rep["retracted_constraints"][0]
+    assert r["retracted_exclusion"] == ["Black"] and r["kept_requirement"] == ["Black"]
+    # only the conflicting value is dropped; an unrelated exclusion still stands
+    assert rep["applied"].get("not_color") == ["White"], rep["applied"]
+    assert any("Black" in w for w in rep["input_warnings"]), rep["input_warnings"]
+    # and the requirement is what actually came back
+    assert all(str(i.get("color", "")).lower() == "black" for i in b["items"])
+
+
+def test_a_non_contradicting_request_retracts_nothing(client):
+    b = client.post("/rank", json={
+        "session_id": "x", "retrieval_text": "shirt",
+        "constraints": {"excluded_values": {"color": ["Black"]},
+                        "required_values": {"color": ["White"]}},
+        "options": {"top_k": 5}}).json()
+    assert not b["constraint_report"]["retracted_constraints"]
+    assert b["items"]
