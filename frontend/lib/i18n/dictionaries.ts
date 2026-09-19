@@ -127,11 +127,11 @@ export const dictionaries = {
       creatingYou: "Creating your virtual you...",
       noPersonDetected: "We couldn't detect a person in this photo. Try another photo.",
       invalidImageError: "This image could not be uploaded. Try a different image file.",
-      openAiExtractionError: "The background removal request failed. Check the server console for details.",
+      openAiExtractionError: "The person extraction service failed. Check the server console for details.",
       backgroundRemovalError: "Background removal failed before a person could be extracted.",
       imageProcessingError: "We couldn't process that image. Check the browser console for details.",
       extractionConfigError:
-        "Person extraction is not configured. Add OPENAI_API_KEY to enable real background removal.",
+        "Person extraction is not configured. Start the local extraction service to enable background removal.",
     },
     profile: {
       title: "My Style",
@@ -310,10 +310,10 @@ export const dictionaries = {
       creatingYou: "正在建立你的虛擬人像...",
       noPersonDetected: "無法在這張照片中偵測到人物，請嘗試另一張照片。",
       invalidImageError: "無法上傳這張圖片，請嘗試其他圖片檔案。",
-      openAiExtractionError: "去背請求失敗，請查看 server console 的詳細資訊。",
+      openAiExtractionError: "人物擷取服務失敗，請查看 server console 的詳細資訊。",
       backgroundRemovalError: "背景移除失敗，因此無法擷取人物。",
       imageProcessingError: "無法處理這張圖片，請查看瀏覽器 console 的詳細資訊。",
-      extractionConfigError: "尚未設定人物擷取功能。請加入 OPENAI_API_KEY 以啟用真正的去背處理。",
+      extractionConfigError: "尚未設定人物擷取功能。請啟動本機人物擷取服務以啟用去背處理。",
     },
     profile: {
       title: "我的風格",

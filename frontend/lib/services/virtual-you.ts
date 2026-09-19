@@ -223,7 +223,54 @@ export interface MockTryOnPreview {
   virtualYouImageUrl: string;
   outfitImageUrl: string;
   outfitName: string;
-  provider: "mock";
+  provider: "mock" | "remote";
+}
+
+export interface ExtractPersonResult {
+  extractedPersonImage: Blob;
+}
+
+export interface TryOnResult {
+  id: string;
+  generatedImage: Blob;
+  generatedImageUrl: string;
+  virtualYouImageUrl: string;
+  outfitImageUrl: string;
+  outfitName: string;
+  provider: "mock" | "remote";
+}
+
+function base64ToBlob(base64: string, type: string) {
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type });
+}
+
+async function fetchImageBlob(url: string) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error("image_fetch_failed");
+  }
+
+  return response.blob();
+}
+
+function tryOnCategory(item: FashionRecommendation) {
+  if (item.itemType === "bottom") {
+    return "lower_body";
+  }
+
+  if (item.itemType === "dress") {
+    return "dress";
+  }
+
+  return "upper_body";
 }
 
 export const virtualYouService = {
@@ -352,7 +399,71 @@ export const virtualYouService = {
     writeMetadata(profiles);
   },
 
-  generateVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): MockTryOnPreview {
+  async extractPerson(originalUserImage: File): Promise<ExtractPersonResult> {
+    const formData = new FormData();
+    formData.append("image", originalUserImage, originalUserImage.name || "create-you-source.jpg");
+
+    const response = await fetch("/api/virtual-you/extract", {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as { imageBase64?: string; error?: string; details?: unknown } | null;
+
+    if (!response.ok || !result?.imageBase64) {
+      const error = new Error(result?.error || "background_removal_failed");
+      (error as Error & { details?: unknown }).details = result?.details;
+      throw error;
+    }
+
+    return {
+      extractedPersonImage: base64ToBlob(result.imageBase64, "image/png"),
+    };
+  },
+
+  async generateVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): Promise<TryOnResult> {
+    const virtualYouImageUrl = profile?.modelImageUrl || defaultVirtualYouImage;
+    const personImage = await fetchImageBlob(virtualYouImageUrl);
+    const garmentImage = await fetchImageBlob(outfit.imageUrl).catch(() => null);
+    const formData = new FormData();
+
+    formData.append("personImage", personImage, "virtual-you.png");
+    formData.append("garmentImageUrl", outfit.imageUrl);
+
+    if (garmentImage) {
+      formData.append("garmentImage", garmentImage, "garment.jpg");
+    }
+
+    formData.append("category", tryOnCategory(outfit));
+    formData.append("garmentId", outfit.id);
+    formData.append("garmentName", outfit.name);
+
+    const response = await fetch("/api/virtual-you/try-on", {
+      method: "POST",
+      body: formData,
+    });
+    const result = (await response.json().catch(() => null)) as
+      | { imageBase64?: string; provider?: "mock" | "remote"; error?: string }
+      | null;
+
+    if (!response.ok || !result?.imageBase64) {
+      throw new Error(result?.error || "try_on_failed");
+    }
+
+    const generatedImage = base64ToBlob(result.imageBase64, "image/png");
+    const generatedImageUrl = URL.createObjectURL(generatedImage);
+
+    return {
+      id: `${result.provider || "remote"}-try-on-${Date.now()}`,
+      generatedImage,
+      generatedImageUrl,
+      virtualYouImageUrl,
+      outfitImageUrl: outfit.imageUrl,
+      outfitName: outfit.name,
+      provider: result.provider || "remote",
+    };
+  },
+
+  generateMockVirtualTryOn(profile: VirtualYouProfile | null, outfit: FashionRecommendation): MockTryOnPreview {
     const virtualYouImageUrl = profile?.modelImageUrl || defaultVirtualYouImage;
 
     return {
