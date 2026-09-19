@@ -117,3 +117,42 @@ def test_visual_search_connection_error_returns_none():
     ):
         result = engine02_client.visual_search(b"fake-image-bytes", "黑色 外套")
     assert result is None
+
+
+def test_complete_look_finds_target_zone_slate():
+    payload = {
+        "slates": [
+            {"category": "outerwear", "items": [{"item_id": "o1", "title": "Coat", "score": 0.5}]},
+            {
+                "category": "bottom",
+                "items": [
+                    {"item_id": "b1", "title": "Navy Trousers", "score": 0.91, "reason": "顏色跟你選的上衣很搭"},
+                ],
+            },
+        ]
+    }
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)) as mock_post:
+        cards = engine02_client.complete_look("anchor1", "bottom")
+
+    sent_json = mock_post.call_args.kwargs["json"]
+    assert sent_json["anchor_item_ids"] == ["anchor1"]
+    assert cards is not None
+    assert len(cards) == 1
+    assert cards[0].product_id == "b1"
+    assert cards[0].reason == "顏色跟你選的上衣很搭"
+    assert cards[0].explanation_source == "complete_look"
+
+
+def test_complete_look_returns_none_when_target_zone_slate_missing():
+    payload = {"slates": [{"category": "outerwear", "items": [{"item_id": "o1", "title": "Coat", "score": 0.5}]}]}
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=_mock_response(payload)):
+        cards = engine02_client.complete_look("anchor1", "bottom")
+    assert cards is None
+
+
+def test_complete_look_unknown_anchor_returns_none():
+    resp = MagicMock()
+    resp.raise_for_status.side_effect = requests.exceptions.HTTPError("400 unknown anchor_item_ids")
+    with patch("backend.engine01_intent.engine02_client.requests.post", return_value=resp):
+        cards = engine02_client.complete_look("not-a-real-item", "bottom")
+    assert cards is None
