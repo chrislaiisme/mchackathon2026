@@ -224,6 +224,25 @@ class Engine02Request(BaseModel):
         return v
     feedback: FeedbackState = Field(default_factory=FeedbackState)
     options: Engine02Options = Field(default_factory=Engine02Options)
+    # The shopper's situation and opt-in personal options (engine02/context/). Everything here is
+    # optional and defaults to "not given"; an empty ContextInput changes nothing.
+    context: "ContextInput" = Field(default_factory=lambda: ContextInput())
+
+
+class ContextInput(BaseModel):
+    city: str | None = None                    # display name, e.g. "新竹"
+    lat: float | None = None
+    lon: float | None = None
+    event_date: str | None = None              # ISO date the outfit is FOR; default today
+    commute: Literal["scooter", "mrt", "car", "walk", "bike"] | None = None
+    mood: Literal["energetic", "calm", "confident", "low", "adventurous"] | None = None
+    personal_color: Literal["spring", "summer", "autumn", "winter"] | None = None
+    # entertainment only, opt-in: {"zodiac": "leo"} or {"birth_year": 1998}
+    lucky: dict | None = None
+    surprise: bool = False                     # reserve one card for a bold-but-fitting "驚喜款"
+
+
+Engine02Request.model_rebuild()
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +250,7 @@ class Engine02Request(BaseModel):
 # ---------------------------------------------------------------------------
 
 TermGroup = Literal["dense", "bm25", "compat", "trend", "design", "penalty", "rerank", "freshness",
-                    "critique"]
+                    "critique", "context"]
 
 
 class Contribution(BaseModel):

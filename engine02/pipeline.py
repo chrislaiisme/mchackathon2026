@@ -759,7 +759,40 @@ class Engine02:
         if arm.use_cross_reranker and self.cross_reranker is not None:
             rs = self.cross_reranker.score(text, [int(p) for p in cand])
             terms.append(Term(f"rerank:{self.cross_reranker.name}", "rerank", rs, arm.w_rerank))
+        terms += self._context_terms(req, arm, cand)
         return terms
+
+    def _context_terms(self, req, arm: ArmConfig, cand) -> list[Term]:
+        """The shopper's situation (weather, festival, commute) and opt-in personal options, one
+        un-normalised term per signal so "+0.30" on a card is exactly +0.30. No context -> no terms,
+        so every request without it ranks exactly as before."""
+        from .context.engine import CONTEXT_LABELS, build_signals, enriched, is_empty, item_scores
+
+        ctx = getattr(req, "context", None)
+        self._last_context = {"signals": [], "problems": []}
+        if is_empty(ctx):
+            CONTEXT_LABELS.set({})
+            return []
+        sigs, problems = build_signals(ctx)
+        self._last_context = {"signals": sigs, "problems": problems}
+        items = enriched(self.catalog.items)
+        c_mat = self.design_matrix(arm)
+        ids = list(self.kansei.element_ids)
+        out: list[Term] = []
+        labels: dict[str, str] = {}
+        for i, s in enumerate(sigs):
+            if not s.affects_ranking:
+                continue
+            raw = item_scores(s, items, cand, c_mat, ids)
+            if not np.any(np.abs(raw) > 1e-12):
+                continue
+            name = f"context:{s.source}"
+            if name in labels:
+                name = f"{name}:{i}"
+            out.append(Term(name, "context", raw, 1.0, normalize=False))
+            labels[name] = s.label
+        CONTEXT_LABELS.set(labels)
+        return out
 
     def _metrics(self, req: Engine02Request, shown_pos: list[int]) -> RoundMetrics:
         items = self.catalog.items

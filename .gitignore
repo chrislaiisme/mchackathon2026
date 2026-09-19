@@ -81,3 +81,6 @@ data/catalog/polyvore/*
 !data/pinterest/
 data/pinterest/*
 !data/pinterest/pins_*.json
+
+# forecast cache written by engine02/context/weather.py: date-specific, rebuilt on demand
+data/context/forecast_*.json

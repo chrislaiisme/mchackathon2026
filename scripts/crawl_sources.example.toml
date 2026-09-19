@@ -1,0 +1,615 @@
+# Sources for `python -m engine02.crawl --config scripts/crawl_sources.example.toml`.
+# Every enabled stanza states what was verified and when. A source not listed here is not known to
+# work -- add it and read report.json: the crawler says whether it completed or was stopped, and why.
+# See docs/crawler.md.
+
+[defaults]
+delay_s = 3.0            # min seconds between two requests to the same host
+max_pages = 40
+cache_ttl_hours = 24
+
+# ---- Wikimedia Commons (official API; every image carries its licence and author) --------------
+# verified 2026-09-19: 5 records each from "Catwalks (fashion)" (CC BY 2.0) and "Cosplayers"
+# (CC BY-SA 4.0), 0 errors. Attribution is required when displaying: see field_origin.license/author.
+[[sources]]
+name = "commons_runway"
+type = "commons"
+categories = ["Catwalks (fashion)", "Fashion shows"]
+max_files = 300
+depth = 2
+
+[[sources]]
+name = "commons_street"
+type = "commons"
+categories = ["Street fashion"]
+max_files = 200
+depth = 2
+
+[[sources]]
+name = "commons_cosplay"
+type = "commons"
+categories = ["Cosplayers", "Cosplay by clothing"]
+max_files = 300
+depth = 2
+# default exclusions (skip files/subcats whose categories contain these words):
+# exclude_categories = ["Lingerie shows", "Topless", "Nude", "Nudity", "Erotic", "Furry"]
+
+# ---- Instagram (needs YOUR credentials or export; nothing runs without them) -----------------
+# Direct page collection is not offered: instagram.com/robots.txt is "User-agent: * / Disallow: /"
+# (verified 2026-09-19). Official API: set IG_ACCESS_TOKEN and IG_USER_ID in .env.
+#
+# [[sources]]
+# name = "ig_brands"
+# type = "instagram_api"
+# mode = "business_discovery"
+# usernames = ["somebrand"]
+# max_posts = 200
+#
+# [[sources]]
+# name = "ig_my_export"
+# type = "instagram_export"
+# path = "data/instagram_export"     # unzipped "Download your information" (JSON)
+
+# ---- public web pages ------------------------------------------------------------------------
+# (verified sites are appended below)
+
+# ==== verified by a source-discovery pass on 2026-09-19 (robots.txt + one sample page per host) ====
+[[sources]]
+name = "pinkoi"
+type = "web"
+start_urls = ["https://www.pinkoi.com/product/z2LFEhJw", "https://www.pinkoi.com/browse?catp=group_0"]
+allowed_domains = ["www.pinkoi.com"]
+follow = ["^https://www\\.pinkoi\\.com/product/[A-Za-z0-9]+$", "/browse\\?catp="]
+exclude = ["/(my|zoom|user|message|inv)/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.lativ.com.tw/product/72035 -> HTTP 200; JSON-LD Product with price: yes (179, brand=lativ); og:title=yes, og:image=yes
+# follow regex matched 73 links on the probed page (73 robots-allowed).
+[[sources]]
+name = "lativ"
+type = "web"
+start_urls = ["https://www.lativ.com.tw/product/72035", "https://www.lativ.com.tw/category/MEN/tops/short_sleeves"]
+allowed_domains = ["www.lativ.com.tw"]
+follow = ["/product/\\d+$", "/category/(MEN|WOMEN)/"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.mercci22.com/market/n/6056 -> HTTP 200; JSON-LD Product with price: yes (1280.00, no brand); og:title=yes, og:image=yes
+# follow regex matched 62 links on the probed page (62 robots-allowed). robots Content-Signal ai-train=no (we do not train)
+[[sources]]
+name = "mercci22"
+type = "web"
+start_urls = ["https://www.mercci22.com/market/n/6056"]
+allowed_domains = ["www.mercci22.com"]
+follow = ["/market/n/\\d+$", "/zh-tw/category/SHOPALL/"]
+exclude = ["/zh-tw/checkout", "/user/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.pazzo.com.tw/en-us/market/n/20406 -> HTTP 200; JSON-LD Product with price: yes (790.00, no brand); og:title=yes, og:image=yes
+# follow regex matched 80 links on the probed page (80 robots-allowed). robots Content-Signal ai-train=no (we do not train)
+[[sources]]
+name = "pazzo"
+type = "web"
+start_urls = ["https://www.pazzo.com.tw/en-us/market/n/20406"]
+allowed_domains = ["www.pazzo.com.tw"]
+follow = ["/market/n/\\d+$", "/(zh-tw|en-us)/category/shop/"]
+exclude = ["/checkout", "/user/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.iroo.com/categories/dress -> HTTP 200 (redirected to https://www.iroo.com/iroo/products/allproduct/dresses); JSON-LD Product with price: yes (3580, brand=iROO); og:title=yes, og:image=no
+# follow regex matched 35 links on the probed page (35 robots-allowed). /categories/dress redirected here; listing carries Product JSON-LD with price + brand
+[[sources]]
+name = "iroo"
+type = "web"
+start_urls = ["https://www.iroo.com/iroo/products/allproduct/dresses"]
+allowed_domains = ["www.iroo.com"]
+follow = ["/iroo/product-detail/\\d+$", "/iroo/products/allproduct/"]
+exclude = ["/iroo/tag/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.ssense.com/en-us/women/product/canada-goose/black-cypress-cropped-down-jacket/17342671 -> HTTP 200 (redirected to https://www.ssense.com/en-us/women/designers/canada-goose); JSON-LD Product with price: yes (2005, brand=Canada Goose); og:title=no, og:image=no
+# follow regex matched 44 links on the probed page (44 robots-allowed). probed product URL redirected to designer listing (sold out); listing JSON-LD Product with price + brand
+[[sources]]
+name = "ssense"
+type = "web"
+start_urls = ["https://www.ssense.com/en-us/women/designers/canada-goose"]
+allowed_domains = ["www.ssense.com"]
+follow = ["/en-us/(women|men)/product/[^/]+/[^/]+/\\d+$"]
+exclude = ["/account", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://tw.buy.yahoo.com/category/31373296?disp=list -> HTTP 200; JSON-LD Product with price: yes (690, no brand); og:title=yes, og:image=yes
+# follow regex matched 67 links on the probed page (67 robots-allowed). category page JSON-LD ItemList of Product with price; gdsale product pages not probed
+[[sources]]
+name = "yahoo_buy"
+type = "web"
+start_urls = ["https://tw.buy.yahoo.com/category/31373296?disp=list"]
+allowed_domains = ["tw.buy.yahoo.com"]
+follow = ["/gdsale/.+-\\d+\\.html$", "/category/\\d+"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://cheesebeign.shoplineapp.com/products/%E6%96%87%E9%9D%92%E5%A5%B3%E5%AD%A9%E6%A0%BC%E7%B4%8B%E6%B4%8B%E8%A3%9D-%E5%90%8A%E5%B8%B6%E5%8F%AF%E8%AA%BF-2colors -> HTTP 200; JSON-LD Product with price: yes (599.0, no brand); og:title=yes, og:image=yes; Crawl-delay 5
+# follow regex matched 28 links on the probed page (28 robots-allowed). Shopline; robots Crawl-delay 5
+[[sources]]
+name = "cheesebeign"
+type = "web"
+start_urls = ["https://cheesebeign.shoplineapp.com/products/%E6%96%87%E9%9D%92%E5%A5%B3%E5%AD%A9%E6%A0%BC%E7%B4%8B%E6%B4%8B%E8%A3%9D-%E5%90%8A%E5%B8%B6%E5%8F%AF%E8%AA%BF-2colors"]
+allowed_domains = ["cheesebeign.shoplineapp.com"]
+follow = ["/products/[^/?]+$", "/categories/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 5.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://www.uijshop.com.tw/products/uij-x-oqliq-stuff-pack -> HTTP 200; JSON-LD Product with price: yes (380.0, no brand); og:title=yes, og:image=yes; Crawl-delay 5
+# follow regex matched 70 links on the probed page (70 robots-allowed). Shopline; robots Crawl-delay 5
+[[sources]]
+name = "uijshop"
+type = "web"
+start_urls = ["https://www.uijshop.com.tw/products/uij-x-oqliq-stuff-pack"]
+allowed_domains = ["www.uijshop.com.tw"]
+follow = ["/products/[^/?]+$", "/categories/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 5.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://24h.pchome.com.tw/prod/DIAIIV-A900JELI6 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 71 links on the probed page (71 robots-allowed). og:title/og:image only; price is in HTML (c-prodInfoV2__priceValue), not JSON-LD/og -> crawler leaves price empty
+[[sources]]
+name = "pchome24h"
+type = "web"
+start_urls = ["https://24h.pchome.com.tw/prod/DIAIIV-A900JELI6"]
+allowed_domains = ["24h.pchome.com.tw"]
+follow = ["/prod/[A-Z0-9]+-[A-Z0-9]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.plain-me.com/men/products/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 64 links on the probed page (64 robots-allowed). listing only probed (WebSite/localBusiness JSON-LD); product-detail pages not probed
+[[sources]]
+name = "plainme"
+type = "web"
+start_urls = ["https://www.plain-me.com/men/products/"]
+allowed_domains = ["www.plain-me.com"]
+follow = ["/(men|women)/product-detail/[A-Z0-9-]+$"]
+exclude = ["/service-question", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.beams.tw/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 18 links on the probed page (18 robots-allowed). homepage only probed; /item/ pages not probed
+[[sources]]
+name = "beams_tw"
+type = "web"
+start_urls = ["https://www.beams.tw/"]
+allowed_domains = ["www.beams.tw"]
+follow = ["/item/[^/]+/[^/]+/\\d+/$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.whiterock2008.com.tw/collections/oqliq -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 75 links on the probed page (75 robots-allowed). collection page only (og tags, microdata Organization); product pages not probed
+[[sources]]
+name = "whiterock"
+type = "web"
+start_urls = ["https://www.whiterock2008.com.tw/collections/oqliq"]
+allowed_domains = ["www.whiterock2008.com.tw"]
+follow = ["/products/[^/?]+$", "/collections/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.jksshop.co/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes; Crawl-delay 5
+# follow regex matched 165 links on the probed page (165 robots-allowed). Shopline (same platform as cheesebeign/uijshop, whose product pages carry Product JSON-LD); only homepage probed
+[[sources]]
+name = "jksshop"
+type = "web"
+start_urls = ["https://www.jksshop.co/"]
+allowed_domains = ["www.jksshop.co"]
+follow = ["/products/[^/?]+$", "/categories/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 5.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.taiwanize.com/en/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes; Crawl-delay 5
+# follow regex matched 87 links on the probed page (87 robots-allowed). Shopline; only homepage probed
+[[sources]]
+name = "taiwanize"
+type = "web"
+start_urls = ["https://www.taiwanize.com/en/"]
+allowed_domains = ["www.taiwanize.com"]
+follow = ["/products/[^/?]+$", "/categories/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 5.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.vogue.com.tw/fashion -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 23 links on the probed page (23 robots-allowed). section page: ItemList JSON-LD + og
+[[sources]]
+name = "vogue_tw"
+type = "web"
+start_urls = ["https://www.vogue.com.tw/fashion"]
+allowed_domains = ["www.vogue.com.tw"]
+follow = ["^https://www\\.vogue\\.com\\.tw/article/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.elle.com/tw/fashion/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=no
+# follow regex matched 34 links on the probed page (34 robots-allowed). section page: CollectionPage JSON-LD + og:title
+[[sources]]
+name = "elle_tw"
+type = "web"
+start_urls = ["https://www.elle.com/tw/fashion/"]
+allowed_domains = ["www.elle.com"]
+follow = ["/tw/fashion/[a-z-]+/(a|g)\\d+/"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.gq.com.tw/fashion -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 17 links on the probed page (17 robots-allowed).
+[[sources]]
+name = "gq_tw"
+type = "web"
+start_urls = ["https://www.gq.com.tw/fashion"]
+allowed_domains = ["www.gq.com.tw"]
+follow = ["^https://www\\.gq\\.com\\.tw/article/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.harpersbazaar.com/tw/fashion/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=no
+# follow regex matched 56 links on the probed page (56 robots-allowed).
+[[sources]]
+name = "bazaar_tw"
+type = "web"
+start_urls = ["https://www.harpersbazaar.com/tw/fashion/"]
+allowed_domains = ["www.harpersbazaar.com"]
+follow = ["/tw/fashion/[a-z-]+/(a|g)\\d+/"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.cosmopolitan.com/tw/fashion/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=no
+# follow regex matched 37 links on the probed page (37 robots-allowed).
+[[sources]]
+name = "cosmo_tw"
+type = "web"
+start_urls = ["https://www.cosmopolitan.com/tw/fashion/"]
+allowed_domains = ["www.cosmopolitan.com"]
+follow = ["/tw/fashion/[a-z-]+/(a|g)\\d+/"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.marieclaire.com.tw/fashion/fashion-show/72150 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 5 links on the probed page (5 robots-allowed). article: NewsArticle JSON-LD + og
+[[sources]]
+name = "marieclaire_tw"
+type = "web"
+start_urls = ["https://www.marieclaire.com.tw/fashion/fashion-show/72150"]
+allowed_domains = ["www.marieclaire.com.tw"]
+follow = ["/fashion/[a-z-]+/\\d+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://hypebeast.com/2026/1/ss26-spring-summer-2026-mens-menswear-trends-list-info -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 20 links on the probed page (20 robots-allowed). article: NewsArticle JSON-LD + og
+[[sources]]
+name = "hypebeast"
+type = "web"
+start_urls = ["https://hypebeast.com/2026/1/ss26-spring-summer-2026-mens-menswear-trends-list-info"]
+allowed_domains = ["hypebeast.com"]
+follow = ["^https://hypebeast\\.com/20\\d\\d/\\d+/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.highsnobiety.com/p/long-shorts-hype-2026/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes; Crawl-delay 1
+# follow regex matched 28 links on the probed page (28 robots-allowed). robots Crawl-delay 1
+[[sources]]
+name = "highsnobiety"
+type = "web"
+start_urls = ["https://www.highsnobiety.com/p/long-shorts-hype-2026/"]
+allowed_domains = ["www.highsnobiety.com"]
+follow = ["^https://www\\.highsnobiety\\.com/p/[^/?]+/$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE | verified 2026-09-19: robots allows https://wwd.com/fashion-news/fashion-scoops/workwear-staples-trends-2026-1238955996/ -> HTTP 200; JSON-LD Product with price: yes (295, no brand); og:title=yes, og:image=yes
+# follow regex matched 6 links on the probed page (6 robots-allowed). article NewsArticle + shopping-module Product JSON-LD with price (295) but no brand
+[[sources]]
+name = "wwd"
+type = "web"
+start_urls = ["https://wwd.com/fashion-news/fashion-scoops/workwear-staples-trends-2026-1238955996/"]
+allowed_domains = ["wwd.com"]
+follow = ["^https://wwd\\.com/fashion-news/[a-z-]+/[a-z0-9-]+-\\d{9,}/$"]
+exclude = ["/wp-content/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.businessoffashion.com/articles/marketing-pr/how-fashion-marketers-will-nab-attention-2026/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 5 links on the probed page (5 robots-allowed). NewsArticle JSON-LD + og; paywall behaviour not checked
+[[sources]]
+name = "bof"
+type = "web"
+start_urls = ["https://www.businessoffashion.com/articles/marketing-pr/how-fashion-marketers-will-nab-attention-2026/"]
+allowed_domains = ["www.businessoffashion.com"]
+follow = ["/articles/[a-z-]+/[^/?]+/$"]
+exclude = ["/careers/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.theguardian.com/fashion -> HTTP 200; JSON-LD Product with price: no; og:title=no, og:image=no
+# follow regex matched 24 links on the probed page (24 robots-allowed). section page has NO og/JSON-LD; article pages not probed. Official alternative: Guardian Open Platform API (free key)
+[[sources]]
+name = "guardian_fashion"
+type = "web"
+start_urls = ["https://www.theguardian.com/fashion"]
+allowed_domains = ["www.theguardian.com"]
+follow = ["^https://www\\.theguardian\\.com/fashion/(20\\d\\d|gallery)/"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.vogue.com/fashion-shows -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 151 links on the probed page (151 robots-allowed).
+[[sources]]
+name = "vogue_runway"
+type = "web"
+start_urls = ["https://www.vogue.com/fashion-shows"]
+allowed_domains = ["www.vogue.com"]
+follow = ["/fashion-shows/[a-z0-9-]+-ready-to-wear/[a-z0-9-]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.cna.com.tw/news/acul/202609150276.aspx -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 2 links on the probed page (2 robots-allowed). robots Content-Signal ai-train=no; general news, few fashion items
+[[sources]]
+name = "cna"
+type = "web"
+start_urls = ["https://www.cna.com.tw/news/acul/202609150276.aspx"]
+allowed_domains = ["www.cna.com.tw"]
+follow = ["/news/acul/\\d{12}\\.aspx$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 20
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://style.udn.com/style/story/8067/9685748 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 10 links on the probed page (10 robots-allowed). article: NewsArticle JSON-LD + og
+[[sources]]
+name = "udnstyle"
+type = "web"
+start_urls = ["https://style.udn.com/style/cate/8053"]
+allowed_domains = ["style.udn.com"]
+follow = ["/style/story/\\d+/\\d+$", "/style/cate/\\d+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://istyle.ltn.com.tw/article/41086 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 3 links on the probed page (3 robots-allowed). article: NewsArticle JSON-LD + og
+[[sources]]
+name = "ltn_istyle"
+type = "web"
+start_urls = ["https://istyle.ltn.com.tw/fashion"]
+allowed_domains = ["istyle.ltn.com.tw"]
+follow = ["^https://istyle\\.ltn\\.com\\.tw/article/\\d+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.juksy.com/article/103485 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 8 links on the probed page (8 robots-allowed). street-snap articles; NewsArticle JSON-LD + og
+[[sources]]
+name = "juksy"
+type = "web"
+start_urls = ["https://www.juksy.com/article/103485"]
+allowed_domains = ["www.juksy.com"]
+follow = ["^https://www\\.juksy\\.com/article/\\d+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.popdaily.com.tw/style/1468509 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 5 links on the probed page (5 robots-allowed).
+[[sources]]
+name = "popdaily"
+type = "web"
+start_urls = ["https://www.popdaily.com.tw/style/1468509"]
+allowed_domains = ["www.popdaily.com.tw"]
+follow = ["^https://www\\.popdaily\\.com\\.tw/style/\\d+$"]
+exclude = ["/user/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.bella.tw/articles/trends/52191/black-shirt-tips-top-picks -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 8 links on the probed page (8 robots-allowed). og only (no JSON-LD)
+[[sources]]
+name = "bella"
+type = "web"
+start_urls = ["https://www.bella.tw/articles/trends/52191/black-shirt-tips-top-picks"]
+allowed_domains = ["www.bella.tw"]
+follow = ["/articles/(trends|lookbook|handbags|shoes|accessories)/\\d+"]
+exclude = ["utm_", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://wear.jp/coordinate/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 120 links on the probed page (120 robots-allowed). Japanese outfit posts (/<user>/<id>/); detail pages not probed
+[[sources]]
+name = "wear_jp"
+type = "web"
+start_urls = ["https://wear.jp/coordinate/"]
+allowed_domains = ["wear.jp"]
+follow = ["^https://wear\\.jp/[A-Za-z0-9_-]+/\\d{6,}/$"]
+exclude = ["/category/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.whowhatwear.com/fashion/outfit-ideas/early-fall-trendy-outfit-ideas-2026 -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 22 links on the probed page (22 robots-allowed). Article JSON-LD + og
+[[sources]]
+name = "whowhatwear"
+type = "web"
+start_urls = ["https://www.whowhatwear.com/fashion/outfit-ideas/early-fall-trendy-outfit-ideas-2026"]
+allowed_domains = ["www.whowhatwear.com"]
+follow = ["^https://www\\.whowhatwear\\.com/fashion/(outfit-ideas|trends|fall)/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots.txt 404 (no rules) https://www.thesartorialist.com/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 12 links on the probed page (12 robots-allowed). robots.txt 404 -> no rules; street-style photo posts
+[[sources]]
+name = "sartorialist"
+type = "web"
+start_urls = ["https://www.thesartorialist.com/"]
+allowed_domains = ["www.thesartorialist.com"]
+follow = ["^https://www\\.thesartorialist\\.com/[a-z0-9-]+/$"]
+exclude = ["/(about|books|contact|category)/", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.refinery29.com/en-us/fashion -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes; Crawl-delay 1
+# follow regex matched 60 links on the probed page (60 robots-allowed). robots Crawl-delay 1
+[[sources]]
+name = "refinery29"
+type = "web"
+start_urls = ["https://www.refinery29.com/en-us/fashion"]
+allowed_domains = ["www.refinery29.com"]
+follow = ["^https://www\\.refinery29\\.com/en-us/[a-z0-9-]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://hypebae.com/fashion -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=yes
+# follow regex matched 12 links on the probed page (12 robots-allowed).
+[[sources]]
+name = "hypebae"
+type = "web"
+start_urls = ["https://hypebae.com/fashion"]
+allowed_domains = ["hypebae.com"]
+follow = ["^https://hypebae\\.com/20\\d\\d/\\d+/[^/?]+$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots allows https://www.styleforum.net/ -> HTTP 200; JSON-LD Product with price: no; og:title=yes, og:image=no
+# follow regex matched 93 links on the probed page (93 robots-allowed). forum (UGC); thread pages not probed
+[[sources]]
+name = "styleforum"
+type = "web"
+start_urls = ["https://www.styleforum.net/"]
+allowed_domains = ["www.styleforum.net"]
+follow = ["/threads/[^/]+\\.\\d+/$", "/forums/[^/]+\\.\\d+/$"]
+exclude = ["/members/", "/account/", "\\.rss$", "/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 20
+delay_s = 3.0
+
+# CRAWLABLE_NO_PRICE | verified 2026-09-19: robots.txt 404 (no rules) https://www.ptt.cc/bbs/Mix_Match/index.html -> HTTP 200; JSON-LD Product with price: no; og:title=no, og:image=no
+# follow regex matched 23 links on the probed page (23 robots-allowed). robots.txt 404 -> no rules; plain server-rendered HTML, no og/JSON-LD; images are imgur links in post text
+[[sources]]
+name = "ptt_mixmatch"
+type = "web"
+start_urls = ["https://www.ptt.cc/bbs/Mix_Match/index.html"]
+allowed_domains = ["www.ptt.cc"]
+follow = ["/bbs/Mix_Match/M\\.\\d+\\.A\\.[0-9A-F]+\\.html$", "/bbs/Mix_Match/index\\d*\\.html$"]
+exclude = ["/(login|signin|register|account|member|cart|checkout|user|my)(/|\\?|$)", "\\?.*(sort|order_by|page)=", "\\.(jpg|png|webp|gif|pdf)$"]
+max_pages = 30
+delay_s = 3.0
+
+# =====================================================================================================
+# API_ONLY sources (commented out: engine02.crawl has no connector for these yet; each needs a credential)
+# Web pages of every one of these are robots-disallowed or JS-only for our UA (see report).
+# =====================================================================================================
+
+# ---- Mastodon (no credential needed on mastodon.social) ----------------------------------------------
+# verified 2026-09-19: GET https://mastodon.social/api/v1/timelines/tag/ootd?limit=3 -> 200 JSON, public
+# statuses with media_attachments; robots.txt allows /api/. Docs: "View public statuses containing the given
+# hashtag." / "Authentication may be required depending on instance settings." Rate limit: "300 times within
+# 5 minutes per IP address". Params: only_media=true, limit<=40, max_id paging.
+# [[sources]]
+# name = "mastodon_ootd"
+# type = "mastodon"                       # connector not implemented
+# instance = "https://mastodon.social"
+# hashtags = ["ootd", "fashion", "streetstyle", "穿搭"]
+# only_media = true
+# max_posts = 200
+
+# ---- Bluesky (free app password) ----------------------------------------------------------------------
+# verified 2026-09-19: GET https://public.api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=%23ootd -> 403
+# unauthenticated. Docs: "Clients may connect directly to the Bluesky AppView endpoints (https://api.bsky.app
+# or https://public.api.bsky.app) for unauthenticated access." -- but searchPosts is refused there;
+# use an authenticated session (BSKY_HANDLE + BSKY_APP_PASSWORD) against the user's PDS / api.bsky.app.
+# [[sources]]
+# name = "bluesky_ootd"
+# type = "bluesky"
+# query = "#ootd"
+# max_posts = 200
+
+# ---- Tumblr (free OAuth consumer key used as api_key) -----------------------------------------------------
+# Web /tagged/ page is allowed by robots but JS-rendered (274 chars text). Docs: `api.tumblr.com/v2/tagged`
+# GET, "API Key or OAuth"; "Use your OAuth Consumer Key as your `api_key`"; limits "1,000 API calls per hour,
+# per consumer key" / "5,000 API calls per day, per consumer key"; limit 1-20 per call.
+# [[sources]]
+# name = "tumblr_fashion"
+# type = "tumblr"
+# api_key_env = "TUMBLR_API_KEY"
+# tags = ["fashion", "ootd", "streetstyle"]
+
+# ---- Reddit (OAuth client id/secret; free for non-commercial) ---------------------------------------------
+# www.reddit.com/robots.txt: "User-agent: *  Disallow: /". Reddit Data API: OAuth required, 100 QPM per
+# client id (Data API Wiki; help page returned 403 to our fetcher, figure taken from secondary summaries).
+# Endpoint: GET https://oauth.reddit.com/r/malefashionadvice/new (posts + preview.images).
+# [[sources]]
+# name = "reddit_mfa"
+# type = "reddit"
+# subreddits = ["malefashionadvice", "femalefashionadvice", "streetwear", "OUTFITS"]
+
+# ---- YouTube Data API v3 (free API key) --------------------------------------------------------------------
+# www.youtube.com/robots.txt disallows /results. Quota page (fetched 2026-09-19): "10,000 units per day combined
+# for all other endpoints" plus "100 search.list calls" per day. search.list?q=ootd&type=video -> thumbnails.
+# [[sources]]
+# name = "youtube_ootd"
+# type = "youtube"
+# api_key_env = "YOUTUBE_API_KEY"
+
+# ---- Flickr (free non-commercial API key) ------------------------------------------------------------------
+# www.flickr.com/robots.txt "User-agent: *  Disallow: /". flickr.photos.search(tags=streetstyle,
+# extras=url_m,license) -- "unauthenticated calls return only public photos" (still needs api_key);
+# "stays under 3600 queries per hour across the whole key". Prefer license filter for CC photos.
+# [[sources]]
+# name = "flickr_streetstyle"
+# type = "flickr"
+# api_key_env = "FLICKR_API_KEY"
+# tags = ["streetstyle", "ootd"]
+
+# ---- Threads (Meta app + app review) -----------------------------------------------------------------------
+# www.threads.com/robots.txt "User-agent: *  Disallow: /". GET graph.threads.net/v1.0/keyword_search needs
+# threads_keyword_search: "If your app has not been approved for the threads_keyword_search permission, the
+# search will be performed only on posts owned by the authenticated user." Limit 2,200 queries / 24 h.
+
+# ---- X (paid) ----------------------------------------------------------------------------------------------
+# x.com/robots.txt "User-agent: *  Disallow: /". X API is "pay-per-usage": "$0.005 per resource" for post reads;
+# no free read tier found in the pricing page. Not recommended for a demo.
+
+# ---- Pinterest (OAuth, only your own pins) -------------------------------------------------------------------
+# www.pinterest.com/robots.txt "User-agent: *  Disallow: /". API v5 List Pins "retrieves all Pins owned by the
+# operation user account" (pins:read, boards:read). No public hashtag search found in v5 docs.
+
+# ---- Instagram (already handled by engine02.crawl.instagram: IG_ACCESS_TOKEN + IG_USER_ID) ------------------
+# www.instagram.com/robots.txt "User-agent: *  Disallow: /" (re-verified 2026-09-19).

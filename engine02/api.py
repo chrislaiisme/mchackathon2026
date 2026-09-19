@@ -162,6 +162,10 @@ def _warmup() -> float | None:
 app = FastAPI(title="ENGINE 02 — retrieval, ranking, faithful explanation", version=CONTRACT_VERSION, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+from .context_api import router as _context_router  # noqa: E402  (context, services, demand radar)
+
+app.include_router(_context_router)
+
 
 def engine() -> Engine02:
     return STATE["engine"]
