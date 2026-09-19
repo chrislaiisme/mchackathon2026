@@ -267,7 +267,17 @@ def _generate(prompt_path: Path, model: str, aspect: str) -> dict[str, Any]:
                "--prompt-file", str(prompt_path), "--model", model, "--aspect", aspect]
 
     # 生圖 26–48 秒是常態，逾時要留足；卡住通常是 OAuth 過期，不是慢。
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    # encoding="utf-8" 一定要明講：text=True 不指定編碼時 Python 會用
+    # locale.getpreferredencoding()，這台機器（Windows，中文地區設定）預設是
+    # cp950，但 WSL2／Hermes 那端輸出的是 UTF-8（JSON 裡的中文 varied_label、
+    # 提示訊息等），cp950 解不動 UTF-8 的多位元組序列會直接丟
+    # UnicodeDecodeError，把整次生圖搞掛——這條路徑在原生 Linux／WSL2 上
+    # 因為系統預設編碼本來就是 UTF-8，不會踩到這個坑，只有 Windows 這條新路徑
+    # 會炸。errors="replace" 防止即使真的出現解不出來的位元組，也不要整個
+    # subprocess 呼叫直接報例外。
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300
+    )
     line = (proc.stdout or "").strip().splitlines()
     if not line:
         raise SystemExit(f"hermes_image.py 沒有輸出：\n{proc.stderr[-800:]}")
