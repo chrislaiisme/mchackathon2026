@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException
@@ -41,6 +41,8 @@ class Session(BaseModel):
     intent: dict[str, Any] = Field(default_factory=dict)
     prev_intent: Optional[dict[str, Any]] = None
     feedback: Optional[dict[str, Any]] = None       # ENGINE 03 上一輪的產出
+    shown_item_ids: list[str] = Field(default_factory=list)  # ENGINE 02 上輪實際展示的商品
+    feedback_rounds: list[dict[str, Any]] = Field(default_factory=list)  # 最近三輪的 ENGINE 03 原始輸入
     utterance: str = ""                             # 使用者最近說的那句原話（生圖要用）
     concept_image: Optional[dict[str, Any]] = None  # 最近一次生成的單品圖
     rounds: list[dict[str, Any]] = Field(default_factory=list)
@@ -53,6 +55,13 @@ def _post(url: str, payload: dict[str, Any], headers: Optional[dict[str, str]] =
     """對下游 POST。測試會替換這個函式。"""
     with httpx.Client(timeout=TIMEOUT) as client:
         r = client.post(url, json=payload, headers=headers or {})
+        r.raise_for_status()
+        return r.json()
+
+
+def _get(url: str, headers: Optional[dict[str, str]] = None) -> dict[str, Any]:
+    with httpx.Client(timeout=TIMEOUT) as client:
+        r = client.get(url, headers=headers or {})
         r.raise_for_status()
         return r.json()
 
@@ -84,6 +93,18 @@ def _retrieve(s: Session, activity: list[dict[str, Any]], message: Optional[str]
         "feedback": s.feedback, "top_k": top_k}, headers)
 
 
+def _shown_item_ids(retrieval: dict[str, Any]) -> list[str]:
+    """Extract the exact slate returned by ENGINE 02; never trust the browser to reconstruct it."""
+    ids: list[str] = []
+    for product in retrieval.get("products") or []:
+        item_id = product.get("product_id") or product.get("item_id")
+        if item_id is not None:
+            value = str(item_id)
+            if value not in ids:
+                ids.append(value)
+    return ids
+
+
 class RoundRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
@@ -109,6 +130,7 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
     s.round = int(intent_out.get("round") or s.round + 1)
 
     retrieval = _retrieve(s, activity, body.message, body.top_k, headers)
+    s.shown_item_ids = _shown_item_ids(retrieval)
 
     result = {
         "session_id": sid, "round": s.round,
@@ -130,13 +152,7 @@ def run_round(body: RoundRequest, authorization: Optional[str] = Header(default=
 class FeedbackRequest(BaseModel):
     session_id: str
     round: int
-    target: Literal["recommended", "generated"] = "recommended"
-    attribute_scores: list[dict[str, Any]] = Field(default_factory=list)
-    free_text: Optional[str] = None
-    selected_option_id: Optional[str] = None
-    shown_item_ids: list[str] = Field(default_factory=list)
-    liked_item_ids: list[str] = Field(default_factory=list)
-    disliked_item_ids: list[str] = Field(default_factory=list)
+    item_feedbacks: list[dict[str, Any]] = Field(min_length=1)
     top_k: int = 5
 
 
@@ -149,26 +165,48 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
     s = _SESSIONS.get(body.session_id)
     if s is None:
         raise HTTPException(404, f"session {body.session_id!r} 不存在，請先呼叫 /round")
+    if body.round != s.round:
+        raise HTTPException(409, f"feedback round {body.round} 與目前 round {s.round} 不一致")
+    if not s.shown_item_ids:
+        raise HTTPException(409, "上一輪沒有可供回饋的 ENGINE 02 商品")
 
     activity: list[dict[str, Any]] = []
     headers = _auth_headers(authorization)
+    current_feedback_round = {
+        "round": s.round,
+        "shown_item_ids": s.shown_item_ids,
+        "item_feedbacks": body.item_feedbacks,
+    }
+    engine3_payload = {
+        "session_id": s.session_id,
+        "previous_rounds": s.feedback_rounds[-3:],
+        **current_feedback_round,
+    }
     fb_out = _step(activity, "engine03.feedback", f"{ENGINE03_URL}/feedback",
-                   body.model_dump(exclude={"top_k"}), headers)
-    s.feedback = fb_out.get("feedback")
-    s.round = int(fb_out.get("next_round") or s.round + 1)
+                   engine3_payload, headers)
+    engine02_feedback = fb_out.get("engine02_feedback")
+    if not isinstance(engine02_feedback, dict):
+        raise HTTPException(502, "engine03.feedback 缺少 engine02_feedback")
 
-    retrieval = _retrieve(s, activity, None, body.top_k, headers)
+    # Work on a copy so a failed ENGINE 02 call does not leave the session half-advanced.
+    next_session = s.model_copy(deep=True)
+    next_session.feedback = engine02_feedback
+    next_session.feedback_rounds = (s.feedback_rounds + [current_feedback_round])[-3:]
+    next_session.round = s.round + 1
+    retrieval = _retrieve(next_session, activity, None, body.top_k, headers)
+    next_session.shown_item_ids = _shown_item_ids(retrieval)
 
     result = {
-        "session_id": s.session_id, "round": s.round,
-        "intent": s.intent,
+        "session_id": next_session.session_id, "round": next_session.round,
+        "intent": next_session.intent,
         "retrieval": retrieval,
-        "concept_image": s.concept_image,
-        "feedback_applied": s.feedback,
-        "ledger_entry": fb_out.get("ledger_entry"),
+        "concept_image": next_session.concept_image,
+        "feedback_applied": next_session.feedback,
+        "attribute_evidence": fb_out.get("attribute_evidence") or [],
         "activity": activity,
     }
-    s.rounds.append(result)
+    next_session.rounds.append(result)
+    _SESSIONS[next_session.session_id] = next_session
     return result
 
 
@@ -229,6 +267,15 @@ def session(session_id: str) -> dict[str, Any]:
     if s is None:
         raise HTTPException(404, f"session {session_id!r} 不存在")
     return s.model_dump()
+
+
+@app.get("/feedback/attributes")
+def feedback_attributes(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
+    """Proxy ENGINE 03's stable ids and Traditional-Chinese display text to the frontend."""
+    try:
+        return _get(f"{ENGINE03_URL}/attributes", _auth_headers(authorization))
+    except Exception as exc:
+        raise HTTPException(502, f"engine03.attributes 失敗：{type(exc).__name__}: {exc}"[:300])
 
 
 @app.get("/health")
