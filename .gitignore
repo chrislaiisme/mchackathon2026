@@ -76,3 +76,8 @@ data/catalog/kagl/*
 data/catalog/polyvore/*
 !data/catalog/polyvore/category_cooccurrence.json
 !data/catalog/polyvore/category_cooccurrence.meta.json
+# Pinterest: metadata needs the team token, so it ships; the images are third-party and can be
+# rebuilt from the public CDN URLs in the metadata with --images-from, so they stay local.
+!data/pinterest/
+data/pinterest/*
+!data/pinterest/pins_*.json
