@@ -10,11 +10,25 @@ Pinterest API v5 的 Trial access 只能讀寫／搜尋連結帳號自己的 pin
 
 ## 概念圖生成
 
+> **這一節描述的是早期規劃，已經被實作取代。** 現在的做法是「一次生一張六宮格、吃 ENGINE02 top-1 的真實商品照當基準圖」，走 Hermes 的 `image_generate` 工具而不是 OpenAI Responses API，也不需要 `OPENAI_API_KEY`。執行規則在 [`agent/skills/concept-image-director/SKILL.md`](../agent/skills/concept-image-director/SKILL.md)，理由與實測數字在 [concept-image-generation.md](concept-image-generation.md)。下面這段保留作為原始規劃的紀錄。
+
 OpenAI Responses API，`image_generation` tool，`action: "auto"`。每一輪的 `Intent` 轉成一段抽象的 prompt（顏色／剪裁／場合／材質——避免點名真實品牌或設計師，畢竟是在出題企業的評審面前 demo）。多輪銜接用 `previous_response_id`，讓模型看得到上一輪的圖加上這輪回饋，不用整張重生。範例程式碼在 [hackathon-brief.md](hackathon-brief.md) 的「評分怎麼具體變成下一次生成的修正」段落。
 
 **Live** demo 要跑幾輪完全由使用者回饋決定（絕不是模型自己判斷要不要停）。**離線驗證迴圈**則固定跑 2–4 輪，用 FashionCLIP 相似度當硬性的量化停止依據——見 [validation-plan.md](validation-plan.md)。
 
 生成出來的圖片同步轉成 FashionCLIP 向量，併入 ENGINE02 dense 側的分數，讓生成分支跟檢索分支互相加強，不是兩個各自獨立的功能。
+
+## 虛擬形象試穿（延伸功能，2026-09-18 使用者口頭補充，不在原始簡報或 hackathon-brief.md 裡）
+
+生圖之後的下一步：把生成出來的概念圖給虛擬形象「穿上」，讓使用者看到接近實際上身的樣子，不只是單純的服裝概念圖。跟前面的概念圖生成一樣，正式負責人接手後要把這裡展開成真正的規格，這裡先記下已經定案的方向：
+
+- **預設虛擬形象**：每個使用者一開始就有一個固定的預設虛擬形象可以用，不需要額外設定，零門檻就能看到試穿效果。
+- **客製化虛擬形象**：使用者願意的話，可以上傳一張全身照＋填身高體重，系統就用這些資料客製化出屬於這個使用者自己的虛擬形象（比預設形象更貼近本人）。全身照上傳這塊可以直接沿用 [engine01-intent.md](engine01-intent.md) 待辦事項裡「圖片上傳功能」同一套機制（本機 `data/uploads/`，不進資料庫）。
+- **回饋機制待定**：使用者對試穿結果的回饋，可能是細項打分（例如版型合身度、顏色是否適合本人），也可能是單純喜歡／不喜歡——這兩種都在考慮中，還沒定案，正式負責人要跟團隊拍板一個方向。如果最後走細項打分，設計上可以直接沿用 [interface-contract.md](interface-contract.md) 裡 `FeedbackInput`／`AttributeScore` 同一套結構（`target` 欄位目前只有 `"recommended"`／`"generated"` 兩種，屆時可能要加第三種，例如 `"tryon"`），不用另外發明一套回饋格式。
+
+跟 ENGINE01／ENGINE02 的關係：虛擬形象是「per-user」的持久資料（不是單一對話 session 裡的東西），性質上跟 `UserProfile` 裡已有的 `age_range`／`style_preferences` 類似，正式設計時可以考慮要不要併進 `UserProfile`，或另外開一個模型——這個決定留給正式負責人跟 ENGINE01 owner 一起談，這裡不先幫忙決定。
+
+**前端互動想法（同樣還沒定案）**：點一下虛擬形象圖片切換「穿上生成的衣服」跟「沒穿」，像奇跡暖暖那樣——只要試穿後的圖跟原本（沒穿／預設）的圖都準備好了，前端純粹是切換顯示哪一張，不用額外呼叫後端。細節見 [frontend.md](frontend.md#延伸功能待討論想法使用者口頭提出還沒定案正式負責人接手時要評估要不要做)。
 
 ## 依賴
 

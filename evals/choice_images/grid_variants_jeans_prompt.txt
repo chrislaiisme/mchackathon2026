@@ -1,0 +1,19 @@
+A studio product contact sheet: exactly 6 photographs of women's jeans, arranged in a strict grid of 3 columns and 2 rows.
+
+GRID: six equal-sized cells separated by clean pure-white gutters of uniform width. Every cell uses the same framing, the same camera distance and the same garment scale, so the six pairs of jeans can be compared side by side. No garment, shadow or background tone crosses a gutter.
+
+IN EVERY CELL: the same invisible ghost-mannequin product photograph - headless and bodiless, no person, no face, no hands, no skin; the jeans hold their own three-dimensional shape as if worn. Seamless mid-grey studio background, even soft box lighting, straight-on front view, the whole garment from waistband to hem visible with a small even margin.
+
+FORBIDDEN anywhere in the image: text, letters, numbers, captions, labels, logos, watermarks, price tags, hangers, props, people, reflections.
+
+BASELINE GARMENT, identical in all six cells except where stated: women's high-rise barrel-leg jeans in a mid-blue denim wash, full length reaching the ankle bone, classic five-pocket styling, clean stitched hem, silver shank button, no rips, no embroidery, no belt.
+
+Each cell differs from the baseline in exactly ONE attribute, in this reading order (left to right, top row first):
+Cell 1, top-left: the baseline garment, unchanged.
+Cell 2, top-middle: identical to the baseline, EXCEPT a low rise sitting on the hips.
+Cell 3, top-right: identical to the baseline, EXCEPT a narrow straight leg shape.
+Cell 4, bottom-left: identical to the baseline, EXCEPT an ecru off-white denim wash.
+Cell 5, bottom-middle: identical to the baseline, EXCEPT a cropped length ending well above the ankle.
+Cell 6, bottom-right: identical to the baseline, EXCEPT a raw frayed unfinished hem.
+
+Anything not named as that cell's exception must stay exactly consistent with the baseline across all six cells: same wash, same rise, same leg shape, same length, same pockets, same stitching, same lighting, same scale.
