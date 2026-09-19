@@ -1,158 +1,143 @@
-"""生成單品概念圖：把 ENGINE 02 的回傳整理成生圖要的材料，交給 Hermes 執行。
+"""按下「生成新單品」之後的流程控制。
 
-分兩段，界線刻意畫清楚：
+使用者對 ENGINE 02 撈到的東西不滿意時，一次生六件新單品讓他挑。
 
-* **寫 prompt** 是政策，屬於 Hermes skill（`agent/skills/concept-image-director/`）。
-* **執行生圖與存檔** 是流程，屬於這裡；不交給模型決定要不要做。
+**這裡不生圖，也不寫 prompt。** 兩件事都在 `agent/scripts/` 那條線：
 
-skill 還沒到位時用 `fallback_prompt()`，所以整條路今天就能跑，skill 完成後換掉那一個函式即可。
+    generate_grid.py --mode concepts   寫 prompt、呼叫 Hermes、產出一張六宮格與 manifest
+    slice_grid.py                      把六宮格切成六張單品圖，把 bbox 與路徑寫回 manifest
 
-為什麼材料取自 ENGINE 02 而不是 ENGINE 01：`relaxed`（目錄給不出什麼）、
-`unresolved_from_intent`（哪些話目錄詞彙表達不了）、`requirements`（哪些是使用者說出口的硬條件）
-這三樣只有 ENGINE 02 知道，而它們正是生圖的主角。但使用者的原話一定要一起帶 ——
-像「珍珠褲鏈」這種目錄沒有的概念會在 ENGINE 02 的結構化欄位裡整個消失。
+為什麼是六宮格而不是六次生圖：走 Hermes 的 openai-codex provider 一次要 26–48 秒，
+六件逐一生成要三四分鐘，現場撐不住；擠在一張圖裡實測 48.4 秒，攤下來每件 8.1 秒。
+
+為什麼用子行程而不是直接 import：Hermes 的 plugin 住在它自己的虛擬環境，prompt 組裝要
+import 專案的 engine02（在專案 venv），兩邊依賴沒有交集。介面是 stdout 的 JSON，
+跟 ENGINE 01 shell out 給 codex exec 同一套模式。
 """
 from __future__ import annotations
 
+import json
 import os
-import re
-import shutil
-import uuid
+import subprocess
+import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
-
-# 生成圖存這裡，由 BFF 的 /generated/<檔名> 提供給前端。
-GENERATED_DIR = Path(os.environ.get("GENERATED_IMAGES_DIR", "data/generated"))
-HERMES_REPO = Path(os.environ.get("HERMES_AGENT_REPO", Path.home() / ".hermes" / "hermes-agent"))
-
-
-class SkillInput(BaseModel):
-    """交給生圖 skill 的材料。`utterance` 放第一位是刻意的 —— 目錄詞彙表達不了的細節只存在於原話。"""
-
-    utterance: str = ""
-    hard: list[str] = Field(default_factory=list)          # 使用者說出口的硬條件，必須出現在圖上
-    design: list[str] = Field(default_factory=list)        # 有方向性的設計偏好（例：寬鬆版型↑）
-    relaxed: list[str] = Field(default_factory=list)       # 目錄給不出來而被放寬的條件 —— 生圖的主角
-    unresolved: list[str] = Field(default_factory=list)    # 目錄詞彙對不到的說法
-    reference_image: Optional[str] = None                  # 目錄商品的真實照片（本機路徑）
-    reference_attributes: dict[str, str] = Field(default_factory=dict)
+ROOT = Path(os.environ.get("PROJECT_ROOT", Path(__file__).resolve().parents[2]))
+GENERATED_ROOT = ROOT / "data" / "generated"
+GENERATE_GRID = ROOT / "agent" / "scripts" / "generate_grid.py"
+SLICE_GRID = ROOT / "agent" / "scripts" / "slice_grid.py"
+TIMEOUT = float(os.environ.get("CONCEPT_IMAGE_TIMEOUT", "300"))
+# 版面沒切成的重試次數。切圖的版面檢查沒過時，腳本自己的建議就是「這張不要用，重生一張」。
+MAX_ATTEMPTS = int(os.environ.get("CONCEPT_IMAGE_ATTEMPTS", "2"))
 
 
-def build_skill_input(retrieval: dict[str, Any], utterance: str = "",
-                      reference_item_id: Optional[str] = None) -> SkillInput:
-    """從 ENGINE 02 的回傳挑出生圖要的材料。"""
-    e02 = retrieval.get("engine02") or {}
-    detail = e02.get("match_score_detail") or {}
-    reqs = detail.get("requirements") or []
-
-    products = retrieval.get("products") or []
-    ref = None
-    if reference_item_id:
-        ref = next((p for p in products if str(p.get("product_id")) == str(reference_item_id)), None)
-    ref = ref or (products[0] if products else None)
-
-    return SkillInput(
-        utterance=utterance,
-        hard=[str(r.get("requirement")) for r in reqs if r.get("kind") == "hard"],
-        design=[str(r.get("requirement")) for r in reqs if r.get("kind") == "design"],
-        relaxed=[str(x) for x in (detail.get("relaxed") or [])],
-        unresolved=[str(x) for x in (e02.get("unresolved_from_intent") or [])],
-        reference_image=_catalog_image_path(ref.get("image_url")) if ref else None,
-        reference_attributes={k: str(v) for k, v in ((ref or {}).get("attributes") or {}).items()},
-    )
+class ConceptImageUnavailable(RuntimeError):
+    """生圖那條線還沒到位，或這次執行失敗。呼叫端要能照常回應，不是整輪掛掉。"""
 
 
-def _catalog_image_path(image_url: Optional[str]) -> Optional[str]:
-    """ENGINE 02 的 `/images/<item_id>` 轉成本機檔案路徑；找不到就回 None（改成憑空生成）。"""
-    if not image_url:
-        return None
-    item_id = str(image_url).rstrip("/").split("/")[-1]
-    catalog = Path(os.environ.get("ENGINE02_CATALOG", "data/catalog/kagl")) / "images"
-    for ext in (".jpg", ".jpeg", ".png"):
-        candidate = catalog / f"{item_id}{ext}"
-        if candidate.exists():
-            return str(candidate)
-    return None
-
-
-# 平拍商品圖的視覺規則：要和目錄照片同一種語言，`/visual-search` 的 embedding 才比得準。
-_FLAT_LAY_RULES = (
-    "Flat product photograph on a plain white background, single garment filling the frame, "
-    "no model, no mannequin, no props, no scene, no text, no logos, no watermark, "
-    "even studio lighting, sharp focus, e-commerce catalog style."
-)
-
-
-def fallback_prompt(data: SkillInput) -> str:
-    """skill 未就緒時的備用 prompt。刻意保守：只陳述材料，不自行發揮。"""
-    parts: list[str] = []
-    if data.utterance:
-        parts.append(f"The shopper asked for: {data.utterance}")
-    if data.relaxed:
-        parts.append("The catalog could not supply this, so generate it: " + "；".join(data.relaxed))
-    if data.hard:
-        parts.append("These must be visible in the image: " + ", ".join(data.hard))
-    if data.design:
-        parts.append("Lean toward: " + ", ".join(data.design))
-    if data.unresolved:
-        parts.append("Details the catalog vocabulary could not express, keep them: " + "；".join(data.unresolved))
-    if data.reference_image:
-        parts.append("Use the provided reference image for the overall garment type and framing; "
-                     "change only what the request above asks for.")
-    parts.append(_FLAT_LAY_RULES)
-    return "\n".join(parts)
-
-
-def _dispatch_image_generate(prompt: str, reference_image: Optional[str]) -> dict[str, Any]:
-    """經 Hermes 的工具註冊表生圖。流程決定何時生，不讓模型自己判斷。"""
-    import sys
-
-    if str(HERMES_REPO) not in sys.path:
-        sys.path.insert(0, str(HERMES_REPO))
-    # Hermes 的工具在模組被 import 時才把自己註冊進 registry，少了這行會是
-    # 「Unknown tool: image_generate」。
-    import tools.image_generation_tool  # noqa: F401
-    from tools.registry import registry
-
-    args: dict[str, Any] = {"prompt": prompt, "aspect_ratio": "square"}
-    if reference_image:
-        args["image_url"] = reference_image
-    raw = registry.dispatch("image_generate", args)
-    import json
-
-    return json.loads(raw) if isinstance(raw, str) else raw
-
-
-def generate(data: SkillInput, prompt: Optional[str] = None) -> dict[str, Any]:
-    """產生一張平拍單品圖，回傳 `ConceptImage` 形狀的 dict；失敗回 `{"error": ...}`。
-
-    `prompt` 給定時就用它（skill 寫好的），否則用 fallback。
-    """
-    used = prompt or fallback_prompt(data)
+def _run(script: Path, args: list[str]) -> dict[str, Any]:
+    if not script.is_file():
+        raise ConceptImageUnavailable(f"找不到 {script.relative_to(ROOT) if script.is_relative_to(ROOT) else script}")
+    proc = subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True,
+                          timeout=TIMEOUT, cwd=str(ROOT))
+    if proc.returncode != 0:
+        raise ConceptImageUnavailable(f"{script.name} 失敗：{(proc.stderr or proc.stdout)[-300:]}")
     try:
-        result = _dispatch_image_generate(used, data.reference_image)
-    except Exception as exc:  # 生圖不該讓整輪掛掉
-        return {"error": f"{type(exc).__name__}: {exc}"[:300], "prompt_used": used}
+        return json.loads(proc.stdout.strip().splitlines()[-1]) if proc.stdout.strip() else {}
+    except (ValueError, IndexError):
+        return {}
 
-    if not result.get("success"):
-        return {"error": str(result.get("error"))[:300], "error_type": result.get("error_type"),
-                "prompt_used": used}
-    if result.get("image_source") != "final":
-        return {"error": "只拿到進行中的半成品影格，沒有完整結果", "prompt_used": used}
 
-    src = Path(result["image"])
-    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
-    name = f"{re.sub(r'[^a-zA-Z0-9]+', '-', src.stem)[:40]}-{uuid.uuid4().hex[:8]}{src.suffix}"
-    shutil.copy(src, GENERATED_DIR / name)
+def generate_concepts(session_id: str, round_no: int, intent: dict[str, Any],
+                      cells: int = 6, model: Optional[str] = None,
+                      dry_run: bool = False) -> dict[str, Any]:
+    """對外入口：版面沒切成就重生一張，最多 MAX_ATTEMPTS 次。"""
+    last: Optional[ConceptImageUnavailable] = None
+    for attempt in range(1, (1 if dry_run else MAX_ATTEMPTS) + 1):
+        try:
+            return _generate_once(session_id, round_no, intent, cells, model, dry_run, attempt)
+        except ConceptImageUnavailable as exc:
+            last = exc
+            if "版面" not in str(exc):   # 只有版面問題值得重生，其餘照實往上拋
+                raise
+    raise ConceptImageUnavailable(f"重生 {MAX_ATTEMPTS} 次版面都沒切成：{last}")
+
+
+def _generate_once(session_id: str, round_no: int, intent: dict[str, Any],
+                   cells: int, model: Optional[str], dry_run: bool,
+                   attempt: int = 1) -> dict[str, Any]:
+    """生一張六宮格並切成六件單品，回傳給前端的形狀。
+
+    `intent` 吃 ENGINE 01 的 `Intent`；第 2 輪起可以改吃 ENGINE 03 的 `updated_intent`，
+    型別相同，所以使用者按下按鈕時拿到的是「已經吸收過這輪回饋」的六件。
+    """
+    out_dir = GENERATED_ROOT / session_id / (f"r{round_no}" if attempt == 1 else f"r{round_no}-retry{attempt}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as fh:
+        json.dump(intent, fh, ensure_ascii=False)
+        intent_path = fh.name
+
+    try:
+        args = ["--intent", intent_path, "--mode", "concepts", "--session", session_id,
+                "--round", str(round_no), "--cells", str(cells), "--out", str(out_dir)]
+        if model:
+            args += ["--model", model]
+        if dry_run:
+            args.append("--dry-run")
+        _run(GENERATE_GRID, args)
+    finally:
+        Path(intent_path).unlink(missing_ok=True)
+
+    manifest_path = out_dir / "manifest.json"
+    if not manifest_path.is_file():
+        raise ConceptImageUnavailable("generate_grid.py 沒有寫出 manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    if dry_run:
+        return {"dry_run": True, "prompt_used": manifest.get("prompt", ""),
+                "cells": _cells_payload(manifest, sliced=False), "manifest": str(manifest_path)}
+
+    # 切圖；切完 manifest 的每一格會多出 image 與 bbox。
+    _run(SLICE_GRID, ["--manifest", str(manifest_path)])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     return {
-        "image_url": f"/generated/{name}",
-        "prompt_used": used,
-        # response_id 是 OpenAI Responses API 的多輪接續用的；Hermes 這條路不支援，恆為 None。
-        "response_id": None,
-        "reference_image_used": data.reference_image,
-        "pixel_size": result.get("pixel_size"),
-        "model": result.get("model"),
+        "grid_image": _served(manifest.get("grid_image")),
+        "prompt_used": manifest.get("prompt", ""),
+        "locked": manifest.get("locked_zh") or manifest.get("locked") or {},
+        "unresolved": manifest.get("unresolved") or [],
+        "cells": _cells_payload(manifest, sliced=True),
+        "manifest": str(manifest_path.relative_to(ROOT)),
     }
+
+
+def _cells_payload(manifest: dict[str, Any], *, sliced: bool) -> list[dict[str, Any]]:
+    out = []
+    for cell in manifest.get("cells") or []:
+        item = {
+            "index": cell.get("index"),
+            "keywords": cell.get("keywords") or {},
+            # 這格相對其他格改了什麼，中文原字，前端可以直接顯示在卡片上。
+            "varied_label": cell.get("varied_label_zh") or cell.get("varied_attribute"),
+            "prompt_fragment": cell.get("prompt_fragment"),
+        }
+        if sliced:
+            item["image_url"] = _served(cell.get("image"))
+            item["check"] = cell.get("check") or {}
+        out.append(item)
+    return out
+
+
+def _served(path: Optional[str]) -> Optional[str]:
+    """manifest 裡是相對 repo 根目錄的路徑；轉成 BFF 的 /generated/<...> 供前端取用。"""
+    if not path:
+        return None
+    p = Path(path)
+    try:
+        rel = p.relative_to("data/generated") if not p.is_absolute() else p.relative_to(GENERATED_ROOT)
+    except ValueError:
+        rel = Path(p.name)
+    return f"/generated/{rel.as_posix()}"

@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from bff.images.concept import GENERATED_DIR, build_skill_input, generate as generate_concept
+from bff.images.concept import GENERATED_ROOT, ConceptImageUnavailable, generate_concepts
 
 ENGINE01_URL = os.environ.get("ENGINE01_URL", "http://127.0.0.1:8000")
 ENGINE02_URL = os.environ.get("ENGINE02_URL", "http://127.0.0.1:8002")
@@ -174,49 +174,53 @@ def feedback(body: FeedbackRequest, authorization: Optional[str] = Header(defaul
 
 class ConceptImageRequest(BaseModel):
     session_id: str
-    reference_item_id: Optional[str] = None
-    """要當參考圖的商品；省略就用這一輪排第一的那件。"""
-    prompt: Optional[str] = None
-    """生圖 skill 寫好的 prompt。省略時用 bff/images/concept.py 的保守版本。"""
+    cells: int = 6
+    model: Optional[str] = None
+    """生圖模型，省略用 generate_grid.py 的預設。"""
+    dry_run: bool = False
+    """只組 prompt 與 manifest，不生圖、不花額度。開發時先用這個。"""
 
 
 @app.post("/concept-image")
 def concept_image(body: ConceptImageRequest) -> dict[str, Any]:
-    """生成一張平拍單品圖，填進這個 session 的 `concept_image`。
+    """使用者對檢索結果不滿意時，一次生六件新單品讓他挑。
 
-    明確觸發，不在每一輪自動跑 —— 一張要 27–50 秒，會把整輪拖垮。
-    材料取自上一輪 ENGINE 02 的回傳加上使用者原話，理由見 `bff/images/concept.py`。
+    明確觸發，不在每一輪自動跑：一張六宮格 26–48 秒。六件擠在一張圖裡生，
+    比逐一生成快三倍多，理由見 bff/images/concept.py。
     """
     s = _SESSIONS.get(body.session_id)
     if s is None or not s.rounds:
         raise HTTPException(404, f"session {body.session_id!r} 還沒有任何一輪結果")
+    if not s.intent:
+        raise HTTPException(409, "這個 session 還沒有結構化意圖，無法生圖")
 
     activity: list[dict[str, Any]] = []
     t0 = time.time()
-    skill_input = build_skill_input(
-        s.rounds[-1].get("retrieval") or {}, utterance=s.utterance,
-        reference_item_id=body.reference_item_id)
-    out = generate_concept(skill_input, body.prompt)
-    activity.append({"step": "images.concept", "ms": int((time.time() - t0) * 1000),
-                     "ok": "error" not in out})
+    try:
+        out = generate_concepts(s.session_id, s.round, s.intent,
+                                cells=body.cells, model=body.model, dry_run=body.dry_run)
+    except ConceptImageUnavailable as exc:
+        activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000),
+                         "ok": False, "error": str(exc)[:200]})
+        raise HTTPException(502, f"生成單品失敗：{exc}")
+    except Exception as exc:
+        raise HTTPException(502, f"生成單品失敗：{type(exc).__name__}: {exc}"[:300])
 
-    if "error" in out:
-        raise HTTPException(502, f"生成單品圖失敗：{out['error']}")
-
-    s.concept_image = out
-    return {"session_id": s.session_id, "round": s.round, "concept_image": out,
-            "skill_input": skill_input.model_dump(), "activity": activity}
+    activity.append({"step": "images.concepts", "ms": int((time.time() - t0) * 1000), "ok": True})
+    s.concept_image = {"image_url": out.get("grid_image"), "prompt_used": out.get("prompt_used"),
+                       "response_id": None}
+    return {"session_id": s.session_id, "round": s.round, "concepts": out, "activity": activity}
 
 
-@app.get("/generated/{filename}")
-def generated_image(filename: str) -> FileResponse:
-    """把生成的圖給前端。只認檔名，不接受路徑，避免讀到目錄外的檔案。"""
-    if "/" in filename or "\\" in filename or filename.startswith("."):
-        raise HTTPException(400, "檔名不合法")
-    path = GENERATED_DIR / filename
-    if not path.is_file():
-        raise HTTPException(404, f"找不到 {filename}")
-    return FileResponse(path)
+@app.get("/generated/{path:path}")
+def generated_image(path: str) -> FileResponse:
+    """把生成的圖給前端。解析後必須仍在 data/generated 底下，擋住 ../ 之類的路徑。"""
+    target = (GENERATED_ROOT / path).resolve()
+    if not target.is_relative_to(GENERATED_ROOT.resolve()):
+        raise HTTPException(400, "路徑不合法")
+    if not target.is_file():
+        raise HTTPException(404, f"找不到 {path}")
+    return FileResponse(target)
 
 
 @app.get("/session/{session_id}")

@@ -1,68 +1,53 @@
 # bff/images/
 
-生成平拍單品圖，填進 `RoundResult.concept_image`。
+使用者對 ENGINE 02 撈到的東西不滿意時，一次生六件新單品讓他挑。
 
 負責線：線 3｜概念圖與選項圖
 對應功能：FR-007 Concept Image Generation
 
-## 兩段式：skill 寫 prompt，runtime 執行
+## 這裡只做流程，不生圖也不寫 prompt
 
 | 職責 | 在哪 |
 |---|---|
-| 寫 prompt（政策） | Hermes skill `agent/skills/concept-image-director/` |
-| 整理材料、執行生圖、存檔（流程） | `concept.py` |
+| 寫 prompt、呼叫 Hermes、產出六宮格與 manifest | `agent/scripts/generate_grid.py --mode concepts` |
+| 把六宮格切成六張單品圖 | `agent/scripts/slice_grid.py` |
+| 何時生、重試、把結果整理給前端 | 這裡 |
 
-流程不交給模型決定要不要做。skill 還沒到位時 `fallback_prompt()` 頂著，整條路現在就能跑。
+**依賴**：上面兩支腳本要在 repo 裡才會動。缺檔時回 `ConceptImageUnavailable`，
+端點回 502 並指名缺什麼，不會把整輪拖垮。
+
+## 為什麼是一張六宮格，不是生六次
+
+走 Hermes 的 openai-codex provider 一次生圖 26–48 秒。六件逐一生成要三四分鐘，
+現場撐不住。擠在一張圖裡實測 **43.8 秒拿到六件，攤下來每件 7.3 秒**。
+
+附帶好處：六格在同一次生成裡產出，攝影規格、背景、水洗色天然一致，
+不必額外約束就能互相比較。
 
 ## 端點
 
 ```
-POST /concept-image  {session_id, reference_item_id?, prompt?}
-GET  /generated/<檔名>
+POST /concept-image   {session_id, cells?, model?, dry_run?}
+GET  /generated/<路徑>
 ```
 
-`prompt` 給定時就用它（skill 的產出），省略則用 fallback。**明確觸發，不在每輪自動跑** ——
-一張 27–50 秒會把整輪拖垮。`/round` 的回傳有 `concept_image_suggested`，目錄給不出使用者要的
-東西時為 true，前端拿它決定按鈕要不要亮。
+`dry_run` 只組 prompt 與 manifest，不生圖不花額度 —— 開發時先用它。
 
-## 材料取自 ENGINE 02，但原話一定要一起帶
+**明確觸發**，不在每輪自動跑。`/round` 的回傳有 `concept_image_suggested`，
+ENGINE 02 為了湊足結果而放寬條件時為 true，前端拿它決定按鈕要不要亮。
 
-| 欄位 | 來源 | 用途 |
-|---|---|---|
-| `utterance` | 使用者原話 | **目錄詞彙表達不了的細節只存在這裡** |
-| `hard` | `match_score_detail.requirements` kind=hard | 必須出現在圖上 |
-| `design` | 同上 kind=design | 有方向性的偏好 |
-| `relaxed` | `match_score_detail.relaxed` | 目錄給不出什麼 —— 生圖的主角 |
-| `unresolved` | `unresolved_from_intent` | 目錄詞彙對不到的說法 |
-| `reference_image` | 該輪商品的目錄照片 | 版型與構圖參考 |
+## 回傳
 
-實測佐證：輸入「我想要寬鬆的深色牛仔褲，上方有珍珠褲鏈」，ENGINE 02 的結構化欄位裡
-**完全沒有「珍珠褲鏈」**（目錄沒有這個概念），只有 `utterance` 保住了它，生成的圖也確實有那條鏈子。
+```
+grid_image   六宮格原圖（展示用）
+cells[]      六件單品：image_url、keywords、varied_label（中文，可直接顯示）、check
+locked       六格都一樣的屬性（使用者說出口的東西）
+unresolved   翻不成英文、沒進圖的字
+```
 
-## 已知限制
+## 版面沒切成會自動重生
 
-- Codex 那條路**忽略尺寸參數**，要 1024×1024 可能回 1086×1448，前端不要寫死尺寸。
-- `ConceptImage.response_id` 是 OpenAI Responses API 多輪接續用的，Hermes 這條路不支援，恆為 None；
-  多輪要接續就把上一張圖當 `reference_item_id` 之外的參考圖傳入。
+`slice_grid.py` 會檢查 gutter 位置是否均勻，不合格就拒切並建議重生。這裡最多重生
+`CONCEPT_IMAGE_ATTEMPTS`（預設 2）次；只有版面問題才重生，其餘錯誤照實往上拋。
 
-## 待收斂：呼叫 Hermes 的方式要統一
-
-目前 `concept.py` 是**在同一個直譯器裡** `sys.path` 插進 Hermes repo 再 import。它能跑，但
-Hermes 的 plugin 住在自己的虛擬環境，而 prompt 組裝要 import 專案的 engine02（在專案 venv），
-兩邊依賴沒有交集，長期會出事。
-
-`agent/scripts/hermes_image.py`（生圖 skill 那條線）採的是**跨行程**做法：用 Hermes 自己的 venv
-執行，介面是 stdout 的 JSON，跟 ENGINE 01 shell out 給 `codex exec` 同一套模式。那個做法比較穩。
-
-**這支落地之後，把 `_dispatch_image_generate()` 換成呼叫它**，全專案只留一條呼叫 Hermes 的路。
-函式界線已經留好，換掉那一個函式即可，其餘不動。
-
-## 與選項圖的分工
-
-| | 選項圖（`concept-image-director` skill） | 這裡 |
-|---|---|---|
-| 產出 | 一張六格拼圖，切成六個單變因變體 | 一張單品圖 |
-| 用途 | 需求探索的選擇題 | 目錄給不出使用者要的東西時 |
-| 觸發 | 出題時 | 使用者按「生成單品」 |
-
-兩者都該走同一條 Hermes 呼叫路徑。
+實測五次裡有一次沒切成，重生一次就過。
