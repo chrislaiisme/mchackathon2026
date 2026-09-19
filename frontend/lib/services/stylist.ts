@@ -2,7 +2,8 @@
 // /style-me）。這支檔案只做兩件事——呼叫後端、把後端的資料形狀轉成前端 stylist-experience.tsx
 // 已經在用的 ChatRecommendation／ChatMessage 形狀——渲染那一側完全不用改，因為
 // ChatMessage.recommendation 本來就是這些元件直接消費的資料。
-import type { ChatMessage, ChatRecommendation, FashionRecommendation, GuidedChoice } from "@/lib/types";
+import { buildPreferenceRatingFeedback } from "@/lib/services/preferences";
+import type { ChatMessage, ChatRecommendation, FashionRecommendation, GuidedChoice, UserPreferenceState } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -41,6 +42,7 @@ interface BackendZoneSlate {
   zone: "top" | "bottom";
   requested: boolean;
   products: BackendProductCard[];
+  match_score: number;
 }
 
 interface BackendZonedRecommendationResult {
@@ -77,16 +79,16 @@ interface BackendConceptZoneResult {
   cells: BackendConceptCell[];
 }
 
-// 2026-09-19：後端 /concept-image 現在有兩種回傳形狀，看這輪的意圖是不是「整套」
-// （outfit_requested=True 且沒有單一 item_type）——單一品項回 `concepts`（一組六格），
-// 整套回 `zones.top`／`zones.bottom`（各一組六格）＋一句 Top Pick 理由，比照資料庫
-// 推薦「上衣／下身各 6 件」的展示邏輯，見 backend/engine01_intent/main.py 的
-// post_concept_image() 說明。兩個欄位都是選填，呼叫端要檢查是哪一種形狀回來的。
+// 2026-09-19：後端 /concept-image 一律回兩分區形狀（連身裙／單品＋填充另一區／
+// 整套請求，三種情境都統一組裝成 zones.top／zones.bottom，見
+// backend/engine01_intent/main.py::post_concept_image()）＋一句 Top Pick 理由，
+// 比照資料庫推薦「上衣／下身各 6 件」的展示邏輯。連身裙情境下 zones.bottom.cells
+// 會是空陣列，不是欄位缺失——呼叫端（conceptCellsToRecommendations()）已經會
+// 把空陣列轉成空的候選清單，不用額外判斷。
 interface BackendConceptImageResult {
   session_id: string;
   round: number;
-  concepts?: BackendConceptZoneResult;
-  zones?: {
+  zones: {
     top: BackendConceptZoneResult;
     bottom: BackendConceptZoneResult;
   };
@@ -259,12 +261,15 @@ export async function fetchStyleMe(
 }
 
 // ENGINE02 的 score 是逐項加總出來的排序分數（dense+bm25+design+...疊加），不是 0–100 的
-// 信心百分比——但前端 confidence／matchScore 兩個欄位都是直接顯示成「{value}%」（見
-// stylist-experience.tsx 的 `{item.confidence}% {t.stylist.match}`），把原始 score 直接塞進去
-// 會出現「3% match」這種失真數字。這裡沒有 ENGINE02 提供的正式 0–1 校準分數可用
-// （ZonedRecommendationResult 沒有 match_score 欄位，那是 RetrievalResult 專屬的），
-// 用觀察到的實際分數範圍（好的配對大約 3.5–4）粗略換算成看得懂的百分比，
-// 不是精確校準過的信心值。
+// 信心百分比——但前端 confidence 這個欄位是直接顯示成「{value}%」（見 stylist-experience.tsx
+// 的 `{item.confidence}% {t.stylist.match}`），把原始 score 直接塞進去會出現「3% match」
+// 這種失真數字。逐張卡片沒有 ENGINE02 提供的正式 0–1 校準分數可用（那是 zone 層級的
+// match_score，不是每張卡片各自的），用觀察到的實際分數範圍（好的配對大約 3.5–4）
+// 粗略換算成看得懂的百分比，不是精確校準過的信心值。
+//
+// 2026-09-19：Top Pick 整體的 matchScore 已經改用 ZoneSlate.match_score（見
+// adaptToChatRecommendation()）——那是 ENGINE02 RetrievalResult.match_score 真的算出來的
+// 意圖符合度，不是這支粗略換算，兩者不要搞混。
 function toMatchPercent(score: number): number {
   const CEILING = 5;
   return Math.max(0, Math.min(100, Math.round((score / CEILING) * 100)));
@@ -358,7 +363,9 @@ export async function adaptToChatRecommendation(
       id: `outfit-${topPickCard.product_id}`,
       name: topOrDress.name,
       items: { topOrDress, bottom },
-      matchScore: toMatchPercent(topPickCard.score),
+      // 真的 ENGINE02 意圖符合度（0–1），不是逐項分數的粗略換算——這是
+      // 現場秀「回饋前 62% → 回饋後 89%」量化證明要用的那個數字。
+      matchScore: Math.round((topSlate?.match_score ?? 0) * 100),
       explanation: topOrDress.explanation,
       tags: Object.values(topPickCard.attributes),
     },
@@ -369,4 +376,124 @@ export async function adaptToChatRecommendation(
       selectedBottomIndex: 0,
     },
   };
+}
+
+// 2026-09-19 新增：接上 ENGINE03 真實回饋迴圈（POST /feedback）。
+
+interface BackendItemFeedback {
+  item_id: string;
+  source: "catalog" | "generated";
+  favorited?: boolean;
+  disliked?: boolean;
+  attribute_ratings?: { attribute: string; stars: number }[];
+}
+
+interface BackendOutfitFeedback {
+  outfit_id: string;
+  top_item_id: string;
+  bottom_item_id: string;
+}
+
+interface BackendFeedbackResponse {
+  session_id: string;
+  round: number;
+  engine02_feedback: Record<string, unknown>;
+  skipped_generated_item_feedbacks: string[];
+}
+
+export async function submitFeedback(
+  sessionId: string,
+  round: number,
+  itemFeedbacks: BackendItemFeedback[],
+  outfitFeedbacks: BackendOutfitFeedback[],
+  token: string,
+): Promise<BackendFeedbackResponse> {
+  const response = await fetch(`${API_BASE_URL}/feedback`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      session_id: sessionId,
+      round,
+      item_feedbacks: itemFeedbacks,
+      outfit_feedbacks: outfitFeedbacks,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new StylistApiError(`POST /feedback 失敗（HTTP ${response.status}）`);
+  }
+
+  return (await response.json()) as BackendFeedbackResponse;
+}
+
+// 生成單品的 id 是 conceptCellsToRecommendations() 組出來的 "concept-<n>"／
+// "top-concept-<n>"／"bottom-concept-<n>"，真正的資料庫商品 id（ENGINE02 的
+// product_id）不會是這個格式——用來判斷這張卡片的回饋要不要送給 ENGINE03
+// （source="generated" 的今天整批由後端跳過，見 main.py::post_feedback()）。
+function isGeneratedItemId(itemId: string): boolean {
+  return /^(top-|bottom-)?concept-\d+$/.test(itemId);
+}
+
+// 這一輪實際展示過的商品 id → 屬於哪一區——整套喜歡（OutfitFeedbackRequest）
+// 一定要分清楚 top_item_id／bottom_item_id，不能只知道「兩件不知道哪件是哪區」，
+// 呼叫端（stylist-experience.tsx）從 ChatRecommendation.alternatives 的
+// topOrDressCandidates／bottomCandidates 兩個陣列各自的 id 組出這個 lookup。
+export type ZoneByItemId = Record<string, "top" | "bottom">;
+
+// 把 preferences.ts 的 UserPreferenceState（收藏／不喜歡／三個具名維度打分／
+// 整套喜歡）轉成 POST /feedback 要的形狀。`zoneByItemId` 是這一輪實際展示過
+// 的商品 id（不管是資料庫商品還是生成單品都算）各自屬於哪一區，只有這些 id 上
+// 的回饋才會被送出——沒被展示過的舊回饋（例如使用者很久以前收藏過的某件商品，
+// 但這輪根本沒出現）不該被當成「這輪的回饋」重複送出去。
+export function adaptPreferencesToFeedbackRequest(
+  preferenceState: UserPreferenceState,
+  zoneByItemId: ZoneByItemId,
+): { itemFeedbacks: BackendItemFeedback[]; outfitFeedbacks: BackendOutfitFeedback[] } {
+  const itemFeedbacks: BackendItemFeedback[] = [];
+
+  for (const itemId of Object.keys(zoneByItemId)) {
+    const favorited = Boolean(preferenceState.savedItems[itemId]);
+    const disliked = Boolean(preferenceState.dislikedItems[itemId]);
+    const ratings = preferenceState.itemRatings[itemId];
+    const ratingFeedback = ratings ? buildPreferenceRatingFeedback(itemId, ratings) : null;
+    const attributeRatings = ratingFeedback?.attribute_ratings ?? [];
+
+    // 三種訊號都沒有就不送——沒有動作不能當成「中立」或某個預設分數（既有規則，
+    // 見 docs/engine03-feedback.md「輸入」一節）。
+    if (!favorited && !disliked && attributeRatings.length === 0) {
+      continue;
+    }
+
+    itemFeedbacks.push({
+      item_id: itemId,
+      source: isGeneratedItemId(itemId) ? "generated" : "catalog",
+      favorited,
+      disliked,
+      attribute_ratings: attributeRatings,
+    });
+  }
+
+  const outfitFeedbacks: BackendOutfitFeedback[] = [];
+
+  for (const entry of Object.values(preferenceState.tryOnFeedback)) {
+    // 只有「喜歡」有對應的後端概念（ENGINE03 OutfitFeedback.favorited 寫死
+    // Literal[True]，沒有「整套不喜歡」）；itemIds 一定要正好兩件、分別是
+    // 上衣區跟下身區各一件，才是一套真正的整套試穿，且兩件都要是這一輪展示過
+    // 的資料庫商品——生成單品的整套喜歡今天不支援（同一個 design_attributes
+    // 詞彙映射落差）。
+    if (entry.feedback !== "like" || entry.itemIds.length !== 2) {
+      continue;
+    }
+    if (entry.itemIds.some((id) => isGeneratedItemId(id) || !zoneByItemId[id])) {
+      continue;
+    }
+    const topItemId = entry.itemIds.find((id) => zoneByItemId[id] === "top");
+    const bottomItemId = entry.itemIds.find((id) => zoneByItemId[id] === "bottom");
+    if (!topItemId || !bottomItemId) {
+      continue;
+    }
+    outfitFeedbacks.push({ outfit_id: entry.outfitKey, top_item_id: topItemId, bottom_item_id: bottomItemId });
+  }
+
+  return { itemFeedbacks, outfitFeedbacks };
 }

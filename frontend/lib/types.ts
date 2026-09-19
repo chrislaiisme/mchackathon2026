@@ -140,6 +140,10 @@ export interface Conversation {
   // session（沿用 ENGINE01 的澄清問題把關與五題上限邏輯），而不是每則訊息都開新 session。
   // 選填是因為舊對話（合併 main 之前建立的、或還沒送出過第一句真訊息的）不會有這個欄位。
   engineSessionId?: string;
+  // 2026-09-19 新增：最近一次 /recommend 回應的 round——POST /feedback 要求 round
+  // 跟後端 session 目前的 round 完全一致（不符回 409），前端這邊需要記住這個數字
+  // 才能在送出下一句話之前，把這一輪收集到的收藏／不喜歡／打分／整套喜歡送出去。
+  engineRound?: number;
 }
 
 export interface VirtualYouMeasurements {

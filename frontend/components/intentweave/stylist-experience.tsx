@@ -32,14 +32,17 @@ import { onboardingService, type OnboardingProfile } from "@/lib/services/onboar
 import { outfitKeyFromItems, preferenceService } from "@/lib/services/preferences";
 import {
   adaptConceptZonesToChatRecommendation,
+  adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
   conceptCellsToRecommendations,
   fetchConceptImage,
   fetchIntentTurn,
   fetchRecommendation,
+  submitFeedback,
   StylistApiError,
   type BackendClarifyingQuestion,
+  type ZoneByItemId,
 } from "@/lib/services/stylist";
 import {
   defaultVirtualYouImage,
@@ -1880,6 +1883,57 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
+  // 2026-09-19 新增：把上一輪（conversation.engineRound）收集到的
+  // preferenceState 收藏／不喜歡／打分／整套喜歡送給 ENGINE03。沒有
+  // engineSessionId／engineRound（還沒有真的跑過一輪）或這輪完全沒有任何
+  // recommendation 訊息就直接跳過，不報錯——這是「有沒有東西可以送」的
+  // 正常情況，不是失敗。任何呼叫失敗只印 log，不往外丟例外：這是輔助性的
+  // 背景送出，絕對不能卡住使用者發送下一句話。
+  async function submitPendingRoundFeedback(conversation: Conversation, token: string) {
+    if (!conversation.engineSessionId || conversation.engineRound === undefined) {
+      return;
+    }
+
+    const lastRecommendationMessage = [...conversation.messages].reverse().find((message) => message.recommendation);
+    const recommendation = lastRecommendationMessage?.recommendation;
+    if (!recommendation) {
+      return;
+    }
+
+    // 從 Top Pick／Try More 候選清單重建「這個 id 屬於哪一區」——整套喜歡
+    // 一定要分清楚 top_item_id／bottom_item_id，不能只知道兩件不知道哪件是哪區。
+    const zoneByItemId: ZoneByItemId = {};
+    recommendation.alternatives.topOrDressCandidates.forEach((item) => {
+      zoneByItemId[item.id] = "top";
+    });
+    recommendation.alternatives.bottomCandidates.forEach((item) => {
+      zoneByItemId[item.id] = "bottom";
+    });
+    if (recommendation.topPick.items.topOrDress) {
+      zoneByItemId[recommendation.topPick.items.topOrDress.id] = "top";
+    }
+    if (recommendation.topPick.items.bottom) {
+      zoneByItemId[recommendation.topPick.items.bottom.id] = "bottom";
+    }
+
+    const { itemFeedbacks, outfitFeedbacks } = adaptPreferencesToFeedbackRequest(preferenceState, zoneByItemId);
+    if (itemFeedbacks.length === 0 && outfitFeedbacks.length === 0) {
+      return;
+    }
+
+    try {
+      await submitFeedback(
+        conversation.engineSessionId,
+        conversation.engineRound,
+        itemFeedbacks,
+        outfitFeedbacks,
+        token,
+      );
+    } catch (error) {
+      console.error("[stylist] 送出上一輪回饋失敗（不影響本輪對話）：", error);
+    }
+  }
+
   // 真的打 ENGINE01 /intent（→有澄清問題就組選擇題；沒有就接著 /recommend
   // 組 Top Pick＋Try More）。`messageForBackend` 是實際要送給後端的一句話——
   // 一般情況下就是使用者這輪打的字／點的選項；但如果這輪是在回答同一個
@@ -1908,6 +1962,13 @@ export function StylistExperience() {
       setIsGenerating(false);
       return;
     }
+
+    // 2026-09-19 新增：送出這輪新訊息之前，先把上一輪收集到的收藏／不喜歡／
+    // 打分／整套喜歡送給 ENGINE03——fire-and-forget，任何失敗只印 log，
+    // 絕對不能讓回饋送不出去卡住使用者這輪新的對話。用 baseConversation
+    // （呼叫端傳進來的，還沒被下面的 /intent 回應覆寫 engineSessionId／
+    // engineRound）才是「上一輪」真正的狀態。
+    void submitPendingRoundFeedback(baseConversation, token);
 
     try {
       const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);
@@ -1944,7 +2005,11 @@ export function StylistExperience() {
       const latest =
         conversationService.list(nextConversation.userId).find((conversation) => conversation.id === nextConversation.id) ||
         nextConversation;
-      nextConversation = conversationService.update({ ...latest, engineSessionId: intentResult.session_id });
+      nextConversation = conversationService.update({
+        ...latest,
+        engineSessionId: intentResult.session_id,
+        engineRound: intentResult.round,
+      });
       nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
       persistConversation(nextConversation);
     } catch (error) {
@@ -2261,10 +2326,11 @@ export function StylistExperience() {
         conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
         activeConversation;
 
+      // 2026-09-19：後端一律回兩分區形狀（連身裙／單品＋填充另一區／整套請求，
+      // 見 backend/engine01_intent/main.py::post_concept_image()），不會再回舊版
+      // 扁平的 result.concepts——這裡跟資料庫推薦一樣先秀 Top Pick，按 Try More
+      // 展開兩區各 6 張，重用既有的 ChatRecommendation 顯示殼。
       if (result.zones) {
-        // 整套請求：上衣／下身各一組六格，跟資料庫推薦一樣先秀 Top Pick，
-        // 按 Try More 展開兩區各 6 張——重用既有的 ChatRecommendation 顯示殼，
-        // 不是 recommendations 那個平鋪清單。
         const recommendation = adaptConceptZonesToChatRecommendation(result);
         const summary =
           locale === "zh-TW"
@@ -2275,30 +2341,6 @@ export function StylistExperience() {
           role: "assistant",
           text: summary,
           recommendation: recommendation ?? undefined,
-        });
-        persistConversation(nextConversation);
-      } else if (result.concepts) {
-        // 單一品項：維持原本的扁平清單顯示。
-        const concepts = result.concepts;
-        const varietyLines = concepts.cells
-          .map((cell) => cell.varied_label)
-          .filter((label): label is string => Boolean(label))
-          .join("、");
-
-        const summary =
-          locale === "zh-TW"
-            ? concepts.dry_run
-              ? `（測試模式，還沒真的生圖）已經組好六格的生成 prompt，這六格會分別呈現：${varietyLines || "（尚未指定差異）"}。`
-              : "生成完成，六件新單品在下面，點一件試穿看看。"
-            : concepts.dry_run
-              ? `(Dry run — no image generated yet.) The six-cell prompt is ready. Cells will vary: ${varietyLines || "(not yet specified)"}.`
-              : "Done — six new pieces below, tap one to try it on.";
-
-        const nextConversation = conversationService.appendMessage(latest, {
-          id: `assistant-design-${Date.now()}`,
-          role: "assistant",
-          text: summary,
-          recommendations: concepts.dry_run ? undefined : conceptCellsToRecommendations(concepts),
         });
         persistConversation(nextConversation);
       }
