@@ -414,7 +414,12 @@ def rank(req: Engine02Request) -> ServiceResponse:
     out = STATE["service"].rank(req, arm)
     from .rewrite import remember
 
-    remember(req.session_id, out.items)      # for POST /explain/rewrite (the ChatGPT-voiced reasons)
+    # for POST /explain/rewrite (the ChatGPT-voiced reasons): the cards, their catalogue facts and
+    # the shopper's situation, so the rewrite can quote the real temperature or flight time
+    said = [u for u in (req.utterances or []) if u][-3:]
+    remember(req.session_id, out.items, catalog=engine().catalog, context=req.context,
+             request={"said": said, "search_text": req.retrieval_text or "",
+                      "excluded": {k: list(v) for k, v in (req.constraints.excluded_values or {}).items()}})
     return out
 
 
@@ -432,8 +437,10 @@ class RewriteRequest(BaseModel):
 
     session_id: str
     item_ids: list[str] | None = None   # default: every card of that session's last slate
-    # stateless alternative (no /rank in this process): [{item_id, title, reason_facts, template}]
+    # stateless alternative (no /rank in this process): [{item_id, title, reason_facts, template, item}]
     cards: list[dict] | None = None
+    situation: list[dict] | None = None  # with `cards`: the situation facts (see engine02.rewrite)
+    request: dict | None = None          # with `cards`: what the shopper asked for
 
 
 @app.get("/explain/status")
@@ -456,25 +463,30 @@ def explain_rewrite(body: RewriteRequest) -> dict:
     a card whose sentence fails the check, or a Codex that is slow, signed out or not configured,
     keeps its template -- `source` on each card says which one was used.
     """
-    from .rewrite import cache, get_rewriter, remembered, rewrite_cards
+    from .rewrite import cache, get_rewriter, item_facts, remembered, rewrite_cards, situation_facts
 
     if body.cards is not None:
         cards = [{"item_id": str(c.get("item_id")), "title": c.get("title"),
                   "template": c.get("template") or c.get("explanation") or "",
-                  "facts": list(c.get("reason_facts") or c.get("facts") or [])}
+                  "facts": list(c.get("reason_facts") or c.get("facts") or []),
+                  "item": c.get("item") or item_facts(engine().catalog, str(c.get("item_id")))}
                  for c in body.cards if c.get("item_id") is not None]
+        situation = body.situation or []
+        request = body.request or {}
     else:
         known = remembered(body.session_id)
         if not known:
             raise HTTPException(404, f"no ranked slate remembered for session {body.session_id!r}; "
                                      "call /rank first or send `cards`")
-        ids = body.item_ids or list(known)
-        missing = [i for i in ids if i not in known]
+        ids = body.item_ids or list(known["cards"])
+        missing = [i for i in ids if i not in known["cards"]]
         if missing:
             raise HTTPException(404, f"item_ids not in this session's last slate: {missing}")
-        cards = [known[i] for i in ids]
+        cards = [known["cards"][i] for i in ids]
+        situation = situation_facts(known["context"])
+        request = known["request"]
     rw = get_rewriter()
-    out = rewrite_cards(cards, engine().vocabulary, rw, cache())
+    out = rewrite_cards(cards, engine().vocabulary, rw, cache(), situation=situation, request=request)
     out["note"] = ("每一句都已對照該卡的事實查核；source=template 表示沿用模板（未啟用、失敗或查核沒過）"
                    if rw else "改寫未啟用（ENGINE02_REWRITER 未設為 codex），回傳模板理由")
     return out
