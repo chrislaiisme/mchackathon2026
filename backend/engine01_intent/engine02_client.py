@@ -28,6 +28,7 @@ from backend.shared.schemas import Intent, ProductCard, RetrievalResult
 
 # 混合檢索＋可解釋性分數拆解比單純查資料庫慢，給比 Pinterest 那邊更寬的逾時。
 _TIMEOUT_SECONDS = 20.0
+_REWRITE_TIMEOUT_SECONDS = 90.0
 
 
 def _base_url() -> str:
@@ -77,6 +78,7 @@ def intent_rank(
     gender: Optional[str] = None,
     feedback: Optional[dict] = None,
     prev_intent: Optional[dict] = None,
+    rewrite_key: Optional[str] = None,
 ) -> Optional[RetrievalResult]:
     """呼叫 ENGINE02 的 `POST /intent/rank`，回傳團隊介面契約的 `RetrievalResult`。
 
@@ -103,6 +105,8 @@ def intent_rank(
     ENGINE02 自己要求要顯示的既有機制，ENGINE01 之前一直沒送。
     """
     namespaced_session_id = f"{user_sub}:{session_id}" if user_sub else session_id
+    if rewrite_key:
+        namespaced_session_id = f"{namespaced_session_id}:{rewrite_key}"
     intent_payload = intent.model_dump()
     normalized_gender = _normalize_gender_for_engine02(gender) if gender else None
     if normalized_gender:
@@ -131,6 +135,36 @@ def intent_rank(
         # 連線失敗、逾時、回應格式跟預期不符……任何原因都當成「這次問不到」，
         # 不要讓例外往上炸壞整個 /recommend 端點。
         return None
+
+
+def rewrite_recommendation_reasons(rewrite_session_ids: list[str]) -> dict[str, dict]:
+    """Return ENGINE02's fact-checked copy for cards in retained zone slates.
+
+    ENGINE02 deliberately makes this a separate, slower endpoint. Failures are
+    non-fatal: callers keep the ranking-time template reason rather than making a
+    completed recommendation disappear just because optional copy refinement did
+    not finish.
+    """
+    rewritten: dict[str, dict] = {}
+    for rewrite_session_id in dict.fromkeys(rewrite_session_ids):
+        try:
+            resp = requests.post(
+                f"{_base_url()}/engine02/explain/rewrite",
+                json={"session_id": rewrite_session_id},
+                timeout=_REWRITE_TIMEOUT_SECONDS,
+            )
+            resp.raise_for_status()
+            for card in resp.json().get("cards", []):
+                item_id = card.get("item_id")
+                text = card.get("text")
+                if item_id and text:
+                    rewritten[str(item_id)] = {
+                        "reason": str(text),
+                        "explanation_source": str(card.get("source") or "template"),
+                    }
+        except (requests.RequestException, ValueError, TypeError, AttributeError):
+            continue
+    return rewritten
 
 
 def visual_search(

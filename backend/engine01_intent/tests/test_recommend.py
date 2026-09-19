@@ -175,6 +175,37 @@ def test_gender_is_passed_to_intent_rank():
     assert mock_intent_rank.call_args_list[0].kwargs["gender"] == "女"
 
 
+def test_dynamic_style_and_onboarding_context_are_used_as_fallbacks():
+    profile = _PROFILE.model_copy(update={"style_affinities": {"俐落": 3.0}, "contexts": ["Work"]})
+    intent = Intent(item_type="外套")
+
+    with patch(
+        "backend.engine01_intent.recommend.engine02_client.intent_rank", return_value=_result([])
+    ) as mock_intent_rank:
+        recommend.build_zoned_recommendation(intent, "s1", 2, ["推薦一件外套"], None, profile)
+
+    outgoing_intent = mock_intent_rank.call_args_list[0].args[0]
+    assert outgoing_intent.style_keywords == ["俐落"]
+    assert outgoing_intent.occasion == "上班"
+    # fallback 只作用於送往 ENGINE02 的 copy，不能修改 session 的真實 Intent。
+    assert intent.style_keywords == []
+    assert intent.occasion is None
+
+
+def test_rewrite_sessions_are_unique_per_zone_and_round():
+    targets: list[str] = []
+    intent = Intent(outfit_requested=True)
+
+    with patch(
+        "backend.engine01_intent.recommend.engine02_client.intent_rank",
+        side_effect=[_result([_card("top1", "top")]), _result([_card("bottom1", "bottom")])],
+    ) as mock_intent_rank:
+        recommend.build_zoned_recommendation(intent, "s1", 7, ["幫我搭一套"], None, _PROFILE, rewrite_session_ids=targets)
+
+    assert [call.kwargs["rewrite_key"] for call in mock_intent_rank.call_args_list] == ["top-r7", "bottom-r7"]
+    assert targets == ["user123:s1:top-r7", "user123:s1:bottom-r7"]
+
+
 def test_feedback_and_prev_intent_are_passed_to_every_intent_rank_call():
     # 2026-09-19：接上 ENGINE03 之後，同一輪的 feedback／prev_intent 要原封不動
     # 套用到全部呼叫點——單品情境有兩次（主分區＋代查的另一分區），整套情境

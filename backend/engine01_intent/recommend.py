@@ -61,9 +61,31 @@ def _with_style_fallback(intent: Intent, profile: UserProfile) -> Intent:
     當這次送出去的 style_keywords——只影響這次要送給 ENGINE02 的 payload，
     不寫回 session 裡存的 intent（使用者這輪真的講了風格時，個人檔案的
     舊偏好不會蓋過去；完全沒提風格時，才退回個人化的背景偏好）。"""
-    if intent.style_keywords or not profile.style_preferences:
-        return intent
-    return intent.model_copy(update={"style_keywords": profile.style_preferences})
+    dynamic_styles = [
+        style for style, score in sorted(profile.style_affinities.items(), key=lambda pair: pair[1], reverse=True)
+        if score > 0
+    ][:3]
+    fallback_styles = dynamic_styles or profile.style_preferences
+    updates: dict[str, object] = {}
+    if not intent.style_keywords and fallback_styles:
+        updates["style_keywords"] = fallback_styles
+
+    # onboarding 的 context 是英文 UI label，ENGINE02 的 catalog adapter 則認得
+    # 「上班／上課／約會／旅行／運動」。只在本輪沒有明講 occasion 時才套用，
+    # 而且用第一個已選情境當 soft fallback，絕不蓋掉使用者這輪的要求。
+    context_to_occasion = {
+        "work": "上班", "school": "上課", "going out": "休閒",
+        "dates": "約會", "travel": "旅行", "active": "運動",
+    }
+    if not intent.occasion:
+        fallback_occasion = next(
+            (context_to_occasion.get(context.strip().lower()) for context in profile.contexts if context.strip().lower() in context_to_occasion),
+            None,
+        )
+        if fallback_occasion:
+            updates["occasion"] = fallback_occasion
+
+    return intent.model_copy(update=updates) if updates else intent
 
 
 def _primary_zone_slate(products: list[ProductCard]) -> tuple[zones.Zone, bool, list[ProductCard]]:
@@ -111,6 +133,7 @@ def build_zoned_recommendation(
     user_profile: UserProfile,
     feedback: Optional[dict] = None,
     prev_intent: Optional[dict] = None,
+    rewrite_session_ids: Optional[list[str]] = None,
 ) -> ZonedRecommendationResult:
     """`feedback`／`prev_intent`（2026-09-19 新增）：ENGINE03 上一輪回饋的
     `engine02_feedback`、跟上一輪的 Intent——原封不動往下傳給每一次
@@ -141,14 +164,17 @@ def build_zoned_recommendation(
             _with_item_type(outgoing_intent, zones.default_category_for_zone("top", outgoing_intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
-            feedback=feedback, prev_intent=prev_intent,
+            feedback=feedback, prev_intent=prev_intent, rewrite_key=f"top-r{round}",
         )
         bottom_result = engine02_client.intent_rank(
             _with_item_type(outgoing_intent, zones.default_category_for_zone("bottom", outgoing_intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
-            feedback=feedback, prev_intent=prev_intent,
+            feedback=feedback, prev_intent=prev_intent, rewrite_key=f"bottom-r{round}",
         )
+        if rewrite_session_ids is not None:
+            prefix = f"{user_profile.sub}:{session_id}"
+            rewrite_session_ids.extend([f"{prefix}:top-r{round}", f"{prefix}:bottom-r{round}"])
         return ZonedRecommendationResult(
             session_id=session_id,
             round=round,
@@ -169,13 +195,16 @@ def build_zoned_recommendation(
     primary_result = engine02_client.intent_rank(
         outgoing_intent, session_id, round, message, top_k=6,
         user_sub=user_profile.sub, gender=user_profile.gender,
-        feedback=feedback, prev_intent=prev_intent,
+        feedback=feedback, prev_intent=prev_intent, rewrite_key=f"primary-r{round}",
     )
+    if rewrite_session_ids is not None:
+        rewrite_session_ids.append(f"{user_profile.sub}:{session_id}:primary-r{round}")
     primary_zone, is_dress, primary_products = _primary_zone_slate(_products_of(primary_result))
     return _assemble_single_item_result(
         outgoing_intent, session_id, round, message, user_profile,
         primary_zone, is_dress, primary_products, _match_score_of(primary_result),
         feedback=feedback, prev_intent=prev_intent,
+        rewrite_session_ids=rewrite_session_ids,
     )
 
 
@@ -203,6 +232,7 @@ def _assemble_single_item_result(
     *,
     feedback: Optional[dict] = None,
     prev_intent: Optional[dict] = None,
+    rewrite_session_ids: Optional[list[str]] = None,
 ) -> ZonedRecommendationResult:
     other_zone: zones.Zone = "bottom" if primary_zone == "top" else "top"
 
@@ -215,8 +245,10 @@ def _assemble_single_item_result(
             _with_item_type(intent, zones.default_category_for_zone(other_zone, intent)),
             session_id, round, message, top_k=6,
             user_sub=user_profile.sub, gender=user_profile.gender,
-            feedback=feedback, prev_intent=prev_intent,
+            feedback=feedback, prev_intent=prev_intent, rewrite_key=f"secondary-r{round}",
         )
+        if rewrite_session_ids is not None:
+            rewrite_session_ids.append(f"{user_profile.sub}:{session_id}:secondary-r{round}")
         other_slate = ZoneSlate(
             zone=other_zone, requested=False, products=_products_of(other_result),
             match_score=_match_score_of(other_result),
@@ -248,6 +280,16 @@ def build_profile_context(intent: Intent, user_profile: UserProfile) -> str:
     lines: list[str] = []
     if user_profile.style_preferences:
         lines.append(f"長期偏好風格：{'、'.join(user_profile.style_preferences)}")
+    if user_profile.style_affinities:
+        evolving_styles = [style for style, score in sorted(user_profile.style_affinities.items(), key=lambda pair: pair[1], reverse=True) if score > 0][:3]
+        if evolving_styles:
+            lines.append(f"跨對話累積偏好：{'、'.join(evolving_styles)}")
+    if user_profile.age_range:
+        lines.append(f"年齡區間（只供文字語氣與版型提醒，不作商品篩選）：{user_profile.age_range}")
+    if user_profile.gender:
+        lines.append(f"性別偏好：{user_profile.gender}")
+    if user_profile.contexts:
+        lines.append(f"常見使用情境：{'、'.join(user_profile.contexts)}")
     if intent.colors:
         lines.append(f"這輪要的顏色：{'、'.join(intent.colors)}")
     if intent.occasion:

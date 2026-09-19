@@ -66,6 +66,45 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1
 
 它會在背景啟動 ENGINE01／02／03、Whisper、Virtual You 與前端；已被使用的 port 會沿用、不會強制關掉既有程序，log 會寫到 `data/runtime/logs/`。想先只看它預計做什麼、不真正啟動時，加上 `-WhatIf`。
 
+啟動器回傳前會檢查下列端點：
+
+| 服務 | Port | 用途 |
+| --- | ---: | --- |
+| ENGINE02 | 8002 | 商品庫排序，以及背景、事實查核過的推薦理由改寫 |
+| ENGINE01 | 8000 | 登入、意圖流程、回饋，以及給瀏覽器安全使用的 ENGINE02 改寫 proxy |
+| ENGINE03 | 8003 | 回饋迴圈 |
+| Whisper | 9000 | 語音轉文字 |
+| Virtual You | 8081 | 人像擷取與 Try On |
+| Frontend | 3000 | Next.js 前端 |
+
+`start-demo.ps1` 預設啟用 `ENGINE02_REWRITER=codex`，請先完成一次 `codex login`。推薦排序本身不會等待改寫：ENGINE01 會先顯示 ENGINE02 的模板理由，再在背景請 ENGINE02 事實查核，完成後只替換卡片文字。若離線 demo 想略過這個非必要增強，請明確執行 `powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02Rewriter none`。
+
+目前預設模型 `gpt-5.6-luna` 最快支援的推理強度是 `low`。要明確選擇帳號可用的模型，請只在啟動 ENGINE02 時帶入，例如：`powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02CodexModel gpt-5.6-terra -Engine02CodexEffort low`。啟動器刻意不沿用 terminal 裡舊的 `ENGINE02_CODEX_MODEL`／`ENGINE02_CODEX_EFFORT`，因為模型與推理強度不相容時，背景改寫就會安全退回模板。
+
+### 程式或設定改完後怎麼重開
+
+啟動器的設計是沿用已經佔用的 port，所以它不會 reload 已在跑的程序。請先到原本的 terminal 停掉對應程序；或用 `Get-NetTCPConnection -State Listen -LocalPort <port>` 找到 PID，再用 `Stop-Process -Id <pid>` 停掉，然後重跑啟動器。本 repo 的程式異動後，ENGINE01、ENGINE02、Frontend 要重開；如果只改 intent／recommendation，其他服務不需要重開。
+
+### 將一位 demo 帳號重設成第一次使用
+
+本系統把後端 profile 存在 `data/users/<Google-sub>.json`、瀏覽器資料存於 `intentweave.*` localStorage，進行中的對話 state 則只存在 ENGINE01 記憶體。它**不會**儲存或刪除 Google 帳號本身。
+
+1. 先停掉 ENGINE01，再依登入 email 刪除一位使用者的 app profile（腳本會拒絕模糊目標，且由 PowerShell 再次確認）：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\reset-demo-user.ps1 -Email judge@example.com
+   ```
+
+2. 在 demo 用的瀏覽器開 `http://127.0.0.1:3000`，按 F12 → Console，貼入：
+
+   ```js
+   Object.keys(localStorage).filter((key) => key.startsWith("intentweave.")).forEach((key) => localStorage.removeItem(key)); location.reload();
+   ```
+
+   或改用 F12 → Application → Storage → **Clear site data** 清掉本機前端 origin 的資料。
+
+3. 重開 ENGINE01（或再跑 `start-demo.ps1`）後再登入；這次會視為本 app 的新註冊／重新 onboarding。若還希望 Google 顯示不同帳號的挑選畫面，請在該瀏覽器登出 Google，或用無痕視窗；不要刪除使用者真正的 Google 帳號。
+
 下面每一項都是一個要一直開著的獨立 terminal。ENGINE02 要先開（ENGINE01 會直接打它），其餘順序不拘。
 
 ```powershell

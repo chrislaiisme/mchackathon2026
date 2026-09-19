@@ -67,6 +67,45 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1
 
 It starts ENGINE01/02/03, Whisper, Virtual You, and the frontend in the background, reuses ports that are already listening, and writes logs under `data/runtime/logs/`. Use `-WhatIf` to inspect what it would start without changing anything.
 
+The launcher checks these endpoints before returning:
+
+| Service | Port | Purpose |
+| --- | ---: | --- |
+| ENGINE02 | 8002 | catalog ranking and background, fact-checked recommendation-copy rewrite |
+| ENGINE01 | 8000 | login, intent orchestration, feedback, and the browser-safe ENGINE02 rewrite proxy |
+| ENGINE03 | 8003 | feedback loop |
+| Whisper | 9000 | voice transcription |
+| Virtual You | 8081 | person extraction and Try On |
+| Frontend | 3000 | Next.js app |
+
+`start-demo.ps1` enables `ENGINE02_REWRITER=codex` by default. Run `codex login` beforehand. The ranking response remains fast: ENGINE01 first shows ENGINE02's template reason, then asks ENGINE02 to fact-check and replace only the card copy in the background. For an offline demo that must skip this optional refinement, explicitly run `powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02Rewriter none`.
+
+The default Codex reasoning setting is `low`, the fastest setting supported by the current default model (`gpt-5.6-luna`). To select an available account model explicitly, pass it only when starting ENGINE02, for example: `powershell -ExecutionPolicy Bypass -File .\scripts\start-demo.ps1 -Engine02CodexModel gpt-5.6-terra -Engine02CodexEffort low`. The launcher deliberately does not inherit old `ENGINE02_CODEX_MODEL` or `ENGINE02_CODEX_EFFORT` values from the terminal, because an unsupported combination makes the optional rewrite fall back to templates.
+
+### Restarting after code or configuration changes
+
+The launcher intentionally reuses an occupied port, so it does **not** reload an already-running process. Stop the affected process in the terminal where it is running (or identify its PID with `Get-NetTCPConnection -State Listen -LocalPort <port>` and use `Stop-Process -Id <pid>`), then run the launcher again. Changes made in this repository require ENGINE01, ENGINE02, and the frontend to be restarted; the other services do not need a restart for an intent/recommendation-only change.
+
+### Resetting one demo account to a first-visit state
+
+This app stores the server-side profile at `data/users/<Google-sub>.json`, browser state under `intentweave.*` local-storage keys, and active conversation state in ENGINE01 memory. It does **not** store or delete the Google account itself.
+
+1. With ENGINE01 stopped, delete one app profile by its login email (the script refuses ambiguous targets and asks PowerShell for confirmation):
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\reset-demo-user.ps1 -Email judge@example.com
+   ```
+
+2. In the browser used for the demo, open DevTools → Console at `http://127.0.0.1:3000` and run:
+
+   ```js
+   Object.keys(localStorage).filter((key) => key.startsWith("intentweave.")).forEach((key) => localStorage.removeItem(key)); location.reload();
+   ```
+
+   Alternatively use DevTools → Application → Storage → **Clear site data** for the local frontend origin.
+
+3. Start ENGINE01 again (or run `start-demo.ps1`) and sign in. The next visit is a new application registration/onboarding. To make Google show another account chooser, sign out of the Google account in that browser or use an incognito window; do not delete the person's actual Google account.
+
 Every service below is a separate long-running terminal. ENGINE02 must be up before ENGINE01 (ENGINE01 calls it directly); the rest can start in any order.
 
 ```powershell

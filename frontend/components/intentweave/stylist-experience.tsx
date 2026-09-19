@@ -38,6 +38,7 @@ import {
   fetchConceptImage,
   fetchIntentTurn,
   fetchRecommendation,
+  fetchRecommendationReasonRewrite,
   submitFeedback,
   StylistApiError,
   type BackendClarifyingQuestion,
@@ -424,6 +425,34 @@ interface StyledMessage {
 }
 
 type RecommendationUiState = ChatRecommendation;
+
+function applyRecommendationReasonRewrites(
+  recommendation: ChatRecommendation,
+  rewrites: Record<string, string>,
+): ChatRecommendation {
+  const replaceItem = (item: FashionRecommendation | null): FashionRecommendation | null => {
+    if (!item || !rewrites[item.id]) {
+      return item;
+    }
+    return { ...item, explanation: rewrites[item.id] };
+  };
+
+  const topOrDress = replaceItem(recommendation.topPick.items.topOrDress);
+  const bottom = replaceItem(recommendation.topPick.items.bottom);
+  return {
+    ...recommendation,
+    topPick: {
+      ...recommendation.topPick,
+      items: { topOrDress: topOrDress as FashionRecommendation, bottom },
+      explanation: topOrDress?.explanation || recommendation.topPick.explanation,
+    },
+    alternatives: {
+      ...recommendation.alternatives,
+      topOrDressCandidates: recommendation.alternatives.topOrDressCandidates.map((item) => replaceItem(item) as FashionRecommendation),
+      bottomCandidates: recommendation.alternatives.bottomCandidates.map((item) => replaceItem(item) as FashionRecommendation),
+    },
+  };
+}
 
 interface TranscriptionResponse {
   text?: string;
@@ -1898,6 +1927,43 @@ export function StylistExperience() {
     setActiveId(next.id);
   }
 
+  async function applyBackgroundReasonRewrite(
+    conversationId: string,
+    messageId: string,
+    sessionId: string,
+    token: string,
+  ) {
+    try {
+      const rewrites = await fetchRecommendationReasonRewrite(sessionId, token);
+      if (Object.keys(rewrites).length === 0) {
+        return;
+      }
+
+      const current = conversationService.list(authService.getSession()?.id || "").find((item) => item.id === conversationId);
+      if (!current) {
+        return;
+      }
+      const next = conversationService.update({
+        ...current,
+        messages: current.messages.map((message) =>
+          message.id === messageId && message.recommendation
+            ? { ...message, recommendation: applyRecommendationReasonRewrites(message.recommendation, rewrites) }
+            : message,
+        ),
+      });
+      persistConversation(next);
+      setRecommendationStateByMessageId((currentState) => {
+        const existing = currentState[messageId];
+        return existing
+          ? { ...currentState, [messageId]: applyRecommendationReasonRewrites(existing, rewrites) }
+          : currentState;
+      });
+    } catch (error) {
+      // 改寫只是可選的文案增強；保留立即顯示的 ENGINE02 template reason。
+      console.warn("[stylist] ENGINE02 推薦理由背景改寫未完成：", error);
+    }
+  }
+
   // 2026-09-19 新增：把上一輪（conversation.engineRound）收集到的
   // preferenceState 收藏／不喜歡／打分／整套喜歡送給 ENGINE03。沒有
   // engineSessionId／engineRound（還沒有真的跑過一輪）或這輪完全沒有任何
@@ -1994,6 +2060,7 @@ export function StylistExperience() {
       const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);
 
       let assistantMessage: ChatMessage;
+      let reasonRewriteSessionId: string | null = null;
       if (intentResult.clarifying_questions.length > 0) {
         // 2026-09-19 修正：這裡以前把整批 clarifying_questions 丟給
         // adaptToClarifyingMessage()，但它只轉第一題、其餘題目直接消失——
@@ -2008,6 +2075,7 @@ export function StylistExperience() {
       } else {
         setPendingClarifyingQueue([]);
         setPendingClarifyingAnswers([]);
+        const zonedRecommendation = await fetchRecommendation(intentResult.session_id, token);
         assistantMessage = {
           id: `ai-${Date.now()}`,
           role: "assistant",
@@ -2015,11 +2083,9 @@ export function StylistExperience() {
             locale === "zh-TW"
               ? "我有一套很適合你的方向，這是幫你搭好的一套。"
               : "I have a direction in mind — here's the outfit I'd start with.",
-          recommendation: await adaptToChatRecommendation(
-            await fetchRecommendation(intentResult.session_id, token),
-            token,
-          ),
+          recommendation: await adaptToChatRecommendation(zonedRecommendation, token),
         };
+        reasonRewriteSessionId = zonedRecommendation.session_id;
       }
 
       const latest =
@@ -2032,6 +2098,9 @@ export function StylistExperience() {
       });
       nextConversation = conversationService.appendMessage(nextConversation, assistantMessage);
       persistConversation(nextConversation);
+      if (reasonRewriteSessionId && assistantMessage.recommendation) {
+        void applyBackgroundReasonRewrite(nextConversation.id, assistantMessage.id, reasonRewriteSessionId, token);
+      }
     } catch (error) {
       console.error("[stylist] 呼叫 ENGINE01／ENGINE02 失敗：", error);
       const latest =

@@ -44,6 +44,10 @@ class UserProfile(BaseModel):
     # 有這兩題（性別、使用情境），後端要能接住，不然 PUT /profile 會丟掉這兩個值。
     gender: Optional[str] = None
     contexts: list[str] = Field(default_factory=list)
+    # 根據跨對話的明確喜歡／不喜歡回饋累積的風格訊號。保留 onboarding 的
+    # style_preferences 當初始偏好；這個欄位才是會隨使用者實際選擇而變動的
+    # 長期輪廓，寫進同一份 user JSON，重啟 ENGINE01 也不會消失。
+    style_affinities: dict[str, float] = Field(default_factory=dict)
     onboarding_completed: bool = False
     created_at: str
     """ISO 8601 timestamp."""
@@ -306,6 +310,29 @@ class ZonedRecommendationResult(BaseModel):
 
 class RecommendRequest(BaseModel):
     session_id: str
+
+
+class RecommendationReasonRewriteRequest(BaseModel):
+    """Ask ENGINE01 to proxy ENGINE02's fact-checked card-copy rewrite.
+
+    The browser never talks to ENGINE02 directly: ENGINE01 owns the authenticated
+    conversation and has the namespaced session ids that ENGINE02 used to retain
+    the card facts for this exact recommendation round.
+    """
+
+    session_id: str
+
+
+class RecommendationReasonRewriteCard(BaseModel):
+    product_id: str
+    reason: str
+    explanation_source: str = "template"
+
+
+class RecommendationReasonRewriteResponse(BaseModel):
+    session_id: str
+    round: int
+    cards: list[RecommendationReasonRewriteCard] = Field(default_factory=list)
 
 
 # ── 「幫你搭」（POST /style-me，ENGINE01 提案，2026-09-19，尚未經 ENGINE02／前端 ──

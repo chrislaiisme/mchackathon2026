@@ -33,6 +33,16 @@ CARD_B = {"item_id": "b", "title": "Dress", "template": "避開正式感（+0.09
           "item": {"category": "dress", "color": "Blue", "中文": {"品項": "洋裝", "顏色": "藍色"}}}
 
 
+def test_codex_rewriter_is_on_by_default_but_none_is_an_explicit_opt_out(monkeypatch):
+    """A missing launcher environment setting must not silently leave template copy on screen."""
+    from engine02.rewrite import get_rewriter
+
+    monkeypatch.delenv("ENGINE02_REWRITER", raising=False)
+    assert isinstance(get_rewriter(), CodexRewriter)
+    monkeypatch.setenv("ENGINE02_REWRITER", "none")
+    assert get_rewriter() is None
+
+
 def test_concrete_numbers_from_the_facts_pass_and_invented_ones_do_not():
     ok = "飛行約 4 小時、晚上 7 點體感只有 5°C；這件 Navy Blue 修身襯衫估計價 790 元，裡面加件針織剛好。"
     assert check(ok, CARD, VOCAB, SITUATION) is None                       # 4.1 -> 4, 4.7 -> 5 are roundings

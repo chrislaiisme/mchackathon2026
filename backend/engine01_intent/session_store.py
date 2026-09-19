@@ -63,6 +63,10 @@ class SessionState:
     # prev_intent，讓 ENGINE02 同時算「用本輪意圖評」跟「用上一輪意圖評」
     # 兩個 match_score 做誠實度對照。
     prev_intent: Optional[dict] = None
+    # ENGINE02 的 /explain/rewrite 只記住「該 session 最後一個 slate」。同一輪
+    # 的 top/bottom 查詢因此各用一個 deterministic child session，並記在這裡
+    # 讓稍後的背景改寫端點只取回真正展示過的那些卡片。
+    engine02_rewrite_session_ids: list[str] = field(default_factory=list)
 
 
 # 純記憶體字典，key 是 (user_id, session_id) 這組 tuple，代表「哪個使用者的哪個對話串」，

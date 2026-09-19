@@ -478,13 +478,13 @@ class RewriteRequest(BaseModel):
 
 @app.get("/explain/status")
 def explain_status() -> dict:
-    """Is a rewriter configured (ENGINE02_REWRITER=codex) and signed in?"""
+    """Is the default Codex rewriter available and signed in?"""
     from .rewrite import get_rewriter
 
     rw = get_rewriter()
     if rw is None:
         return {"backend": None, "available": False,
-                "detail": "set ENGINE02_REWRITER=codex (and run `codex login` with the ChatGPT account)"}
+                "detail": "rewriter disabled (set ENGINE02_REWRITER=codex, then run `codex login`)"}
     return {"backend": rw.name, **rw.status()}
 
 
@@ -520,8 +520,8 @@ def explain_rewrite(body: RewriteRequest) -> dict:
         request = known["request"]
     rw = get_rewriter()
     out = rewrite_cards(cards, engine().vocabulary, rw, cache(), situation=situation, request=request)
-    out["note"] = ("每一句都已對照該卡的事實查核；source=template 表示沿用模板（未啟用、失敗或查核沒過）"
-                   if rw else "改寫未啟用（ENGINE02_REWRITER 未設為 codex），回傳模板理由")
+    out["note"] = ("每一句都已對照該卡的事實查核；source=template 表示沿用模板（失敗或查核沒過）"
+                   if rw else "改寫已明確關閉（ENGINE02_REWRITER=none），回傳模板理由")
     return out
 
 
