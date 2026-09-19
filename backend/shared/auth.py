@@ -108,6 +108,15 @@ def verify_session_token(token: str) -> str:
     return payload["sub"]
 
 
+def decode_session_token(token: str) -> dict:
+    """跟 verify_session_token() 做同一件事，只是回傳形狀不同：這個回傳
+    `{"sub": ...}` 這種 dict，給 ENGINE02 的介接層（backend/engine02_retrieval/main.py）
+    用——它的程式碼寫的是 `user["sub"]`／`user.get("sub")`，需要 dict-like 的回傳值，
+    不是 verify_session_token() 原本回傳的裸字串。無效 token 一樣丟 ValueError，
+    呼叫端（ENGINE02 那邊）自己包了 except，失敗就當匿名處理，不會讓服務掛掉。"""
+    return {"sub": verify_session_token(token)}
+
+
 def _dev_bypass_enabled() -> bool:
     # .env 裡的 DEV_BYPASS_AUTH 開關，只接受字面值 "true"（大小寫不拘），其餘一律當 false。
     return os.environ.get("DEV_BYPASS_AUTH", "").lower() == "true"
