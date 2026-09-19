@@ -171,6 +171,23 @@ class FeedbackResult(BaseModel):
 # ── ENGINE02／生成模組的輸出（ENGINE01 這邊先定義好介面，實際邏輯不在這裡）──
 
 
+class ReasonContribution(BaseModel):
+    """一個評分項目對 ProductCard.score 的貢獻量——ENGINE02 的排序是逐項加總算出總分的
+    （dense／bm25／設計要素／相容性／新鮮度／批評…），這裡就是那個加總的其中一項，
+    全部 ReasonContribution 的 contribution 加起來要等於對應的 score。
+    這是 ENGINE02 可解釋性設計的核心（見 docs/engine02-design.md）：`reason` 只能塞一句話，
+    但逐項貢獻需要有欄位才不會被 FastAPI 的 response_model 悄悄丟掉。"""
+
+    term: str
+    """貢獻項目名稱，例如 "dense" 或 "design:structured_shoulders"。"""
+    group: str
+    """這項貢獻屬於哪一類，例如 dense／bm25／design／compat／freshness／critique／penalty。"""
+    contribution: float
+    """不變式：同一張卡片的所有 contribution 加總 == ProductCard.score。"""
+    cited: bool = False
+    """這項有沒有被寫進 reason 那句話裡。"""
+
+
 class ProductCard(BaseModel):
     # 檢索出來的單一商品卡片。
     product_id: str
@@ -179,6 +196,11 @@ class ProductCard(BaseModel):
     attributes: dict[str, str] = Field(default_factory=dict)
     score: float
     reason: str
+    reason_contributions: list[ReasonContribution] = Field(default_factory=list)
+    """選填，ENGINE02 用來把 score 逐項拆解回傳——沒有這個欄位的引擎可以不填，
+    保持空陣列即可，不影響既有行為。"""
+    explanation_source: Optional[str] = None
+    """這句 reason 是怎麼來的，例如 "llm"（通過事實查核的改寫）或 "template"（樣板句）。"""
 
 
 class ConceptImage(BaseModel):
@@ -192,6 +214,9 @@ class RetrievalResult(BaseModel):
     session_id: str
     round: int
     products: list[ProductCard]
-    concept_image: ConceptImage
+    concept_image: Optional[ConceptImage] = None
+    """選填——生成模組還沒做出來之前，ENGINE02 填不出這個欄位，不能寫死必填，
+    不然單獨測 ENGINE02 時就會直接 ValidationError。等生成模組上線後，
+    Live 流程應該每輪都會有值，這裡選填只是讓還沒做完的模組也能先跑。"""
     match_score: float
     """The on-stage "符合度分數" shown before/after feedback (e.g. 62% -> 89%)."""

@@ -1,0 +1,38 @@
+{
+  "version": "profile_stability_v1",
+  "what": "How much each design element's z-score moves when the SAME garment is photographed on a model instead of as a flat lay. Used to mark which elements of an uploaded photo's profile can be trusted.",
+  "measured_by": "scripts/eval_visual_domain.py (T16)",
+  "source": {
+    "dataset": "DeepFashion-InShop (Marqo/deepfashion-inshop mirror, offline evaluation only, no licence stated)",
+    "pairs": "150 garments x 15 elements, _1_front (on model) vs _6_flat (flat lay)",
+    "encoder": "marqo-fashionSigLIP",
+    "concept_mode": "antonym",
+    "date": "2026-09-18"
+  },
+  "overall": {
+    "mean_abs_delta_z": 0.366,
+    "pearson": 0.78,
+    "sign_flip_rate": 0.097,
+    "control_different_garment": {"mean_abs_delta_z": 0.95, "pearson": -0.003, "sign_flip_rate": 0.411},
+    "control_same_domain": "unavailable: no garment in the sample has two flat photos, so the domain cost cannot be separated from the task difficulty"
+  },
+  "caveat": "Both presentations are retailer photography of the same garment. A real customer upload (phone camera, room lighting, crop, other garments in frame) is a larger shift, so these numbers are a LOWER bound on the instability.",
+  "reliable_threshold_abs_delta_z": 0.4,
+  "mean_abs_delta_z": {
+    "relaxed_fit": 0.585,
+    "tailored_fit": 0.585,
+    "matte_fabric": 0.496,
+    "glossy_fabric": 0.496,
+    "crisp_collar": 0.493,
+    "athletic_style": 0.478,
+    "bright_color": 0.382,
+    "visible_logo": 0.297,
+    "minimal_design": 0.251,
+    "bold_pattern": 0.251,
+    "structured_shoulders": 0.25,
+    "casual_style": 0.24,
+    "formal_style": 0.24,
+    "soft_knit": 0.234,
+    "dark_tone": 0.205
+  }
+}

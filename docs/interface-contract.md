@@ -124,7 +124,12 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
       "title": "Slim wool blazer",
       "attributes": {"color": "black", "material": "wool"},
       "score": 0.91,
-      "reason": "符合你要求的黑色、正式場合，剪裁俐落"
+      "reason": "符合你要求的黑色、正式場合，剪裁俐落",
+      "reason_contributions": [
+        {"term": "dense", "group": "dense", "contribution": 0.5, "cited": true},
+        {"term": "design:formal_style", "group": "design", "contribution": 0.41, "cited": true}
+      ],
+      "explanation_source": "template"
     }
   ],
   "concept_image": {
@@ -138,10 +143,11 @@ Python 版的真相來源是 [`backend/shared/schemas.py`](../backend/shared/sch
 
 - `match_score` 就是現場 demo 上、回饋前後都會顯示的「符合度分數」（例如「62% → 89%」）——這是舞台上真實可見、證明回饋迴圈有效的關鍵欄位，不要拿掉。
 - `concept_image.response_id` 是 OpenAI Responses API 的 id，留著讓生成模組下一輪可以當 `previous_response_id` 接續，不用每次從頭生成。
+- `concept_image` 是**選填**——生成模組還沒做出來之前，ENGINE02 單獨測試時填不出這個欄位，回 `null` 是合法的。
+- `reason_contributions`／`explanation_source` 是選填欄位（2026-09-19 因應 ENGINE02 的實作加進來）：ENGINE02 的排序是逐項加總算出 `score` 的，`reason_contributions` 把每一項的貢獻量都列出來，加總會等於 `score`，這個分解本身就是可解釋性的核心證據，不是另外生成的說明文字。沒有這個資訊的引擎（或還沒實作的模組）可以留空陣列，不影響既有欄位。
 
 ## 給其他引擎負責人的待確認事項
 
-- `ProductCard` 的 `attributes` 具體要放哪些 key——要看 Polyvore 資料集實際能乾淨拿到哪些欄位，ENGINE02 負責人請確認／擴充。
 - `weight_adjustments` 的 `field` 要不要固定成一個 enum，還是維持自由文字、對應 `Intent`／排序訊號的名稱——目前是自由格式，如果 ENGINE02/03 需要更嚴格的比對再收緊。
 - `AttributeScore.score` 和 `RetrievalResult.match_score` 的單位／範圍——目前都是 0–1 的浮點數，請確認這樣是否適合 ENGINE03 實際的權重運算方式。
 - `FeedbackInput.target` 未來可能要加第三種值（目前只有 `"recommended"`／`"generated"`）：規劃中的「虛擬形象試穿」延伸功能（見 [pinterest-and-generation.md](pinterest-and-generation.md#虛擬形象試穿延伸功能2026-09-18-使用者口頭補充不在原始簡報或-hackathon-briefmd-裡)）如果最後走細項打分的回饋方式，可以直接沿用這個結構加一個 `"tryon"` 選項，不用另外開一套——確切要不要走這個方向還沒定案。

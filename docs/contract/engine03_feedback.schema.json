@@ -1,0 +1,449 @@
+{
+  "$defs": {
+    "AdjustOp": {
+      "description": "adjust(設計要素, +1/−1) — one step at a time, no weight numbers.",
+      "properties": {
+        "op": {
+          "const": "adjust",
+          "default": "adjust",
+          "title": "Op",
+          "type": "string"
+        },
+        "element": {
+          "title": "Element",
+          "type": "string"
+        },
+        "step": {
+          "default": 1,
+          "enum": [
+            -1,
+            1
+          ],
+          "title": "Step",
+          "type": "integer"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        }
+      },
+      "required": [
+        "element"
+      ],
+      "title": "AdjustOp",
+      "type": "object"
+    },
+    "AnchorOp": {
+      "description": "「要搭我的這件」 — the only thing that switches the compatibility term on.",
+      "properties": {
+        "op": {
+          "const": "anchor",
+          "default": "anchor",
+          "title": "Op",
+          "type": "string"
+        },
+        "item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Item Ids",
+          "type": "array"
+        },
+        "replace": {
+          "default": false,
+          "title": "Replace",
+          "type": "boolean"
+        }
+      },
+      "title": "AnchorOp",
+      "type": "object"
+    },
+    "ChoiceOp": {
+      "properties": {
+        "op": {
+          "const": "choice",
+          "default": "choice",
+          "title": "Op",
+          "type": "string"
+        },
+        "shown_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Shown Item Ids",
+          "type": "array"
+        },
+        "chosen_item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chosen Item Id"
+        },
+        "rejected_item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rejected Item Ids",
+          "type": "array"
+        }
+      },
+      "title": "ChoiceOp",
+      "type": "object"
+    },
+    "CritiqueOp": {
+      "description": "「這件但換成 X」 on a shown card (composed retrieval).",
+      "properties": {
+        "op": {
+          "const": "critique",
+          "default": "critique",
+          "title": "Op",
+          "type": "string"
+        },
+        "reference_item_id": {
+          "title": "Reference Item Id",
+          "type": "string"
+        },
+        "attribute": {
+          "anyOf": [
+            {
+              "enum": [
+                "color",
+                "occasion",
+                "category",
+                "subcategory",
+                "season"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attribute"
+        },
+        "to_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Value"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "more_formal",
+                "more_casual",
+                "sportier"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        }
+      },
+      "required": [
+        "reference_item_id"
+      ],
+      "title": "CritiqueOp",
+      "type": "object"
+    },
+    "ExcludeItemOp": {
+      "properties": {
+        "op": {
+          "const": "exclude_item",
+          "default": "exclude_item",
+          "title": "Op",
+          "type": "string"
+        },
+        "item_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Item Ids",
+          "type": "array"
+        }
+      },
+      "title": "ExcludeItemOp",
+      "type": "object"
+    },
+    "ExcludeOp": {
+      "properties": {
+        "op": {
+          "const": "exclude",
+          "default": "exclude",
+          "title": "Op",
+          "type": "string"
+        },
+        "attribute": {
+          "enum": [
+            "category",
+            "subcategory",
+            "color",
+            "occasion",
+            "season",
+            "gender"
+          ],
+          "title": "Attribute",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        }
+      },
+      "required": [
+        "attribute",
+        "value"
+      ],
+      "title": "ExcludeOp",
+      "type": "object"
+    },
+    "FeelingOp": {
+      "description": "feeling(原句) — ENGINE 03 supplies either the updated p(n) or the log-likelihoods of\nPRD formula ④; ENGINE 02 never invents need probabilities itself.",
+      "properties": {
+        "op": {
+          "const": "feeling",
+          "default": "feeling",
+          "title": "Op",
+          "type": "string"
+        },
+        "quote": {
+          "title": "Quote",
+          "type": "string"
+        },
+        "need_log_likelihood": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Need Log Likelihood",
+          "type": "object"
+        },
+        "lam": {
+          "default": 1.0,
+          "title": "Lam",
+          "type": "number"
+        },
+        "needs_override": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/NeedProbability"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Needs Override"
+        }
+      },
+      "required": [
+        "quote"
+      ],
+      "title": "FeelingOp",
+      "type": "object"
+    },
+    "NeedProbability": {
+      "description": "PRD M2 output p(n).",
+      "properties": {
+        "need_id": {
+          "title": "Need Id",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "prob": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Prob",
+          "type": "number"
+        }
+      },
+      "required": [
+        "need_id",
+        "prob"
+      ],
+      "title": "NeedProbability",
+      "type": "object"
+    },
+    "RequireOp": {
+      "properties": {
+        "op": {
+          "const": "require",
+          "default": "require",
+          "title": "Op",
+          "type": "string"
+        },
+        "attribute": {
+          "enum": [
+            "category",
+            "subcategory",
+            "color",
+            "occasion",
+            "season",
+            "gender"
+          ],
+          "title": "Attribute",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        },
+        "quote": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quote"
+        }
+      },
+      "required": [
+        "attribute",
+        "value"
+      ],
+      "title": "RequireOp",
+      "type": "object"
+    }
+  },
+  "description": "One round of ENGINE 03 output. `FeedbackRound.model_json_schema()` is the structured-output\nschema for M8; the LLM cannot emit anything outside this set.",
+  "properties": {
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round": {
+      "title": "Round",
+      "type": "integer"
+    },
+    "utterance": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Utterance"
+    },
+    "ops": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "adjust": "#/$defs/AdjustOp",
+            "anchor": "#/$defs/AnchorOp",
+            "choice": "#/$defs/ChoiceOp",
+            "critique": "#/$defs/CritiqueOp",
+            "exclude": "#/$defs/ExcludeOp",
+            "exclude_item": "#/$defs/ExcludeItemOp",
+            "feeling": "#/$defs/FeelingOp",
+            "require": "#/$defs/RequireOp"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/ExcludeOp"
+          },
+          {
+            "$ref": "#/$defs/RequireOp"
+          },
+          {
+            "$ref": "#/$defs/AdjustOp"
+          },
+          {
+            "$ref": "#/$defs/ChoiceOp"
+          },
+          {
+            "$ref": "#/$defs/FeelingOp"
+          },
+          {
+            "$ref": "#/$defs/CritiqueOp"
+          },
+          {
+            "$ref": "#/$defs/AnchorOp"
+          },
+          {
+            "$ref": "#/$defs/ExcludeItemOp"
+          }
+        ]
+      },
+      "title": "Ops",
+      "type": "array"
+    }
+  },
+  "required": [
+    "session_id",
+    "round"
+  ],
+  "title": "FeedbackRound",
+  "type": "object"
+}

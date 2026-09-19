@@ -1,0 +1,19 @@
+{
+  "session_id": "demo-interview",
+  "round": 1,
+  "message": "下週面試，想要一件白襯衫，不要太正式",
+  "intent": {
+    "item_type": "襯衫",
+    "colors": [
+      "白色"
+    ],
+    "occasion": "面試",
+    "style_keywords": [
+      "不要太正式"
+    ],
+    "inferred_fields": [
+      "occasion"
+    ],
+    "notes": "使用者沒講季節"
+  }
+}

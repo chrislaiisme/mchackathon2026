@@ -1,6 +1,13 @@
 # Shared across all backend/ modules -- one environment for the whole hackathon,
 # see CLAUDE.md for why. Add to this file rather than creating per-engine
 # requirements files.
+#
+# Exception: ENGINE02 does NOT use this file. It has its own pyproject.toml
+# at the repo root (installed with `uv`), because its dependencies (numpy>=2,
+# an optional heavy `models` extra with torch/transformers) would conflict
+# with entries below and it already has 258 passing tests validated against
+# that separate environment -- see CLAUDE.md "環境備註" and
+# backend/engine02_retrieval/README.md.
 
 # Core API
 fastapi
@@ -14,16 +21,9 @@ python-dotenv
 google-auth
 requests
 
-# ENGINE02 / ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
+# ENGINE03 / generation (ENGINE01 uses the `codex` CLI instead, see
 # backend/engine01_intent/llm_client.py -- no OPENAI_API_KEY needed for that module)
 openai>=1.40
-
-# ENGINE02 -- hybrid search, embeddings, reranking
-sentence-transformers
-rank-bm25
-faiss-cpu
-# FashionCLIP pulls in open_clip/torch; install per https://github.com/patrickjohncyh/fashion-clip
-# fashion-clip
 
 # ENGINE01 -- offline test harness
 pytest

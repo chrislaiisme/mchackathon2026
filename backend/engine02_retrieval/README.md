@@ -1,9 +1,101 @@
-# ENGINE02 — 檢索與排序
+# ENGINE02 — 檢索與排序（已實作）
 
-**負責人：待確認。** 這是建 repo 骨架時順便建立的佔位資料夾，讓這條線可以馬上開始動工。
+**負責人：ENGINE 02。** 這份取代原本的骨架摘要。實作完成、測試 258 項全綠、在 cfda4 GPU 與純 CPU 筆電上都驗收過。
 
-Hybrid search（FashionCLIP dense embedding ＋ BM25／屬性 sparse 過濾），在 [Polyvore Outfits Dataset](https://huggingface.co/datasets/mvasil/polyvore-outfits) 上跑，用風格相似度分數、Polyvore 式穿搭相容性分數、ENGINE03 學到的偏好權重合併重新排序。GPT（chat completions，不用 LangChain）把最終排序寫成一句根據商品真實屬性的自然語言理由。生成模組產出的概念圖也會轉成向量併入 dense 側分數，讓檢索跟生成互相加強。
+- 設計與全部實驗（§3.1–§3.35）：[`docs/engine02-design.md`](../../docs/engine02-design.md)
+- 管線、現場腳本、檢查清單：[`docs/engine02-pipeline.md`](../../docs/engine02-pipeline.md)
+- 介面轉接的實況調查：[`docs/research/engine01-output-reality.md`](../../docs/research/engine01-output-reality.md)、[`docs/research/framework-conformance.md`](../../docs/research/framework-conformance.md)
 
-完整規格：[../../docs/engine02-retrieval.md](../../docs/engine02-retrieval.md)。輸入輸出 JSON：[../../docs/interface-contract.md](../../docs/interface-contract.md)（`Intent` 進、`RetrievalResult` 出——看 `ProductCard`）。
+## 怎麼跑
 
-推薦理由生成這一步需要 `OPENAI_API_KEY`（見根目錄 `CLAUDE.md` 的「P0 現況」）。
+```bash
+# 從 repo 根目錄執行
+ENGINE02_CATALOG=data/catalog/kagl_polyvore_filled ENGINE02_ENCODER=marqo-fashionSigLIP \
+ENGINE02_DEVICE=cuda ENGINE02_OT=1 ENGINE02_DEMO=1 \
+ENGINE02_PUBLIC_BASE=http://localhost:8002 CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+uvicorn backend.engine02_retrieval.main:app --host 0.0.0.0 --port 8002
+```
+
+| 端點 | 用途 |
+|---|---|
+| `POST /retrieve` | **ENGINE 01 的 `Intent` → `RetrievalResult`**（`docs/interface-contract.md`） |
+| `GET /health` | 商品庫、編碼器、預熱狀態 |
+| `/engine02/*` | ENGINE 02 完整 API 原樣掛載（`/rank`、`/view`、`/facets`、`/complete-look`、`/visual-search`、缺口盤…） |
+
+`ENGINE02_DEMO=1` 保證服務路徑不連網、不等 LLM。沒有 GPU 也能跑（純 CPU `/rank` p50 111 ms）。
+
+## 套件為什麼留在根目錄 `engine02/`
+
+`engine02/{api,compat_ot,complete_look,llm}.py` 都用 `ROOT = Path(__file__).resolve().parents[1]`
+解析 `data/catalog/...`。搬進 `backend/engine02_retrieval/` 會讓 `parents[1]` 指到 `backend/`，
+所有預設資料路徑、14 個測試檔、40+ 個腳本與已發佈的 JSON Schema 全部失效。
+`origin/main` 上沒有任何程式碼 import `backend.engine02_retrieval`——團隊真正依賴的接縫是
+**啟動指令與 HTTP 介面**，這個檔案就是那個接縫。
+
+> 這一點與 `CLAUDE.md` 的「Repo 結構」寫法不同，**需要 ENGINE 01 負責人確認**後同步更新該段落。
+
+## 需要團隊改的三件事（都只加不改、向後相容）
+
+### 1. `RetrievalResult.concept_image` 目前是必填，我們填不出來
+
+概念圖屬於 `backend/generation/`；我們只**消費**它（`POST /engine02/concept-image/nearest`、
+`FeedbackState.concept_image_embedding`）。現在回 `null`，包成 `RetrievalResult` 會 `ValidationError`。
+
+```diff
+ class RetrievalResult(BaseModel):
+     session_id: str
+     round: int
+     products: list[ProductCard]
+-    concept_image: ConceptImage
++    concept_image: Optional[ConceptImage] = None
+     match_score: float
+```
+
+我們不會為了滿足型別而生一張假圖。
+
+### 2. `ProductCard` 只有一個 `reason: str`，會把可解釋性丟掉
+
+我們每張卡片的分數分解**加起來剛好等於總分**，這是整個專案的賣點。
+`reason` 我們填的是**通過事實查核的完整敘述**（`RankedItem.explanation`），
+但逐項貢獻需要欄位才活得下來——**FastAPI 的 `response_model` 會靜默丟掉 model 上沒有的欄位**。
+
+```diff
++class ReasonContribution(BaseModel):
++    term: str                 # "dense" / "design:structured_shoulders"
++    group: str                # dense | bm25 | design | compat | freshness | critique | penalty
++    contribution: float       # 不變式：sum(contribution) == ProductCard.score
++    cited: bool = False       # 有沒有被寫進卡片理由
++
+ class ProductCard(BaseModel):
+     product_id: str
+     image_url: str
+     title: str
+     attributes: dict[str, str] = Field(default_factory=dict)
+     score: float
+     reason: str
++    reason_contributions: list[ReasonContribution] = Field(default_factory=list)
++    explanation_source: Optional[str] = None      # "llm"（通過查核的改寫）或 "template"
+```
+
+### 3. `requirements.txt` 缺的套件會直接讓我們載不起來
+
+`numpy`、`pandas`、`pyarrow`、`pillow`、`httpx` 目前都沒列；**沒有 `pyarrow` 就讀不了 `items.parquet`**。
+另外 `faiss-cpu` 與 `sentence-transformers` 我們兩個都沒用，而 `faiss-cpu` 的部分輪子相依 `numpy<2`，
+和我們的 `numpy>=2` 直接衝突。我們的清單是根目錄 `pyproject.toml`。
+
+## 合併注意事項
+
+- **兩個分支沒有共同祖先**（`git merge-base` 無輸出），`git merge` 會拒絕。
+  建議從 `origin/main` 開 `engine02-integration`，把檔案樹複製進去再提 PR。
+  實際重疊的已追蹤路徑只有 `.gitignore` 與 `README.md` 兩個。
+- **`data/` 兩邊都被 gitignore**：17,783 件商品庫與向量索引不在 git 裡，
+  clone 下來要先跑 `scripts/prepare_catalog.py`（或直接複製既有的 `data/catalog/`），否則 `Catalog.load` 會掛。
+- **合併後不要裸跑 `pytest`**：`backend/engine01_intent/tests/test_accuracy.py` 會真的呼叫 10 次
+  `codex exec`，燒團隊共用額度。我們的測試請跑 `pytest -q tests`。
+
+## 給 ENGINE 03 的
+
+回饋照 `docs/contract/engine03_feedback.schema.json` 送進 `/engine02/rank` 的 `feedback`；
+`/retrieve` 也吃同一份 `feedback`。第二輪請一併送 `prev_intent`，我們會同時回
+「用本輪意圖評」與「用上一輪意圖評」兩個 match_score——
+**只有前者上升代表是意圖變寬鬆，不是結果變好**，這個對照是我們自己要求要顯示的。

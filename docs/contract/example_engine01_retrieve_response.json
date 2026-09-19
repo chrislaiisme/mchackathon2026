@@ -1,0 +1,153 @@
+{
+  "session_id": "demo-interview",
+  "round": 1,
+  "products": [
+    {
+      "product_id": "26791",
+      "image_url": "/images/26791",
+      "title": "Arrow Men Off White Slim Fit Shirt",
+      "attributes": {
+        "category": "top",
+        "subcategory": "Shirts",
+        "color": "Off White",
+        "occasion": "Formal",
+        "season": "Summer",
+        "gender": "Men"
+      },
+      "score": 3.7663,
+      "reason": "商品描述直接提到你要的關鍵字（+1.50）；整體風格和你描述的相近（+1.29）",
+      "reason_contributions": [
+        {
+          "term": "dense",
+          "group": "dense",
+          "contribution": 1.2927,
+          "cited": true
+        },
+        {
+          "term": "bm25",
+          "group": "bm25",
+          "contribution": 1.5,
+          "cited": true
+        },
+        {
+          "term": "design:formal_style",
+          "group": "design",
+          "contribution": 0.9736,
+          "cited": false
+        }
+      ],
+      "explanation_source": "template"
+    },
+    {
+      "product_id": "14736",
+      "image_url": "/images/14736",
+      "title": "Arrow Men Solid White Shirts",
+      "attributes": {
+        "category": "top",
+        "subcategory": "Shirts",
+        "color": "White",
+        "occasion": "Formal",
+        "season": "Fall",
+        "gender": "Men"
+      },
+      "score": 2.3212,
+      "reason": "整體風格和你描述的相近（+1.01）；避開正式感（+0.97）（你這句話裡說的）；商品描述直接提到你要的關鍵字（+0.34）",
+      "reason_contributions": [
+        {
+          "term": "dense",
+          "group": "dense",
+          "contribution": 1.0112,
+          "cited": true
+        },
+        {
+          "term": "bm25",
+          "group": "bm25",
+          "contribution": 0.3356,
+          "cited": true
+        },
+        {
+          "term": "design:formal_style",
+          "group": "design",
+          "contribution": 0.9744,
+          "cited": true
+        }
+      ],
+      "explanation_source": "template"
+    }
+  ],
+  "concept_image": null,
+  "match_score": 0.8,
+  "engine02": {
+    "match_score_detail": {
+      "match_score": 0.8,
+      "n_items": 5,
+      "requirements": [
+        {
+          "requirement": "category=tops.shirts",
+          "kind": "hard",
+          "satisfied": 1.0
+        },
+        {
+          "requirement": "color=cream/off white/white",
+          "kind": "hard",
+          "satisfied": 1.0
+        },
+        {
+          "requirement": "occasion=formal",
+          "kind": "soft",
+          "satisfied": 0.6
+        },
+        {
+          "requirement": "正式感↓",
+          "kind": "design",
+          "satisfied": 0.6
+        }
+      ],
+      "relaxed": [],
+      "caveat": "",
+      "definition": "使用者說出口的要求（硬條件值＋指名的設計要素軸）在這批卡片上被滿足的比例；它會下降——加了商品庫給不出來的要求就會掉。這不是「喜歡的機率」。"
+    },
+    "constraint_report": {
+      "applied": {
+        "category": [
+          "tops.shirts"
+        ],
+        "color": [
+          "White",
+          "Cream",
+          "Off White"
+        ]
+      },
+      "relaxed": [],
+      "n_catalog": 5000,
+      "n_after_filter": 95,
+      "grounded_terms": [],
+      "exposure_excluded": 0,
+      "exposure_cap_skipped": false,
+      "honoured_negations": [],
+      "substitutes": [],
+      "input_warnings": []
+    },
+    "metrics": {
+      "hard_constraint_satisfaction": 1.0,
+      "match_policy": "exact",
+      "excluded_value_hits": 0,
+      "rejected_item_hits": 0,
+      "feedback_violations": 0
+    },
+    "arm": "full_zclip3",
+    "encoder": "hash-256",
+    "timings_ms": {
+      "filter": 17.95,
+      "bm25_docs_touched": 0.2726,
+      "retrieve": 0.55,
+      "fuse": 0.08,
+      "rerank": 0.34,
+      "counterfactual": 0.14,
+      "explain": 1.16
+    },
+    "unresolved_from_intent": [],
+    "authenticated": false,
+    "items": "（完整 Engine02Response.items 見 example_round1_response.json）"
+  }
+}

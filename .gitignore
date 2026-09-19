@@ -22,6 +22,18 @@ backend/generation/output/
 *.faiss
 *.chroma/
 data/
+models/
+artifacts/
+
+# ENGINE02 (engine02-research merge) -- third-party checkouts and its per-run
+# report subfolders; docs/, docs/engine02-*.md, reports/model_verification*
+# are the checked-in results, these are working directories, not results
+third_party/
+reports/ablation/
+reports/server/
+reports/agents/
+reports/demo/
+reports/llm_paraphrase/
 
 # OS / editor
 .DS_Store
