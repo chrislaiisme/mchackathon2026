@@ -509,23 +509,39 @@ def feedback_from_engine03(payload: dict[str, Any] | None, *, items=None,
             "reference_item_id"}
     if set(payload) & ours:
         return dict(payload), []
+    if "ops" in payload:
+        # ENGINE 03's FeedbackRound. Its ops are the contract we published and
+        # engine02/handshake.py implements them exactly; routing them here rather than through
+        # apply_round() would silently drop every one of them (see POST /handshake).
+        return {}, ["feedback 是 ENGINE 03 的 FeedbackRound（含 ops）："
+                    "請改呼叫 POST /handshake 取得下一輪請求，"
+                    "或把它先套用後再把 FeedbackState 放進 feedback；本輪不會套用這些 ops"]
 
     out: dict[str, Any] = {}
     unusable: list[str] = []
     adjust: dict[str, int] = {}
-    for sc in payload.get("attribute_scores") or []:
+    scores = payload.get("attribute_scores") or []
+    # ENGINE 03 documents attribute scores on a 0–1 scale with 0.5 neutral (its own example uses
+    # 0.3 to mean 「太正式」), while a signed −1..1 scale is the other obvious reading. Getting this
+    # backwards sends the ranking the opposite way with a confident explanation, so infer the
+    # convention from the data rather than assuming one.
+    signed = any(float(sc.get("score", 0) or 0) < 0 for sc in scores)
+    neutral = 0.0 if signed else 0.5
+    for sc in scores:
         attr = str(sc.get("attribute", "")).strip()
         try:
             score = float(sc.get("score", 0))
         except (TypeError, ValueError):
-            score = 0.0
+            score = neutral
         key = next((v for k, v in FEEDBACK_ATTRIBUTE_TO_ELEMENT.items() if k.lower() in attr.lower()),
                    None)
-        if key is None or not score:
+        if key is None:
             if attr:
                 unusable.append(f"attribute_scores 的「{attr}」對不到設計要素軸，本輪忽略")
             continue
-        adjust[key] = adjust.get(key, 0) + (steps if score > 0 else -steps)
+        if abs(score - neutral) < 1e-9:       # neutral says nothing; do not invent a direction
+            continue
+        adjust[key] = adjust.get(key, 0) + (steps if score > neutral else -steps)
     if adjust:
         out["design_adjust_steps"] = adjust
 

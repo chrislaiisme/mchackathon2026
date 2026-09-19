@@ -406,6 +406,46 @@ def view(body: ViewRequest) -> dict:
     return out
 
 
+class HandshakeRequest(BaseModel):
+    """ENGINE 03's round of ops, plus the request that produced the cards it is about."""
+
+    prev_request: Engine02Request
+    prev_response: dict | None = None
+    feedback: dict                      # engine02.handshake.FeedbackRound as JSON
+
+
+@app.post("/handshake")
+def handshake(body: HandshakeRequest) -> dict:
+    """One round of ENGINE 03 ops → the next `Engine02Request` (and a ledger of what each op did).
+
+    `engine02/handshake.py::apply_round` has implemented this since the contract was published,
+    but nothing exposed it over HTTP — and ENGINE 03 runs in its own process on another port, so
+    "call it in-process" was never an option for them. Without this endpoint every op ENGINE 03
+    emits is silently dropped at the boundary: the request still succeeds, the cards still look
+    reasonable, and nothing anywhere says the feedback was ignored.
+
+    Unknown elements or attributes come back in `rejected_ops` rather than disappearing.
+    """
+    from .handshake import FeedbackRound, apply_round
+
+    e = engine()
+    try:
+        fb = FeedbackRound.model_validate(body.feedback)
+    except ValidationError as exc:
+        raise HTTPException(422, {"error": "feedback is not a valid FeedbackRound",
+                                  "detail": exc.errors(include_url=False)})
+    prev_resp = None
+    if body.prev_response:
+        try:
+            prev_resp = Engine02Response.model_validate(body.prev_response)
+        except ValidationError:
+            prev_resp = None           # a partial previous response is not worth failing over
+    result = apply_round(body.prev_request, prev_resp, fb, kansei=e.kansei)
+    return {"next_request": result.request.model_dump(mode="json"),
+            "ledger": [entry.model_dump() for entry in result.ledger],
+            "rejected_ops": result.rejected_ops}
+
+
 class IntentRankRequest(BaseModel):
     """ENGINE 01 speaks this. `intent` is `backend.shared.schemas.Intent` as plain JSON."""
 

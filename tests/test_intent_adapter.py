@@ -298,3 +298,62 @@ def test_our_own_feedback_shape_still_passes_through(monkeypatch):
                          "excluded_item_ids": [shown[1]]}}).json()
         ids = [p["product_id"] for p in r["products"]]
         assert shown[1] not in ids, "an excluded item came back"
+
+
+def test_engine03_ops_are_applied_not_dropped(monkeypatch):
+    """ENGINE 03 runs in its own process, so 'call apply_round in-process' was never an option.
+
+    Without POST /handshake every op it emits vanishes at the boundary: the request still
+    succeeds and the cards still look reasonable, which is the worst way to lose feedback.
+    """
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as client:
+        first = client.post("/rank", json={"session_id": "h", "retrieval_text": "white shirt",
+                                           "options": {"top_k": 5}}).json()
+        ids = [i["item_id"] for i in first["items"]]
+        fb = {"session_id": "h", "round": 1, "utterance": "太像上班族了",
+              "ops": [{"op": "exclude", "attribute": "color", "value": "Black", "quote": "不要黑色"},
+                      {"op": "adjust", "element": "formal_style", "step": -1},
+                      {"op": "choice", "shown_item_ids": ids, "chosen_item_id": ids[0]},
+                      {"op": "adjust", "element": "no_such_element", "step": 1}]}
+        r = client.post("/handshake", json={
+            "prev_request": {"session_id": "h", "retrieval_text": "white shirt"},
+            "prev_response": first, "feedback": fb})
+        assert r.status_code == 200, r.text[:200]
+        b = r.json()
+        nxt = b["next_request"]
+        assert nxt["round"] == 2
+        assert nxt["constraints"]["excluded_values"]["color"] == ["Black"]
+        assert nxt["feedback"]["design_adjust_steps"]["formal_style"] == -1
+        assert len(nxt["feedback"]["choice_history"]) == 1
+        # an element we do not have is reported, never silently dropped
+        assert any("no_such_element" in str(op) for op in b["rejected_ops"]), b["rejected_ops"]
+
+        # and the produced request is directly rankable
+        r2 = client.post("/rank", json=nxt)
+        assert r2.status_code == 200
+        assert not [i for i in r2.json()["items"] if str(i.get("color", "")).lower() == "black"]
+
+
+def test_a_feedback_round_sent_to_retrieve_is_not_silently_ignored(monkeypatch):
+    """If ENGINE 03 posts its FeedbackRound to /retrieve by mistake, say so."""
+    monkeypatch.setenv("ENGINE02_ENCODER", "hash")
+    monkeypatch.setenv("ENGINE02_LLM", "none")
+    monkeypatch.setenv("ENGINE02_DEMO", "1")
+    from fastapi.testclient import TestClient
+
+    from backend.engine02_retrieval.main import app
+
+    with TestClient(app) as client:
+        b = client.post("/retrieve", json={
+            "session_id": "x", "round": 2, "intent": {"item_type": "襯衫"},
+            "feedback": {"session_id": "x", "round": 1,
+                         "ops": [{"op": "exclude", "attribute": "color", "value": "Black"}]}}).json()
+        warnings = b["engine02"]["unresolved_from_intent"]
+        assert any("handshake" in w.lower() for w in warnings), warnings
