@@ -79,6 +79,7 @@ def intent_rank(
     feedback: Optional[dict] = None,
     prev_intent: Optional[dict] = None,
     rewrite_key: Optional[str] = None,
+    timeout_seconds: float = _TIMEOUT_SECONDS,
 ) -> Optional[RetrievalResult]:
     """呼叫 ENGINE02 的 `POST /intent/rank`，回傳團隊介面契約的 `RetrievalResult`。
 
@@ -124,7 +125,7 @@ def intent_rank(
                 "feedback": feedback,
                 "prev_intent": prev_intent,
             },
-            timeout=_TIMEOUT_SECONDS,
+            timeout=timeout_seconds,
         )
         resp.raise_for_status()
         # ENGINE02 的回應除了 RetrievalResult 的欄位之外還夾帶一個 "engine02"

@@ -16,21 +16,47 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+function currentUserId(explicitUserId?: string) {
+  return explicitUserId ?? authService.getSession()?.id ?? null;
+}
+
+function completedKey(userId: string) {
+  return `${ONBOARDING_COMPLETED_KEY}:${userId}`;
+}
+
+function profileKey(userId: string) {
+  return `${STYLE_PROFILE_KEY}:${userId}`;
+}
+
 export const onboardingService = {
-  isCompleted() {
+  isCompleted(userId?: string) {
     if (!isBrowser()) {
       return false;
     }
 
-    return window.localStorage.getItem(ONBOARDING_COMPLETED_KEY) === "true";
+    const resolvedUserId = currentUserId(userId);
+    if (!resolvedUserId) {
+      return false;
+    }
+
+    const session = authService.getSession();
+    return (
+      (session?.id === resolvedUserId && session.onboardingCompleted === true) ||
+      window.localStorage.getItem(completedKey(resolvedUserId)) === "true"
+    );
   },
 
-  getProfile(): OnboardingProfile | null {
+  getProfile(userId?: string): OnboardingProfile | null {
     if (!isBrowser()) {
       return null;
     }
 
-    const raw = window.localStorage.getItem(STYLE_PROFILE_KEY);
+    const resolvedUserId = currentUserId(userId);
+    if (!resolvedUserId) {
+      return null;
+    }
+
+    const raw = window.localStorage.getItem(profileKey(resolvedUserId));
 
     if (!raw) {
       return null;
@@ -39,16 +65,24 @@ export const onboardingService = {
     try {
       return JSON.parse(raw) as OnboardingProfile;
     } catch {
-      window.localStorage.removeItem(STYLE_PROFILE_KEY);
+      window.localStorage.removeItem(profileKey(resolvedUserId));
       return null;
     }
   },
 
-  saveOnboardingProfile(profile: OnboardingProfile) {
+  saveOnboardingProfile(profile: OnboardingProfile, userId?: string) {
+    const resolvedUserId = currentUserId(userId);
+    if (!resolvedUserId) {
+      console.warn("[onboarding] 沒有登入使用者，無法保存 onboarding 狀態。");
+      return;
+    }
+
     // 本地狀態照舊立刻寫，畫面轉場不用等網路——這支呼叫在 onboarding-experience.tsx
     // 裡是同步呼叫，改成整個 await 後端會牽動比較多地方，時間有限先不動那層。
-    window.localStorage.setItem(STYLE_PROFILE_KEY, JSON.stringify(profile));
-    window.localStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
+    window.localStorage.setItem(profileKey(resolvedUserId), JSON.stringify(profile));
+    window.localStorage.setItem(completedKey(resolvedUserId), "true");
+    window.localStorage.removeItem(STYLE_PROFILE_KEY);
+    window.localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
     window.dispatchEvent(new Event("intentweave-onboarding-change"));
 
     // 2026-09-19 起同步把資料寫回後端 PUT /profile（真正的資料落地位置，

@@ -125,6 +125,7 @@ export interface User {
   name: string;
   email: string;
   avatarUrl: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface Conversation {
