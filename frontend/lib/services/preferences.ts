@@ -1,7 +1,9 @@
 import type {
   FashionRecommendation,
   OutfitRecommendation,
+  PreferenceDimensionRatings,
   PreferenceItemSnapshot,
+  PreferenceRatingDimension,
   TryOnFeedbackEntry,
   UserPreferenceState,
   WardrobeCategory,
@@ -10,6 +12,7 @@ import type {
 const PREFERENCES_KEY = "intentweave.preferences";
 const PREFERENCES_CHANGE_EVENT = "intentweave-preferences-change";
 const RECENT_ROUND_LIMIT = 3;
+const RATING_DIMENSIONS: PreferenceRatingDimension[] = ["visual_impact", "polished_formality", "soft_energy"];
 
 type PreferenceStore = Record<string, UserPreferenceState>;
 
@@ -62,14 +65,56 @@ function writeStore(store: PreferenceStore) {
 }
 
 function readUserState(userId: string) {
-  return readStore()[userId] || emptyState();
+  return normalizeState(readStore()[userId]);
 }
 
 function updateUserState(userId: string, updater: (state: UserPreferenceState) => UserPreferenceState) {
   const store = readStore();
-  const nextState = updater(store[userId] || emptyState());
+  const nextState = updater(normalizeState(store[userId]));
   writeStore({ ...store, [userId]: nextState });
   return nextState;
+}
+
+function normalizeState(state?: UserPreferenceState): UserPreferenceState {
+  if (!state) {
+    return emptyState();
+  }
+
+  const itemRatings: UserPreferenceState["itemRatings"] = {};
+
+  Object.entries(state.itemRatings || {}).forEach(([itemId, value]) => {
+    if (typeof value === "number") {
+      itemRatings[itemId] = {
+        visual_impact: value,
+        polished_formality: value,
+        soft_energy: value,
+      };
+      return;
+    }
+
+    if (!value || typeof value !== "object") {
+      return;
+    }
+
+    const nextRatings: PreferenceDimensionRatings = {};
+    RATING_DIMENSIONS.forEach((dimension) => {
+      const rating = (value as PreferenceDimensionRatings)[dimension];
+
+      if (typeof rating === "number" && Number.isInteger(rating) && rating >= 1 && rating <= 5) {
+        nextRatings[dimension] = rating;
+      }
+    });
+
+    if (Object.keys(nextRatings).length > 0) {
+      itemRatings[itemId] = nextRatings;
+    }
+  });
+
+  return {
+    ...emptyState(),
+    ...state,
+    itemRatings,
+  };
 }
 
 function categoryForItem(item: FashionRecommendation): WardrobeCategory {
@@ -222,14 +267,21 @@ export const preferenceService = {
     });
   },
 
-  toggleRating(userId: string, itemId: string, rating: number) {
+  setDimensionRating(userId: string, itemId: string, dimension: PreferenceRatingDimension, rating: number) {
     return updateUserState(userId, (state) => {
       const itemRatings = { ...state.itemRatings };
+      const currentRatings = { ...(itemRatings[itemId] || {}) };
 
-      if (itemRatings[itemId] === rating) {
+      if (currentRatings[dimension] === rating) {
+        delete currentRatings[dimension];
+      } else if (Number.isInteger(rating) && rating >= 1 && rating <= 5) {
+        currentRatings[dimension] = rating;
+      }
+
+      if (Object.keys(currentRatings).length === 0) {
         delete itemRatings[itemId];
       } else {
-        itemRatings[itemId] = rating;
+        itemRatings[itemId] = currentRatings;
       }
 
       return { ...state, itemRatings };
@@ -268,3 +320,18 @@ export const preferenceService = {
     });
   },
 };
+
+export function buildPreferenceRatingFeedback(itemId: string, ratings: PreferenceDimensionRatings) {
+  return {
+    item_id: itemId,
+    attribute_ratings: RATING_DIMENSIONS.flatMap((dimension) => {
+      const rating = ratings[dimension];
+
+      if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return [];
+      }
+
+      return [{ attribute: dimension, stars: rating }];
+    }),
+  };
+}

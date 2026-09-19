@@ -46,6 +46,8 @@ import type {
   Conversation,
   FashionRecommendation,
   OutfitRecommendation,
+  PreferenceDimensionRatings,
+  PreferenceRatingDimension,
   PreferenceSignal,
   UserPreferenceState,
   VirtualYouMeasurements,
@@ -53,6 +55,97 @@ import type {
   VisualChoice,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const preferenceRatingDimensions: {
+  id: PreferenceRatingDimension;
+  title: string;
+  low: string;
+  high: string;
+}[] = [
+  { id: "visual_impact", title: "吸睛程度", low: "低調簡約", high: "醒目吸睛" },
+  { id: "polished_formality", title: "正式程度", low: "輕鬆休閒", high: "俐落正式" },
+  { id: "soft_energy", title: "輕盈活動感", low: "挺拔有型", high: "柔軟靈活" },
+];
+
+function PreferenceDimensionControl({
+  dimension,
+  value,
+  onChange,
+}: {
+  dimension: (typeof preferenceRatingDimensions)[number];
+  value?: number;
+  onChange: (value: number) => void;
+}) {
+  const [hoveredValue, setHoveredValue] = useState<number>();
+  const displayValue = hoveredValue ?? value ?? 0;
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-sm text-foreground">{dimension.title}</p>
+      <div className="grid grid-cols-[minmax(4.5rem,1fr)_auto_minmax(4.5rem,1fr)] items-center gap-2">
+        <span className="text-xs leading-5 text-muted-foreground">{dimension.low}</span>
+        <div className="flex items-center gap-0.5" aria-label={dimension.title} onMouseLeave={() => setHoveredValue(undefined)}>
+          {[1, 2, 3, 4, 5].map((ratingValue) => {
+            const active = ratingValue <= displayValue;
+            const selected = value === ratingValue;
+
+            return (
+              <button
+                key={ratingValue}
+                type="button"
+                onClick={() => onChange(ratingValue)}
+                onFocus={() => setHoveredValue(ratingValue)}
+                onBlur={() => setHoveredValue(undefined)}
+                onMouseEnter={() => setHoveredValue(ratingValue)}
+                className={cn(
+                  "flex size-7 cursor-pointer items-center justify-center text-muted-foreground/45 transition hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
+                  active && "text-primary",
+                )}
+                aria-label={`${dimension.title} ${ratingValue} 分`}
+                aria-pressed={selected}
+              >
+                <Star className={cn("size-4 transition-colors", active && "fill-current")} />
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-right text-xs leading-5 text-muted-foreground">{dimension.high}</span>
+      </div>
+    </div>
+  );
+}
+
+function ClothingPreferenceRatings({
+  itemName,
+  ratings,
+  onRate,
+  compact = false,
+}: {
+  itemName: string;
+  ratings?: PreferenceDimensionRatings;
+  onRate: (dimension: PreferenceRatingDimension, value: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={cn("space-y-3 border-t border-border/70 pt-3", compact && "space-y-2.5 pt-3")}>
+      <div>
+        <p className="text-sm text-foreground">這件單品給你什麼感覺？</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">告訴我們你的直覺，讓推薦越來越懂你。</p>
+        {compact && <p className="mt-1 text-xs text-muted-foreground">{itemName}</p>}
+      </div>
+      <div className={cn("space-y-3", compact && "space-y-2.5")}>
+        {preferenceRatingDimensions.map((dimension) => (
+          <PreferenceDimensionControl
+            key={dimension.id}
+            dimension={dimension}
+            value={ratings?.[dimension.id]}
+            onChange={(value) => onRate(dimension.id, value)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function RecommendationCard({
   item,
@@ -69,11 +162,11 @@ function RecommendationCard({
   item: FashionRecommendation;
   onFeedback: (item: FashionRecommendation, value: "dislike") => void;
   onToggleSaved: (item: FashionRecommendation) => void;
-  onRate: (itemId: string, rating: number) => void;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onTryOn: (item: FashionRecommendation) => void;
   feedback?: "like" | "dislike";
   saved: boolean;
-  rating?: number;
+  rating?: PreferenceDimensionRatings;
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
 }) {
@@ -139,19 +232,12 @@ function RecommendationCard({
             </Button>
           </div>
         </div>
-        <div className="flex gap-1" aria-label={`Rate ${item.name}`}>
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onRate(item.id, value)}
-              className="p-0.5 text-primary transition hover:scale-105"
-              aria-label={`${value} stars`}
-            >
-              <Star className={`size-4 ${rating && rating >= value ? "fill-current" : ""}`} />
-            </button>
-          ))}
-        </div>
+        <ClothingPreferenceRatings
+          itemName={item.name}
+          ratings={rating}
+          onRate={(dimension, value) => onRate(item.id, dimension, value)}
+          compact
+        />
       </div>
     </article>
   );
@@ -206,7 +292,7 @@ function MessageBlock({
   onRecommendationNavigate: (messageId: string, slot: "topOrDress" | "bottom", index: number) => void;
   onRecommendationTryMore: (messageId: string) => void;
   onRecommendationBackToTopPick: (messageId: string) => void;
-  onRecommendationRate: (messageId: string, itemId: string, rating: number) => void;
+  onRecommendationRate: (messageId: string, itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onRecommendationToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
@@ -271,7 +357,7 @@ function MessageBlock({
               rating={preferenceState.itemRatings[item.id]}
               onFeedback={onFeedback}
               onToggleSaved={(nextItem) => onToggleSaved(message.id, nextItem)}
-              onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
+              onRate={(itemId, dimension, rating) => onRecommendationRate(message.id, itemId, dimension, rating)}
               onTryOn={onTryOn}
               isTryOnActive={activeTryOnItemIds.includes(item.id)}
               isTryOnLoading={tryOnStatus === "generating"}
@@ -294,7 +380,7 @@ function MessageBlock({
           tryOnStatus={tryOnStatus}
           feedback={feedback}
           preferenceState={preferenceState}
-          onRate={(itemId, rating) => onRecommendationRate(message.id, itemId, rating)}
+          onRate={(itemId, dimension, rating) => onRecommendationRate(message.id, itemId, dimension, rating)}
           onToggleSaved={(item) => onRecommendationToggleSaved(message.id, item)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
@@ -424,8 +510,8 @@ function RecommendationCarousel({
   activeTryOnItemIds: string[];
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
-  rating?: number;
-  onRate: (itemId: string, rating: number) => void;
+  rating?: PreferenceDimensionRatings;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   saved: boolean;
   onToggleSaved: (item: FashionRecommendation) => void;
   disabledReason?: string;
@@ -492,24 +578,11 @@ function RecommendationCarousel({
               </span>
             ))}
           </div>
-          <div>
-            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
-              Your rating {rating ? `${rating}/5` : ""}
-            </p>
-            <div className="flex gap-1" aria-label={`Rate ${item.name}`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onRate(item.id, value)}
-                  className="p-0.5 text-primary transition hover:scale-105"
-                  aria-label={`${value} stars`}
-                >
-                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <ClothingPreferenceRatings
+            itemName={item.name}
+            ratings={rating}
+            onRate={(dimension, value) => onRate(item.id, dimension, value)}
+          />
         </div>
           <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
             <Button
@@ -551,7 +624,7 @@ function RecommendationCarousel({
 
 function CompleteOutfitCard({
   outfit,
-  rating,
+  itemRatings,
   saved,
   disliked,
   isTryOnActive,
@@ -564,13 +637,13 @@ function CompleteOutfitCard({
   onDesignForMe,
 }: {
   outfit: OutfitRecommendation;
-  rating?: number;
+  itemRatings: UserPreferenceState["itemRatings"];
   saved: boolean;
   disliked: boolean;
   isTryOnActive: boolean;
   isTryOnLoading: boolean;
   onTryOn: () => void;
-  onRate: (rating: number) => void;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onToggleSaved: () => void;
   onDislike: () => void;
   onTryMore: () => void;
@@ -648,23 +721,16 @@ function CompleteOutfitCard({
             ))}
           </div>
 
-          <div>
-            <p className="mb-2 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
-              Your rating {rating ? `${rating}/5` : ""}
-            </p>
-            <div className="flex gap-1" aria-label={`Rate ${outfit.name}`}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onRate(value)}
-                  className="p-0.5 text-primary transition hover:scale-105"
-                  aria-label={`${value} stars`}
-                >
-                  <Star className={`size-5 ${rating && rating >= value ? "fill-current" : ""}`} />
-                </button>
-              ))}
-            </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[outfit.items.topOrDress, outfit.items.bottom].filter((item): item is FashionRecommendation => Boolean(item)).map((item) => (
+              <ClothingPreferenceRatings
+                key={item.id}
+                itemName={item.name}
+                ratings={itemRatings[item.id]}
+                onRate={(dimension, value) => onRate(item.id, dimension, value)}
+                compact
+              />
+            ))}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -725,7 +791,7 @@ function ConversationRecommendation({
   tryOnStatus: TryOnStatus;
   feedback: Record<string, "like" | "dislike">;
   preferenceState: UserPreferenceState;
-  onRate: (itemId: string, rating: number) => void;
+  onRate: (itemId: string, dimension: PreferenceRatingDimension, rating: number) => void;
   onToggleSaved: (item: FashionRecommendation) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
@@ -747,13 +813,13 @@ function ConversationRecommendation({
     return (
       <CompleteOutfitCard
         outfit={topPick}
-        rating={preferenceState.itemRatings[topPick.id]}
+        itemRatings={preferenceState.itemRatings}
         saved={topPickItemIds.length > 0 && topPickItemIds.every((itemId) => Boolean(preferenceState.savedItems[itemId]))}
         disliked={feedback[topPick.id] === "dislike" || topPickItemIds.some((itemId) => feedback[itemId] === "dislike")}
         isTryOnActive={isTopPickTryOnActive}
         isTryOnLoading={tryOnStatus === "generating"}
         onTryOn={() => onTryOnOutfit(topPick)}
-        onRate={(rating) => onRate(topPick.id, rating)}
+        onRate={onRate}
         onToggleSaved={onSaveLook}
         onDislike={() => onFeedback(topPick.items.topOrDress, "dislike")}
         onTryMore={onTryMore}
@@ -2093,14 +2159,19 @@ export function StylistExperience() {
     });
   }
 
-  function handleRecommendationRate(messageId: string, itemId: string, rating: number) {
+  function handleRecommendationRate(
+    messageId: string,
+    itemId: string,
+    dimension: PreferenceRatingDimension,
+    rating: number,
+  ) {
     const user = authService.getSession();
 
     if (!user) {
       return;
     }
 
-    setPreferenceState(preferenceService.toggleRating(user.id, itemId, rating));
+    setPreferenceState(preferenceService.setDimensionRating(user.id, itemId, dimension, rating));
   }
 
   function handleRecommendationToggleSaved(messageId: string, item: FashionRecommendation) {
