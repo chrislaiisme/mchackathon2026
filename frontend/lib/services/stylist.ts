@@ -65,6 +65,7 @@ interface BackendStyledComplement {
 // 只有 prompt_used／keywords／varied_label 可以顯示，Hermes Agent 這套外部工具還沒
 // 裝好之前先靠這個驗證整條管線接不接得通（見 CLAUDE.md、跟使用者的討論記錄）。
 interface BackendConceptCell {
+  id?: string;
   index: number;
   keywords: Record<string, string>;
   varied_label?: string | null;
@@ -141,7 +142,9 @@ export function conceptCellsToRecommendations(
   return concepts.cells
     .filter((cell) => Boolean(cell.image_url))
     .map((cell) => ({
-      id: `${prefix}-${cell.index}`,
+      // 生成 id 由 ENGINE01 從 manifest 建立並保存；必須原樣回傳給 /feedback，
+      // 不能只靠 index 在瀏覽器端重新組一個暫時 id。
+      id: cell.id || `${prefix}-${cell.index}`,
       name: cell.varied_label || `Option ${cell.index}`,
       imageUrl: toAbsoluteMediaUrl(cell.image_url as string),
       explanation: cell.prompt_fragment || concepts.prompt_used,
@@ -193,7 +196,12 @@ export function adaptConceptZonesToChatRecommendation(
   };
 }
 
-export class StylistApiError extends Error {}
+export class StylistApiError extends Error {
+  constructor(message: string, public readonly status?: number) {
+    super(message);
+    this.name = "StylistApiError";
+  }
+}
 
 function authHeaders(token: string): HeadersInit {
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -427,7 +435,14 @@ export async function submitFeedback(
   });
 
   if (!response.ok) {
-    throw new StylistApiError(`POST /feedback 失敗（HTTP ${response.status}）`);
+    const detail = await response
+      .json()
+      .then((body: unknown) => (typeof body === "object" && body !== null && "detail" in body ? String(body.detail) : ""))
+      .catch(() => "");
+    throw new StylistApiError(
+      `POST /feedback 失敗（HTTP ${response.status}）${detail ? `：${detail}` : ""}`,
+      response.status,
+    );
   }
 
   return (await response.json()) as BackendFeedbackResponse;
@@ -438,6 +453,14 @@ export async function submitFeedback(
 // product_id）不會是這個格式——用來判斷這張卡片的回饋要不要送給 ENGINE03
 // （source="generated" 的今天整批由後端跳過，見 main.py::post_feedback()）。
 function isGeneratedItemId(itemId: string): boolean {
+  return itemId.startsWith("generated:") || /^(top-|bottom-)?concept-\d+$/.test(itemId);
+}
+
+// 早期前端以 concept-<n> 自行組 id；現在 ENGINE01 會從本輪 manifest 回傳
+// session scoped 的 generated:<session>:... id。舊瀏覽器快取的對話仍可能帶著
+// 前者，送回後端既無法驗證、也不應套用到本輪，因此只略過它的回饋，不放寬
+// 後端對未知 item id 的安全檢查。
+function isLegacyGeneratedItemId(itemId: string): boolean {
   return /^(top-|bottom-)?concept-\d+$/.test(itemId);
 }
 
@@ -459,6 +482,10 @@ export function adaptPreferencesToFeedbackRequest(
   const itemFeedbacks: BackendItemFeedback[] = [];
 
   for (const itemId of Object.keys(zoneByItemId)) {
+    if (isLegacyGeneratedItemId(itemId)) {
+      continue;
+    }
+
     const favorited = Boolean(preferenceState.savedItems[itemId]);
     const disliked = Boolean(preferenceState.dislikedItems[itemId]);
     const ratings = preferenceState.itemRatings[itemId];
@@ -490,6 +517,9 @@ export function adaptPreferencesToFeedbackRequest(
       continue;
     }
     if (entry.itemIds.some((id) => !zoneByItemId[id])) {
+      continue;
+    }
+    if (entry.itemIds.some(isLegacyGeneratedItemId)) {
       continue;
     }
     const topItemId = entry.itemIds.find((id) => zoneByItemId[id] === "top");

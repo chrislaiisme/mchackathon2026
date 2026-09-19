@@ -35,7 +35,6 @@ import {
   adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
-  conceptCellsToRecommendations,
   fetchConceptImage,
   fetchIntentTurn,
   fetchRecommendation,
@@ -1082,12 +1081,14 @@ function VirtualYouFigure({
   tryOnOverlays,
   isTryingOn,
   loadingLabel,
+  waitingLabel,
 }: {
   baseImage: string;
   displayImage: string;
   tryOnOverlays: TryOnOverlay[];
   isTryingOn: boolean;
   loadingLabel: string;
+  waitingLabel: string;
 }) {
   return (
     <div className="relative min-h-[320px] overflow-visible">
@@ -1108,8 +1109,21 @@ function VirtualYouFigure({
         ))}
       </div>
       {isTryingOn && (
-        <div className="absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 text-center text-sm leading-6 text-muted-foreground">
-          {loadingLabel}
+        <div
+          className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex max-w-full flex-col items-center rounded-full border border-background/70 bg-background/80 px-5 py-4 text-center shadow-[0_10px_30px_rgba(26,22,35,0.12)] backdrop-blur-sm">
+            <span
+              className="mb-2 size-4 animate-spin rounded-full border-2 border-primary/25 border-t-primary"
+              aria-hidden="true"
+            />
+            <p className="max-w-full text-sm font-semibold uppercase tracking-[0.12em] text-foreground sm:text-base">
+              {loadingLabel}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm">{waitingLabel}</p>
+          </div>
         </div>
       )}
     </div>
@@ -1226,6 +1240,7 @@ function CreateYouSection({
           tryOnOverlays={activeTryOnOverlays}
           isTryingOn={tryOnStatus === "generating"}
           loadingLabel={t.virtualYou.tryingItOn}
+          waitingLabel={t.virtualYou.tryOnWait}
         />
       ) : (
         <div className="relative min-h-[320px] overflow-visible">
@@ -1930,7 +1945,10 @@ export function StylistExperience() {
         token,
       );
     } catch (error) {
-      console.error("[stylist] 送出上一輪回饋失敗（不影響本輪對話）：", error);
+      // Feedback 是下一輪排序的輔助訊號。舊版快取可能含有已不再屬於這輪
+      // session 的生成 item id；後端會安全地拒絕它，但不應讓 Next dev overlay
+      // 把這個已處理的情況誤顯示成應用程式崩潰。
+      console.warn("[stylist] 送出上一輪回饋已略過（不影響本輪對話）：", error);
     }
   }
 
@@ -1968,7 +1986,9 @@ export function StylistExperience() {
     // 絕對不能讓回饋送不出去卡住使用者這輪新的對話。用 baseConversation
     // （呼叫端傳進來的，還沒被下面的 /intent 回應覆寫 engineSessionId／
     // engineRound）才是「上一輪」真正的狀態。
-    void submitPendingRoundFeedback(baseConversation, token);
+    // 回饋要先成功寫回 ENGINE01 session，下一次 /recommend 才能吃到 ENGINE03
+    // 的權重調整；submitPendingRoundFeedback 會自行處理失敗，不會阻斷對話。
+    await submitPendingRoundFeedback(baseConversation, token);
 
     try {
       const intentResult = await fetchIntentTurn(nextConversation.engineSessionId, messageForBackend, token);

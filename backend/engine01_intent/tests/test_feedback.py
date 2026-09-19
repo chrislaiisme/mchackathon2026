@@ -160,52 +160,19 @@ def test_happy_path_stores_pending_feedback_and_trims_history():
     assert updated_state.feedback_rounds[-1]["round"] == 1
 
 
-def test_generated_items_are_skipped_not_rejected_when_catalog_items_also_present():
+def test_generated_items_use_trusted_manifest_attributes_when_catalog_items_also_present():
     state = _new_session_with_shown_items(["a"], round_=1)
+    generated_id = "generated:test:r1:top:cell-1"
+    state.shown_generated_item_ids = [generated_id]
+    state.generated_item_design_attributes = {generated_id: {"fit": "loose"}}
+    session_store.save(_PROFILE.sub, state)
     request = FeedbackRequest(
         session_id=state.session_id,
         round=1,
         item_feedbacks=[
             ItemFeedbackRequest(item_id="a", favorited=True),
-            ItemFeedbackRequest(item_id="gen-1", source="generated", favorited=True),
+            ItemFeedbackRequest(item_id=generated_id, source="generated", favorited=True),
         ],
-    )
-
-    with patch(
-        "backend.engine01_intent.main.engine03_client.submit_feedback",
-        return_value={"engine02_feedback": _ENGINE02_FEEDBACK},
-    ):
-        response = main.post_feedback(request, _PROFILE, authorization=None)
-
-    assert response.skipped_generated_item_feedbacks == ["gen-1"]
-
-
-def test_mixed_source_outfit_is_skipped_not_partially_sent():
-    # 2026-09-19：整套裡有一件是 source="generated" 就整筆 outfit 跳過，不會只挑
-    # 資料庫那一件單獨送出去（半套的整套喜歡語意會失真）——design_attributes
-    # 詞彙映射還沒人跟 ENGINE02／生成模組負責人確認過。
-    state = _new_session_with_shown_items(["a"], round_=1)  # 只有 "a" 是資料庫商品
-    request = FeedbackRequest(
-        session_id=state.session_id,
-        round=1,
-        outfit_feedbacks=[_outfit("mixed-outfit", "a", "generated:s1:r1:cell-2", bottom_source="generated")],
-    )
-
-    with pytest.raises(main.HTTPException) as exc_info:
-        main.post_feedback(request, _PROFILE, authorization=None)
-
-    # 沒有其他任何回饋可送（catalog_feedbacks 跟 outfit_feedbacks 都是空的），
-    # 所以會落到「沒有可送出的回饋」那條 422，不是去查 shown_item_ids 噴錯。
-    assert exc_info.value.status_code == 422
-
-
-def test_mixed_source_outfit_is_reported_when_other_feedback_still_sends():
-    state = _new_session_with_shown_items(["a"], round_=1)
-    request = FeedbackRequest(
-        session_id=state.session_id,
-        round=1,
-        item_feedbacks=[ItemFeedbackRequest(item_id="a", favorited=True)],
-        outfit_feedbacks=[_outfit("mixed-outfit", "a", "generated:s1:r1:cell-2", bottom_source="generated")],
     )
 
     with patch(
@@ -214,9 +181,47 @@ def test_mixed_source_outfit_is_reported_when_other_feedback_still_sends():
     ) as mock_submit:
         response = main.post_feedback(request, _PROFILE, authorization=None)
 
-    assert response.skipped_generated_outfit_feedbacks == ["mixed-outfit"]
+    assert response.skipped_generated_item_feedbacks == []
     sent_current_round = mock_submit.call_args.args[2]
-    assert sent_current_round["outfit_feedbacks"] == []  # 整筆被跳過，不是只送一半
+    assert sent_current_round["item_feedbacks"][1] == {
+        "item_id": generated_id,
+        "source": "generated",
+        "favorited": True,
+        "disliked": False,
+        "attribute_ratings": [],
+        "design_attributes": {"fit": "loose"},
+    }
+
+
+def test_mixed_source_outfit_uses_trusted_generated_metadata():
+    state = _new_session_with_shown_items(["a"], round_=1)  # 只有 "a" 是資料庫商品
+    generated_id = "generated:s1:r1:bottom:cell-2"
+    state.shown_generated_item_ids = [generated_id]
+    state.generated_item_design_attributes = {generated_id: {"pattern": "solid"}}
+    session_store.save(_PROFILE.sub, state)
+    request = FeedbackRequest(
+        session_id=state.session_id,
+        round=1,
+        outfit_feedbacks=[_outfit("mixed-outfit", "a", generated_id, bottom_source="generated")],
+    )
+
+    with patch(
+        "backend.engine01_intent.main.engine03_client.submit_feedback",
+        return_value={"engine02_feedback": _ENGINE02_FEEDBACK},
+    ) as mock_submit:
+        response = main.post_feedback(request, _PROFILE, authorization=None)
+
+    assert response.skipped_generated_outfit_feedbacks == []
+    sent_current_round = mock_submit.call_args.args[2]
+    assert sent_current_round["outfit_feedbacks"][0]["items"] == [
+        {"zone": "top", "source": "catalog", "item_id": "a"},
+        {
+            "zone": "bottom",
+            "source": "generated",
+            "item_id": generated_id,
+            "design_attributes": {"pattern": "solid"},
+        },
+    ]
 
 
 def test_engine03_unreachable_returns_502():

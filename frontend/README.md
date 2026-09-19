@@ -88,8 +88,8 @@ Expected for real Try On:
 - `PERSON_EXTRACTION_SERVICE_URL` is read by the Next.js extraction route.
 - `VIRTUAL_TRY_ON_SERVICE_URL` is read by the Next.js try-on route.
 - `VIRTUAL_TRY_ON_PROVIDER=codex` must be set on the FastAPI process, not only in `frontend/.env.local`.
-- If `VIRTUAL_TRY_ON_SERVICE_URL` is missing, the frontend route uses the mock fallback and returns the original person image.
-- If FastAPI is not started with `VIRTUAL_TRY_ON_PROVIDER=codex`, `/try-on` will not use Codex.
+- If `VIRTUAL_TRY_ON_SERVICE_URL` is missing, the frontend route returns a clear configuration error rather than pretending the original person image was tried on.
+- If FastAPI is not started with `VIRTUAL_TRY_ON_PROVIDER=codex` (or an explicitly configured worker), `/try-on` returns a configuration error instead of a mock success response.
 
 ## Troubleshooting
 

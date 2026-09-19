@@ -543,7 +543,6 @@ export const virtualYouService = {
 
     const generatedImage = base64ToBlob(result.imageBase64, "image/png");
     const generatedImageUrl = URL.createObjectURL(generatedImage);
-
     return {
       id: `${result.provider || "remote"}-try-on-${Date.now()}`,
       generatedImage,

@@ -93,3 +93,28 @@ def test_neither_item_type_nor_outfit_requested_returns_409():
         main.post_concept_image(main.ConceptImageRequest(session_id=state.session_id, dry_run=True), _PROFILE)
 
     assert exc_info.value.status_code == 409
+
+
+def test_generated_cells_receive_server_ids_and_trusted_attributes():
+    state = _new_session(Intent(outfit_requested=True))
+    state.round = 2
+    zone_results = {
+        "top": {
+            "cells": [
+                {
+                    "index": 1,
+                    "image_url": "/generated/top.png",
+                    "design_attributes": {"fit": "loose"},
+                }
+            ]
+        },
+        "bottom": {"cells": []},
+    }
+
+    result = main._assemble_concept_zone_response(state, zone_results, [], True, _PROFILE)
+    generated_id = f"generated:{state.session_id}:r2:top:cell-1"
+
+    assert result["zones"]["top"]["cells"][0]["id"] == generated_id
+    updated_state = session_store.get(_PROFILE.sub, state.session_id)
+    assert updated_state.shown_generated_item_ids == [generated_id]
+    assert updated_state.generated_item_design_attributes == {generated_id: {"fit": "loose"}}
