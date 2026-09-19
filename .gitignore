@@ -88,3 +88,4 @@ data/pinterest/*
 evals/choice_images/*.png
 evals/choice_images/*.jpg
 evals/choice_images/*.jpeg
+.dev/
