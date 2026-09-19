@@ -388,10 +388,16 @@ interface BackendItemFeedback {
   attribute_ratings?: { attribute: string; stars: number }[];
 }
 
+interface BackendOutfitItem {
+  zone: "top" | "bottom";
+  source: "catalog" | "generated";
+  item_id: string;
+}
+
 interface BackendOutfitFeedback {
   outfit_id: string;
-  top_item_id: string;
-  bottom_item_id: string;
+  favorited: true;
+  items: BackendOutfitItem[];
 }
 
 interface BackendFeedbackResponse {
@@ -399,6 +405,7 @@ interface BackendFeedbackResponse {
   round: number;
   engine02_feedback: Record<string, unknown>;
   skipped_generated_item_feedbacks: string[];
+  skipped_generated_outfit_feedbacks: string[];
 }
 
 export async function submitFeedback(
@@ -478,13 +485,11 @@ export function adaptPreferencesToFeedbackRequest(
   for (const entry of Object.values(preferenceState.tryOnFeedback)) {
     // 只有「喜歡」有對應的後端概念（ENGINE03 OutfitFeedback.favorited 寫死
     // Literal[True]，沒有「整套不喜歡」）；itemIds 一定要正好兩件、分別是
-    // 上衣區跟下身區各一件，才是一套真正的整套試穿，且兩件都要是這一輪展示過
-    // 的資料庫商品——生成單品的整套喜歡今天不支援（同一個 design_attributes
-    // 詞彙映射落差）。
+    // 上衣區跟下身區各一件，才是一套真正的整套試穿。
     if (entry.feedback !== "like" || entry.itemIds.length !== 2) {
       continue;
     }
-    if (entry.itemIds.some((id) => isGeneratedItemId(id) || !zoneByItemId[id])) {
+    if (entry.itemIds.some((id) => !zoneByItemId[id])) {
       continue;
     }
     const topItemId = entry.itemIds.find((id) => zoneByItemId[id] === "top");
@@ -492,7 +497,18 @@ export function adaptPreferencesToFeedbackRequest(
     if (!topItemId || !bottomItemId) {
       continue;
     }
-    outfitFeedbacks.push({ outfit_id: entry.outfitKey, top_item_id: topItemId, bottom_item_id: bottomItemId });
+    // 2026-09-19：這裡不再自己過濾掉含生成單品的整套——資料庫＋生成混合的整套
+    // 一樣照實送出去（source 標明是哪一種），後端會判斷要不要真的套用還是
+    // 跳過並回報在 skipped_generated_outfit_feedbacks（今天還不支援生成單品的
+    // design_attributes 映射，但那是後端的決定，不該在前端就默默丟掉這筆訊號）。
+    outfitFeedbacks.push({
+      outfit_id: entry.outfitKey,
+      favorited: true,
+      items: [
+        { zone: "top", source: isGeneratedItemId(topItemId) ? "generated" : "catalog", item_id: topItemId },
+        { zone: "bottom", source: isGeneratedItemId(bottomItemId) ? "generated" : "catalog", item_id: bottomItemId },
+      ],
+    });
   }
 
   return { itemFeedbacks, outfitFeedbacks };
