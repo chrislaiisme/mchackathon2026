@@ -106,6 +106,17 @@ export interface ChatMessage {
    * 這些是還不存在的東西，混在一起就分不出哪些買得到。
    */
   generatedGroups?: GeneratedGroup[];
+  /**
+   * 觸發這一輪生成的那一輪、ENGINE 02 從商品庫撈到的候選。
+   *
+   * 只給「AI 幫我搭」當候選用，不畫在畫面上（畫面上那兩個輪播仍然只有生成的單品）。
+   * 帶著它是因為使用者常常只是不滿意其中一件——上衣沒問題、只想換褲子——那時
+   * 正確答案是「商品庫那件上衣 ＋ 生成的那件褲子」，候選池只有生成的就選不到。
+   */
+  catalogCandidates?: {
+    topOrDress: FashionRecommendation[];
+    bottom: FashionRecommendation[];
+  };
 }
 
 export interface User {

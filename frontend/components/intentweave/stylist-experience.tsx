@@ -173,8 +173,21 @@ function RecommendationCard({
  * 看而不是攤成一排，試穿／愛心／評分／收藏也自動一致。翻到第幾件跟星等是純
  * 畫面狀態，留在這支元件裡；收藏與喜好要跨元件累積，由上層傳進來。
  */
+/** 生成的與商品庫的候選接在一起時去重；id 前綴不同（top-ai- / 商品 id），不會誤殺。 */
+function dedupeById(items: FashionRecommendation[]): FashionRecommendation[] {
+  const seen = new Set();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+    seen.add(item.id);
+    return true;
+  });
+}
+
 function GeneratedGroupCarousels({
   groups,
+  catalogCandidates,
   onPairOutfit,
   onTryOn,
   onFeedback,
@@ -185,6 +198,11 @@ function GeneratedGroupCarousels({
   onToggleSaved,
 }: {
   groups: GeneratedGroup[];
+  /**
+   * 同一輪 ENGINE 02 從商品庫撈到的候選。不畫出來，只進「AI 幫我搭」的候選池——
+   * 使用者常常只是不滿意其中一件，這時答案是「現貨上衣 ＋ 生成褲子」。
+   */
+  catalogCandidates?: { topOrDress: FashionRecommendation[]; bottom: FashionRecommendation[] };
   /** 「AI 幫我搭」：上層補上 intent 與 session 去呼叫配對服務，失敗時 throw。 */
   onPairOutfit: (
     tops: FashionRecommendation[],
@@ -216,8 +234,14 @@ function GeneratedGroupCarousels({
     return null;
   }
 
-  const tops = ordered.find((group) => group.slot === "top")?.items ?? [];
-  const bottoms = ordered.find((group) => group.slot === "bottom")?.items ?? [];
+  // 輪播只畫生成的單品——那兩欄的標題就是「不是商品庫裡的商品」，混進現貨會自相矛盾。
+  const generatedTops = ordered.find((group) => group.slot === "top")?.items ?? [];
+  const generatedBottoms = ordered.find((group) => group.slot === "bottom")?.items ?? [];
+
+  // 但配對的候選池要含商品庫：只換一件是常見情境，池子只有生成的就選不到正解。
+  // 去重以 id 為準（兩邊 id 前綴不同，不會誤殺）。
+  const tops = dedupeById([...generatedTops, ...(catalogCandidates?.topOrDress ?? [])]);
+  const bottoms = dedupeById([...generatedBottoms, ...(catalogCandidates?.bottom ?? [])]);
 
   async function handlePairClick() {
     if (pairBusy) {
@@ -227,8 +251,10 @@ function GeneratedGroupCarousels({
     setPairError(null);
     try {
       const result = await onPairOutfit(tops, bottoms);
-      const topIndex = tops.findIndex((item) => item.id === result.topId);
-      const bottomIndex = bottoms.findIndex((item) => item.id === result.bottomId);
+      // 只有選中的那件真的在輪播裡（＝生成的）才翻得動；選到現貨時 index 是 -1，
+      // 輪播維持原樣，改由下面的結果卡把兩件一起畫出來。
+      const topIndex = generatedTops.findIndex((item) => item.id === result.top.id);
+      const bottomIndex = generatedBottoms.findIndex((item) => item.id === result.bottom.id);
       // 主要的回饋是兩個輪播各自翻到選中的那一件——直接看到兩件並排比讀一段文字快。
       setIndexBySlot((state) => ({
         ...state,
@@ -285,6 +311,32 @@ function GeneratedGroupCarousels({
             {pairing.reason ||
               (locale === "zh-TW" ? "第一件上衣配第一件下身。" : "The first top with the first bottom.")}
           </p>
+
+          {/* 選中的那兩件一定要畫出來：可能其中一件是商品庫的現貨，不在下面的輪播裡，
+              只翻輪播的話使用者根本看不到 AI 挑了什麼。 */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {[pairing.top, pairing.bottom].map((item) => (
+              <figure key={item.id} className="flex items-center gap-3 border border-border bg-card p-2">
+                <div
+                  className={cn(
+                    "fashion-image size-16 shrink-0 bg-muted",
+                    item.generated && "fashion-image--contain",
+                  )}
+                  style={{ backgroundImage: `url(${item.imageUrl})` }}
+                  role="img"
+                  aria-label={item.name}
+                />
+                <figcaption className="min-w-0">
+                  <p className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
+                    {item.generated
+                      ? locale === "zh-TW" ? "AI 生成" : "AI generated"
+                      : locale === "zh-TW" ? "商品庫現貨" : "In the catalog"}
+                  </p>
+                  <p className="truncate text-sm text-foreground">{item.name}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       )}
 
@@ -460,6 +512,7 @@ function MessageBlock({
       {message.generatedGroups && message.generatedGroups.length > 0 && (
         <GeneratedGroupCarousels
           groups={message.generatedGroups}
+          catalogCandidates={message.catalogCandidates}
           onPairOutfit={onPairOutfit}
           onTryOn={onTryOn}
           onFeedback={onFeedback}
@@ -2306,9 +2359,21 @@ export function StylistExperience() {
    *
    * TOP 與 BOTTOM 是兩張六宮格，BFF 並行送，大約等於一張的時間（50–70 秒）。
    */
-  async function handleDesignForMe(messageId: string) {
-    void messageId;
+  /** 某一輪 ENGINE 02 的候選。只在那一輪真的有推薦結果時才有東西。 */
+  function catalogFor(messageId: string) {
+    const state = recommendationStateByMessageId[messageId];
 
+    if (!state) {
+      return undefined;
+    }
+
+    return {
+      topOrDress: state.alternatives.topOrDressCandidates,
+      bottom: state.alternatives.bottomCandidates,
+    };
+  }
+
+  async function handleDesignForMe(messageId: string) {
     if (!activeConversation || isGeneratingItems) {
       return;
     }
@@ -2371,6 +2436,9 @@ export function StylistExperience() {
               ? "商品庫裡沒有更合適的了，這幾件是照你的需求生成的——還不存在的衣服。"
               : "Nothing closer in the catalog — these are designed from what you asked for, and do not exist yet.",
           generatedGroups: groups,
+          // 把觸發這一輪的那一輪、ENGINE 02 撈到的候選一起帶著。不畫出來，
+          // 只在「AI 幫我搭」時當候選——使用者可能只是不滿意其中一件。
+          catalogCandidates: catalogFor(messageId),
         }),
       );
     } catch (error) {

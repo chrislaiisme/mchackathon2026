@@ -245,6 +245,12 @@ class OutfitCandidate(BaseModel):
     keywords: Any = None
     """`{欄位: 中文值}` 的 dict，或前端 `FashionRecommendation.attributes` 那種字串陣列——
     兩種形狀 pair_outfit.py 都吃，這裡不用先轉一次。"""
+    origin: Literal["generated", "catalog"] = "generated"
+    """這件是 AI 生成的（還不存在）還是商品庫撈到的（現在買得到）。
+
+    候選是混的：使用者常常只是不滿意其中一件，最好的答案往往是「商品庫那件上衣
+    ＋ 生成的那件褲子」。模型要知道它在混什麼才做得出取捨，規則見 SKILL.md。
+    舊的呼叫端沒有這個欄位，預設 generated 維持原本行為。"""
 
 
 class OutfitPairRequest(BaseModel):

@@ -18,7 +18,8 @@ Hermes distribution 單獨發佈，一旦 import backend 就綁死在這個 repo
   python agent/scripts/pair_outfit.py --input pair_input.json --dry-run
   python agent/scripts/pair_outfit.py --input pair_input.json --timeout 60
 
-input.json 的形狀：{"intent": {...}, "tops": [{id,label,keywords}], "bottoms": [...]}
+input.json 的形狀：{"intent": {...}, "tops": [{id,label,keywords,origin}], "bottoms": [...]}
+`origin` 是 "catalog"（商品庫現貨）或 "generated"（AI 生成概念），省略當 generated。
 stdout 最後一行（契約，不要改）：
   {"top_id": "top-ai-3", "bottom_id": "bottom-ai-6", "reason": "…", "source": "llm"}
 """
@@ -111,9 +112,14 @@ def _pairs(item: dict[str, Any]) -> str:
     return "; ".join(_values(item))
 
 
+# 候選可能混著兩種來源，講給模型聽要用它看得懂的話，不要丟英文 enum。
+_ORIGIN_ZH = {"catalog": "商品庫現貨", "generated": "AI 生成概念"}
+
+
 def _describe(item: dict[str, Any]) -> str:
     label = str(item.get("label") or "").strip()
-    head = f"{item['id']}｜{label or '（無標籤）'}"
+    origin = _ORIGIN_ZH.get(str(item.get("origin") or "generated"), "AI 生成概念")
+    head = f"{item['id']}｜{origin}｜{label or '（無標籤）'}"
     pairs = _pairs(item)
     return f"- {head}｜{pairs}" if pairs else f"- {head}"
 
@@ -246,6 +252,17 @@ def _validated(data: Optional[dict[str, Any]], tops: list[dict[str, Any]],
 _DESC_KEYS = ("fit", "silhouette", "material", "length", "colors", "pattern", "design_detail")
 
 
+def _join_desc(parts: list[str]) -> str:
+    """把描述詞接起來。中文之間不加空格（「落肩箱型厚磅棉」），但兩邊都是英數時要加，
+    否則 oversized + denim 會黏成 oversizeddenim——候選混進商品庫的英文標籤之後就會踩到。"""
+    out = ""
+    for part in parts:
+        if out and out[-1].isascii() and out[-1].isalnum() and part[:1].isascii() and part[:1].isalnum():
+            out += " "
+        out += part
+    return out
+
+
 def _short(item: dict[str, Any], limit: int = 2) -> str:
     """拼退場理由用的短描述。只取兩個描述詞——退場的句子本來就只是陳述這兩件是什麼，
     把六個屬性全串上去會變成一串念不動的關鍵字。"""
@@ -263,9 +280,9 @@ def _short(item: dict[str, Any], limit: int = 2) -> str:
         if noun and not any(noun in p for p in picked):
             picked.append(noun)
         if picked:
-            return "".join(picked)
+            return _join_desc(picked)
     vals = _values(item)[:limit + 1]
-    return "".join(vals) if vals else str(item.get("label") or item["id"])
+    return _join_desc(vals) if vals else str(item.get("label") or item["id"])
 
 
 def _fallback(tops: list[dict[str, Any]], bottoms: list[dict[str, Any]]) -> dict[str, str]:
