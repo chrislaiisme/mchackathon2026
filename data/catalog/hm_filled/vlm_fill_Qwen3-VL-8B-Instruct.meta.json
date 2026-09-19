@@ -1,0 +1,209 @@
+{
+ "model": "Qwen/Qwen3-VL-8B-Instruct",
+ "n_items": 10000,
+ "valid_rate": 1.0,
+ "load_s": 4.7,
+ "sec_per_item_mean": 0.358,
+ "questions": [
+  [
+   "product",
+   "What does the image show?",
+   [
+    "one wearable clothing item, pair of shoes, or bag, shown as a product",
+    "a size chart, measurement table, text or diagram",
+    "several items sold together as a pack or set",
+    "something that is not clothing, shoes or a bag"
+   ]
+  ],
+  [
+   "category",
+   "Which kind of item is it?",
+   [
+    "top (shirt, t-shirt, blouse, sweater, hoodie)",
+    "bottom (pants, jeans, shorts, skirt)",
+    "dress, jumpsuit or romper",
+    "outerwear (coat, jacket, blazer, vest)",
+    "shoes",
+    "bag"
+   ]
+  ],
+  [
+   "color",
+   "Main color of the item?",
+   [
+    "black",
+    "white",
+    "off-white or cream",
+    "grey",
+    "charcoal",
+    "navy blue",
+    "blue",
+    "teal or turquoise",
+    "red",
+    "burgundy or maroon",
+    "pink",
+    "purple or lavender",
+    "green",
+    "olive",
+    "yellow",
+    "mustard",
+    "orange",
+    "brown",
+    "tan or camel",
+    "beige or khaki",
+    "many colors, no single main color"
+   ]
+  ],
+  [
+   "season",
+   "Which season is it best suited for?",
+   [
+    "spring",
+    "summer",
+    "fall",
+    "winter"
+   ]
+  ],
+  [
+   "occasion",
+   "Which occasion is it best suited for?",
+   [
+    "everyday casual",
+    "office, business or formal event",
+    "smart casual, dinner or a date",
+    "sports or outdoor activity",
+    "travel"
+   ]
+  ],
+  [
+   "fit",
+   "Fit or silhouette?",
+   [
+    "slim or fitted",
+    "regular",
+    "loose or oversized",
+    "not applicable (shoes or bag)"
+   ]
+  ],
+  [
+   "pattern",
+   "Pattern?",
+   [
+    "solid, no pattern",
+    "stripes or checks/plaid",
+    "floral",
+    "graphic, logo or print",
+    "other pattern"
+   ]
+  ],
+  [
+   "boldness",
+   "How bold is the design?",
+   [
+    "a basic everyday staple",
+    "has one distinctive detail",
+    "a bold statement piece",
+    "avant-garde, experimental or costume-like"
+   ]
+  ],
+  [
+   "style",
+   "Which style fits it best, judging only by the visible design?",
+   [
+    "minimalist: plain, clean lines, no decoration",
+    "streetwear: oversized cuts, bold graphics or logos, sneaker culture",
+    "classic or business: tailored, timeless, neat",
+    "sporty: athletic cut or technical fabric",
+    "bohemian: flowing shapes, folk or ethnic prints, fringe",
+    "romantic: ruffles, lace, bows or soft florals",
+    "edgy, gothic or punk: leather, studs, dark or harsh details",
+    "vintage or retro: clearly the styling of an earlier decade",
+    "preppy: collegiate, polo, cable knit or tartan",
+    "avant-garde: unusual cuts, shapes or construction"
+   ]
+  ]
+ ],
+ "values": {
+  "product": [
+   "ok",
+   "size_chart",
+   "multipack",
+   "not_apparel"
+  ],
+  "category": [
+   "top",
+   "bottom",
+   "dress",
+   "outerwear",
+   "shoes",
+   "bag"
+  ],
+  "color": [
+   "Black",
+   "White",
+   "Off White",
+   "Grey",
+   "Charcoal",
+   "Navy Blue",
+   "Blue",
+   "Teal",
+   "Red",
+   "Burgundy",
+   "Pink",
+   "Purple",
+   "Green",
+   "Olive",
+   "Yellow",
+   "Mustard",
+   "Orange",
+   "Brown",
+   "Tan",
+   "Beige",
+   null
+  ],
+  "season": [
+   "Spring",
+   "Summer",
+   "Fall",
+   "Winter"
+  ],
+  "occasion": [
+   "Casual",
+   "Formal",
+   "Smart Casual",
+   "Sports",
+   "Travel"
+  ],
+  "fit": [
+   "slim",
+   "regular",
+   "loose",
+   null
+  ],
+  "pattern": [
+   "solid",
+   "stripe_check",
+   "floral",
+   "graphic",
+   "other"
+  ],
+  "boldness": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "style": [
+   "minimalist",
+   "streetwear",
+   "classic",
+   "sporty",
+   "bohemian",
+   "romantic",
+   "edgy",
+   "vintage",
+   "preppy",
+   "avant_garde"
+  ]
+ }
+}

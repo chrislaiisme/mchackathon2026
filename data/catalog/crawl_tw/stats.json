@@ -1,0 +1,172 @@
+{
+ "inputs": [
+  "data/crawl_dataset/records.json"
+ ],
+ "n_records_in": 1911,
+ "n_items": 178,
+ "records_in_by_source": {
+  "bazaar_tw": 11,
+  "bella": 30,
+  "bof": 10,
+  "cheesebeign": 28,
+  "cna": 10,
+  "commons_cosplay": 300,
+  "commons_runway": 300,
+  "commons_street": 200,
+  "cosmo_tw": 6,
+  "elle_tw": 10,
+  "gq_tw": 29,
+  "guardian_fashion": 29,
+  "highsnobiety": 30,
+  "hypebae": 29,
+  "hypebeast": 30,
+  "iroo": 19,
+  "jksshop": 29,
+  "juksy": 30,
+  "lativ": 3,
+  "ltn_istyle": 30,
+  "marieclaire_tw": 7,
+  "mastodon_fashion": 447,
+  "mercci22": 1,
+  "pazzo": 1,
+  "pchome24h": 29,
+  "pinkoi": 1,
+  "plainme": 16,
+  "popdaily": 13,
+  "refinery29": 2,
+  "sartorialist": 11,
+  "ssense": 29,
+  "taiwanize": 29,
+  "uijshop": 29,
+  "vogue_runway": 29,
+  "vogue_tw": 29,
+  "wear_jp": 29,
+  "whiterock": 28,
+  "wwd": 18
+ },
+ "items_by_source": {
+  "pchome24h": 29,
+  "taiwanize": 29,
+  "ssense": 27,
+  "cheesebeign": 26,
+  "iroo": 19,
+  "plainme": 15,
+  "jksshop": 12,
+  "whiterock": 12,
+  "lativ": 3,
+  "uijshop": 3,
+  "mercci22": 1,
+  "pazzo": 1,
+  "pinkoi": 1
+ },
+ "category": {
+  "top": 94,
+  "outerwear": 34,
+  "dress": 24,
+  "bottom": 15,
+  "bag": 9,
+  "shoes": 2
+ },
+ "category_origin": {
+  "title_rule": 178
+ },
+ "dropped": {
+  "not_product": 1669,
+  "not_apparel": 64
+ },
+ "dropped_examples": {
+  "not_product": [
+   {
+    "source": "bazaar_tw",
+    "title": "Dior的仙境夢遊！2025春夏高訂一展時空交會的鏡花水月",
+    "url": "https://www.harpersbazaar.com/tw/fashion/news/a63596779/dior-2025-ss-haute-couture-runway/",
+    "page_type": "article"
+   },
+   {
+    "source": "bazaar_tw",
+    "title": "Chanel 2025春夏高訂的面料調色盤！跨越24小時的日裝、晚裝色票",
+    "url": "https://www.harpersbazaar.com/tw/fashion/news/a63613113/chanel-2025-ss-haute-couture-runway/",
+    "page_type": "article"
+   },
+   {
+    "source": "bazaar_tw",
+    "title": "體驗Valentino 2025春夏高訂的《頭暈目眩》！Alessandro Michele費時三萬小時的高訂首秀",
+    "url": "https://www.harpersbazaar.com/tw/fashion/news/a63619422/valentino-2025-ss-haute-couture-runway/",
+    "page_type": "article"
+   },
+   {
+    "source": "bazaar_tw",
+    "title": "Matthieu Blazy高訂首秀登場！Chanel 2026春夏高訂以輕盈與自由撰寫獻給女人的情書",
+    "url": "https://www.harpersbazaar.com/tw/fashion/news/a70168194/chanel-2026-ss-haute-couture-runway-by-matthieu-blazy/",
+    "page_type": "article"
+   },
+   {
+    "source": "bazaar_tw",
+    "title": "Pierpaolo Piccioli的Balenciaga高訂首秀！Balenciaga 2026秋冬高訂以當代審美重譯經典輪廓",
+    "url": "https://www.harpersbazaar.com/tw/fashion/news/a70750780/balenciaga-2026-fall-haute-couture-runway-by-pierpaolo-piccioli/",
+    "page_type": "article"
+   }
+  ],
+  "not_apparel": [
+   {
+    "source": "cheesebeign",
+    "title": "溫柔感真2件式套裝 3color",
+    "url": "https://cheesebeign.shoplineapp.com/products/%E6%BA%AB%E6%9F%94%E6%84%9F%E7%9C%9F2%E4%BB%B6%E5%BC%8F%E5%A5%97%E8%A3%9D-3colors",
+    "category_raw": null
+   },
+   {
+    "source": "cheesebeign",
+    "title": "點點掛脖套裝 3colors",
+    "url": "https://cheesebeign.shoplineapp.com/products/%E9%BB%9E%E9%BB%9E%E6%8E%9B%E8%84%96%E5%A5%97%E8%A3%9D-3colors",
+    "category_raw": null
+   },
+   {
+    "source": "jksshop",
+    "title": "REALM of RE'AL'M Unconstructed Vintage Cap 五片帽",
+    "url": "https://www.jksshop.co/products/realm-of-realm-unconstructed-vintage-cap",
+    "category_raw": null
+   },
+   {
+    "source": "jksshop",
+    "title": "rnrn Air Flow Cap",
+    "url": "https://www.jksshop.co/products/rnrn-air-flow-cap",
+    "category_raw": null
+   },
+   {
+    "source": "jksshop",
+    "title": "rnrn Crew Cap",
+    "url": "https://www.jksshop.co/products/rnrn-crew-cap",
+    "category_raw": null
+   }
+  ]
+ },
+ "price_coverage": 1.0,
+ "currency": {
+  "TWD": 151,
+  "USD": 27
+ },
+ "attr_coverage": {
+  "color": 0.0112,
+  "season": 0.0,
+  "occasion": 0.0,
+  "gender": 0.0,
+  "price": 1.0,
+  "brand": 0.6685
+ },
+ "apparel_only": true,
+ "images": {
+  "cached": 177,
+  "ok": 1
+ },
+ "seconds": 1.16,
+ "vlm_fill": {
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "n_items_after": 166,
+  "dropped_by_vlm": {
+   "multipack": 11,
+   "size_chart": 1
+  },
+  "category_agreement_with_title_rule": 0.9719,
+  "report": "vlm_fill_report.json"
+ }
+}

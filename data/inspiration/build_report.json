@@ -1,0 +1,675 @@
+{
+ "out": "E:\\mc-mainport\\data\\inspiration",
+ "encoder": "marqo-fashionSigLIP",
+ "per_group": 150,
+ "groups": {
+  "runway": {
+   "crawl": {
+    "name": "commons-runway",
+    "type": "commons",
+    "status": "completed",
+    "stop_reason": null,
+    "stop_detail": null,
+    "stop_url": null,
+    "api_calls": 6,
+    "categories_walked": 1,
+    "subcats_excluded": 0,
+    "files_seen": 152,
+    "duplicates": 0,
+    "excluded": 1,
+    "wrong_mime": 1,
+    "no_imageinfo": 0,
+    "records": 150,
+    "errors": 0
+   },
+   "crawl_errors": 0,
+   "records": 150,
+   "skipped": {},
+   "download_failures": {},
+   "kept": 150
+  },
+  "street": {
+   "crawl": {
+    "name": "commons-street",
+    "type": "commons",
+    "status": "completed",
+    "stop_reason": null,
+    "stop_detail": null,
+    "stop_url": null,
+    "api_calls": 11,
+    "categories_walked": 5,
+    "subcats_excluded": 0,
+    "files_seen": 150,
+    "duplicates": 16,
+    "excluded": 0,
+    "wrong_mime": 0,
+    "no_imageinfo": 0,
+    "records": 150,
+    "errors": 0
+   },
+   "crawl_errors": 0,
+   "records": 150,
+   "skipped": {},
+   "download_failures": {},
+   "kept": 150
+  },
+  "cosplay": {
+   "crawl": {
+    "name": "commons-cosplay",
+    "type": "commons",
+    "status": "completed",
+    "stop_reason": null,
+    "stop_detail": null,
+    "stop_url": null,
+    "api_calls": 14,
+    "categories_walked": 9,
+    "subcats_excluded": 0,
+    "files_seen": 150,
+    "duplicates": 0,
+    "excluded": 0,
+    "wrong_mime": 0,
+    "no_imageinfo": 0,
+    "records": 150,
+    "errors": 0
+   },
+   "crawl_errors": 0,
+   "records": 150,
+   "skipped": {},
+   "download_failures": {},
+   "kept": 150
+  }
+ },
+ "image_stop": null,
+ "n_items": 381,
+ "dim": 768,
+ "encoder_name": "marqo-fashionSigLIP",
+ "licenses": {
+  "CC BY 2.0": 138,
+  "CC BY-SA 4.0": 124,
+  "CC BY-SA 2.0": 66,
+  "CC BY-SA 3.0": 32,
+  "CC0": 11,
+  "Public domain": 5,
+  "CC BY 3.0": 2,
+  "CC BY 4.0": 1,
+  "CC BY-SA 2.5": 1,
+  "CC BY 1.0": 1
+ },
+ "by_group": {
+  "runway": 126,
+  "street": 120,
+  "cosplay": 135
+ },
+ "screen": {
+  "n_dropped": 69,
+  "by_label": {
+   "low_confidence": 40,
+   "talk": 6,
+   "face": 4,
+   "crowd": 6,
+   "revealing": 5,
+   "object": 2,
+   "display": 5,
+   "text": 1
+  },
+  "by_group": {
+   "runway": 24,
+   "street": 30,
+   "cosplay": 15
+  },
+  "dropped": [
+   {
+    "insp_id": "runway-9a15742ab0",
+    "group": "runway",
+    "title": "2014 Jaguar Style Stakes - MediaEvent (12560054005)",
+    "label": "low_confidence",
+    "p_outfit": 0.8438,
+    "revealing_margin": -11.21
+   },
+   {
+    "insp_id": "runway-89920d1daa",
+    "group": "runway",
+    "title": "2014 Jaguar Style Stakes - MediaEvent (12560164413)",
+    "label": "talk",
+    "p_outfit": 0.3427,
+    "revealing_margin": -8.16
+   },
+   {
+    "insp_id": "runway-50f295ce77",
+    "group": "runway",
+    "title": "2014 Jaguar Style Stakes - MediaEvent (12560195873)",
+    "label": "low_confidence",
+    "p_outfit": 0.6412,
+    "revealing_margin": -8.05
+   },
+   {
+    "insp_id": "runway-9129985d71",
+    "group": "runway",
+    "title": "2014 Jaguar Style Stakes - MediaEvent (12560502024)",
+    "label": "low_confidence",
+    "p_outfit": 0.5186,
+    "revealing_margin": -8.25
+   },
+   {
+    "insp_id": "runway-b9fa51fb6c",
+    "group": "runway",
+    "title": "2014 Jaguar Style Stakes - MediaEvent (12560520534)",
+    "label": "talk",
+    "p_outfit": 0.0512,
+    "revealing_margin": -8.62
+   },
+   {
+    "insp_id": "runway-bddbabbcb9",
+    "group": "runway",
+    "title": "AIDS Auditions London 5 with Boikanyo Trust Phenyo",
+    "label": "talk",
+    "p_outfit": 0.0616,
+    "revealing_margin": -4.08
+   },
+   {
+    "insp_id": "runway-9660301afd",
+    "group": "runway",
+    "title": "AIDS Auditions London Boikanyo Trust Phenyo",
+    "label": "talk",
+    "p_outfit": 0.1096,
+    "revealing_margin": -3.85
+   },
+   {
+    "insp_id": "runway-5ff39d8207",
+    "group": "runway",
+    "title": "AIDS Auditions London inc Boikanyo Trust Phenyo",
+    "label": "talk",
+    "p_outfit": 0.3539,
+    "revealing_margin": -4.9
+   },
+   {
+    "insp_id": "runway-867bb852c5",
+    "group": "runway",
+    "title": "AIDS Auditions London with Boikanyo Trust Phenyo 01",
+    "label": "low_confidence",
+    "p_outfit": 0.6071,
+    "revealing_margin": -5.6
+   },
+   {
+    "insp_id": "runway-c499113a75",
+    "group": "runway",
+    "title": "AIDS Auditions London with Boikanyo Trust Phenyo 2019",
+    "label": "low_confidence",
+    "p_outfit": 0.8946,
+    "revealing_margin": -6.06
+   },
+   {
+    "insp_id": "runway-192070280b",
+    "group": "runway",
+    "title": "Aje Couture 3",
+    "label": "low_confidence",
+    "p_outfit": 0.6454,
+    "revealing_margin": -7.4
+   },
+   {
+    "insp_id": "runway-72de662868",
+    "group": "runway",
+    "title": "Andrés Sardá Bodysuit (Kleidungsstück)",
+    "label": "low_confidence",
+    "p_outfit": 0.9498,
+    "revealing_margin": -2.98
+   },
+   {
+    "insp_id": "runway-372f59a425",
+    "group": "runway",
+    "title": "Asrlar Sadosi 2010b",
+    "label": "low_confidence",
+    "p_outfit": 0.886,
+    "revealing_margin": -7.62
+   },
+   {
+    "insp_id": "runway-20a28b27bb",
+    "group": "runway",
+    "title": "BertaBalilti",
+    "label": "low_confidence",
+    "p_outfit": 0.9448,
+    "revealing_margin": -9.61
+   },
+   {
+    "insp_id": "runway-08a11d652f",
+    "group": "runway",
+    "title": "Bethenny Frankel in Isabella Oliver (cropped)",
+    "label": "face",
+    "p_outfit": 0.0063,
+    "revealing_margin": -3.29
+   },
+   {
+    "insp_id": "runway-ff3f4495a9",
+    "group": "runway",
+    "title": "Bethenny Frankel in Isabella Oliver",
+    "label": "low_confidence",
+    "p_outfit": 0.9241,
+    "revealing_margin": -4.99
+   },
+   {
+    "insp_id": "runway-ec68e7217c",
+    "group": "runway",
+    "title": "Berlin, Modenschau Terrassengarten am Funkturm",
+    "label": "crowd",
+    "p_outfit": 0.0013,
+    "revealing_margin": -2.41
+   },
+   {
+    "insp_id": "runway-2fe53827c8",
+    "group": "runway",
+    "title": "Camoa Brasil - Parana Bussines 2012 (cropped)",
+    "label": "low_confidence",
+    "p_outfit": 0.7581,
+    "revealing_margin": -1.14
+   },
+   {
+    "insp_id": "runway-283305ebd4",
+    "group": "runway",
+    "title": "Camoa Brasil - Parana Bussines 2012",
+    "label": "revealing",
+    "p_outfit": 0.71,
+    "revealing_margin": -0.9
+   },
+   {
+    "insp_id": "runway-4ef58b0493",
+    "group": "runway",
+    "title": "Catwalk by David Shankbone",
+    "label": "crowd",
+    "p_outfit": 0.0001,
+    "revealing_margin": -5.91
+   },
+   {
+    "insp_id": "runway-89f876c6b2",
+    "group": "runway",
+    "title": "Catwalks",
+    "label": "object",
+    "p_outfit": 0.0504,
+    "revealing_margin": -3.55
+   },
+   {
+    "insp_id": "runway-8c145e206f",
+    "group": "runway",
+    "title": "Cecilia Brækhus (looking down)",
+    "label": "low_confidence",
+    "p_outfit": 0.9172,
+    "revealing_margin": -4.43
+   },
+   {
+    "insp_id": "runway-679eba1468",
+    "group": "runway",
+    "title": "Centro Com. Colombo - Lisboa",
+    "label": "object",
+    "p_outfit": 0.0417,
+    "revealing_margin": -3.49
+   },
+   {
+    "insp_id": "runway-1dc4ae2830",
+    "group": "runway",
+    "title": "Dara Torres in 2010 Heart Truth (cropped)",
+    "label": "face",
+    "p_outfit": 0.156,
+    "revealing_margin": -3.4
+   },
+   {
+    "insp_id": "street-6fde1adadd",
+    "group": "street",
+    "title": "Bandanna antennae (3826642892)",
+    "label": "low_confidence",
+    "p_outfit": 0.7547,
+    "revealing_margin": -8.02
+   },
+   {
+    "insp_id": "street-f895162696",
+    "group": "street",
+    "title": "Brisbane street fashion in 2018; minidress, black mini handbag and flip-flops",
+    "label": "low_confidence",
+    "p_outfit": 0.829,
+    "revealing_margin": -2.2
+   },
+   {
+    "insp_id": "street-f5d16ae2a7",
+    "group": "street",
+    "title": "Drag Queen in Toronto by Pouria Afkhami pixoos 09",
+    "label": "revealing",
+    "p_outfit": 0.2625,
+    "revealing_margin": 1.03
+   },
+   {
+    "insp_id": "street-1d2bb00820",
+    "group": "street",
+    "title": "Drag Queen in Toronto by Pouria Afkhami pixoos 10",
+    "label": "revealing",
+    "p_outfit": 0.5458,
+    "revealing_margin": -0.19
+   },
+   {
+    "insp_id": "street-5705f4430d",
+    "group": "street",
+    "title": "Drag Queen in Toronto by Pouria Afkhami pixoos 11",
+    "label": "revealing",
+    "p_outfit": 0.3387,
+    "revealing_margin": 0.67
+   },
+   {
+    "insp_id": "street-02ad13cc56",
+    "group": "street",
+    "title": "Good wig! (4392867570)",
+    "label": "low_confidence",
+    "p_outfit": 0.8961,
+    "revealing_margin": -9.79
+   },
+   {
+    "insp_id": "street-3475e2eabd",
+    "group": "street",
+    "title": "HK 東區 炮台山 Fortress Hill 電器道 Electic Road January 2021 SSG 21",
+    "label": "low_confidence",
+    "p_outfit": 0.8597,
+    "revealing_margin": -5.22
+   },
+   {
+    "insp_id": "street-f56651aac4",
+    "group": "street",
+    "title": "Imboys parkkihalli",
+    "label": "crowd",
+    "p_outfit": 0.3804,
+    "revealing_margin": -11.03
+   },
+   {
+    "insp_id": "street-03554fedc2",
+    "group": "street",
+    "title": "Junulinoj apud McDonald's je Avenuo 9-a de Julio (Bonaero)",
+    "label": "low_confidence",
+    "p_outfit": 0.8927,
+    "revealing_margin": -5.39
+   },
+   {
+    "insp_id": "street-8b8563d217",
+    "group": "street",
+    "title": "Kids on Street - Allahabad - Uttar Pradesh - India (12567348744)",
+    "label": "low_confidence",
+    "p_outfit": 0.9413,
+    "revealing_margin": -10.8
+   },
+   {
+    "insp_id": "street-82959d30aa",
+    "group": "street",
+    "title": "McDonald's en la Avenuo 9-a de Julio (Bonaero) 01",
+    "label": "low_confidence",
+    "p_outfit": 0.5963,
+    "revealing_margin": -6.34
+   },
+   {
+    "insp_id": "street-0affa4880c",
+    "group": "street",
+    "title": "New Years Visitors - Science City - Kolkata 2018-01-01 7093",
+    "label": "crowd",
+    "p_outfit": 0.3048,
+    "revealing_margin": -9.82
+   },
+   {
+    "insp_id": "street-adc7adbda2",
+    "group": "street",
+    "title": "Plagiarism Magazine Logo",
+    "label": "face",
+    "p_outfit": 0.0348,
+    "revealing_margin": -0.33
+   },
+   {
+    "insp_id": "street-2513a2df6f",
+    "group": "street",
+    "title": "PlayHeads Store7",
+    "label": "display",
+    "p_outfit": 0.0084,
+    "revealing_margin": -6.41
+   },
+   {
+    "insp_id": "street-e68bac9abf",
+    "group": "street",
+    "title": "PlayHeads Store8",
+    "label": "display",
+    "p_outfit": 0.0092,
+    "revealing_margin": -7.23
+   },
+   {
+    "insp_id": "street-98bf965483",
+    "group": "street",
+    "title": "Please smile again to peach",
+    "label": "face",
+    "p_outfit": 0.0371,
+    "revealing_margin": -5.17
+   },
+   {
+    "insp_id": "street-7e5f2a00da",
+    "group": "street",
+    "title": "Shibuya Fashion Street Snap (2017-09-16 20.20.29 by Dick Thomas Johnson)",
+    "label": "low_confidence",
+    "p_outfit": 0.8575,
+    "revealing_margin": -13.66
+   },
+   {
+    "insp_id": "street-b86a7af193",
+    "group": "street",
+    "title": "Jalankulkijoita odottamassa suojatien ylitystä Mannerheimintiellä, Lasipalatsin kulmalla",
+    "label": "low_confidence",
+    "p_outfit": 0.9153,
+    "revealing_margin": -9.36
+   },
+   {
+    "insp_id": "street-a0f60f0838",
+    "group": "street",
+    "title": "The Selfie (Unsplash)",
+    "label": "low_confidence",
+    "p_outfit": 0.7145,
+    "revealing_margin": -6.82
+   },
+   {
+    "insp_id": "street-9512b1717a",
+    "group": "street",
+    "title": "A American student and street style from Pull & Bear",
+    "label": "display",
+    "p_outfit": 0.0015,
+    "revealing_margin": -6.65
+   },
+   {
+    "insp_id": "street-16807076b2",
+    "group": "street",
+    "title": "A pink shirt with black fashion",
+    "label": "display",
+    "p_outfit": 0.033,
+    "revealing_margin": -6.48
+   },
+   {
+    "insp_id": "street-88c6c49c23",
+    "group": "street",
+    "title": "Bunny t shirt with green shirt",
+    "label": "display",
+    "p_outfit": 0.0363,
+    "revealing_margin": -9.71
+   },
+   {
+    "insp_id": "street-d862305fa3",
+    "group": "street",
+    "title": "Hagen, Elberfelder Straße 37a",
+    "label": "low_confidence",
+    "p_outfit": 0.6358,
+    "revealing_margin": -9.78
+   },
+   {
+    "insp_id": "street-16d592eb6e",
+    "group": "street",
+    "title": "One Direction 2013",
+    "label": "crowd",
+    "p_outfit": 0.0538,
+    "revealing_margin": -6.55
+   },
+   {
+    "insp_id": "street-7e0e4760d8",
+    "group": "street",
+    "title": "Sport-Fashion-Show (10584498974)",
+    "label": "low_confidence",
+    "p_outfit": 0.8989,
+    "revealing_margin": -9.99
+   },
+   {
+    "insp_id": "street-cf70822fb0",
+    "group": "street",
+    "title": "2017.06.08@原宿ストロボカフェ R!Nバンド",
+    "label": "talk",
+    "p_outfit": 0.0216,
+    "revealing_margin": -5.25
+   },
+   {
+    "insp_id": "street-fd607f888f",
+    "group": "street",
+    "title": "Bodyline Harajuku - panoramio",
+    "label": "low_confidence",
+    "p_outfit": 0.9217,
+    "revealing_margin": -2.74
+   },
+   {
+    "insp_id": "street-17c15b04d8",
+    "group": "street",
+    "title": "Dour Expression",
+    "label": "low_confidence",
+    "p_outfit": 0.6131,
+    "revealing_margin": -7.18
+   },
+   {
+    "insp_id": "street-85af291ef5",
+    "group": "street",
+    "title": "Group 'FREE HUGS'; Tokyo",
+    "label": "low_confidence",
+    "p_outfit": 0.901,
+    "revealing_margin": -10.17
+   },
+   {
+    "insp_id": "street-dd77c764c8",
+    "group": "street",
+    "title": "Harajuku girl",
+    "label": "low_confidence",
+    "p_outfit": 0.6297,
+    "revealing_margin": -8.99
+   },
+   {
+    "insp_id": "cosplay-191119eb49",
+    "group": "cosplay",
+    "title": "Anime Milwaukee 030826",
+    "label": "low_confidence",
+    "p_outfit": 0.6922,
+    "revealing_margin": -6.04
+   },
+   {
+    "insp_id": "cosplay-f76ac6b55b",
+    "group": "cosplay",
+    "title": "Anime MKE 030826, Friend Group 1",
+    "label": "low_confidence",
+    "p_outfit": 0.9243,
+    "revealing_margin": -10.27
+   },
+   {
+    "insp_id": "cosplay-4acdb19299",
+    "group": "cosplay",
+    "title": "Anime MKE 030826, Friend Group 2.1 (2)",
+    "label": "low_confidence",
+    "p_outfit": 0.8621,
+    "revealing_margin": -1.83
+   },
+   {
+    "insp_id": "cosplay-087e16f762",
+    "group": "cosplay",
+    "title": "Anime MKE 030826, Friend Group 2.2",
+    "label": "low_confidence",
+    "p_outfit": 0.9302,
+    "revealing_margin": -2.59
+   },
+   {
+    "insp_id": "cosplay-19b32af58e",
+    "group": "cosplay",
+    "title": "Anime MKE 030826, Friend Group 6",
+    "label": "crowd",
+    "p_outfit": 0.3656,
+    "revealing_margin": -6.52
+   },
+   {
+    "insp_id": "cosplay-b32a8b37b4",
+    "group": "cosplay",
+    "title": "Conference at Levantefor 2025 (46813)",
+    "label": "low_confidence",
+    "p_outfit": 0.5061,
+    "revealing_margin": -6.55
+   },
+   {
+    "insp_id": "cosplay-8f99d3c6e4",
+    "group": "cosplay",
+    "title": "Cosplayers at the shotaku festivam",
+    "label": "low_confidence",
+    "p_outfit": 0.9235,
+    "revealing_margin": -15.71
+   },
+   {
+    "insp_id": "cosplay-fd825adaeb",
+    "group": "cosplay",
+    "title": "CosplaypicShotaku",
+    "label": "low_confidence",
+    "p_outfit": 0.9446,
+    "revealing_margin": -14.63
+   },
+   {
+    "insp_id": "cosplay-222c1ff391",
+    "group": "cosplay",
+    "title": "Donald Trump Impersonator in Lake Lure, North Carolina",
+    "label": "low_confidence",
+    "p_outfit": 0.6034,
+    "revealing_margin": -7.81
+   },
+   {
+    "insp_id": "cosplay-027b821230",
+    "group": "cosplay",
+    "title": "Logo soykevin",
+    "label": "text",
+    "p_outfit": 0.0024,
+    "revealing_margin": -3.34
+   },
+   {
+    "insp_id": "cosplay-53877120f7",
+    "group": "cosplay",
+    "title": "Mod MTV - Jia Jem, cosplayer",
+    "label": "low_confidence",
+    "p_outfit": 0.5374,
+    "revealing_margin": -4.13
+   },
+   {
+    "insp_id": "cosplay-7327f48569",
+    "group": "cosplay",
+    "title": "Wikimedians and cosplayers in the corridor, Wikimania 2023 Day 4",
+    "label": "low_confidence",
+    "p_outfit": 0.7757,
+    "revealing_margin": -8.36
+   },
+   {
+    "insp_id": "cosplay-b13f2df22f",
+    "group": "cosplay",
+    "title": "Cosplayers, Riminicomix 2019 (50817848246)",
+    "label": "low_confidence",
+    "p_outfit": 0.9058,
+    "revealing_margin": -2.27
+   },
+   {
+    "insp_id": "cosplay-d551915fb1",
+    "group": "cosplay",
+    "title": "Cosplayers of Hatsune Miku and Megurine Luka with bikinis 20120802",
+    "label": "revealing",
+    "p_outfit": 0.5279,
+    "revealing_margin": -0.11
+   },
+   {
+    "insp_id": "cosplay-8a242e71d4",
+    "group": "cosplay",
+    "title": "Aftermath of day 1 of Comiket 105",
+    "label": "low_confidence",
+    "p_outfit": 0.9306,
+    "revealing_margin": -9.88
+   }
+  ]
+ }
+}
