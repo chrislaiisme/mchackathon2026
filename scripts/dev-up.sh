@@ -49,6 +49,7 @@ ENGINE02_PORT="${ENGINE02_PORT:-8002}"
 ENGINE03_PORT="${ENGINE03_PORT:-8003}"
 BFF_PORT="${BFF_PORT:-8100}"
 VIRTUAL_YOU_PORT="${VIRTUAL_YOU_PORT:-8081}"
+WHISPER_PORT="${WHISPER_PORT:-9000}"
 WEB_PORT="${WEB_PORT:-3000}"
 
 start() {  # start <名稱> <port> <health 路徑> <指令...>
@@ -92,11 +93,19 @@ echo
 # 另外把整個 engine02.api 掛在 /engine02 底下——ENGINE01 打的是後者，所以
 # 這支一定要用 mcp_servers.catalog.main，不能直接跑 engine02.api。
 # ENGINE02_PUBLIC_BASE 要帶 /engine02，否則回應裡組出來的圖片網址會 404。
-# ENGINE02_ENCODER 預設 hash：不需要 torch，秒開。要跑真正的向量檢索品質就在
-# .env 改成 marqo-fashionSigLIP，但那需要先 pip install torch（好幾 GB）。
+# ENGINE 02（推薦）。組態跟團隊的 scripts/start-demo.ps1 對齊，不要各起各的：
+#   ENGINE02_ENCODER  marqo-fashionSigLIP 才是真正的向量檢索品質（要 torch）；
+#                     hash 不用裝任何東西、秒開，但檢索明顯比較差，只適合純接線測試。
+#   ENGINE02_REWRITER codex = 卡片理由走團隊的 ChatGPT 帳號改寫成具體句子
+#                     （真實溫度、航班時間、單品自己的屬性），none = 回模板理由。
+#   ENGINE02_CODEX_EFFORT 不要繼承外面的值：模型不支援某個 effort 會直接拒絕，
+#                     改寫就默默退回模板，看起來像「沒開」而不是「被拒絕」。
 start engine02 "$ENGINE02_PORT" /health \
   env ENGINE02_DEMO=1 \
-      ENGINE02_ENCODER="${ENGINE02_ENCODER:-hash}" \
+      ENGINE02_ENCODER="${ENGINE02_ENCODER:-marqo-fashionSigLIP}" \
+      ENGINE02_REWRITER="${ENGINE02_REWRITER:-codex}" \
+      ENGINE02_CODEX_EFFORT="${ENGINE02_CODEX_EFFORT:-low}" \
+      ENGINE02_CODEX_MODEL="${ENGINE02_CODEX_MODEL:-}" \
       ENGINE02_CATALOG="$ENGINE02_CATALOG" \
       ENGINE02_PUBLIC_BASE="http://localhost:$ENGINE02_PORT/engine02" \
       "$PY" -m uvicorn mcp_servers.catalog.main:app --host 127.0.0.1 --port "$ENGINE02_PORT"
@@ -131,13 +140,27 @@ start bff "$BFF_PORT" /health \
       ENGINE03_URL="http://localhost:$ENGINE03_PORT" \
       "$PY" -m uvicorn bff.main:app --host 127.0.0.1 --port "$BFF_PORT"
 
+# Whisper（語音輸入）。前端的 /api/transcribe 會轉給它（WHISPER_API_URL，
+# 預設 127.0.0.1:9000）。要 faster-whisper，第一次呼叫才下載模型；沒裝就跳過，
+# 麥克風按鈕按下去會失敗，但打字的流程完全不受影響。
+if "$PY" -c "import faster_whisper" >/dev/null 2>&1; then
+  start whisper "$WHISPER_PORT" /health \
+    env WHISPER_MODEL="${WHISPER_MODEL:-small}" \
+        WHISPER_DEVICE="${WHISPER_DEVICE:-cpu}" \
+        WHISPER_COMPUTE_TYPE="${WHISPER_COMPUTE_TYPE:-int8}" \
+        WHISPER_LANGUAGE="${WHISPER_LANGUAGE:-}" \
+        "$PY" -m uvicorn backend.whisper_transcription.main:app --host 127.0.0.1 --port "$WHISPER_PORT"
+else
+  echo "  whisper 跳過（沒裝 faster-whisper：$PY -m pip install faster-whisper）"
+fi
+
 # Virtual You（去背／試穿，main 在 2026-09-19 併進來的）。它要 rembg，那包很大，
 # 沒裝就跳過——核心的 意圖→推薦→生成 這條線不需要它，不該被它擋住。前端打的是
 # Next.js 的 /api/virtual-you/*，那層再轉給這支；沒起的話只有試穿功能不能用。
 if "$PY" -c "import rembg" >/dev/null 2>&1; then
   start virtualyou "$VIRTUAL_YOU_PORT" /healthz \
     env PERSON_EXTRACTION_MODEL="${PERSON_EXTRACTION_MODEL:-birefnet-portrait}" \
-        VIRTUAL_TRY_ON_PROVIDER="${VIRTUAL_TRY_ON_PROVIDER:-mock}" \
+        VIRTUAL_TRY_ON_PROVIDER="${VIRTUAL_TRY_ON_PROVIDER:-codex}" \
         VIRTUAL_TRY_ON_WORKER_URL="${VIRTUAL_TRY_ON_WORKER_URL:-}" \
         VIRTUAL_TRY_ON_TIMEOUT_SECONDS="${VIRTUAL_TRY_ON_TIMEOUT_SECONDS:-180}" \
         CODEX_BIN="${CODEX_BIN:-codex}" \
