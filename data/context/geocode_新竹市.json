@@ -1,0 +1,11 @@
+{
+ "name": "新竹市",
+ "resolved_name": "新竹市",
+ "lat": 24.80361,
+ "lon": 120.96861,
+ "country": "台湾",
+ "country_code": "TW",
+ "timezone": "Asia/Taipei",
+ "query": "Hsinchu",
+ "fetched_at": "2026-09-20T08:12:08"
+}
