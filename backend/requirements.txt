@@ -39,3 +39,10 @@ onnxruntime
 
 # ENGINE01 -- offline test harness
 pytest
+
+# ENGINE01/03 import engine02 (zones, taxonomy, the FeedbackState contract), and those modules
+# import pandas. Without these two, a fresh clone that follows README_TW fails to collect 7 tests
+# with "No module named 'pandas'" (checked 2026-09-20). ENGINE02's own heavy deps stay in the
+# root pyproject.toml and its separate .venv-engine02.
+pandas>=2.2
+pyarrow>=17.0
