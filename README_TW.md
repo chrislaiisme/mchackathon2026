@@ -162,7 +162,12 @@ python scripts/dev_services.py restart engine01 --env CORS_ALLOWED_ORIGINS=https
                                                            # （下面「遠端 demo」流程會用到）
 ```
 
-服務名稱：`engine02`、`engine01`、`engine03`、`whisper`、`virtual-you`、`frontend`。Log 一樣寫到 `data/runtime/logs/`，跟 `start-demo.ps1` 同一套慣例。兩支腳本並存，看習慣哪個、用哪個 OS 就用哪支。
+服務名稱：`engine02`、`engine01`、`engine03`、`whisper`、`virtual-you`、`frontend`。兩支腳本並存，看習慣哪個、用哪個 OS 就用哪支。
+
+補充：
+- 已經有服務在監聽某個 port 時，`start` 會偵測到、直接跳過不重複啟動，視為重用，不會報錯。
+- 每個服務的 log 會寫到 `data/runtime/logs/<服務>-<port>.stdout.log`／`.stderr.log`——啟動後如果卡住，先去那邊看實際錯誤。
+- `restart` 的 `--env` 覆蓋只影響這次重啟的行程環境變數，不會寫進 `.env`、也不會留存下來，下次重啟要覆蓋的話要再帶一次。
 
 ### 讓評審用自己的電腦連上你的 demo（Cloudflare Quick Tunnel）
 

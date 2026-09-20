@@ -163,7 +163,12 @@ python scripts/dev_services.py restart engine01 --env CORS_ALLOWED_ORIGINS=https
                                                            # (used by the remote-demo flow below)
 ```
 
-Service names: `engine02`, `engine01`, `engine03`, `whisper`, `virtual-you`, `frontend`. Logs land in `data/runtime/logs/`, the same convention `start-demo.ps1` uses. Both launchers are kept side by side — use whichever fits your OS.
+Service names: `engine02`, `engine01`, `engine03`, `whisper`, `virtual-you`, `frontend`. Both launchers are kept side by side — use whichever fits your OS.
+
+Notes:
+- If a service's port is already listening, `start` detects it and skips launching a duplicate — it's treated as reused, not an error.
+- Each service's stdout/stderr goes to `data/runtime/logs/<service>-<port>.stdout.log` / `.stderr.log` — check there first if a service seems stuck after `start`.
+- `restart`'s `--env` override only affects that one restart's process environment; it doesn't edit `.env` or persist anywhere.
 
 ### Demo it remotely (Cloudflare Quick Tunnel)
 
