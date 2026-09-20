@@ -57,19 +57,28 @@ scripts/             開發輔助／資料下載腳本、ENGINE02 的評測腳�
 
 需求：Python 3.11+、Node.js 18+。
 
-ENGINE01 跑在 OpenAI 的 Codex CLI 上，吃你的 ChatGPT Plus/Pro 訂閱額度（不用 API key）——先跑一次 `codex login`。其他模組（ENGINE03、生成模組）視負責人怎麼實作，可能還是需要 `OPENAI_API_KEY`，細節見 [CLAUDE.md](CLAUDE.md)。
+ENGINE01 跑在 OpenAI 的 Codex CLI 上，吃你的 ChatGPT Plus/Pro 訂閱額度（不用 API key）——先跑一次 `codex login`。**2026-09-20 核對：現場實際在跑的 demo 完全不需要 `OPENAI_API_KEY`**——ENGINE03 是純規則式（不吃 LLM），生成模組跟虛擬試穿都改走跟 ENGINE01 一樣的 `codex exec` 機制，不是直接呼叫 OpenAI API。除非你要加一個真的會呼叫 OpenAI API 的新功能，不然這欄留空即可。
 
 ```bash
-cp .env.example .env   # 只有你要跑的模組需要 OPENAI_API_KEY 時才填
-codex login             # 一次性設定，ENGINE01 需要
+cp .env.example .env   # 哪兩個值真的重要，見下面「登入設定」
+codex login             # 一次性設定，ENGINE01／生成模組／虛擬試穿都需要
 
 # ENGINE01
 pip install -r backend/requirements.txt
 ```
 
-**ENGINE02 有自己獨立的環境**（repo 根目錄的 `pyproject.toml`，用 `uv` 安裝——確切指令跟為什麼不共用 `backend/requirements.txt` 見 [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md)），跑在自己的獨立服務、另一個 port 上。
+**ENGINE02 有自己獨立的環境**（repo 根目錄的 `pyproject.toml`，用 `uv` 安裝——確切指令跟為什麼不共用 `backend/requirements.txt` 見 [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md)），跑在自己的獨立服務、另一個 port 上。**ENGINE02 完全不讀 `.env`**（沒有 `load_dotenv()`）——它的環境變數要直接寫在啟動那行指令裡（見下面「怎麼開各個服務」），只寫進 `.env` 沒有用。
 
 每個 `backend/` 底下的模組都有自己的 `README.md`，裡面有各自的執行／測試說明。
+
+### 登入設定（Google OAuth）——必須設定，不能跳過
+
+`/intent` 之後的每一步都要求登入。`.env` 裡真正有影響的是這兩個值：
+
+- `SESSION_SECRET`——自己產生一組，不要共用同一組：`python -c "import secrets; print(secrets.token_hex(32))"`。
+- `GOOGLE_CLIENT_ID`——**這不是密鑰**（設計上就是會被打包進瀏覽器端 JS 的公開值），直接跟團隊要現有的值來用就好，不用自己開一個新的 Google Cloud 專案；要記得跟 `frontend/.env.local` 的 `NEXT_PUBLIC_GOOGLE_CLIENT_ID` 用同一組。
+- **OAuth consent screen 目前是「Testing」狀態，只有手動加進去的 Google 帳號才能登入**（不是「Published」）——不在清單上的帳號就算 Client ID 對，也會被 Google 自己擋下來、跳出「access blocked」錯誤。**如果你（或評審）要用一個之前沒用過的 Google 帳號登入，要先請團隊到 Google Cloud Console → APIs & Services → OAuth consent screen → Test users 把那個信箱加進去**（見 [CLAUDE.md](CLAUDE.md)「Google OAuth Client ID」）。不管是本機測試還是透過下面的 Cloudflare Tunnel 遠端連線，這條都一樣適用。
+- 不想處理 Google 登入、只想先測後端邏輯：設 `DEV_BYPASS_AUTH=true`，所有請求都會當成同一個固定的本機測試使用者。**正式 demo 絕對不能開著這個。**
 
 ### 怎麼開各個服務（2026-09-19，實測過的組合）
 

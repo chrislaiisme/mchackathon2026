@@ -97,7 +97,7 @@ agent/, bff/, mcp_servers/, web/, contracts/, evals/
 
 ## P0 現況 — 各模組的 GPT 存取方式
 
-**團隊目前只有 ChatGPT Plus/Pro 訂閱，還沒有人申請 platform.openai.com 的 API key。** 這件事對 ENGINE03、生成模組（透過 Responses API 呼叫 `image_generation` tool）仍然重要，這兩個都需要 `OPENAI_API_KEY`。**ENGINE02 是例外**：它的推薦理由預設走樣板句（`engine02/llm.py` 已經處理成「沒有 `OPENAI_API_KEY` 就自動退回樣板，功能完整只是不如 LLM 改寫流暢」），有這把 key 只是錦上添花，不是必要條件。如果之後團隊決定要申請：去 platform.openai.com 建帳號、生一把 key、加一筆小額預付款（整場黑客松預估花費遠低於 US$2，抓 US$5–10 就很夠），並且透過線下管道分享——絕對不要寫進 commit 或明碼貼在聊天紀錄裡。把 `.env.example` 複製成 `.env`、本機填好；`.env` 已經被 gitignore。
+**這一節是賽前規劃時的猜測，2026-09-20 核對：現場實際在跑的 demo完全不需要 `OPENAI_API_KEY`。** 當初以為 ENGINE03、生成模組會需要（生成模組原規劃是透過 OpenAI Responses API 呼叫 `image_generation` tool），但實際做出來的版本都改道了：ENGINE03（`backend/engine03_feedback/`）是純規則式的分數門檻映射，不吃 LLM；生成模組（`bff/images/concept.py`＋`agent/scripts/`）改用 Hermes Agent（`openai-codex` plugin，一樣是吃 `codex exec`／ChatGPT 訂閱額度，不是 `OPENAI_API_KEY`）；虛擬試穿（`backend/virtual_you/`）也是同一種 `codex exec` 機制。**ENGINE02 一樣是例外中的例外**：它的推薦理由預設走樣板句（`engine02/llm.py` 已經處理成「沒有 `OPENAI_API_KEY` 就自動退回樣板，功能完整只是不如 LLM 改寫流暢」），有這把 key 只是錦上添花，不是必要條件。也就是說，目前**整套系統要跑起來，`OPENAI_API_KEY` 完全用不到**，只需要 `codex login`（見下面）跟 Google OAuth Client ID（見下下節）。如果之後有新功能真的要用到 OpenAI API：去 platform.openai.com 建帳號、生一把 key、加一筆小額預付款，並且透過線下管道分享——絕對不要寫進 commit 或明碼貼在聊天紀錄裡。把 `.env.example` 複製成 `.env`、本機填好；`.env` 已經被 gitignore。
 
 **ENGINE01 已經不需要這個了。** 它改用 `codex exec`，細節見下面。不要假設其他引擎也一樣不需要 API key，那是各自負責人要做的決定。
 

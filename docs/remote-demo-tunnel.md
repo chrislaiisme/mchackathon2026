@@ -78,12 +78,17 @@ sudo dpkg -i cloudflared.deb
    python scripts/dev_services.py restart frontend
    ```
 
-6. **Google OAuth 登入——這是最容易漏掉、也最容易卡在 demo 現場的一步。** ENGINE01「必須登入」，登入用的是 Google Identity Services，瀏覽器端會檢查目前的網址是不是在 OAuth Client 的「Authorized JavaScript origins」允許清單裡（跟 [CLAUDE.md](../CLAUDE.md)「Google OAuth Client ID」那節設定的是同一個地方）。這個清單是**固定的**，不會自動接受一個新的 `trycloudflare.com` 網址：
+6. **Google OAuth 登入——這是最容易漏掉、也最容易卡在 demo 現場的一步，而且其實有兩個各自獨立、都要設定的地方，不是設一個就夠。** ENGINE01「必須登入」，登入用的是 Google Identity Services：
+
+   **(a) Authorized JavaScript origins**——瀏覽器端會檢查目前的網址是不是在 OAuth Client 的允許清單裡（跟 [CLAUDE.md](../CLAUDE.md)「Google OAuth Client ID」那節設定的是同一個地方）。這個清單是**固定的**，不會自動接受一個新的 `trycloudflare.com` 網址：
 
    1. 打開 [console.cloud.google.com](https://console.cloud.google.com/) → APIs & Services → Credentials → 你的 OAuth client ID。
    2. 「Authorized JavaScript origins」加上 `FRONTEND_TUNNEL_URL`（第 3 步拿到的那個網址，要包含 `https://`，不要帶結尾的 `/`）。
-   3. 存檔。**Google 這邊生效不一定是即時的**，實測可能要幾分鐘，也可能更久——一定要提早測，不要等評審上場當下才第一次嘗試登入。
-   4. **只要重啟第 3 步那條 tunnel，就會拿到一個新網址，Google 這邊也要重新加一次。** 所以：這一步做完、確認登入能動之後，**除非必要不要重啟前端那條 tunnel**（ENGINE01 那條 tunnel 網址不影響 Google OAuth，可以視情況重啟不受影響）。
+   3. 存檔。
+
+   **(b) Test users（如果 OAuth consent screen 還是「Testing」狀態，不是「Published」）**——就算網址被允許了，**評審用來登入的那個 Google 帳號本身，也必須先被加進 APIs & Services → OAuth consent screen → Test users 清單**，不然 Google 會直接跳出「access blocked」，連你的網址都不會顯示出來。**一定要事先跟評審要好登入用的 Gmail、加進清單，不要指望現場臨時加**（Google 那邊生效有延遲，臨時加也來不及）。如果想徹底避開這個問題，另一個選項是把 consent screen 從 Testing 改成 Published（CLAUDE.md 說明過只用基本 scope、不會觸發 Google 審查）——這樣任何 Google 帳號都能登入，不用再手動維護允許清單，但這是團隊要做的決定，這裡不預設採用。
+
+   兩個都改完存檔後，**Google 這邊生效不一定是即時的**，實測可能要幾分鐘，也可能更久——一定要提早測，不要等評審上場當下才第一次嘗試登入。**只要重啟第 3 步那條前端 tunnel，就會拿到一個新網址，(a) 那步要重新加一次**；(b) 的 Test users 清單不受 tunnel 網址改變影響，加過一次就一直有效。所以：確認登入能動之後，**除非必要不要重啟前端那條 tunnel**（ENGINE01 那條 tunnel 網址不影響 Google OAuth，可以視情況重啟不受影響）。
 
 7. **demo 前提早驗證整條鏈路**：用另一台裝置（手機用行動網路，不要用同一個 Wi-Fi，這樣才是真的在測「別人的電腦連得到」）打開 `FRONTEND_TUNNEL_URL`，走一次完整流程：登入 → 打一句話 → 看到推薦 → 給回饋 → 看到下一輪。全部過一次沒問題才算真的準備好，不要只測到「網頁打得開」就停。
 
