@@ -12,7 +12,7 @@ Consumer Intent Agent 把消費者的一句話服飾需求，轉成結構化、�
 
 - **ENGINE 01 — 需求理解**：一句話 → 結構化 JSON 意圖（品項、顏色、場合、預算、風格關鍵字），用 GPT structured output 實作。模糊或推斷出來的欄位會標成系統推斷（絕不悄悄用猜的當成使用者原話），意圖不夠明確時會出澄清選擇題。
 - **ENGINE 02 — 檢索與排序**（已實作，`engine02/` ＋ `backend/engine02_retrieval/`）：在 KAGL 服飾商品庫上做 hybrid search（dense embedding ＋ 自己寫的 BM25），用一個逐項加總的分數重新排序——每一項的貢獻都會回傳、加起來剛好等於總分，這個分數分解本身就是解釋，不是另外生成的。完整設計與實驗見 [docs/engine02-design.md](docs/engine02-design.md)，怎麼跑見 [docs/engine02-pipeline.md](docs/engine02-pipeline.md)。
-- **ENGINE 03 — 偏好回饋迴圈**：把自由文字加上分項評分（顏色／版型／圖案／領子，資料集商品和生成概念圖分開打分）轉成結構化的權重／意圖修正，觸發下一輪。
+- **ENGINE 03 — 偏好回饋迴圈**（**已實作並前後端接通**，`backend/engine03_feedback/`）：純規則式（不吃 LLM）地把分項打分、收藏／不喜歡、整套喜歡轉成結構化的權重調整，觸發下一輪。ENGINE01 的 `POST /feedback` 透過 `engine03_client.py` 呼叫它，依 `source: "catalog"`（資料庫商品）或 `source: "generated"`（Design for Me 生成的概念圖，沒有商品 id、改用設計屬性）分流。前端統一從 `preferenceService` 自動送出這輪的收藏／不喜歡／打分／整套喜歡，使用者不用另外按「送出回饋」。細節見 [docs/engine03-feedback.md](docs/engine03-feedback.md)、[docs/status.md](docs/status.md)。
 - **生成模組**：用 OpenAI Responses API 的 `image_generation` tool，每輪產一張原創概念圖跟檢索結果並排；這張圖會轉成向量併回 ENGINE 02 的 dense 分數，讓檢索和生成互相加強。
 - **Pinterest 趨勢訊號**：團隊自己策展的 Pinterest 板子（Trial API access）餵進 ENGINE 02 的排序權重。
 
@@ -27,16 +27,31 @@ docs/               所有專案 markdown 文件與架構圖
 backend/
   shared/            跨引擎共用的 Pydantic schema（介面契約）
   engine01_intent/   需求理解（FastAPI service）
-  engine02_retrieval/  ENGINE02 的 HTTP 介接層（Intent 進、RetrievalResult 出；完整 API 掛在 /engine02/*）
-  engine03_feedback/   偏好回饋迴圈
-  generation/          概念圖生成
+  engine02_retrieval/  ENGINE02 較舊的 HTTP 介接層。2026-09-20 盤點發現內容已經跟
+                       mcp_servers/catalog/（見下面）分岔——現場真正在跑的是
+                       mcp_servers/catalog/，這裡只剩兩處 import 失敗時的 fallback，
+                       見 docs/repo-cleanup-audit.md。
+  engine03_feedback/   偏好回饋迴圈——已實作並接通（見上面「系統概觀」）
   pinterest/           Pinterest 趨勢訊號串接
 engine02/            ENGINE02 的實作套件（刻意放在 repo 根目錄，見 CLAUDE.md「Repo 結構」——
                      內部路徑解析與 40+ 支腳本都假設這個位置）
-frontend/            React + Vite UI
-validation/          離線模擬使用者驗證迴圈
-scripts/             開發輔助／資料下載腳本，還有 ENGINE02 的評測腳本
+frontend/            Next.js 16 + React 19 UI（IntentWeave；原規劃是 React + Vite，
+                     實際蓋出來換了技術棧）
+mcp_servers/catalog/ ENGINE02 現場真正執行的進入點（`mcp_servers.catalog.main:app`，
+                     把 engine02/ 的 FastAPI app 掛在 /engine02/* 底下）——
+                     scripts/start-demo.ps1／dev_services.py 實際啟動的就是這份
+bff/images/、agent/scripts/  「生成新單品」（Design for Me）的實際生圖管線：ENGINE01
+                     直接 import bff/images/concept.py，它再呼叫
+                     agent/scripts/generate_grid.py／slice_grid.py（Hermes Agent，
+                     Windows 上會橋接到 WSL2）。雖然放在大多沒在用的
+                     agent/bff/mcp_servers/web/contracts/evals/ 平行技術棧（見
+                     CLAUDE.md）旁邊，這幾個檔案本身就是現場 demo 真的在用的程式碼。
+validation/          規劃中的離線驗證迴圈——目前只有 README，還沒有程式碼
+scripts/             開發輔助／資料下載腳本、ENGINE02 的評測腳本，以及跨平台服務啟動器
+                     dev_services.py（見下面）
 ```
+
+完整盤點「哪些是真的用不到、哪些只是文件沒跟上」見 [docs/repo-cleanup-audit.md](docs/repo-cleanup-audit.md)。
 
 ## 快速開始
 
@@ -132,6 +147,31 @@ $env:VIRTUAL_TRY_ON_PROVIDER="codex"
 - 前端 `frontend/.env.local`（不會進 git）要對應補上：ENGINE01 用的 `NEXT_PUBLIC_API_BASE_URL`，虛擬試穿（Terminal 5）用的 `PERSON_EXTRACTION_SERVICE_URL`／`VIRTUAL_TRY_ON_SERVICE_URL`——少了這兩個時，試穿現在會明確回設定錯誤，不會再把原圖假裝成成功結果。
 - 虛擬試穿服務第一次呼叫 `/extract` 會下載一個約 973MB 的去背模型（`rembg` 的 `birefnet-portrait`）；語音服務第一次呼叫 `/transcribe` 會下載 Whisper `small` 模型——這兩個都建議提早 warm up，不要等到 demo 現場才第一次觸發下載。
 - ENGINE02 的商品目錄是服務啟動時讀一次、存進記憶體，不是每次請求都重讀——底層資料有更新的話要重啟 Terminal 1 才會生效；ENGINE01 不會快取 ENGINE02 的任何資料，不用跟著改。
+
+### 跨平台一鍵啟動／關閉／重啟
+
+上面手動開 5 個 terminal 的方式、還有 `start-demo.ps1`／`reset-demo-user.ps1`，都只能在 Windows／PowerShell 上跑。團隊不是所有人都用 Windows，所以另外準備了 **`scripts/dev_services.py`**——純 Python 標準庫寫的跨平台版本，不用額外裝套件，服務清單跟健康檢查都跟 PowerShell 版一致，另外還多了單一服務關閉／重啟的功能：
+
+```bash
+python scripts/dev_services.py start                    # 啟動全部 6 個服務
+python scripts/dev_services.py start engine01 engine02   # 只啟動指定的幾個
+python scripts/dev_services.py status                    # 查每個服務目前是否在跑、健康檢查過不過
+python scripts/dev_services.py stop frontend              # 關掉單一服務
+python scripts/dev_services.py restart engine01 --env CORS_ALLOWED_ORIGINS=https://example.com,http://localhost:3000
+                                                           # 重啟並覆蓋一個環境變數
+                                                           # （下面「遠端 demo」流程會用到）
+```
+
+服務名稱：`engine02`、`engine01`、`engine03`、`whisper`、`virtual-you`、`frontend`。兩支腳本並存，看習慣哪個、用哪個 OS 就用哪支。
+
+補充：
+- 已經有服務在監聽某個 port 時，`start` 會偵測到、直接跳過不重複啟動，視為重用，不會報錯。
+- 每個服務的 log 會寫到 `data/runtime/logs/<服務>-<port>.stdout.log`／`.stderr.log`——啟動後如果卡住，先去那邊看實際錯誤。
+- `restart` 的 `--env` 覆蓋只影響這次重啟的行程環境變數，不會寫進 `.env`、也不會留存下來，下次重啟要覆蓋的話要再帶一次。
+
+### 讓評審用自己的電腦連上你的 demo（Cloudflare Quick Tunnel）
+
+不想讓評審擠在你的筆電前面操作？完整步驟見 **[docs/remote-demo-tunnel.md](docs/remote-demo-tunnel.md)**——包含怎麼裝 `cloudflared`、為什麼前端跟 ENGINE01 **兩個都要** tunnel（只開前端不夠，因為 `NEXT_PUBLIC_API_BASE_URL` 這種變數是啟動時就烤進瀏覽器端 JS 的），以及最容易漏掉的一步：登入要用到 Google OAuth，必須先把 tunnel 拿到的網址加進 Google Cloud Console 的允許清單，評審才登得進去。
 
 ## 交付項目清單（依競賽簡報）
 

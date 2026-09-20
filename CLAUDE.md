@@ -30,9 +30,9 @@
 | 模組 | 負責 | 核心技術 | 資料夾 |
 |---|---|---|---|
 | ENGINE01 | 需求理解＋登入 | GPT structured output、FastAPI、Google OAuth | `backend/engine01_intent/` |
-| ENGINE02 | 檢索與排序（**已實作**） | KAGL 商品庫、自寫 BM25 ＋ dense hybrid search、逐項加總的可解釋排序 | `engine02/`（實作）＋ `backend/engine02_retrieval/`（介接層） |
-| ENGINE03 | 回饋 → 權重／意圖更新 | GPT structured output | `backend/engine03_feedback/` |
-| 生成模組 | 每輪一張概念圖＋虛擬形象試穿 | OpenAI Responses API 的 `image_generation` tool | `backend/generation/` |
+| ENGINE02 | 檢索與排序（**已實作**） | KAGL／H&M 商品庫、自寫 BM25 ＋ dense hybrid search、逐項加總的可解釋排序 | `engine02/`（實作）＋ `mcp_servers/catalog/`（現場實際執行的介接層，見「Repo 結構」跟「環境備註」） |
+| ENGINE03 | 回饋 → 權重／意圖更新（**已實作並接通**） | 純規則式分數門檻映射（不吃 LLM） | `backend/engine03_feedback/`，ENGINE01 透過 `engine03_client.py` 呼叫 |
+| 生成模組 | 每輪一張概念圖（單品／整套兩分區皆支援） | Hermes Agent（`openai-codex` image_gen plugin，跑在 WSL2） | `bff/images/concept.py` ＋ `agent/scripts/generate_grid.py`／`slice_grid.py`（見下面「Repo 結構」，`backend/generation/` 只是早期規劃占位、已被取代） |
 | Pinterest | 趨勢訊號＋單輪參考圖 fallback 餵給 ENGINE02/03 | 團隊自選板子、Pinterest API v5 Trial access | `backend/pinterest/` |
 | 前端 | UI（**已有可跑的原型，Next.js，不是原規劃的 Vite**） | Next.js 16 + React 19 | `frontend/` |
 | 驗證 | 離線量化指標 | 模擬使用者 ＋ FashionCLIP 相似度 | `validation/` |
@@ -50,10 +50,14 @@ docs/                    所有 markdown 文件＋架構圖都放這裡
 backend/
   shared/                跨引擎共用的 Pydantic schema — 介面契約的程式碼版本
   engine01_intent/        \
-  engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格；engine02_retrieval 只是
-  engine03_feedback/      /  ENGINE02 的 HTTP 介接層，實作在 engine02/（見下面）
-  generation/
-  pinterest/
+  engine02_retrieval/      | 每個引擎／模組一個資料夾，對照上面表格。engine02_retrieval 是
+  engine03_feedback/      /  ENGINE02 早期的 HTTP 介接層，2026-09-20 盤點發現它已經跟
+  generation/                mcp_servers/catalog/（現場實際執行的那份）分岔、不再是「逐位元組
+  pinterest/                 相同」——現場請以 mcp_servers/catalog/ 為準，engine02_retrieval
+                             只剩兩支腳本（scripts/simulate_sessions.py、
+                             tests/test_intent_adapter.py）當 import 失敗時的 fallback，細節
+                             見 docs/repo-cleanup-audit.md。generation/ 只有規劃階段的
+                             README、零實作，實際生圖走下面 bff/images/、agent/scripts/。
   requirements.txt        整個 backend/ 共用一份依賴檔（ENGINE02 例外，見「環境備註」）
 engine02/                ENGINE02 的實作套件，刻意放在 repo 根目錄、不是 backend/ 底下——
                          內部用 Path(__file__).resolve().parents[1] 解析 data/catalog/...，
@@ -62,20 +66,31 @@ engine02/                ENGINE02 的實作套件，刻意放在 repo 根目錄�
                          已評估過不值得為了目錄好看冒這個風險（2026-09-19 決定）
 frontend/                Next.js 16 + React 19（IntentWeave；原規劃是 React + Vite，
                          實際蓋出來換了技術棧，見「環境備註」跟 docs/frontend.md）
-validation/              模擬使用者驗證迴圈腳本
-scripts/                 開發輔助腳本（例如下載資料集），也有 ENGINE02 的評測／工具腳本
+validation/              規劃中的模擬使用者驗證迴圈——目前只有 README，還沒有任何實作
+scripts/                 開發輔助腳本（例如下載資料集），也有 ENGINE02 的評測／工具腳本，
+                         另外 dev_services.py 是跨平台一鍵啟動／關閉／重啟腳本（見 README
+                         「Running the services」），start-demo.ps1／reset-demo-user.ps1
+                         是同樣功能的 Windows PowerShell 版本，兩者並存
 agent/, bff/, mcp_servers/, web/, contracts/, evals/
                          2026-09-19 team 決議把整個專案建成 Hermes Agent 應用（PRD 第 7 章）
                          之後，main 上新增的平行技術棧：agent/ 是 Hermes profile 打包、
                          bff/ 是內嵌 Hermes Agent 的 runtime（backend/engine01_intent/ 的
                          複本，遲早會取代 codex exec 呼叫方式）、mcp_servers/ 把 engine02/
                          包成 MCP 工具服務、web/ 是 frontend/ 的複本（改接 bff/）、
-                         contracts/ 是共用 Pydantic schema 的複本。純新增，不影響
-                         backend/、frontend/ 既有內容；正式 demo 從 integration/hermes-app
-                         分支跑，細節見 docs/migration-to-hermes-app.md（2026-09-19 補充：
-                         這份文件只存在於 integration/hermes-app 分支，在 main／
-                         engine01-intent 這幾條分支上這個連結是死的，要看內容得切過去
-                         那條分支才讀得到）。
+                         contracts/ 是共用 Pydantic schema 的複本。**2026-09-20 修正**：這批
+                         資料夾大部分確實純新增、跟現場 demo 無關（`web/`／`contracts/`／
+                         `evals/` 大部分／`bff/` 除了下面這幾個路徑／`agent/skills/` 除了
+                         `concept-image-director`），但其中 `bff/images/concept.py`、
+                         `agent/scripts/generate_grid.py`／`slice_grid.py`、
+                         `mcp_servers/catalog/` 這幾個路徑**已經是現場 demo 真的在用的程式碼**
+                         （`backend/engine01_intent/main.py` 直接 import `bff.images.concept`，
+                         ENGINE02 的官方啟動指令就是跑 `mcp_servers.catalog.main:app`），不是
+                         只屬於未來分支的東西，改動這幾個檔案前要當成正式路徑看待。完整盤點
+                         見 [docs/repo-cleanup-audit.md](docs/repo-cleanup-audit.md)。其餘部分
+                         正式 demo 從 integration/hermes-app 分支跑，細節見
+                         docs/migration-to-hermes-app.md（2026-09-19 補充：這份文件只存在於
+                         integration/hermes-app 分支，在 main／engine01-intent 這幾條分支上
+                         這個連結是死的，要看內容得切過去那條分支才讀得到）。
 ```
 
 **不要重新調整或刪除根目錄的 `index.html` / `privacy.html` / `styles.css` / `assets/` / `.nojekyll`。** 這些是給 Pinterest App 審核用的隱私權政策網站。GitHub Pages 實際上是從獨立的 `gh-pages` 分支發布的（`chrislaiisme.github.io/mchackathon2026/`），所以這些檔案留在 `main` 上目前只是歷史遺留——但沒跟團隊確認前不要刪，也絕對不要沒確認就 push 到 `gh-pages`。
@@ -138,14 +153,16 @@ ENGINE01「必須登入」，需要一組 Google Cloud 的 OAuth Client ID 才�
 
 - 這個 repo 放在 OneDrive 底下（`...\OneDrive\桌面\Hackathon`）。OneDrive 的同步用戶端可能會在寫檔案途中鎖檔，或讓剛寫好的檔案延遲才能用（在建這個 repo 的過程中實際遇過：`pip install` 剛裝完，import openai SDK 的 `jiter` 依賴時噴了一次 `DLL load failed`，下一次馬上重試就正常了——典型的「檔案還沒完全同步好」症狀）。如果 `pip install`／`npm install`／`git` 操作在寫了一大堆檔案之後（例如 `frontend/node_modules`）表現得不穩定，先重試一次再當成真的 bug。如果一直發生，考慮把這個資料夾排除在 OneDrive 同步之外，而不是搬移整個 repo。
 - 後端：Python 3.11+，整個 `backend/` 共用一份 `backend/requirements.txt`——不要每個引擎各自開一份 venv／requirements，兩天的黑客松時程沒有餘裕去對五套環境。**ENGINE02 是這條規則明文的例外**（2026-09-19 整合進 main 時定案）：它有自己的 `pyproject.toml`（`numpy>=2` 等），用 `uv` 裝、跑自己的獨立服務，不吃 `backend/requirements.txt`。原因：它的依賴（`numpy>=2`、選用的 `models` extra 裡有 torch/transformers 這類重量級 ML 套件）跟原本占位猜測、後來確認用不到而移除的 `faiss-cpu` 會拉 `numpy<2` 產生版本衝突；而且它有 258 項測試是對著這個獨立環境驗證過的，硬塞進同一份 `requirements.txt` 只會製造沒有實質好處的風險。跑法見 [`backend/engine02_retrieval/README.md`](backend/engine02_retrieval/README.md)。
-- **前端：實際是 Next.js 16 + React 19（原規劃是 React + Vite，不用 Next.js／SSR——2026-09-19 前端負責人實際蓋出來的技術棧不一樣，這裡改成如實記錄，不是規劃有誤）。** 2026-09-19 現況：登入／onboarding 已經真的接上 ENGINE01 後端（onboarding 同時改成必填，拿掉了原本的 Skip 捷徑）；試穿／收藏／生圖等其餘畫面還是前端本地 mock，尚未接上任何後端 API，細節與落差清單見 [docs/frontend.md](docs/frontend.md)。
+- **前端：實際是 Next.js 16 + React 19（原規劃是 React + Vite，不用 Next.js／SSR——2026-09-19 前端負責人實際蓋出來的技術棧不一樣，這裡改成如實記錄，不是規劃有誤）。** 2026-09-19 現況：登入／onboarding、推薦（Top Pick／Try More）、生圖（Design for Me）、收藏／不喜歡／打分／整套讚踩（統一存進 `preferenceService`，每輪自動送給 ENGINE03 的 `/feedback`）都已經真的接上 ENGINE01 後端；試穿目前接的是 `backend/virtual_you/`（真的去背＋合成，沒設定對應環境變數時會自動退回 mock）。確切哪個功能到哪個完成度、還有哪些已知落差，一律以 [docs/status.md](docs/status.md)／[docs/frontend.md](docs/frontend.md) 現場最新內容為準，這裡只提供方向，不逐項列。
 - 後端有設 CORS（`CORS_ALLOWED_ORIGINS`，預設同時開 `http://localhost:5173`跟`http://localhost:3000`，因為實際前端 port 是 Next.js 的 3000），任何要從瀏覽器呼叫這幾個 API 的畫面（正式前端或臨時測試頁）網址都要在這個清單裡，不然瀏覽器會直接擋掉，不會是 401，是完全連不到。
 - `backend/pinterest/client.py`（2026-09-19 新增，已對真實 API／真實板子驗證過）：`PINTEREST_ACCESS_TOKEN`／`PINTEREST_BOARD_NAME` 兩個環境變數，給 ENGINE01 的單輪參考圖 fallback 用，沒設定就直接跳過、不影響 `/intent`。**`PINTEREST_BOARD_NAME` 要填 Pinterest 上的顯示名稱（例如「IntentWeave References」），不是網址 slug**——兩者不一樣，真實驗證時踩過這個坑。使用者上傳的參考圖存在本機 `data/uploads/<sub>/`（掛在 `/files/...`，不是 `/uploads/...`——避免跟上傳端點本身的路徑 `/uploads/image` 衝突，見 `backend/engine01_intent/main.py` 的註解），已被 `.gitignore` 的 `data/` 規則排除。
-- `ENGINE02_BASE_URL`（2026-09-19 新增，`POST /recommend` 用，預設 `http://localhost:8002`）：本機啟動 ENGINE02 的方式是 `ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_DEMO=1 ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 uvicorn mcp_servers.catalog.main:app --port 8002`（ENGINE02 負責人交接文件指定的方式，見 [`mcp_servers/catalog/README.md`](../mcp_servers/catalog/README.md)；`mcp_servers/catalog/` 內容跟 `backend/engine02_retrieval/` 目前逐位元組相同，只是這次遷移之後走新路徑）。`ENGINE02_PUBLIC_BASE` 沒設對的話，ENGINE02 回傳的商品圖網址會是相對路徑，前端跨 origin 會直接 404。**2026-09-19 port 修正：這裡原本跟 ENGINE01 自己的 port 一樣寫 8000，會互相打架**——前端 `NEXT_PUBLIC_API_BASE_URL` 預期 ENGINE01 本身在 `http://localhost:8000`，ENGINE02 的官方指令是 `--port 8002`，兩者不能共用同一個 port；已經回應 `mcp_servers/catalog/README.md` 裡「需要 ENGINE 01 負責人確認後同步更新該段落」的要求，改成兩個不同 port。**2026-09-19 再次修正（真的跑起來、對著真實瀏覽器測過才發現的）：`ENGINE02_PUBLIC_BASE` 一定要帶 `/engine02` 路徑段**——`mcp_servers.catalog.main:app` 是把 `engine02.api` 整包用 `app.mount("/engine02", ...)` 掛上去的，`engine02/intent_adapter.py` 自己組圖片網址時是直接拿 `ENGINE02_PUBLIC_BASE + "/images/<id>"`，沒帶這段路徑組出來的網址會 404（真正能連到的是 `/engine02/images/<id>`）；`mcp_servers/catalog/README.md` 自己的範例指令也漏了這段，是既有的文件坑，不是 ENGINE01 這邊接錯。**2026-09-20 補上 `ENGINE02_CATALOG`**：ENGINE02 完全不讀 `.env`（沒有 `load_dotenv()`），沒帶這個變數會落到 `engine02/api.py` 的預設值 `data/catalog/kagl`（5,000 件、比賽前的舊商品庫）——`data/README.md` 步驟 5 另外準備了 `data/catalog/hm_filled`（9,870 件 H&M，該文件明講「demo 建議用這個」），但這件事之前只寫在那一處，這裡跟其他文件一起校正成預設帶上它，避免不小心用舊商品庫跑正式 demo。第一次用要先跑 `python scripts/fetch_catalog_images.py --catalog data/catalog/hm_filled` 補圖片（`items.parquet`／向量索引已經隨 repo 附上，只有圖片本身要重建，免帳號）。
+- `ENGINE02_BASE_URL`（2026-09-19 新增，`POST /recommend` 用，預設 `http://localhost:8002`）：本機啟動 ENGINE02 的方式是 `ENGINE02_CATALOG=data/catalog/hm_filled ENGINE02_DEMO=1 ENGINE02_PUBLIC_BASE=http://localhost:8002/engine02 uvicorn mcp_servers.catalog.main:app --port 8002`（ENGINE02 負責人交接文件指定的方式，見 [`mcp_servers/catalog/README.md`](../mcp_servers/catalog/README.md)）。**2026-09-20 修正**：這裡原本寫 `mcp_servers/catalog/` 跟 `backend/engine02_retrieval/` 逐位元組相同，實測已經不是了（`main.py`／`README.md` 都有差異）——`mcp_servers/catalog/` 是現場真正執行、內容較新的那份，`backend/engine02_retrieval/` 只剩兩處 fallback 引用還在用，細節見 [docs/repo-cleanup-audit.md](docs/repo-cleanup-audit.md)。`ENGINE02_PUBLIC_BASE` 沒設對的話，ENGINE02 回傳的商品圖網址會是相對路徑，前端跨 origin 會直接 404。**2026-09-19 port 修正：這裡原本跟 ENGINE01 自己的 port 一樣寫 8000，會互相打架**——前端 `NEXT_PUBLIC_API_BASE_URL` 預期 ENGINE01 本身在 `http://localhost:8000`，ENGINE02 的官方指令是 `--port 8002`，兩者不能共用同一個 port；已經回應 `mcp_servers/catalog/README.md` 裡「需要 ENGINE 01 負責人確認後同步更新該段落」的要求，改成兩個不同 port。**2026-09-19 再次修正（真的跑起來、對著真實瀏覽器測過才發現的）：`ENGINE02_PUBLIC_BASE` 一定要帶 `/engine02` 路徑段**——`mcp_servers.catalog.main:app` 是把 `engine02.api` 整包用 `app.mount("/engine02", ...)` 掛上去的，`engine02/intent_adapter.py` 自己組圖片網址時是直接拿 `ENGINE02_PUBLIC_BASE + "/images/<id>"`，沒帶這段路徑組出來的網址會 404（真正能連到的是 `/engine02/images/<id>`）；`mcp_servers/catalog/README.md` 自己的範例指令也漏了這段，是既有的文件坑，不是 ENGINE01 這邊接錯。**2026-09-20 補上 `ENGINE02_CATALOG`**：ENGINE02 完全不讀 `.env`（沒有 `load_dotenv()`），沒帶這個變數會落到 `engine02/api.py` 的預設值 `data/catalog/kagl`（5,000 件、比賽前的舊商品庫）——`data/README.md` 步驟 5 另外準備了 `data/catalog/hm_filled`（9,870 件 H&M，該文件明講「demo 建議用這個」），但這件事之前只寫在那一處，這裡跟其他文件一起校正成預設帶上它，避免不小心用舊商品庫跑正式 demo。第一次用要先跑 `python scripts/fetch_catalog_images.py --catalog data/catalog/hm_filled` 補圖片（`items.parquet`／向量索引已經隨 repo 附上，只有圖片本身要重建，免帳號）。
 
 ## 想找更多細節的話
 
 - **各模組現在做到哪裡、還缺什麼的總覽表：[docs/status.md](docs/status.md)**（2026-09-19 新增，每次大改動後應該回來更新，不是寫一次就不管）。
+- **repo 裡哪些資料夾／文件是死碼、重複、或已經過時：[docs/repo-cleanup-audit.md](docs/repo-cleanup-audit.md)**（2026-09-20 新增，只列清單、不代表已經執行刪除）。
+- **怎麼一鍵啟動／關閉／重啟所有服務（跨平台）、怎麼用 Cloudflare Quick Tunnel 讓評審用自己的電腦連上 demo：見根目錄 README.md 的「Running the services」「Demo it remotely」兩節**，這裡不重複寫操作步驟。
 - 完整競賽簡報、評分標準、設計討論歷程：[docs/hackathon-brief.md](docs/hackathon-brief.md)
 - PRD 骨架：[docs/prd.md](docs/prd.md)
 - 各模組規格：`docs/engine01-intent.md`、`docs/engine03-feedback.md`、`docs/frontend.md`、`docs/pinterest-and-generation.md`。ENGINE02 已實作，正式規格在 [`docs/engine02-design.md`](docs/engine02-design.md)／[`docs/engine02-pipeline.md`](docs/engine02-pipeline.md)（`docs/engine02-retrieval.md` 只剩一個指向這兩份的導覽，內容本身已經過時）。

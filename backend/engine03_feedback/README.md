@@ -101,6 +101,10 @@ Frontend 透過 BFF `GET /feedback/attributes`（或直接向 ENGINE 03 `GET /at
 
 ENGINE 02 的 `choice_history` 每輪只有一個 `chosen_item_id`；如果同輪收藏多件，ENGINE 03 使用第一件作為該輪主選擇，但所有收藏仍會完整放在 `chosen_item_ids`。
 
+## 整套（outfit）收藏回饋（2026-09-20 補充）
+
+除了單品 `item_feedbacks`，`main.py` 也接受 `outfit_feedbacks`：整套（上衣＋下身）一起收藏／整套 Like-Not-For-Me 的訊號，逐筆拆成兩個 zone 分別處理，跟單品回饋共用同一套 `interaction.*`／`attribute_scores` 底層機制，只是輸入形狀多了 `outfit_id`＋`items[]`（每個 item 帶 `zone`）。單品跟生成圖同時混在一套穿搭裡也支援：`items[].source` 是 `"catalog"` 或 `"generated"`，`generated` 那筆走 `attribute_scores`（因為沒有 ENGINE02 的 `item_id` 可以引用），`catalog` 那筆走 `interaction.*`——完整規則見 `docs/engine03-feedback.md`「資料庫商品跟生成圖的回饋要怎麼共用同一套邏輯」一節。正式欄位定義以這支模組自己的 `contracts.py` 為準，不要照 `docs/engine03-feedback.md` 裡的 JSON 範例逐字對照（那份是草案，命名沒有逐一比對過）。
+
 ## 執行
 
 ```powershell

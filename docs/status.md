@@ -2,7 +2,7 @@
 
 單一一份「各模組現在做到哪裡、還缺什麼」的總覽表，給接手的人或隊友一眼看懂全貌用。細節規格仍然分別在各自的 `docs/*.md`，這裡不重複寫規格，只記「現況」跟「下一步」。內容會過期，每次大改動後應該回來更新一次，不是寫一次就不管。
 
-最後更新：2026-09-19（黑客松比賽日）。
+最後更新：2026-09-20。**這次更新的主因：上一版（2026-09-19）寫的「ENGINE03 三套契約並存、PR #14 還沒 merge、前端全部沒有打 `/feedback`」已經是歷史——回頭讀程式碼＋`git log` 才發現這中間已經完成並 merge，文件沒跟上。這是一個提醒：這份文件本身也會過期，發現內容跟程式碼對不上時，永遠以程式碼為準。**
 
 ## ENGINE01（需求理解＋登入）—— 負責人：這個工作目錄的擁有者
 
@@ -14,10 +14,10 @@
 - 推薦理由自然語句改寫：新增 `llm_client.rewrite_recommendation_reasons()`，批次（一次 `codex exec`）把 `/recommend` 回傳的樣板句理由改寫成自然語句，已驗證「整體風格和你描述的相近（+1.44）」→「風格貼近經典商業套裝」這種效果。
 - Merge 了前端剛推的虛擬試穿後端（`backend/virtual_you/`，許綺文寫的，用跟 ENGINE01 同一種 `codex exec` 零成本機制），裝好新依賴、啟動測試中（見下面「虛擬穿衣」）。
 
-**還缺什麼：**
-- ENGINE03 merge 之後，`engine02_client.py::intent_rank()` 要補 `feedback`／`prev_intent` 兩個參數，把 ENGINE03 的回饋帶進每一輪 ENGINE02 排序——ENGINE02 那一側已經就緒，見下面「ENGINE03」一節。
-- PR #15（gender 修正）還沒 merge 進 main。
-- 生成圖的收藏／不喜歡／打分／Try On 互動——設計草案見 `docs/engine03-feedback.md`，還沒實作，前提是前端資料庫商品那塊先到位＋ENGINE03 merge。
+**還缺什麼（2026-09-20 更新）：**
+- ~~ENGINE03 merge 之後，`engine02_client.py::intent_rank()` 要補 `feedback`／`prev_intent` 兩個參數~~——**已完成**，見下面「ENGINE03」一節，`build_zoned_recommendation()` 現在會把 `feedback`／`prev_intent` 傳給每一次 `intent_rank()` 呼叫。
+- PR #15（gender 修正）是否已經 merge 進 main 需要重新核對一次，這份文件沒有第一手資訊。
+- ~~生成圖的收藏／不喜歡／打分——設計草案，還沒實作~~——**已實作**，見下面「ENGINE03」一節（`source: "generated"` 分流、`db01cf3`）。虛擬形象區塊「整套穿上才能 Like/Not Like」的前端強制規則是否已經真的鎖住兩區都穿才顯示按鈕，需要現場核對（這是原本傳給許綺文的落差清單項目，見「前端」一節）。
 
 ## ENGINE02（檢索與排序）—— 負責人：Evan-Jiamg（明志）
 
@@ -27,42 +27,33 @@
 - `POST /intent/rank`：已經支援同時吃「這輪重新抽出來的 intent」＋「`feedback` 欄位（含 ENGINE03 的 op-based `FeedbackRound`會自動套用）」＋「`prev_intent`（上一輪意圖，供對照評分）」——ENGINE01 目前只送了 `intent`，`feedback`／`prev_intent` 還沒接（見上面「ENGINE01 還缺什麼」）。
 - `POST /handshake`：`engine02/handshake.py::apply_round()` 的 HTTP 版，單獨把一輪 ENGINE03 回饋套進 request，回傳套用後的 `next_request` 跟 ledger——`/intent/rank` 內部就是呼叫同一支函式，两支端點都可以用，目前都沒有任何呼叫端在用。
 
-## ENGINE03（回饋 → 權重／意圖更新）—— 負責人：文件裡還沒指定，確定後補上
+## ENGINE03（回饋 → 權重／意圖更新）—— 已實作並接通，前後端都在跑
 
-**現況：三套互不相容的實作同時存在，這是「有點混亂」的真正原因，不是分支衝突：**
+**2026-09-20 更新：上一版寫的「三套契約並存、PR #14 還沒 merge」已經是歷史。** 目前採用的就是原本 PR #14 那一套決定性、op-based 設計，程式碼在 `backend/engine03_feedback/`（`contracts.py`／`service.py`／`attributes.py`＋測試），純規則式分數門檻映射、不吃 LLM、不用 `OPENAI_API_KEY`。三套契約並存的歷史脈絡（`FeedbackInput`／`bff/feedback/main.py`／`backend/engine03_feedback/`）留在 `docs/engine03-feedback.md` 當紀錄，正式規格請直接看 `backend/engine03_feedback/README.md`，不要照舊版提案動手。
 
-1. `backend/shared/schemas.py` 的 `FeedbackInput`——ENGINE01 最早定的介面契約，`attribute_scores`／`selected_option_id`，**沒有「不喜歡」的欄位**。
-2. `bff/feedback/main.py`（已經在 main 上，Hermes app 技術棧 `bff/main.py` 的 `/feedback` 現在打的就是這支，port 8003）——把讚／倒讚轉成 `FeedbackInput`。**它自己的 docstring 承認限制**：倒讚只進本地帳本，不會傳給 ENGINE02。這套現在能跑，但做不到「不喜歡」這個明確需求。
-3. `backend/engine03_feedback/`（PR [#14](https://github.com/chrislaiisme/mchackathon2026/pull/14)，分支 `engine3-feadback-new`，尚未 merge）——決定性（不吃 LLM）、op-based（`chosen_item_id`／`rejected_item_ids`／`excluded_item_ids`／`anchor_item_ids`／attribute scores→設計軸調整），**這套才有「不喜歡」「永久排除」的概念**，跟 ENGINE02 的 `apply_round()`／`/handshake` 是同一套 op 契約，剛好對得上。
+**現在整條迴圈長這樣：**
+- 前端 `frontend/lib/services/stylist.ts::submitFeedback()`／`adaptPreferencesToFeedbackRequest()` 把使用者這輪的收藏／不喜歡／分項打分／整套喜歡（統一存在 `preferenceService`，見「前端」一節）組成 `POST /feedback` 的形狀，在 `stylist-experience.tsx::submitPendingRoundFeedback()` 裡於下一輪對話送出前自動呼叫——不是使用者要另外按一個「送出回饋」按鈕。
+- ENGINE01 的 `POST /feedback`（`backend/engine01_intent/main.py`）驗證這些 id 真的是這輪展示過的商品（`state.shown_item_ids`／`state.shown_generated_item_ids`，不信任瀏覽器自己講的），依 `source: "catalog"|"generated"` 分流：`catalog` 直接用 `item_id`；`generated`（Design for Me 生成的單品）改用 session 裡由生成 manifest 建立、伺服器端保存的 `design_attributes`（瀏覽器傳來的內容不採信）。接著透過 `engine03_client.py` 呼叫 `backend/engine03_feedback`（port 8003）。
+- `db01cf3 feat(engine3): map generated feedback to design weights`：生成圖回饋映射進設計軸權重的機制已經實作，不是草案。
+- `54869d4 feat(engine3): support outfit favorite feedback`：整套（outfit-level）收藏回饋也已支援。
+- `7f2a57a feat(engine3): aggregate four-round feedback window`：ENGINE03 每次會一起看「前三輪＋本輪」，最多四輪視窗內的評分取平均。
+- 回傳的 `engine02_feedback` 存進 `state.pending_engine02_feedback`，下一輪 `POST /recommend` 呼叫 `engine02_client.intent_rank()` 時當 `feedback` 參數往下傳給 ENGINE02——**這一步已經接通**（上一版文件寫「還缺這段」是舊資訊）。
 
-`origin/engine03-feedback`（另一個名字很像的分支）只是 PR #14 rebase 前的舊版本，不是第四套分歧設計，不用另外處理。用 `git merge-tree` 確認過 PR #14 跟目前 main／engine01-intent 完全不衝突。
-
-**建議的下一步順序（先 merge、再接線，理由跟細節見 `docs/engine03-feedback.md`）：**
-1. Merge PR #14（風險低，不衝突，有 7 項測試）。
-2. ENGINE01 新增呼叫 `backend/engine03_feedback`（port 8003）的 client，把結構化回饋（收藏／不喜歡／分項打分／整套 Like-NotLike）送過去、拿回 `FeedbackRound`。
-3. `session_store.py` 存住「上一輪的 Engine02Request/Response」＋「ENGINE03 回傳的 FeedbackRound」。
-4. `engine02_client.py::intent_rank()` 補 `feedback`／`prev_intent` 兩個參數。
-5. `bff/feedback/main.py` 只有團隊真的要切到 `bff/`／Hermes app 技術棧當 demo 主線時才需要處理，目前不影響現在在跑的 demo 架構（前端直打 ENGINE01、ENGINE01 直打 ENGINE02），可以先不管。
-
-這是跨 ENGINE02／ENGINE03／前端三邊的整合決定，建議先讓三邊負責人看過這個結論再動手。
-
-**追加**：資料庫商品跟生成圖（Design for Me）的回饋要能共用同一套 `/feedback` 格式，但用一個 `source: "catalog"|"generated"` 欄位分流成兩條不同的處理路徑（生成圖沒有 ENGINE02 的 `item_id`，不能走 `interaction.*`，要走 `attribute_scores`）——完整草案（含整套穿搭怎麼拆成兩筆）見 `docs/engine03-feedback.md` 的「資料庫商品跟生成圖的回饋要怎麼共用同一套邏輯」一節，可以直接複製那節內容去跟 ENGINE03 負責人討論。
+**仍待確認／可以再做的**：
+- `docs/engine03-feedback.md` 原本草擬的 `target_level`／`items[].source`／`design_attributes` 欄位命名，跟 `backend/engine03_feedback/` 實際落地的欄位是否逐字一致——這次盤點確認邏輯（`source: catalog|generated` 分流、outfit 拆兩筆）已經照草案的方向做了，但沒有逐欄位比對命名，接手的人如果要改欄位，先讀 `backend/engine03_feedback/contracts.py` 為準，不要照舊草案的 JSON 範例直接套。
+- 「符合度分數」（`match_score`）現場展示——`docs/engine03-feedback.md` 提過的「畫面上秀出符合度從 62% → 89%」這種量化呈現，目前 `ZoneSlate.match_score` 有欄位，但前端有沒有真的把這個數字在兩輪之間並排顯示出來給評審看，需要現場核對一次。
 
 ## 前端（IntentWeave，Next.js 16 + React 19）—— 負責人：許綺文
 
-**現況：** 登入／onboarding 已接上真後端；推薦（Top Pick／Try More）已接上真後端；「Design for Me」已接上真後端（dry-run 模式）。
-
-**已知落差（已經傳給許綺文，不是待認領的開放項目，這裡只是記錄現況方便對照修完了沒）：**
+**現況（2026-09-20 重新核對）：** 登入／onboarding、推薦（Top Pick／Try More）、「Design for Me」生圖都已接上真後端。**上一版寫的「收藏／不喜歡／打分／Try On 全部是 mock、沒有任何一項會打 `/feedback`」已經過時**——實際讀 `frontend/lib/services/preferences.ts`／`stylist-experience.tsx` 之後確認：
 
 | 互動 | 現況 |
 |---|---|
-| 套裝收藏／不喜歡 | 部分能用，但用不同機制存：不喜歡存 localStorage，收藏只存在 React state，重新整理頁面就消失 |
-| 單品收藏／不喜歡 | 唯一同時有讚＋倒讚的元件 `RecommendationCard` 是死碼（吃的 `message.recommendations` 陣列從未被填值），畫面上實際渲染的 `RecommendationCarousel` 只有倒讚沒有讚；單品收藏／打分是純 React state，不會存檔 |
-| 打分（現在單一 1-5 星，之後要改分項） | 現在的單一星等能動但不存檔；分項打分（風格／設計…）完全沒有對應資料結構，是全新功能 |
-| Try On | 完整實作，但純前端視覺模擬（CSS 疊圖），不是真的合成，也沒打後端 |
-| 虛擬人物「整套穿上才能 Like/Not Like」 | 規則目前沒被強制：只要穿任一件（不用兩區都穿）就會顯示按鈕；記錄的也只是「最後穿上的那一件」id，不是上衣＋下身兩個 id |
+| 收藏／不喜歡／分項打分／整套喜歡 | 已經統一收進 `preferenceService`（`toggleSavedItem`／`toggleDislikedItem`／`setDimensionRating`／`toggleSavedOutfitItems`），單一資料來源，不再是「收藏在 React state、不喜歡在 localStorage」各存各的舊問題。這份 `preferenceState` 會在 `submitPendingRoundFeedback()` 裡於下一輪對話送出前**自動**轉成 `POST /feedback` 的形狀送給 ENGINE01→ENGINE03，不需要使用者另外按送出——見上面「ENGINE03」一節。**持久化方式是瀏覽器 `localStorage`（依登入的使用者 id 分開存），不是後端資料庫**：換瀏覽器、清瀏覽器資料、或用無痕視窗會讓偏好重置，demo 前如果要確保「上一輪回饋真的影響下一輪」的效果看得到，同一場 demo 要全程用同一個瀏覽器設定檔。 |
+| Try On（虛擬形象試穿） | `virtualYouService.extractPerson()` 會呼叫 `frontend/app/api/virtual-you/extract`，該路由在設定好 `PERSON_EXTRACTION_SERVICE_URL`（`backend/virtual_you/` 的 `/extract`）時會真的去背，沒設定會退回內建的 `provider: "mock"` 路徑（原樣回傳照片）；試穿合成的細節（`/try-on` 這條路的即時狀態、CSS 疊圖跟真實合成兩者現在的分工）這份文件沒有第一手驗證，demo 前建議直接跟許綺文核對一次現況，不要照這裡的敘述當定案。 |
+| 虛擬人物「整套穿上才能 Like/Not Like」 | 上一版記錄的落差（只穿一件就會顯示按鈕、只記錄最後一件的 id）目前是否已經修正，這份文件沒有重新核對，需要現場確認。 |
 
-**全部 5 項，目前沒有任何一項會打 `/feedback`**——這是等 ENGINE03 merge、ENGINE01 接上之後，前端也要跟著改的部分。
+上面第一項（收藏／不喜歡／打分／整套喜歡 → `/feedback`）是這次盤點確認**已經真的接通並在跑**的部分；後兩項標「沒有第一手驗證」的，請照實跟許綺文核對，不要假設已經修好。
 
 ## 生成模組（概念圖／Design for Me）—— 負責人：Tony（`agent/scripts/generate_grid.py` 作者）
 
@@ -93,5 +84,15 @@
 ## 文件本身的已知問題
 
 - `CLAUDE.md` 連到 `docs/migration-to-hermes-app.md` 的連結在這個分支（`engine01-intent`）上是死的，那份文件只存在於 `integration/hermes-app` 分支。
-- `docs/engine03-feedback.md` 原本的「發現分歧」警告區塊只提到最早、已經被 rebase 掉的 `origin/engine03-feedback`，沒提到後來的 PR #14 或已經在 main 上的 `bff/feedback/main.py`——已經在這次更新裡重寫。
+- `docs/engine03-feedback.md` 原本的「三套契約並存」警告區塊已經是舊聞（ENGINE03 早就 merge 並接通），2026-09-20 已經重寫成「現況已完成，方案 1／2 是歷史紀錄」。
 - `docs/research/integration-map.md`（ENGINE02 團隊寫的）內容還算準，值得直接參考，這次沒有重寫它。
+- **2026-09-20 教訓：這份文件（跟 `docs/engine03-feedback.md`）曾經連續好幾天沒跟上程式碼的實際進度**，寫著「還沒 merge」「還是 mock」的東西其實早就做完了。以後改完重要功能，養成「回來補一行到這份文件」的習慣，不要等到隔了好幾個 commit 才發現落差。
+
+## Repo 整理
+
+repo 裡有哪些資料夾／文件是死碼、跟現場 demo 無關的占位、或應該同一份卻已經分岔的重複目錄，完整盤點見 **[docs/repo-cleanup-audit.md](repo-cleanup-audit.md)**（2026-09-20 新增）。目前只列清單，沒有動手刪除任何東西。
+
+## 一鍵啟動 / 遠端 demo
+
+- 跨平台啟動／關閉／重啟單一服務的方式：見根目錄 README.md「Running the services」一節（`python scripts/dev_services.py`，Windows 也可以繼續用既有的 `scripts/start-demo.ps1`）。
+- 想讓評審用自己的電腦連上這台機器跑的 demo：見根目錄 README.md「Demo it remotely」一節與 [docs/remote-demo-tunnel.md](remote-demo-tunnel.md)（Cloudflare Quick Tunnel，含 Google OAuth 網域允許清單這個容易漏掉的手動步驟）。
