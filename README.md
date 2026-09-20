@@ -58,19 +58,29 @@ A full audit of what's genuinely unused vs. redundant vs. just misdocumented is 
 
 Requirements: Python 3.11+, Node.js 18+.
 
-ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. Other modules (ENGINE03, generation) may need `OPENAI_API_KEY` depending on how their owners implement them — see [CLAUDE.md](CLAUDE.md).
+ENGINE01 runs on the OpenAI Codex CLI riding your ChatGPT Plus/Pro subscription (no API key) — run `codex login` once. As of 2026-09-20, **no module in the currently-running demo actually needs `OPENAI_API_KEY`**: ENGINE03 is rule-based (no LLM), and generation/virtual-try-on both route through the same Codex CLI mechanism as ENGINE01, not a raw OpenAI API key. Leave it blank unless you're adding a new feature that genuinely calls the OpenAI API directly.
 
 ```bash
-cp .env.example .env   # fill in OPENAI_API_KEY only if a module you're running needs it
-codex login             # one-time, needed for ENGINE01
+cp .env.example .env   # see "Login setup" below for the two values that actually matter
+codex login             # one-time, needed for ENGINE01 / generation / virtual try-on
+
 
 # ENGINE01
 pip install -r backend/requirements.txt
 ```
 
-**ENGINE02 has its own environment** (`pyproject.toml` at the repo root, installed with `uv` — see [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md) for the exact commands and why it doesn't share `backend/requirements.txt`) and runs as a separate service on its own port.
+**ENGINE02 has its own environment** (`pyproject.toml` at the repo root, installed with `uv` — see [backend/engine02_retrieval/README.md](backend/engine02_retrieval/README.md) for the exact commands and why it doesn't share `backend/requirements.txt`) and runs as a separate service on its own port. **ENGINE02 does not read `.env` at all** (no `load_dotenv()` call) — its environment variables must be set directly in the shell/command that launches it (see "Running the services" below), not just added to `.env`.
 
 Each module under `backend/` has its own `README.md` with module-specific run/test instructions.
+
+### Login setup (Google OAuth) — required, don't skip this
+
+`/intent` and everything after it requires being logged in. Two `.env` values matter:
+
+- `SESSION_SECRET` — generate your own, don't share one: `python -c "import secrets; print(secrets.token_hex(32))"`.
+- `GOOGLE_CLIENT_ID` — this is **not a secret** (it's designed to ship inside client-side JS), so reusing the team's existing value is fine and saves you from creating your own Google Cloud project. Ask a team member for the current value — it also needs to match `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in `frontend/.env.local`.
+- **The OAuth consent screen is in "Testing" mode with a manually curated list of allowed Google accounts** (not "Published") — a Google account that isn't on that list will hit an "access blocked" error from Google itself, even with the correct Client ID. **If you (or a judge) need to log in with a Google account that hasn't been used before, ask a team member to add that email under Google Cloud Console → APIs & Services → OAuth consent screen → Test users first** (see [CLAUDE.md](CLAUDE.md) "Google OAuth Client ID"). This applies whether you're running locally or connecting through the Cloudflare Tunnel setup below.
+- Don't want to deal with Google login at all while developing? Set `DEV_BYPASS_AUTH=true` — every request is treated as one fixed local test user. **Never leave this on for an actual demo.**
 
 ### Running the services (2026-09-19, verified working set)
 
