@@ -12,7 +12,7 @@ The system is two engines plus a generation module, wired together behind a Fast
 
 - **ENGINE 01 — Intent Understanding**: one sentence → structured JSON intent (item, color, occasion, budget, style keywords), using GPT structured outputs. Ambiguous fields are inferred and labeled as system-inferred (never silently guessed); unclear intent triggers clarifying multiple-choice questions.
 - **ENGINE 02 — Retrieval & Ranking** (implemented, `engine02/` + `backend/engine02_retrieval/`): hybrid search (dense embeddings + a from-scratch BM25) over a KAGL apparel catalog, reranked by an additive score where every term's contribution is reported and sums to the final score — that decomposition is the explanation, not a separately-generated one. See [docs/engine02-design.md](docs/engine02-design.md) (full design + experiments) and [docs/engine02-pipeline.md](docs/engine02-pipeline.md) (how to run it).
-- **ENGINE 03 — Preference Feedback Loop**: turns free-text and per-attribute feedback (color/fit/pattern/collar, scored separately for recommended vs. generated items) into structured weight/intent adjustments that re-trigger the next round.
+- **ENGINE 03 — Preference Feedback Loop** (**implemented and wired end-to-end**, `backend/engine03_feedback/`): a rule-based (no LLM) mapping from per-attribute feedback and favorite/dislike/outfit-level signals to weight adjustments. ENGINE01's `POST /feedback` calls it via `engine03_client.py`, distinguishing `source: "catalog"` (real ENGINE02 items) from `source: "generated"` (Design-for-Me concept images, which carry design attributes instead of a catalog id). The frontend submits this automatically each round from a unified `preferenceService` (favorites/dislikes/ratings/outfit likes), no separate "submit feedback" button. See [docs/engine03-feedback.md](docs/engine03-feedback.md) and [docs/status.md](docs/status.md).
 - **Generation module**: OpenAI Responses API `image_generation` tool produces an original concept image per round alongside the retrieval results; the image is embedded back into ENGINE 02's dense score so retrieval and generation reinforce each other.
 - **Pinterest trend signal**: a team-curated Pinterest board (Trial API access) feeds recent-trend signal into ENGINE 02's ranking weights.
 
@@ -27,17 +27,32 @@ docs/               All project markdown docs and architecture diagrams
 backend/
   shared/            Cross-engine Pydantic schemas (the interface contract)
   engine01_intent/   Intent understanding (FastAPI service)
-  engine02_retrieval/  ENGINE02's HTTP seam (Intent in, RetrievalResult out; full API mounted at /engine02/*)
-  engine03_feedback/   Preference feedback loop
-  generation/          Concept image generation
+  engine02_retrieval/  ENGINE02's older HTTP seam. As of 2026-09-20 this has drifted from
+                       mcp_servers/catalog/ (see below) — mcp_servers/catalog/ is the one
+                       actually running the demo; engine02_retrieval only remains as an
+                       import fallback in two scripts/tests. See docs/repo-cleanup-audit.md.
+  engine03_feedback/   Preference feedback loop — implemented and wired (see above)
   pinterest/           Pinterest trend signal ingestion
 engine02/            ENGINE02's implementation package (kept at repo root on purpose,
                      see CLAUDE.md "Repo 結構" — its own data-path resolution and
                      40+ scripts assume this location)
-frontend/            React + Vite UI
-validation/          Simulated-user offline validation loop
-scripts/             Dev setup / data-download helpers, plus ENGINE02's evaluation scripts
+frontend/            Next.js 16 + React 19 UI ("IntentWeave" — the original plan was
+                     React + Vite; the team's actual build used a different stack)
+mcp_servers/catalog/ ENGINE02's actual live HTTP entrypoint (`mcp_servers.catalog.main:app`,
+                     mounts engine02/'s FastAPI app under /engine02/*) — this is what
+                     scripts/start-demo.ps1 / dev_services.py actually launch
+bff/images/, agent/scripts/  Concept-image ("Design for Me") generation pipeline: ENGINE01
+                     imports bff/images/concept.py directly, which shells out to
+                     agent/scripts/generate_grid.py + slice_grid.py (Hermes Agent, WSL2
+                     bridge on Windows). Despite living next to the mostly-unused
+                     agent/bff/mcp_servers/web/contracts/evals/ parallel "Hermes app"
+                     stack (see CLAUDE.md), these specific files ARE part of today's demo.
+validation/          Planned offline validation loop — currently just a README, no code yet
+scripts/             Dev setup / data-download helpers, ENGINE02's evaluation scripts, and
+                     dev_services.py — the cross-platform service launcher (see below)
 ```
+
+A full audit of what's genuinely unused vs. redundant vs. just misdocumented is in [docs/repo-cleanup-audit.md](docs/repo-cleanup-audit.md).
 
 ## Getting started
 
@@ -133,6 +148,26 @@ Notes:
 - The frontend needs matching entries in `frontend/.env.local` (not committed — copy from `frontend/.env.example` if present): `NEXT_PUBLIC_API_BASE_URL` for ENGINE01, and `PERSON_EXTRACTION_SERVICE_URL` / `VIRTUAL_TRY_ON_SERVICE_URL` for the virtual-try-on service (Terminal 5) — without those two, Try On returns a clear configuration error instead of echoing the original photo back as a mock success.
 - The virtual-try-on service's first `/extract` call downloads a ~973MB background-removal model (`rembg`'s `birefnet-portrait`) to a local cache; the whisper service's first `/transcribe` call downloads the Whisper `small` model. Warm both up well before a live demo, not during one.
 - ENGINE02's catalog is loaded into memory once at startup, not re-read per request — if its underlying catalog data changes, restart Terminal 1 to pick it up. ENGINE01 doesn't cache anything from ENGINE02 and needs no changes when that happens.
+
+### One-command start/stop/restart on any OS
+
+The manual per-terminal commands above, and `start-demo.ps1`/`reset-demo-user.ps1` further above, are Windows/PowerShell-only. The team isn't all on Windows, so **`scripts/dev_services.py`** is a cross-platform equivalent (pure Python standard library, no extra dependencies needed) with the same port list and health checks, plus per-service stop/restart that the PowerShell script doesn't have:
+
+```bash
+python scripts/dev_services.py start                    # start all 6 services
+python scripts/dev_services.py start engine01 engine02   # start just these two
+python scripts/dev_services.py status                    # is each service up and healthy?
+python scripts/dev_services.py stop frontend              # stop one service
+python scripts/dev_services.py restart engine01 --env CORS_ALLOWED_ORIGINS=https://example.com,http://localhost:3000
+                                                           # restart with an env var override
+                                                           # (used by the remote-demo flow below)
+```
+
+Service names: `engine02`, `engine01`, `engine03`, `whisper`, `virtual-you`, `frontend`. Logs land in `data/runtime/logs/`, the same convention `start-demo.ps1` uses. Both launchers are kept side by side — use whichever fits your OS.
+
+### Demo it remotely (Cloudflare Quick Tunnel)
+
+Want a judge to open the demo on their own device instead of gathering around your laptop? See **[docs/remote-demo-tunnel.md](docs/remote-demo-tunnel.md)** — it covers installing `cloudflared`, why you must tunnel **both** the frontend and ENGINE01 (tunneling only the frontend does not work, since `NEXT_PUBLIC_API_BASE_URL` is baked into the browser bundle at startup), and the easy-to-miss step of adding the tunnel's URL to Google OAuth's allowed origins before a remote visitor can log in.
 
 ## Deliverables checklist (per competition brief)
 
