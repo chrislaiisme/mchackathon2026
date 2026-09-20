@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/intentweave/i18n-provider";
-import { OutfitPairError, pairOutfit, type OutfitPairing } from "@/lib/services/outfit-pair";
+import { pairOutfit, type OutfitPairing } from "@/lib/services/outfit-pair";
 import {
   createChatRecommendation,
   createStylistReply,
@@ -36,8 +36,8 @@ import {
   adaptPreferencesToFeedbackRequest,
   adaptToChatRecommendation,
   adaptToClarifyingMessage,
+  adaptConceptZonesToChatRecommendation,
   fetchConceptImage,
-  conceptCellsToRecommendations,
   fetchIntentTurn,
   fetchRecommendation,
   fetchRecommendationReasonRewrite,
@@ -55,7 +55,6 @@ import type {
   ChatRecommendation,
   Conversation,
   FashionRecommendation,
-  GeneratedGroup,
   OutfitRecommendation,
   PreferenceDimensionRatings,
   PreferenceRatingDimension,
@@ -283,213 +282,6 @@ function RecommendationCard({
  * 看而不是攤成一排，試穿／愛心／評分／收藏也自動一致。翻到第幾件跟星等是純
  * 畫面狀態，留在這支元件裡；收藏與喜好要跨元件累積，由上層傳進來。
  */
-/** 生成的與商品庫的候選接在一起時去重；id 前綴不同（top-ai- / 商品 id），不會誤殺。 */
-function dedupeById(items: FashionRecommendation[]): FashionRecommendation[] {
-  const seen = new Set();
-  return items.filter((item) => {
-    if (seen.has(item.id)) {
-      return false;
-    }
-    seen.add(item.id);
-    return true;
-  });
-}
-
-function GeneratedGroupCarousels({
-  groups,
-  catalogCandidates,
-  onPairOutfit,
-  onTryOn,
-  onFeedback,
-  activeTryOnItemIds,
-  tryOnStatus,
-  feedback,
-  preferenceState,
-  onToggleSaved,
-}: {
-  groups: GeneratedGroup[];
-  /**
-   * 同一輪 ENGINE 02 從商品庫撈到的候選。不畫出來，只進「AI 幫我搭」的候選池——
-   * 使用者常常只是不滿意其中一件，這時答案是「現貨上衣 ＋ 生成褲子」。
-   */
-  catalogCandidates?: { topOrDress: FashionRecommendation[]; bottom: FashionRecommendation[] };
-  /** 「AI 幫我搭」：上層補上 intent 與 session 去呼叫配對服務，失敗時 throw。 */
-  onPairOutfit: (
-    tops: FashionRecommendation[],
-    bottoms: FashionRecommendation[],
-  ) => Promise<OutfitPairing>;
-  onTryOn: (item: FashionRecommendation) => void;
-  onFeedback: (item: FashionRecommendation, value: "dislike") => void;
-  activeTryOnItemIds: string[];
-  tryOnStatus: TryOnStatus;
-  feedback: Record<string, "like" | "dislike">;
-  /** main 2026-09-20 的統一偏好狀態；收藏與評分都從這裡讀，不再自己維護一份。 */
-  preferenceState: UserPreferenceState;
-  onToggleSaved: (item: FashionRecommendation) => void;
-}) {
-  const { locale } = useI18n();
-  const [indexBySlot, setIndexBySlot] = useState<Record<string, number>>({});
-  const [ratings, setRatings] = useState<Record<string, PreferenceDimensionRatings>>({});
-  // 配對結果只是這一輪的畫面狀態，跟翻到第幾件一樣留在這支元件裡：同一個對話可能
-  // 有好幾輪 Design for Me，各自的配對互不相干，放到上層反而要多一層 messageId 對照。
-  const [pairing, setPairing] = useState<OutfitPairing | null>(null);
-  const [pairBusy, setPairBusy] = useState(false);
-  const [pairError, setPairError] = useState<string | null>(null);
-
-  // 左邊固定上衣、右邊固定下裝，不跟著後端回傳的順序跑。
-  const ordered = (["top", "bottom"] as const)
-    .map((slot) => groups.find((group) => group.slot === slot))
-    .filter((group): group is GeneratedGroup => Boolean(group) && group!.items.length > 0);
-
-  if (ordered.length === 0) {
-    return null;
-  }
-
-  // 輪播只畫生成的單品——那兩欄的標題就是「不是商品庫裡的商品」，混進現貨會自相矛盾。
-  const generatedTops = ordered.find((group) => group.slot === "top")?.items ?? [];
-  const generatedBottoms = ordered.find((group) => group.slot === "bottom")?.items ?? [];
-
-  // 但配對的候選池要含商品庫：只換一件是常見情境，池子只有生成的就選不到正解。
-  // 去重以 id 為準（兩邊 id 前綴不同，不會誤殺）。
-  const tops = dedupeById([...generatedTops, ...(catalogCandidates?.topOrDress ?? [])]);
-  const bottoms = dedupeById([...generatedBottoms, ...(catalogCandidates?.bottom ?? [])]);
-
-  async function handlePairClick() {
-    if (pairBusy) {
-      return;
-    }
-    setPairBusy(true);
-    setPairError(null);
-    try {
-      const result = await onPairOutfit(tops, bottoms);
-      // 只有選中的那件真的在輪播裡（＝生成的）才翻得動；選到現貨時 index 是 -1，
-      // 輪播維持原樣，改由下面的結果卡把兩件一起畫出來。
-      const topIndex = generatedTops.findIndex((item) => item.id === result.top.id);
-      const bottomIndex = generatedBottoms.findIndex((item) => item.id === result.bottom.id);
-      // 主要的回饋是兩個輪播各自翻到選中的那一件——直接看到兩件並排比讀一段文字快。
-      setIndexBySlot((state) => ({
-        ...state,
-        ...(topIndex >= 0 ? { top: topIndex } : {}),
-        ...(bottomIndex >= 0 ? { bottom: bottomIndex } : {}),
-      }));
-      setPairing(result);
-    } catch (error) {
-      // 就地顯示，輪播維持原樣：這一輪的試穿、愛心、收藏都還要能用。
-      console.error("[stylist] AI 幫我搭失敗：", error);
-      setPairError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setPairBusy(false);
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {locale === "zh-TW" ? "AI 生成，不是商品庫裡的商品" : "AI generated, not in the catalog"}
-        </p>
-        {/* 兩邊都有東西才配得起來；只生出一邊時（另一邊生圖失敗）不給這顆按鈕。 */}
-        {tops.length > 0 && bottoms.length > 0 && (
-          <Button type="button" size="sm" onClick={handlePairClick} disabled={pairBusy}>
-            <Sparkles className="size-4" />
-            {pairBusy
-              ? locale === "zh-TW"
-                ? "配對中…"
-                : "Styling…"
-              : locale === "zh-TW"
-                ? "AI 幫我搭"
-                : "Style it for me"}
-          </Button>
-        )}
-      </div>
-
-      {pairing && (
-        <div className="border-l border-primary pl-4 text-sm leading-6 text-foreground">
-          {/* 退場的組合不是 AI 挑的，照實講——講成 AI 的判斷會讓人以為第一件配第一件
-              有什麼道理。 */}
-          {pairing.source === "fallback" && (
-            <p className="text-muted-foreground">
-              {locale === "zh-TW"
-                ? "AI 沒回應，先給你一組保守的搭配："
-                : "The stylist did not answer — here is a safe pairing instead:"}
-            </p>
-          )}
-          <p>
-            {pairing.reason ||
-              (locale === "zh-TW" ? "第一件上衣配第一件下身。" : "The first top with the first bottom.")}
-          </p>
-
-          {/* 選中的那兩件一定要畫出來：可能其中一件是商品庫的現貨，不在下面的輪播裡，
-              只翻輪播的話使用者根本看不到 AI 挑了什麼。 */}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {[pairing.top, pairing.bottom].map((item) => (
-              <figure key={item.id} className="flex items-center gap-3 border border-border bg-card p-2">
-                <div
-                  className={cn(
-                    "fashion-image size-16 shrink-0 bg-muted",
-                    item.generated && "fashion-image--contain",
-                  )}
-                  style={{ backgroundImage: `url(${item.imageUrl})` }}
-                  role="img"
-                  aria-label={item.name}
-                />
-                <figcaption className="min-w-0">
-                  <p className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
-                    {item.generated
-                      ? locale === "zh-TW" ? "AI 生成" : "AI generated"
-                      : locale === "zh-TW" ? "商品庫現貨" : "In the catalog"}
-                  </p>
-                  <p className="truncate text-sm text-foreground">{item.name}</p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {pairError && (
-        <p className="text-sm leading-6 text-destructive">
-          {locale === "zh-TW" ? `配對失敗：${pairError}` : `Pairing failed: ${pairError}`}
-        </p>
-      )}
-
-      <div className="grid items-stretch gap-5 xl:grid-cols-2">
-        {ordered.map((group) => {
-          // 這一組只有幾件，index 取餘數以防萬一（例如某一邊生失敗只回了幾格）。
-          const index = (indexBySlot[group.slot] ?? 0) % group.items.length;
-          const current = group.items[index];
-
-          return (
-            <RecommendationCarousel
-              key={group.slot}
-              title={group.label}
-              items={group.items}
-              index={index}
-              onNavigate={(nextIndex) =>
-                setIndexBySlot((state) => ({ ...state, [group.slot]: nextIndex }))
-              }
-              onTryOn={onTryOn}
-              onFeedback={onFeedback}
-              activeTryOnItemIds={activeTryOnItemIds}
-              tryOnStatus={tryOnStatus}
-              feedback={feedback}
-              rating={ratings[current.id]}
-              onRate={(itemId, dimension, value) =>
-                setRatings((state) => ({
-                  ...state,
-                  [itemId]: { ...(state[itemId] ?? {}), [dimension]: value },
-                }))
-              }
-              saved={Boolean(preferenceState.savedItems[current.id])}
-              onToggleSaved={onToggleSaved}
-            />
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function VisualChoiceCard({ choice, onSelect }: { choice: VisualChoice; onSelect: (prompt: string) => void }) {
   return (
     <button
@@ -545,10 +337,7 @@ function MessageBlock({
   onRecommendationToggleSaved: (messageId: string, item: FashionRecommendation) => void;
   onRecommendationSaveLook: (messageId: string) => void;
   onDesignForMe: (messageId: string) => void;
-  onPairOutfit: (
-    tops: FashionRecommendation[],
-    bottoms: FashionRecommendation[],
-  ) => Promise<OutfitPairing>;
+  onPairOutfit: (messageId: string) => void;
   designBusy?: boolean;
   choicesDisabled: boolean;
   feedback: Record<string, "like" | "dislike">;
@@ -620,24 +409,6 @@ function MessageBlock({
         </div>
       )}
 
-      {/* Design for Me 生出來的單品自成一輪，左邊上衣、右邊下裝，各自輪播。
-          用的是跟 ENGINE 02 explore 檢視同一支 RecommendationCarousel，所以
-          試穿、愛心、評分、收藏都在；差別只有卡片上標著「非商品庫」。 */}
-      {message.generatedGroups && message.generatedGroups.length > 0 && (
-        <GeneratedGroupCarousels
-          groups={message.generatedGroups}
-          catalogCandidates={message.catalogCandidates}
-          onPairOutfit={onPairOutfit}
-          onTryOn={onTryOn}
-          onFeedback={onFeedback}
-          activeTryOnItemIds={activeTryOnItemIds}
-          tryOnStatus={tryOnStatus}
-          feedback={feedback}
-          preferenceState={preferenceState}
-          onToggleSaved={(item) => onToggleSaved(message.id, item)}
-        />
-      )}
-
       {recommendationState && (
         <ConversationRecommendation
           state={recommendationState}
@@ -656,6 +427,7 @@ function MessageBlock({
           onToggleSaved={(item) => onRecommendationToggleSaved(message.id, item)}
           onSaveLook={() => onRecommendationSaveLook(message.id)}
           onDesignForMe={() => onDesignForMe(message.id)}
+          onPairOutfit={() => onPairOutfit(message.id)}
           designBusy={designBusy}
           designForMeDisabled={choicesDisabled}
         />
@@ -689,7 +461,13 @@ interface StyledMessage {
   reason: string;
 }
 
-type RecommendationUiState = ChatRecommendation;
+type RecommendationUiState = ChatRecommendation & {
+  /**
+   * 「AI 幫我搭」這一輪的結果。純畫面狀態，不進對話記錄——重新整理之後
+   * 重配一次只要十幾秒，不值得為它擴充持久化的形狀。
+   */
+  pairing?: { busy?: boolean; error?: string; result?: OutfitPairing };
+};
 
 function applyRecommendationReasonRewrites(
   recommendation: ChatRecommendation,
@@ -973,6 +751,7 @@ function CompleteOutfitCard({
   onDislike,
   onTryMore,
   onDesignForMe,
+  onPairOutfit,
   designBusy,
   designForMeDisabled,
 }: {
@@ -988,6 +767,7 @@ function CompleteOutfitCard({
   onDislike: () => void;
   onTryMore: () => void;
   onDesignForMe: () => void;
+  onPairOutfit: () => void;
   designBusy?: boolean;
   designForMeDisabled: boolean;
 }) {
@@ -1109,6 +889,13 @@ function CompleteOutfitCard({
                 <Sparkles className="size-4" />
                 {designBusy ? t.stylist.generating : "Design for Me"}
               </Button>
+              {/* 從這一輪的上衣／下身候選裡挑一組最搭的。候選就是 alternatives 兩區——
+                  Design for Me 之後是生成的單品，一般輪是商品庫的商品，兩種都涵蓋，
+                  使用者只想換其中一件時也配得出來。挑完把兩個輪播翻到選中的那件。 */}
+              <Button type="button" size="sm" variant="outline" onClick={onPairOutfit} disabled={designBusy}>
+                <Sparkles className="size-4" />
+                AI 幫我搭
+              </Button>
               <button type="button" onClick={onTryMore} className="border-b border-primary pb-1 text-sm text-foreground">
                 Try More →
               </button>
@@ -1137,6 +924,7 @@ function ConversationRecommendation({
   onToggleSaved,
   onSaveLook,
   onDesignForMe,
+  onPairOutfit,
   designBusy,
   designForMeDisabled,
 }: {
@@ -1156,6 +944,7 @@ function ConversationRecommendation({
   onToggleSaved: (item: FashionRecommendation) => void;
   onSaveLook: () => void;
   onDesignForMe: () => void;
+  onPairOutfit: () => void;
   designBusy?: boolean;
   designForMeDisabled: boolean;
 }) {
@@ -1187,6 +976,7 @@ function ConversationRecommendation({
         onDislike={() => onFeedback(topPick.items.topOrDress, "dislike")}
         onTryMore={onTryMore}
         onDesignForMe={onDesignForMe}
+        onPairOutfit={onPairOutfit}
         designBusy={designBusy}
         designForMeDisabled={designForMeDisabled}
       />
@@ -1198,6 +988,25 @@ function ConversationRecommendation({
       <button type="button" onClick={onBackToTopPick} className="border-b border-primary pb-1 text-sm text-foreground">
         ← Back to Stylist&apos;s Pick
       </button>
+
+      {/* 「AI 幫我搭」的結果。兩個輪播已經翻到選中那件，這裡補上為什麼。 */}
+      {state.pairing?.busy && (
+        <p className="border-l border-primary pl-4 text-sm leading-6 text-muted-foreground">配對中…</p>
+      )}
+      {state.pairing?.error && (
+        <p className="text-sm leading-6 text-destructive">配對失敗：{state.pairing.error}</p>
+      )}
+      {state.pairing?.result && (
+        <div className="border-l border-primary pl-4 text-sm leading-6 text-foreground">
+          {/* 退場的組合不是 AI 挑的，照實講——講成 AI 的判斷會讓人以為第一件配
+              第一件有什麼道理。 */}
+          {state.pairing.result.source === "fallback" && (
+            <p className="text-muted-foreground">AI 沒回應，先給你一組保守的搭配：</p>
+          )}
+          <p>{state.pairing.result.reason || "第一件上衣配第一件下身。"}</p>
+        </div>
+      )}
+
       <div className="grid items-stretch gap-5 xl:grid-cols-2">
         <RecommendationCarousel
           title="TOP / DRESS"
@@ -2702,134 +2511,143 @@ export function StylistExperience() {
     );
   }
 
-  /** 某一輪 ENGINE 02 的候選。只在那一輪真的有推薦結果時才有東西。 */
-  function catalogFor(messageId: string) {
-    const state = recommendationStateByMessageId[messageId];
-
-    if (!state) {
-      return undefined;
+  async function handleDesignForMe(messageId: string) {
+    if (!activeConversation || isGenerating || !activeConversation.engineSessionId) {
+      return;
     }
 
-    return {
-      topOrDress: state.alternatives.topOrDressCandidates,
-      bottom: state.alternatives.bottomCandidates,
-    };
+    const token = authService.getSessionToken();
+    if (!token) {
+      return;
+    }
+
+    // 生圖進行中鎖住對話輸入框（見 docs/frontend.md 代辦事項 3）：跟一般聊天
+    // 打字送出共用同一個 isGenerating 旗標，輸入框／送出鍵本來就是照這個 disable。
+    shouldFollowRef.current = true;
+    setIsGenerating(true);
+
+    try {
+      // 2026-09-19：Hermes Agent 已經確認裝在這台機器的 WSL2 裡、橋接測過真的能生圖
+      // （agent/scripts/generate_grid.py 的 _generate() 在 Windows 上會跨進 WSL2 呼叫），
+      // 這裡改成 dryRun: false，真的花額度生單品。
+      const result = await fetchConceptImage(activeConversation.engineSessionId, token, { dryRun: false });
+
+      const latest =
+        conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
+        activeConversation;
+
+      // 2026-09-19：後端一律回兩分區形狀（連身裙／單品＋填充另一區／整套請求，
+      // 見 backend/engine01_intent/main.py::post_concept_image()），不會再回舊版
+      // 扁平的 result.concepts——這裡跟資料庫推薦一樣先秀 Top Pick，按 Try More
+      // 展開兩區各 6 張，重用既有的 ChatRecommendation 顯示殼。
+      if (result.zones) {
+        const recommendation = adaptConceptZonesToChatRecommendation(result);
+        const summary =
+          locale === "zh-TW"
+            ? "生成完成，先幫你配了一套，按「Try More」看上衣／下身各 6 件候選。"
+            : "Done — here's a first pairing. Tap Try More for 6 options in each zone.";
+        const nextConversation = conversationService.appendMessage(latest, {
+          id: `assistant-design-${Date.now()}`,
+          role: "assistant",
+          text: summary,
+          recommendation: recommendation ?? undefined,
+        });
+        persistConversation(nextConversation);
+      }
+    } catch (error) {
+      console.error("[stylist] 呼叫 ENGINE01 /concept-image 失敗：", error);
+      const latest =
+        conversationService.list(activeConversation.userId).find((c) => c.id === activeConversation.id) ||
+        activeConversation;
+      const message = error instanceof StylistApiError ? error.message : null;
+      const nextConversation = conversationService.appendMessage(latest, {
+        id: `assistant-design-error-${Date.now()}`,
+        role: "assistant",
+        text:
+          locale === "zh-TW"
+            ? `生成新單品失敗：${message ?? "請確認 ENGINE01 服務是否已啟動"}`
+            : `Couldn't generate new pieces: ${message ?? "please check ENGINE01 is running"}`,
+      });
+      persistConversation(nextConversation);
+    } finally {
+      setIsGenerating(false);
+      handleRecommendationBackToTopPick(messageId);
+    }
   }
 
   /**
-   * Design for Me：商品庫裡沒有想要的，就讓 AI 生幾件出來。
+   * 「AI 幫我搭」：從這一輪的上衣／下身候選裡挑一組最搭的。
    *
-   * 走 ENGINE 01 的 /concept-image（不是生圖 BFF 的 8100）。2026-09-20 兩條線
-   * 合成一套之後就只剩這一條：ENGINE 01 那支已經做了分區（zones.resolve_zone_for_item_type
-   * 認得連身裙——連身裙只生上身那一區，不會硬湊一件下身）、兩區並行生成、
-   * 而且把每一格登記進 session，ENGINE 03 的回饋要靠那些 id 才知道使用者按讚的
-   * 是哪一格。這些我在 BFF 那邊都沒有或做得比較差，所以 BFF 的 pair 模式退場。
-   *
-   * 呈現維持這條分支的樣子：兩個並排輪播（左上身、右下身）自成一輪對話，
-   * 不用 Top Pick／Try More 殼——那個殼是給「商品庫撈到的一套」用的，
-   * 生成的東西是一批可比較的選項，攤成兩欄比較符合它的用途。
+   * 候選直接取 alternatives 兩區，所以 Design for Me 之後是 AI 生成的單品、
+   * 一般推薦輪是商品庫的商品，兩種都涵蓋，也涵蓋「只想換其中一件」的情況——
+   * 不必另外維護一份候選池。挑完把兩個輪播各自翻到選中的那件（主要的視覺回饋），
+   * 理由存在這一輪的畫面狀態裡顯示。
    */
-  async function handleDesignForMe(messageId: string) {
-    if (!activeConversation || isGeneratingItems) {
+  async function handlePairOutfit(messageId: string) {
+    const state = recommendationStateByMessageId[messageId];
+    const intent = activeConversation?.lastIntent ?? lastIntent;
+
+    if (!state || isGeneratingItems) {
       return;
     }
 
-    const sessionId = activeConversation.engineSessionId;
-    const token = authService.getSessionToken();
+    const tops = state.alternatives.topOrDressCandidates;
+    const bottoms = state.alternatives.bottomCandidates;
 
-    if (!sessionId || !token) {
-      persistConversation(
-        conversationService.appendMessage(activeConversation, {
-          id: `assistant-design-no-session-${Date.now()}`,
-          role: "assistant",
-          text:
-            locale === "zh-TW"
-              ? "先說一句你想要什麼，我才知道要生成什麼樣的單品。"
-              : "Tell me what you are after first — I need something to design from.",
-        }),
+    function setPairing(pairing: RecommendationUiState["pairing"]) {
+      setRecommendationStateByMessageId((current) =>
+        current[messageId] ? { ...current, [messageId]: { ...current[messageId], pairing } } : current,
       );
+    }
+
+    if (!intent || tops.length === 0 || bottoms.length === 0) {
+      setPairing({
+        error:
+          locale === "zh-TW"
+            ? "這一輪的上衣或下身沒有候選，配不起來。"
+            : "This round has no candidates in one of the zones.",
+      });
       return;
     }
 
-    shouldFollowRef.current = true;
     setIsGeneratingItems(true);
-    const conversationId = activeConversation.id;
-    const userId = activeConversation.userId;
-
-    function latestConversation() {
-      return (
-        conversationService.list(userId).find((conversation) => conversation.id === conversationId) ||
-        activeConversation!
-      );
-    }
+    setPairing({ busy: true });
 
     try {
-      const result = await fetchConceptImage(sessionId, token, { dryRun: false });
+      const result = await pairOutfit(intent, tops, bottoms, activeConversation?.engineSessionId);
+      const topIndex = tops.findIndex((item) => item.id === result.top.id);
+      const bottomIndex = bottoms.findIndex((item) => item.id === result.bottom.id);
 
-      // 連身裙時 zones.bottom.cells 是空陣列（不是欄位缺失），下面過濾掉空的那一組，
-      // 畫面就只會出現一個輪播——這正是 main 分區邏輯要的行為。
-      const groups: GeneratedGroup[] = ([
-        { slot: "top", label: locale === "zh-TW" ? "上身" : "Top" },
-        { slot: "bottom", label: locale === "zh-TW" ? "下身" : "Bottom" },
-      ] as const)
-        .map(({ slot, label }) => ({
-          slot,
-          label,
-          items: conceptCellsToRecommendations(result.zones[slot], slot),
-        }))
-        .filter((group) => group.items.length > 0);
+      setRecommendationStateByMessageId((current) => {
+        const latest = current[messageId];
 
-      if (groups.length === 0) {
-        throw new StylistApiError(
-          locale === "zh-TW" ? "這次沒有切出任何可用的單品" : "No usable pieces came back this time",
-        );
-      }
+        if (!latest) {
+          return current;
+        }
 
-      persistConversation(
-        conversationService.appendMessage(latestConversation(), {
-          id: `assistant-designed-${Date.now()}`,
-          role: "assistant",
-          text:
-            locale === "zh-TW"
-              ? "商品庫裡沒有更合適的了，這幾件是照你的需求生成的——還不存在的衣服。"
-              : "Nothing closer in the catalog — these are designed from what you asked for, and do not exist yet.",
-          generatedGroups: groups,
-          // 把觸發這一輪的那一輪、ENGINE 02 撈到的候選一起帶著。不畫出來，
-          // 只在「AI 幫我搭」時當候選——使用者可能只是不滿意其中一件。
-          catalogCandidates: catalogFor(messageId),
-        }),
-      );
+        return {
+          ...current,
+          [messageId]: {
+            ...latest,
+            // 翻到選中那件才看得出 AI 做了什麼；停在原處等於按了沒反應。
+            view: "explore",
+            alternatives: {
+              ...latest.alternatives,
+              selectedTopOrDressIndex:
+                topIndex >= 0 ? topIndex : latest.alternatives.selectedTopOrDressIndex,
+              selectedBottomIndex:
+                bottomIndex >= 0 ? bottomIndex : latest.alternatives.selectedBottomIndex,
+            },
+            pairing: { result },
+          },
+        };
+      });
     } catch (error) {
-      console.error("[stylist] 呼叫 ENGINE01 /concept-image 失敗：", error);
-      persistConversation(
-        conversationService.appendMessage(latestConversation(), {
-          id: `assistant-design-error-${Date.now()}`,
-          role: "assistant",
-          text:
-            locale === "zh-TW"
-              ? `生成單品失敗：${error instanceof Error ? error.message : String(error)}`
-              : `Generating items failed: ${error instanceof Error ? error.message : String(error)}`,
-        }),
-      );
+      console.error("[stylist] AI 幫我搭失敗：", error);
+      setPairing({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsGeneratingItems(false);
     }
-  }
-
-  /** 「AI 幫我搭」：補上這一輪的意圖與 session，其餘交給配對服務。 */
-  async function handlePairOutfit(tops: FashionRecommendation[], bottoms: FashionRecommendation[]) {
-    // 跟 handleDesignForMe 同一個讀法：持久化在對話上的優先，React state 當備胎。
-    const intent = activeConversation?.lastIntent ?? lastIntent;
-
-    if (!intent) {
-      throw new OutfitPairError(
-        locale === "zh-TW"
-          ? "找不到這一輪的需求，重新說一次你想要什麼再試一次。"
-          : "No intent on this conversation — tell me what you are after and try again.",
-      );
-    }
-
-    return pairOutfit(intent, tops, bottoms, activeConversation?.engineSessionId);
   }
 
   function handleRecommendationNavigate(messageId: string, slot: "topOrDress" | "bottom", index: number) {
