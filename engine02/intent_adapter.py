@@ -225,6 +225,27 @@ def intent_to_request(
         return SlotState.INFERRED if field in inferred else SlotState.VALUE
 
     c = HardConstraints()
+    negated_values: list[tuple[str, str]] = []     # (field, the value the shopper rejected)
+
+    def drop_negated(field: str, values: list[str]) -> list[str]:
+        """「不要黑色」 in a value slot is a rejection, not a request.
+
+        ENGINE 01 sometimes puts the whole phrase in the slot (`colors: ["不要黑色"]`). Reading it
+        positively is the worst bug at this boundary: 「黑色」 matches, the filter asks for black,
+        and the shopper gets five black dresses with a confident explanation. Such a value is taken
+        out of the slot here and handed to the exclusion path below instead.
+        """
+        from .negation import ZH_CUES
+
+        keep = []
+        for v in values:
+            low = str(v).strip().lower()
+            if any(cue in low for cue in ZH_CUES) or any(
+                    cue in low for cue in ("no ", "not ", "without", "avoid", "don't", "dont")):
+                negated_values.append((field, str(v)))
+            else:
+                keep.append(v)
+        return keep
 
     # -- category: the taxonomy already knows Chinese garment words
     item_type = (data.get("item_type") or "").strip()
@@ -239,7 +260,7 @@ def intent_to_request(
             caption.append(item_type)
 
     # -- colours: 「黑色」 → Black, and a family word stays family-level
-    colors = [str(v) for v in (data.get("colors") or []) if str(v).strip()]
+    colors = drop_negated("colors", [str(v) for v in (data.get("colors") or []) if str(v).strip()])
     if colors:
         # 「深灰色」 is not a key in the colour table but 「深灰」 is, so match the longest
         # Chinese colour word contained in what the user wrote before falling back
@@ -277,6 +298,8 @@ def intent_to_request(
         raw = data.get(field)
         if not raw:
             continue
+        if not drop_negated(field, [str(raw)]):
+            continue                      # 「不要正式」 is an exclusion, handled below
         hits = _zh_lookup_all(str(raw), table)
         if hits:
             setattr(c, slot_name, Slot(state=state(field), values=hits))
@@ -334,6 +357,33 @@ def intent_to_request(
         cur.extend(v for v in vals if v not in cur)
     # NOT feedback.design_adjust_steps: the user said these words in this request, and a card that
     # calls them "你上一輪的回饋" is attributing the user's own sentence to something else
+
+    # -- what the shopper said they do NOT want.
+    # Two routes reach here, and both used to be silent: the whole sentence ENGINE 01 forwards as
+    # `message` (「我想找洋裝，不要黑色」), and a negation ENGINE 01 left inside a value slot
+    # (`colors: ["不要黑色"]`, taken out by drop_negated above). Turning them into real exclusions
+    # here is what stops the shopper being shown exactly what they rejected.
+    if catalog_items is not None:
+        from .negation import catalog_vocabulary, expand_color_family, find_negated
+
+        # no design elements here: a negated style word ("不要太正式") is already handled where
+        # style_keywords are read, and passing it twice would count the step twice
+        vocab = catalog_vocabulary(catalog_items)
+        said = [str(message or "")] + [v for _, v in negated_values]
+        for attr, value, phrase in find_negated(" ".join(s for s in said if s), vocab):
+            if attr == "design_element":
+                steps_map[value] = steps_map.get(value, 0) - steps
+                continue
+            if attr == "category_id":
+                continue
+            vals = expand_color_family(value, catalog_items) if attr == "color" else [value]
+            cur = c.excluded_values.setdefault(attr, [])
+            cur.extend(v for v in vals if v not in cur)
+            unresolved.append(f"「{phrase}」→ 已排除 {attr} = {'、'.join(vals[:4])}"
+                              + ("…" if len(vals) > 4 else ""))
+    for field, value in negated_values:                      # nothing matched the catalog: say so
+        if not any(value in u for u in unresolved):
+            unresolved.append(f"{field}「{value}」看起來是否定，但對不到商品庫的值，本輪只進檢索文字")
 
     text = " ".join(dict.fromkeys(w for w in caption if w)).strip()
     req = Engine02Request(

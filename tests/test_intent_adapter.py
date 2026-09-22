@@ -427,3 +427,45 @@ def test_the_complaint_gain_is_a_measured_choice_with_a_control(monkeypatch):
     assert quiet.request.feedback.design_adjust_steps["formal_style"] == -1
     # the ledger has to say how hard it pushed, or the number is unexplainable on a card
     assert any("2 步" in str(e.model_dump()) for e in loud.ledger), loud.ledger
+
+
+# ---- negations that used to arrive silently ------------------------------------------------------
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl")
+def test_a_negation_in_the_sentence_or_inside_a_slot_becomes_a_real_exclusion():
+    """Two routes ENGINE 01 actually uses, both silent before 2026-09-20:
+
+    * the whole sentence in `message` (「我想找洋裝，不要黑色」) was never scanned;
+    * `colors: ["不要黑色"]` matched 「黑色」 and asked the filter FOR black -- the shopper got five
+      black dresses with a confident explanation.
+    """
+    from engine02.catalog import Catalog
+    from engine02.intent_adapter import intent_to_request
+
+    items = Catalog.load(CATALOG.parent).items
+    for intent, message in (({"item_type": "洋裝"}, "我想找洋裝，不要黑色"),
+                            ({"item_type": "洋裝", "colors": ["不要黑色"]}, None)):
+        req, unresolved = intent_to_request(intent, session_id="n", message=message, catalog_items=items)
+        assert "Black" in req.constraints.excluded_values.get("color", []), (intent, message)
+        assert not req.constraints.color.values or "Black" not in req.constraints.color.values
+        assert any("不要黑色" in u for u in unresolved)
+    # a colour the shopper actually wants is untouched
+    req, _ = intent_to_request({"item_type": "洋裝", "colors": ["黑色"]}, session_id="n", catalog_items=items)
+    assert "Black" in (req.constraints.color.values or []) and not req.constraints.excluded_values.get("color")
+
+
+@pytest.mark.skipif(not CATALOG.exists(), reason="needs data/catalog/kagl")
+def test_an_exclusion_the_caller_resolved_is_reported_as_honoured():
+    """It was applied but invisible: the report only listed negations the pipeline parsed itself."""
+    import os
+
+    os.environ.update(ENGINE02_ENCODER="hash", ENGINE02_LLM="none", ENGINE02_DEMO="1")
+    from fastapi.testclient import TestClient
+
+    from engine02.api import app
+
+    with TestClient(app) as c:
+        r = c.post("/intent/rank", json={"session_id": "neg", "message": "我想找洋裝，不要黑色",
+                                         "intent": {"item_type": "洋裝"}, "top_k": 5}).json()
+        rep = r["engine02"]["constraint_report"]
+        assert any(n["applied_to"] == "color" and "Black" in n["how"] for n in rep["honoured_negations"]), rep
+        assert all(str(i.get("color")) != "Black" for i in r["engine02"]["items"])

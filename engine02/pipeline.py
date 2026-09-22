@@ -297,6 +297,14 @@ class Engine02:
         # a CLIP-family encoder is near chance on negation, so leaving it in the text means the
         # user sees exactly what they just rejected (§3.35).
         negations: list[dict[str, str]] = []
+        # exclusions the caller already resolved (ENGINE 01's 「不要黑色」, ENGINE 03's rejections)
+        # are honoured the same way; the card and the report must say so, not only the ones parsed
+        # from the retrieval text here
+        for attr, vals in (req.constraints.excluded_values or {}).items():
+            if vals:
+                negations.append({"said": "（呼叫端已標示不要）", "applied_to": attr,
+                                  "how": f"排除 {'、'.join(str(v) for v in vals[:4])}"
+                                         + (f" 等 {len(vals)} 個值" if len(vals) > 4 else "")})
         if arm.parse_negations and req.retrieval_text:
             from .negation import catalog_vocabulary, expand_color_family, find_negated
 
