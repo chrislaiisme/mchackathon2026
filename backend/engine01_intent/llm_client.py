@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -35,6 +36,17 @@ from backend.shared.schemas import ClarifyingQuestion, Intent
 # CODEX_REASONING_EFFORT：推理強度，"low" 換取比較快的回應速度。
 # CODEX_TIMEOUT_SECONDS：單次呼叫的逾時上限，正常一次要等 8-17 秒，留 90 秒當緩衝。
 _CODEX_BIN = os.environ.get("CODEX_BIN", "codex")
+
+
+def _codex_bin() -> str:
+    """The Codex executable as a path subprocess can actually start.
+
+    npm installs `codex` on Windows as `codex.CMD`, and `subprocess.run(["codex", ...])` does not
+    apply PATHEXT, so it raises FileNotFoundError even though `codex --version` works in the shell
+    (2026-09-20: this turned every /intent into a 500 on the Windows demo machine). shutil.which
+    does apply PATHEXT, so resolve first and fall back to the configured name unchanged.
+    """
+    return shutil.which(_CODEX_BIN) or _CODEX_BIN
 _CODEX_MODEL = os.environ.get("CODEX_MODEL")  # optional override, e.g. a faster model
 _CODEX_REASONING_EFFORT = os.environ.get("CODEX_REASONING_EFFORT", "low")
 _CODEX_TIMEOUT_SECONDS = int(os.environ.get("CODEX_TIMEOUT_SECONDS", "90"))
@@ -104,7 +116,7 @@ def extract_intent(message: str, current_intent: Intent) -> IntentExtraction:
         # --output-last-message：把最終回覆寫進這個檔案，方便我們讀取乾淨的 JSON
         #   （不用去 parse 終端機那些額外的顯示文字）。
         cmd = [
-            _CODEX_BIN,
+            _codex_bin(),
             "exec",
             "--skip-git-repo-check",
             "--sandbox",
@@ -123,12 +135,17 @@ def extract_intent(message: str, current_intent: Intent) -> IntentExtraction:
         ]
         if _CODEX_MODEL:
             cmd += ["-m", _CODEX_MODEL]
-        cmd.append(prompt)
+        # The prompt goes through stdin, never as an argv element: on Windows `codex` is a .CMD shim,
+        # so a long multi-line prompt passed as an argument is mangled by cmd.exe and the model
+        # receives nothing (2026-09-20: every /intent came back with an empty intent and a generic
+        # "ENGINE01 已就緒" note). `codex exec -` reads the prompt from stdin, which is safe.
+        cmd.append("-")
 
         try:
             # 實際呼叫 codex exec 子行程，等它跑完（正常要等 8-17 秒）。
             result = subprocess.run(
                 cmd,
+                input=prompt,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -229,7 +246,7 @@ def rewrite_recommendation_reasons(
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_path = Path(tmp_dir) / "output.json"
         cmd = [
-            _CODEX_BIN,
+            _codex_bin(),
             "exec",
             "--skip-git-repo-check",
             "--sandbox",
@@ -248,11 +265,16 @@ def rewrite_recommendation_reasons(
         ]
         if _CODEX_MODEL:
             cmd += ["-m", _CODEX_MODEL]
-        cmd.append(prompt)
+        # The prompt goes through stdin, never as an argv element: on Windows `codex` is a .CMD shim,
+        # so a long multi-line prompt passed as an argument is mangled by cmd.exe and the model
+        # receives nothing (2026-09-20: every /intent came back with an empty intent and a generic
+        # "ENGINE01 已就緒" note). `codex exec -` reads the prompt from stdin, which is safe.
+        cmd.append("-")
 
         try:
             result = subprocess.run(
                 cmd,
+                input=prompt,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -285,7 +307,7 @@ def generate_freeform_text(prompt: str, timeout_seconds: Optional[float] = None)
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_path = Path(tmp_dir) / "output.txt"
         cmd = [
-            _CODEX_BIN,
+            _codex_bin(),
             "exec",
             "--skip-git-repo-check",
             "--sandbox",
@@ -302,11 +324,16 @@ def generate_freeform_text(prompt: str, timeout_seconds: Optional[float] = None)
         ]
         if _CODEX_MODEL:
             cmd += ["-m", _CODEX_MODEL]
-        cmd.append(prompt)
+        # The prompt goes through stdin, never as an argv element: on Windows `codex` is a .CMD shim,
+        # so a long multi-line prompt passed as an argument is mangled by cmd.exe and the model
+        # receives nothing (2026-09-20: every /intent came back with an empty intent and a generic
+        # "ENGINE01 已就緒" note). `codex exec -` reads the prompt from stdin, which is safe.
+        cmd.append("-")
 
         try:
             result = subprocess.run(
                 cmd,
+                input=prompt,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
